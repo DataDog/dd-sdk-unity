@@ -1,0 +1,9 @@
+# Global code owners - RUM Mobile Team
+
+* @DataDog/rum-mobile
+
+## Docs
+
+doc/ @DataDog/documentation @DataDog/rum-mobile
+docs/ @DataDog/documentation @DataDog/rum-mobile
+*README.md @DataDog/documentation @DataDog/rum-mobile
