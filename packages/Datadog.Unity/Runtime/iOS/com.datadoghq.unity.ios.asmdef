@@ -1,9 +1,12 @@
 {
-    "name": "com.datadoghq.unity.Editor",
-    "rootNamespace": "",
+    "name": "com.datadoghq.unity.ios",
+    "rootNamespace": "Datadog.Unity.iOS",
     "references": [],
     "includePlatforms": [
-        "Editor"
+        "Editor",
+        "iOS",
+        "macOSStandalone",
+        "tvOS"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
