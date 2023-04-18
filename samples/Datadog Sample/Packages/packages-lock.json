@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.datadog.unity": {
+    "com.datadoghq.unity": {
       "version": "file:../../../packages/Datadog.Unity",
       "depth": 0,
       "source": "local",

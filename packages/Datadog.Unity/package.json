@@ -1,5 +1,5 @@
 {
-  "name": "com.datadog.unity",
+  "name": "com.datadoghq.unity",
   "version": "0.0.1",
   "displayName": "Datadog Unity",
   "description": "Data Plugin for Unity",
