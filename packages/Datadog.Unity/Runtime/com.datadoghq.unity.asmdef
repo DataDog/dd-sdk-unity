@@ -1,0 +1,16 @@
+{
+    "name": "com.datadog.unity",
+    "rootNamespace": "Datadog.Unity",
+    "references": [
+        "GUID:3e57a027bda8d471689744237c2ca037"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
