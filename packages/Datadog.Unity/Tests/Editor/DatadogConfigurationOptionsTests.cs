@@ -1,11 +1,8 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Editor.Tests
 {
