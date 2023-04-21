@@ -22,7 +22,7 @@ namespace Datadog.Unity
 
     public class DatadogConfigurationOptions : ScriptableObject
     {
-        public const string _DatadogSettingsPath = "Assets/Editor/DatadogSettings.asset";
+        public const string _DefaultDatadogSettingsPath = "Assets/Editor/DatadogSettings.asset";
 
         [SerializeField]
         public bool Enabled;
@@ -36,21 +36,21 @@ namespace Datadog.Unity
         [SerializeField]
         public LogType DefaultLoggingLevel;
 
-        public static DatadogConfigurationOptions GetOrCreate()
+        public static DatadogConfigurationOptions GetOrCreate(string settingsPath = null)
         {
-            var options = AssetDatabase.LoadAssetAtPath<DatadogConfigurationOptions>(_DatadogSettingsPath);
+            settingsPath ??= _DefaultDatadogSettingsPath;
+            var options = AssetDatabase.LoadAssetAtPath<DatadogConfigurationOptions>(settingsPath);
             if (options == null)
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
+
                 options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
+                options.ClientToken = string.Empty;
                 options.Enabled = true;
                 options.Site = DatadogSite.us1;
                 options.DefaultLoggingLevel = LogType.Log;
 
-                if (!Directory.Exists("Assets/Editor"))
-                {
-                    Directory.CreateDirectory("Assets/Editor");
-                }
-                AssetDatabase.CreateAsset(options, _DatadogSettingsPath);
+                AssetDatabase.CreateAsset(options, settingsPath);
                 AssetDatabase.SaveAssets();
             }
             return options;
