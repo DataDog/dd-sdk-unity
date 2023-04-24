@@ -13,7 +13,8 @@ public class TestBehavior : MonoBehaviour
     void Start()
     {
         var datadog = new Datadog.Unity.Datadog();
-        datadog.Init();
+        var logger = datadog.CreateLogger();
+        logger.Log("Hello from Unity!");
     }
 
     // Update is called once per frame

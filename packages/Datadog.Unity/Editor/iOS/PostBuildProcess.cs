@@ -43,7 +43,15 @@ namespace Datadog.Unity.Editor.iOS
                 CopyAndAddFramework("Datadog.xcframework", pathToProject, pbxProject);
                 CopyAndAddFramework("DatadogObjc.xcframework", pathToProject, pbxProject);
                 CopyAndAddFramework("DatadogCrashReporting.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("CrashReporter.xcframework", pathToProject, pbxProject);
+                CopyAndAddFramework("CrashReporter.xcframework", pathToProject, pbxProject, false);
+
+                var optionsFile = Path.Combine("MainApp", "DatadogOptions.m");
+                var optionsPath = Path.Combine(pathToProject, optionsFile);
+                GenerateOptionsFile(optionsPath, DatadogConfigurationOptions.GetOrCreate());
+                var optionsFileGuid = pbxProject.AddFile(optionsFile, optionsFile, PBXSourceTree.Source);
+                pbxProject.AddFileToBuild(mainTarget, optionsFileGuid);
+
+                AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"));
 
                 pbxProject.WriteToFile(projectPath);
             }
@@ -53,7 +61,7 @@ namespace Datadog.Unity.Editor.iOS
             }
         }
 
-        public static void CopyAndAddFramework(string frameworkName, string pathToProject, PBXProject pbxProject)
+        public static void CopyAndAddFramework(string frameworkName, string pathToProject, PBXProject pbxProject, bool embedAndSign = true)
         {
             var fullFrameworkPath = Path.GetFullPath(Path.Combine(s_frameworkLocation, frameworkName + "~"));
             if (!Directory.Exists(fullFrameworkPath))
@@ -71,21 +79,15 @@ namespace Datadog.Unity.Editor.iOS
             Debug.Log($"Copying {fullFrameworkPath} to {targetPath}");
             FileUtil.CopyFileOrDirectory(fullFrameworkPath, targetPath);
 
-
             var relativeFrameworkPath = Path.Combine("Frameworks", frameworkName);
-            var frameworkGuid = pbxProject.AddFile(relativeFrameworkPath, relativeFrameworkPath, PBXSourceTree.Source);
+            var frameworkGuid = pbxProject.AddFile(relativeFrameworkPath, relativeFrameworkPath);
             var mainTarget = pbxProject.GetUnityMainTargetGuid();
-            pbxProject.AddFileToEmbedFrameworks(mainTarget, frameworkName);
+            if (embedAndSign)
+            {
+                pbxProject.AddFileToEmbedFrameworks(mainTarget, frameworkGuid);
+            }
             var buildPhase = pbxProject.GetFrameworksBuildPhaseByTarget(mainTarget);
             pbxProject.AddFileToBuildSection(mainTarget, buildPhase, frameworkGuid);
-
-            var optionsFile = Path.Combine("MainApp", "DatadogOptions.m");
-            var optionsPath = Path.Combine(pathToProject, optionsFile);
-            GenerateOptionsFile(optionsPath, DatadogConfigurationOptions.GetOrCreate());
-            var optionsFileGuid = pbxProject.AddFile(optionsFile, optionsFile, PBXSourceTree.Source);
-            pbxProject.AddFileToBuild(mainTarget, optionsFileGuid);
-
-            AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"));
         }
 
         private static void GenerateOptionsFile(string path, DatadogConfigurationOptions options)
