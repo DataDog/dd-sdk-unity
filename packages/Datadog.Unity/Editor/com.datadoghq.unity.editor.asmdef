@@ -1,7 +1,9 @@
 {
     "name": "com.datadoghq.unity.Editor",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "com.datadog.unity"
+    ],
     "includePlatforms": [
         "Editor"
     ],

@@ -27,7 +27,7 @@ namespace Datadog.Unity.Editor.Tests
         {
             Assert.IsFalse(File.Exists(_assetPath));
 
-            DatadogConfigurationOptions.GetOrCreate(_assetPath);
+            DatadogConfigurationOptionsExtensions.GetOrCreate(_assetPath);
 
             Assert.IsTrue(File.Exists(_assetPath));
         }
@@ -37,7 +37,7 @@ namespace Datadog.Unity.Editor.Tests
         {
             Assert.IsFalse(File.Exists(_assetPath));
 
-            var options = DatadogConfigurationOptions.GetOrCreate(_assetPath);
+            var options = DatadogConfigurationOptionsExtensions.GetOrCreate(_assetPath);
 
             Assert.IsTrue(options.Enabled);
             Assert.IsEmpty(options.ClientToken);

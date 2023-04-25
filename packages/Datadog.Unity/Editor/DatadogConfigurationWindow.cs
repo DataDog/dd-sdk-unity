@@ -20,7 +20,7 @@ namespace Datadog.Unity.Editor
 
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
-            _options = DatadogConfigurationOptions.GetOrCreate();
+            _options = DatadogConfigurationOptionsExtensions.GetOrCreate();
         }
 
         public override void OnGUI(string searchContext)

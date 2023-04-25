@@ -27,7 +27,6 @@ private class LogRegistry {
 @_cdecl("DatadogLogging_CreateLog")
 func DatadogLogging_CreateLog() -> UnsafeMutablePointer<CChar>? {
     let loggerId = LogRegistry.shared.createLog()
-
     return strdup(loggerId)
 }
 

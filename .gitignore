@@ -3,3 +3,5 @@ obj/
 bin/
 .build/
 **/*.xcframework~
+**/*.aar
+samples/Datadog Sample/Assets/Resources/DatadogSettings.asset

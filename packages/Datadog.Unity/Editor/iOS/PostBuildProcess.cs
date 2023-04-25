@@ -47,7 +47,7 @@ namespace Datadog.Unity.Editor.iOS
 
                 var optionsFile = Path.Combine("MainApp", "DatadogOptions.m");
                 var optionsPath = Path.Combine(pathToProject, optionsFile);
-                GenerateOptionsFile(optionsPath, DatadogConfigurationOptions.GetOrCreate());
+                GenerateOptionsFile(optionsPath, DatadogConfigurationOptionsExtensions.GetOrCreate());
                 var optionsFileGuid = pbxProject.AddFile(optionsFile, optionsFile, PBXSourceTree.Source);
                 pbxProject.AddFileToBuild(mainTarget, optionsFileGuid);
 

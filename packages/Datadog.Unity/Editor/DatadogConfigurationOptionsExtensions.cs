@@ -1,44 +1,18 @@
-﻿using System.IO;
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2023-Present Datadog, Inc.
+
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Datadog.Unity
+namespace Datadog.Unity.Editor
 {
-    public enum DatadogSite
+    public static class DatadogConfigurationOptionsExtensions
     {
-        [InspectorName("us1")]
-        us1,
-        [InspectorName("us3")]
-        us3,
-        [InspectorName("us5")]
-        us5,
-        [InspectorName("eu1")]
-        eu1,
-        [InspectorName("us1Fed")]
-        us1Fed,
-        [InspectorName("ap1")]
-        ap1,
-    }
-
-    public class DatadogConfigurationOptions : ScriptableObject
-    {
-        public const string _DefaultDatadogSettingsPath = "Assets/Editor/DatadogSettings.asset";
-
-        [SerializeField]
-        public bool Enabled;
-
-        [SerializeField]
-        public string ClientToken;
-
-        [SerializeField]
-        public DatadogSite Site;
-
-        [SerializeField]
-        public LogType DefaultLoggingLevel;
-
         public static DatadogConfigurationOptions GetOrCreate(string settingsPath = null)
         {
-            settingsPath ??= _DefaultDatadogSettingsPath;
+            settingsPath ??= DatadogConfigurationOptions._DefaultDatadogSettingsPath;
             var options = AssetDatabase.LoadAssetAtPath<DatadogConfigurationOptions>(settingsPath);
             if (options == null)
             {
@@ -56,6 +30,4 @@ namespace Datadog.Unity
             return options;
         }
     }
-
 }
-
