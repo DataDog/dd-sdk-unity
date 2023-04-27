@@ -1,7 +1,9 @@
 {
     "name": "com.datadoghq.unity.ios",
     "rootNamespace": "Datadog.Unity.iOS",
-    "references": [],
+    "references": [
+        "com.datadog.unity"
+    ],
     "includePlatforms": [
         "Editor",
         "iOS",

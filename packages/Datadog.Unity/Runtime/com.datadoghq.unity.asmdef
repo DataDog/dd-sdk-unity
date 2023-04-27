@@ -1,9 +1,7 @@
 {
     "name": "com.datadog.unity",
     "rootNamespace": "Datadog.Unity",
-    "references": [
-        "GUID:3e57a027bda8d471689744237c2ca037"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

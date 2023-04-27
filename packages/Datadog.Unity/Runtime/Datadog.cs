@@ -2,15 +2,27 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
-using Datadog.Unity.iOS;
-
 namespace Datadog.Unity
 {
-    public class Datadog
+    public class DatadogSdk
     {
-        public DatadogiOSLogger CreateLogger()
+        public static DatadogSdk instance = new DatadogSdk();
+
+        IDatadogPlatform platform;
+
+        private DatadogSdk()
         {
-            return DatadogiOSLogger.Create();
+
+        }
+
+        public static void InitWithPlatform(IDatadogPlatform platform)
+        {
+            instance.platform = platform;
+        }
+
+        public IDdLogger CreateLogger()
+        {
+            return platform?.CreateLogger();
         }
     }
 }

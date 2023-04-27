@@ -12,8 +12,7 @@ public class TestBehavior : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        var datadog = new Datadog.Unity.Datadog();
-        var logger = datadog.CreateLogger();
+        var logger = DatadogSdk.instance.CreateLogger();
         logger.Log("Hello from Unity!");
     }
 

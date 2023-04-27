@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Datadog.Unity.iOS
 {
-    public class DatadogiOSLogger
+    public class DatadogiOSLogger : IDdLogger
     {
         private string _loggerId;
 
