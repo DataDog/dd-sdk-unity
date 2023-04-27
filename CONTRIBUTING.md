@@ -44,7 +44,7 @@ Build all of the iOS xcframeworks using Carhage:
 carthage build --no-skip-current --use-xcframeworks
 ```
 
-Copy the resulting frameworks to `packages/Datadog.Unity/Plugins`. Note the trailing tilde (`~`) on each framework is intentional to prevent Unity from attempting to embed the individual framework files manually.
+Copy the resulting frameworks to `packages/Datadog.Unity/Plugins/iOS`. Note the trailing tilde (`~`) on each framework is intentional to prevent Unity from attempting to embed the individual framework files manually.
 
 ```bash
 #from modules/dd-sdk-ios
@@ -55,3 +55,18 @@ cp -r Carthage/Build/DatadogObjc.xcframework ../../packages/Datadog.Unity/Plugin
 ```
 
 After creating the XCode project, disable Bitcode for all Unity targets.
+
+## Building for Android
+
+Assemble the `aar` for `dd-sdk-android`
+
+```bash
+# From modules/dd-sdk-android
+./gradlew assembleRelease
+```
+
+Copy the aar to `packages/Datadog.Unity/Plugins/Android/`.
+
+```bash
+# From modules/dd-sdk-android
+cp 

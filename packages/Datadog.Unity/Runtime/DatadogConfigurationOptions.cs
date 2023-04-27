@@ -22,8 +22,8 @@ namespace Datadog.Unity
 
     public class DatadogConfigurationOptions : ScriptableObject
     {
-        public const string _DefaultDatadogSettingsFileName = "DatadogSettings.asset";
-        public static string _DefaultDatadogSettingsPath = $"Assets/Resources/{_DefaultDatadogSettingsFileName}";
+        public const string _DefaultDatadogSettingsFileName = "DatadogSettings";
+        public static string _DefaultDatadogSettingsPath = $"Assets/Resources/{_DefaultDatadogSettingsFileName}.asset";
 
         [SerializeField]
         public bool Enabled;

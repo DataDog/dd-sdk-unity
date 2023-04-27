@@ -1,0 +1,10 @@
+<dependencies>
+  <androidPackages>
+    <repositories>
+      <repository>https://repo.maven.apache.org/maven2</repository>
+    </repositories>
+    <androidPackage spec="com.datadoghq:dd-sdk-android:1.19.0">
+    </androidPackage>
+    <androidPackage spec="org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.6.21" />
+  </androidPackages>
+</dependencies>

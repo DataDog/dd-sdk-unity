@@ -28,7 +28,6 @@ namespace Datadog.Unity.iOS
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void InitializeDatadog()
         {
-            Debug.Log("Attempting to init!");
             DatadogSdk.InitWithPlatform(new DatadogiOSPlatform());
         }
     }

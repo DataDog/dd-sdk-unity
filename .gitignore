@@ -2,6 +2,9 @@
 obj/
 bin/
 .build/
+Build/
 **/*.xcframework~
 **/*.aar
 samples/Datadog Sample/Assets/Resources/DatadogSettings.asset
+.vscode/settings.json
+*.keystore
