@@ -58,15 +58,11 @@ After creating the XCode project, disable Bitcode for all Unity targets.
 
 ## Building for Android
 
-Assemble the `aar` for `dd-sdk-android`
-
-```bash
-# From modules/dd-sdk-android
-./gradlew assembleRelease
+```
+NOTE: These steps are temporary until we can find a better way to include the dd-android-sdk.aar. We may still want to depend on the External Dependency Manager,
+but we hope we won't need to have end users install it manually.
 ```
 
-Copy the aar to `packages/Datadog.Unity/Plugins/Android/`.
+Install the [External Dependency Manager for Unity](https://github.com/googlesamples/unity-jar-resolver) by downloadng the tar.gz release and adding it as a Unity package in the Unity Package Manager.
 
-```bash
-# From modules/dd-sdk-android
-cp 
+Under `Project Setting` → `Player` → `Android` → `Publishing Settings` check both `Custom Main Gradle Template` and `Custom Gradle Properties Template`.

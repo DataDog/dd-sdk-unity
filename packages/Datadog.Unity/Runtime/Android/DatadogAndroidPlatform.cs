@@ -21,7 +21,7 @@ namespace Datadog.Unity.Android
                 options.ClientToken,
                 "prod",
                 "",     // variant
-                null,   // rumApplicaitonId
+                null,   // rumApplicationId
                 null    // serviceName
                 ))
             using (var configBuilder = new AndroidJavaObject("com.datadog.android.core.configuration.Configuration$Builder", true, false, false, false))
