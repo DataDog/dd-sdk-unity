@@ -9,13 +9,24 @@ using UnityEngine.Scripting;
 [assembly: UnityEngine.Scripting.AlwaysLinkAssembly]
 namespace Datadog.Unity.Android
 {
+    /// These are mappings to android.util.Log
+    enum AndroidLogLevels
+    {
+        Verbose = 2,
+        Debug = 3,
+        Info = 4,
+        Warn = 5,
+        Error = 6,
+        Assert = 7
+
+    }
 
     public class DatadogAndroidPlatform : IDatadogPlatform
     {
         public void Init(DatadogConfigurationOptions options)
         {
             var datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
-            datadogClass.CallStatic("setVerbosity", 2);
+            datadogClass.CallStatic("setVerbosity", ((int)AndroidLogLevels.Verbose));
 
             using (var credentials = new AndroidJavaObject("com.datadog.android.core.configuration.Credentials",
                 options.ClientToken,
