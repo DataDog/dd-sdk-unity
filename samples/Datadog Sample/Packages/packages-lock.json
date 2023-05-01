@@ -6,6 +6,12 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.google.external-dependency-manager": {
+      "version": "file:../../../dependencies/com.google.external-dependency-manager-1.2.175.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {}
+    },
     "com.unity.2d.animation": {
       "version": "7.0.10",
       "depth": 1,
