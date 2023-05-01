@@ -2,6 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using UnityEngine;
+
 namespace Datadog.Unity
 {
     public class DatadogSdk

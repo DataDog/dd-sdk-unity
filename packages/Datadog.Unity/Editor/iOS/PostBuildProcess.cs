@@ -89,7 +89,7 @@ namespace Datadog.Unity.Editor.iOS
             pbxProject.AddFileToBuildSection(mainTarget, buildPhase, frameworkGuid);
         }
 
-        private static void GenerateOptionsFile(string path, DatadogConfigurationOptions options)
+        internal static void GenerateOptionsFile(string path, DatadogConfigurationOptions options)
         {
             var optionsFileString = $@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
@@ -102,6 +102,8 @@ DDConfiguration* buildDatadogConfiguration() {{
                                                                   environment:@""prod""];
     [builder enableTracing:NO];
     [builder enableCrashReportingUsing:[DDCrashReportingPlugin new]];
+    [builder setWithBatchSize:{GetObjCBatchSize(options.BatchSize)}];
+    [builder setWithUploadFrequency:{GetObjCUploadFrequency(options.UploadFrequency)}];
 
     return [builder build];
 }}
@@ -109,7 +111,7 @@ DDConfiguration* buildDatadogConfiguration() {{
             File.WriteAllText(path, optionsFileString);
         }
 
-        private static void AddInitializationToMain(string pathToMain)
+        internal static void AddInitializationToMain(string pathToMain)
         {
             if (!File.Exists(pathToMain))
             {
@@ -123,7 +125,7 @@ DDConfiguration* buildDatadogConfiguration() {{
             File.WriteAllLines(pathToMain, mainText);
         }
 
-        private static List<string> RemoveDatadogBlocks(List<string> lines)
+        internal static List<string> RemoveDatadogBlocks(List<string> lines)
         {
             var newLines = new List<String>();
             bool inDatadogBlock = false;
@@ -148,7 +150,7 @@ DDConfiguration* buildDatadogConfiguration() {{
             return newLines;
         }
 
-        private static void AddDatadogBlocks(List<string> lines)
+        internal static void AddDatadogBlocks(List<string> lines)
         {
             // Find the first blank line, insert there.
             int firstBlank = lines.FindIndex(0, x => x.Trim().Length == 0);
@@ -174,6 +176,30 @@ DDConfiguration* buildDatadogConfiguration() {{
                 "                              configuration:buildDatadogConfiguration()];",
                 $"        {k_datadogBlockEnd}",
             });
+        }
+
+        private static string GetObjCBatchSize(BatchSize batchSize)
+        {
+            switch (batchSize)
+            {
+                case BatchSize.Small: return "DDBatchSizeSmall";
+                case BatchSize.Large: return "DDBatchSizeLarge";
+                case BatchSize.Medium:
+                default:
+                    return "DDBatchSizeMedium";
+            }
+        }
+
+        private static string GetObjCUploadFrequency(UploadFrequency uploadFrequency)
+        {
+            switch (uploadFrequency)
+            {
+                case UploadFrequency.Rare: return "DDUploadFrequencyRare";
+                case UploadFrequency.Frequent: return "DDUploadFrequencyFrequent";
+                case UploadFrequency.Average:
+                default:
+                    return "DDUploadFrequencyAverage";
+            }
         }
     }
 }

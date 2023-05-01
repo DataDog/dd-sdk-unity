@@ -18,7 +18,6 @@ namespace Datadog.Unity.Android
         Warn = 5,
         Error = 6,
         Assert = 7
-
     }
 
     public class DatadogAndroidPlatform : IDatadogPlatform
@@ -37,13 +36,14 @@ namespace Datadog.Unity.Android
                 ))
             using (var configBuilder = new AndroidJavaObject("com.datadog.android.core.configuration.Configuration$Builder", true, false, false, false))
             {
-                configBuilder.Call<AndroidJavaObject>("useSite", GetSite(options.Site));
-                configBuilder.Call<AndroidJavaObject>("setBatchSize", GetBatchSize());
-                configBuilder.Call<AndroidJavaObject>("setUploadFrequency", GetUploadFrequency());
+                configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
+                configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
+                configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
 
                 var configuration = configBuilder.Call<AndroidJavaObject>("build");
 
-                datadogClass.CallStatic("initialize", GetApplicationContext(), credentials, configuration, GetTrackingConsent());
+                datadogClass.CallStatic("initialize", GetApplicationContext(), credentials, configuration,
+                    DatadogConfigurationHelpers.GetTrackingConsent(TrackingConsent.Granted));
             }
         }
 
@@ -53,48 +53,6 @@ namespace Datadog.Unity.Android
             {
                 var androidLoger = loggerBuilder.Call<AndroidJavaObject>("build");
                 return new DatadogAndroidLogger(androidLoger);
-            }
-        }
-
-        private AndroidJavaObject GetSite(DatadogSite site)
-        {
-            string siteName = "US1";
-            switch (site)
-            {
-                case DatadogSite.us1: siteName = "US1"; break;
-                case DatadogSite.us3: siteName = "US3"; break;
-                case DatadogSite.us5: siteName = "US5"; break;
-                case DatadogSite.eu1: siteName = "EU1"; break;
-                case DatadogSite.ap1: siteName = "AP1"; break;
-                case DatadogSite.us1Fed: siteName = "US1_FED"; break;
-            }
-            using (var siteClass = new AndroidJavaClass("com.datadog.android.DatadogSite"))
-            {
-                return siteClass.GetStatic<AndroidJavaObject>(siteName);
-            }
-        }
-
-        private AndroidJavaObject GetUploadFrequency()
-        {
-            using (var uploadFrequencyClass = new AndroidJavaClass("com.datadog.android.core.configuration.UploadFrequency"))
-            {
-                return uploadFrequencyClass.GetStatic<AndroidJavaObject>("FREQUENT");
-            }
-        }
-
-        private AndroidJavaObject GetBatchSize()
-        {
-            using (var uploadFrequencyClass = new AndroidJavaClass("com.datadog.android.core.configuration.BatchSize"))
-            {
-                return uploadFrequencyClass.GetStatic<AndroidJavaObject>("SMALL");
-            }
-        }
-
-        private AndroidJavaObject GetTrackingConsent()
-        {
-            using (var trackingContentClass = new AndroidJavaClass("com.datadog.android.privacy.TrackingConsent"))
-            {
-                return trackingContentClass.GetStatic<AndroidJavaObject>("GRANTED");
             }
         }
 

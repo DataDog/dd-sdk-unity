@@ -43,6 +43,8 @@ namespace Datadog.Unity.Editor.Tests
             Assert.IsEmpty(options.ClientToken);
             Assert.AreEqual(options.Site, DatadogSite.us1);
             Assert.AreEqual(options.DefaultLoggingLevel, LogType.Log);
+            Assert.AreEqual(options.BatchSize, BatchSize.Medium);
+            Assert.AreEqual(options.UploadFrequency, UploadFrequency.Average);
         }
     }
 }
