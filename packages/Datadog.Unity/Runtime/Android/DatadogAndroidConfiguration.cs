@@ -57,7 +57,7 @@ namespace Datadog.Unity.Android
 
         public static AndroidJavaObject GetTrackingConsent(TrackingConsent consent)
         {
-            string consentName = "AVERAGE";
+            string consentName = "PENDING";
             switch (consent)
             {
                 case TrackingConsent.Granted: consentName = "GRANTED"; break;
