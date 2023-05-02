@@ -8,7 +8,7 @@ namespace Datadog.Unity.Android
 {
     internal class DatadogAndroidLogger : IDdLogger
     {
-        private AndroidJavaObject _androidLogger;
+        private readonly AndroidJavaObject _androidLogger;
 
         public DatadogAndroidLogger(AndroidJavaObject androidLogger)
         {

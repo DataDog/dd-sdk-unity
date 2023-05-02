@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+    "documentationRules": {
+      "xmlHeader": false,
+      "companyName": "Datadog",
+      "copyrightText": "Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.\nThis product includes software developed at Datadog (https://www.datadoghq.com/).\nCopyright 2023-Present Datadog, Inc.",
+      "documentInterfaces": false,
+      "documentExposedElements": false,
+      "documentInternalElements": false
+    },
+    "orderingRules": {
+      "usingDirectivesPlacement": "outsideNamespace"
+    },
+    "namingRules": {
+      "allowedNamespaceComponents": ["iOS"]
+    }
+  }
+}

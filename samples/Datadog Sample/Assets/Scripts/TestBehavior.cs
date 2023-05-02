@@ -2,23 +2,15 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using Datadog.Unity;
+using UnityEngine;
 
 public class TestBehavior : MonoBehaviour
 {
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
-        var logger = DatadogSdk.instance.CreateLogger();
+        var logger = DatadogSdk.Instance.CreateLogger();
         logger.Log("Hello from Unity!");
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 }

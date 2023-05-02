@@ -2,9 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using System.Collections.Generic;
 using UnityEngine.UIElements;
 
 namespace Datadog.Unity.Editor
@@ -12,12 +12,20 @@ namespace Datadog.Unity.Editor
     public class DatadogConfigurationWindow : SettingsProvider
     {
         private DatadogConfigurationOptions _options;
+
         public DatadogConfigurationWindow(string path, SettingsScope scopes, IEnumerable<string> keywords = null)
             : base(path, scopes, keywords)
         {
-
         }
 
+        [SettingsProvider]
+        public static SettingsProvider CreateCustomSettingsProvider()
+        {
+            var provider = new DatadogConfigurationWindow("Project/Datadog", SettingsScope.Project, new string[] { "Datadog" });
+            return provider;
+        }
+
+        /// <inheritdoc/>
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
             _options = DatadogConfigurationOptionsExtensions.GetOrCreate();
@@ -49,13 +57,6 @@ namespace Datadog.Unity.Editor
                 EditorUtility.SetDirty(_options);
                 AssetDatabase.SaveAssets();
             }
-        }
-
-        [SettingsProvider]
-        public static SettingsProvider CreateCustomSettingsProvider()
-        {
-            var provider = new DatadogConfigurationWindow("Project/Datadog", SettingsScope.Project, new string[] { "Datadog" });
-            return provider;
         }
     }
 }

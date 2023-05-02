@@ -3,17 +3,20 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
-using System.IO;
-using NUnit.Framework;
-using Datadog.Unity.Editor.iOS;
-using System.Linq;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Datadog.Unity.Editor.iOS;
+using NUnit.Framework;
+
+// Disable "Scriptable Objects should not be instantiated directly"
+#pragma warning disable UNT0011
 
 namespace Datadog.Unity.Editor.iOS
 {
     public class PostBuildProcessTests
     {
-        private static string _cleanMainfile = "main.txt";
+        private static readonly string _cleanMainfile = "main.txt";
 
         private string _tempDirectory;
         private string _optionsFilePath;
@@ -38,7 +41,7 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void GenerateOptionsFileCreatesFile()
         {
-            DatadogBuildProcess.GenerateOptionsFile(_optionsFilePath, new DatadogConfigurationOptions());
+            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, new DatadogConfigurationOptions());
 
             File.Exists(_optionsFilePath);
         }
@@ -46,7 +49,7 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void GenerateOptionsFileWritesAutoGenerationWarning()
         {
-            DatadogBuildProcess.GenerateOptionsFile(_optionsFilePath, new DatadogConfigurationOptions());
+            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, new DatadogConfigurationOptions());
 
             string fileContents = File.ReadAllText(_optionsFilePath);
             Assert.IsTrue(fileContents.Contains("THIS FILE IS AUTO GENERATED"));
@@ -59,9 +62,9 @@ namespace Datadog.Unity.Editor.iOS
         {
             var options = new DatadogConfigurationOptions()
             {
-                BatchSize = batchSize
+                BatchSize = batchSize,
             };
-            DatadogBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
+            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
 
             var lines = File.ReadAllLines(_optionsFilePath);
             var batchSizeLines = lines.Where(l => l.Contains("setWithBatchSize"));
@@ -76,9 +79,9 @@ namespace Datadog.Unity.Editor.iOS
         {
             var options = new DatadogConfigurationOptions()
             {
-                UploadFrequency = uploadFrequency
+                UploadFrequency = uploadFrequency,
             };
-            DatadogBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
+            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
 
             var lines = File.ReadAllLines(_optionsFilePath);
             var uploadFrequencyLines = lines.Where(l => l.Contains("setWithUploadFrequency"));
@@ -89,7 +92,7 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {
-            DatadogBuildProcess.AddInitializationToMain(_mainFilePath);
+            PostBuildProcess.AddInitializationToMain(_mainFilePath);
 
             string fileContents = File.ReadAllText(_mainFilePath);
 
@@ -112,10 +115,10 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void RemoveDatadogBlocksRemovesDatadogBlocks()
         {
-            DatadogBuildProcess.AddInitializationToMain(_mainFilePath);
+            PostBuildProcess.AddInitializationToMain(_mainFilePath);
 
             var fileContents = File.ReadAllLines(_mainFilePath);
-            var cleanContents = DatadogBuildProcess.RemoveDatadogBlocks(new List<string>(fileContents));
+            var cleanContents = PostBuildProcess.RemoveDatadogBlocks(new List<string>(fileContents));
 
             Assert.IsNull(cleanContents.FirstOrDefault(l => l.Contains("Datadog")));
         }

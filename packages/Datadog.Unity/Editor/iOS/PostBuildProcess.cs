@@ -13,12 +13,11 @@ using UnityEngine;
 
 namespace Datadog.Unity.Editor.iOS
 {
-    public static class DatadogBuildProcess
+    public static class PostBuildProcess
     {
-        private const string k_datadogBlockStart = "// > Datadog Generated Block";
-        private const string k_datadogBlockEnd = "// < End Datadog Generated Block";
-        private static string s_frameworkLocation = "Packages/com.datadoghq.unity/Plugins/iOS";
-
+        private const string DatadogBlockStart = "// > Datadog Generated Block";
+        private const string DatadogBlockEnd = "// < End Datadog Generated Block";
+        private static readonly string FrameworkLocation = "Packages/com.datadoghq.unity/Plugins/iOS";
 
         [PostProcessBuild(1)]
         public static void OnPostProcessBuild(BuildTarget target, string pathToProject)
@@ -62,7 +61,7 @@ namespace Datadog.Unity.Editor.iOS
 
         public static void CopyAndAddFramework(string frameworkName, string pathToProject, PBXProject pbxProject, bool embedAndSign = true)
         {
-            var fullFrameworkPath = Path.GetFullPath(Path.Combine(s_frameworkLocation, frameworkName + "~"));
+            var fullFrameworkPath = Path.GetFullPath(Path.Combine(FrameworkLocation, frameworkName + "~"));
             if (!Directory.Exists(fullFrameworkPath))
             {
                 throw new DirectoryNotFoundException($"Could not find {fullFrameworkPath}");
@@ -85,6 +84,7 @@ namespace Datadog.Unity.Editor.iOS
             {
                 pbxProject.AddFileToEmbedFrameworks(mainTarget, frameworkGuid);
             }
+
             var buildPhase = pbxProject.GetFrameworksBuildPhaseByTarget(mainTarget);
             pbxProject.AddFileToBuildSection(mainTarget, buildPhase, frameworkGuid);
         }
@@ -127,11 +127,11 @@ DDConfiguration* buildDatadogConfiguration() {{
 
         internal static List<string> RemoveDatadogBlocks(List<string> lines)
         {
-            var newLines = new List<String>();
+            var newLines = new List<string>();
             bool inDatadogBlock = false;
             foreach (var line in lines)
             {
-                if (line.Trim() == k_datadogBlockStart)
+                if (line.Trim() == DatadogBlockStart)
                 {
                     inDatadogBlock = true;
                 }
@@ -141,7 +141,7 @@ DDConfiguration* buildDatadogConfiguration() {{
                     newLines.Add(line);
                 }
 
-                if (line.Trim() == k_datadogBlockEnd)
+                if (line.Trim() == DatadogBlockEnd)
                 {
                     inDatadogBlock = false;
                 }
@@ -150,16 +150,17 @@ DDConfiguration* buildDatadogConfiguration() {{
             return newLines;
         }
 
-        internal static void AddDatadogBlocks(List<string> lines)
+        private static void AddDatadogBlocks(List<string> lines)
         {
             // Find the first blank line, insert there.
             int firstBlank = lines.FindIndex(0, x => x.Trim().Length == 0);
-            lines.InsertRange(firstBlank, new string[] {
-                k_datadogBlockStart,
-                "#import <Datadog/Datadog-Swift.h>",
-                "#import <DatadogObjc/DatadogObjc-Swift.h>",
-                "#import \"DatadogOptions.h\"",
-                k_datadogBlockEnd
+            lines.InsertRange(firstBlank, new string[]
+            {
+                    DatadogBlockStart,
+                    "#import <Datadog/Datadog-Swift.h>",
+                    "#import <DatadogObjc/DatadogObjc-Swift.h>",
+                    "#import \"DatadogOptions.h\"",
+                    DatadogBlockEnd,
             });
 
             int autoReleaseLine = lines.FindIndex(0, x => x.Trim().Contains("@autoreleasepool"));
@@ -169,37 +170,34 @@ DDConfiguration* buildDatadogConfiguration() {{
                 insertLine += 1;
             }
 
-            lines.InsertRange(insertLine, new string[] {
-                $"        {k_datadogBlockStart}",
+            lines.InsertRange(insertLine, new string[]
+            {
+                $"        {DatadogBlockStart}",
                 "        [DDDatadog initializeWithAppContext:[DDAppContext new]",
                 "                            trackingConsent:[DDTrackingConsent pending]",
                 "                              configuration:buildDatadogConfiguration()];",
-                $"        {k_datadogBlockEnd}",
+                $"        {DatadogBlockEnd}",
             });
         }
 
         private static string GetObjCBatchSize(BatchSize batchSize)
         {
-            switch (batchSize)
+            return batchSize switch
             {
-                case BatchSize.Small: return "DDBatchSizeSmall";
-                case BatchSize.Large: return "DDBatchSizeLarge";
-                case BatchSize.Medium:
-                default:
-                    return "DDBatchSizeMedium";
-            }
+                BatchSize.Small => "DDBatchSizeSmall",
+                BatchSize.Large => "DDBatchSizeLarge",
+                _ => "DDBatchSizeMedium",
+            };
         }
 
         private static string GetObjCUploadFrequency(UploadFrequency uploadFrequency)
         {
-            switch (uploadFrequency)
+            return uploadFrequency switch
             {
-                case UploadFrequency.Rare: return "DDUploadFrequencyRare";
-                case UploadFrequency.Frequent: return "DDUploadFrequencyFrequent";
-                case UploadFrequency.Average:
-                default:
-                    return "DDUploadFrequencyAverage";
-            }
+                UploadFrequency.Rare => "DDUploadFrequencyRare",
+                UploadFrequency.Frequent => "DDUploadFrequencyFrequent",
+                _ => "DDUploadFrequencyAverage",
+            };
         }
     }
 }

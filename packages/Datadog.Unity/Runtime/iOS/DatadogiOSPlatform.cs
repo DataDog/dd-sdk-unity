@@ -7,21 +7,9 @@ using UnityEngine.Scripting;
 
 [assembly: UnityEngine.Scripting.Preserve]
 [assembly: UnityEngine.Scripting.AlwaysLinkAssembly]
+
 namespace Datadog.Unity.iOS
 {
-    class DatadogiOSPlatform : IDatadogPlatform
-    {
-        public void Init(DatadogConfigurationOptions options)
-        {
-
-        }
-
-        public IDdLogger CreateLogger()
-        {
-            return DatadogiOSLogger.Create();
-        }
-    }
-
     [Preserve]
     public static class DatadogInitialization
     {
@@ -29,6 +17,18 @@ namespace Datadog.Unity.iOS
         public static void InitializeDatadog()
         {
             DatadogSdk.InitWithPlatform(new DatadogiOSPlatform());
+        }
+    }
+
+    internal class DatadogiOSPlatform : IDatadogPlatform
+    {
+        public void Init(DatadogConfigurationOptions options)
+        {
+        }
+
+        public IDdLogger CreateLogger()
+        {
+            return DatadogiOSLogger.Create();
         }
     }
 }

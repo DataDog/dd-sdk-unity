@@ -7,70 +7,61 @@ namespace Datadog.Unity.Android
 {
     internal static class DatadogConfigurationHelpers
     {
-        public static AndroidJavaObject GetSite(DatadogSite site)
+        internal static AndroidJavaObject GetSite(DatadogSite site)
         {
-            string siteName = "US1";
-            switch (site)
+            string siteName = site switch
             {
-                case DatadogSite.us1: siteName = "US1"; break;
-                case DatadogSite.us3: siteName = "US3"; break;
-                case DatadogSite.us5: siteName = "US5"; break;
-                case DatadogSite.eu1: siteName = "EU1"; break;
-                case DatadogSite.ap1: siteName = "AP1"; break;
-                case DatadogSite.us1Fed: siteName = "US1_FED"; break;
-            }
-            using (var siteClass = new AndroidJavaClass("com.datadog.android.DatadogSite"))
-            {
-                return siteClass.GetStatic<AndroidJavaObject>(siteName);
-            }
+                DatadogSite.Us1 => "US1",
+                DatadogSite.Us3 => "US3",
+                DatadogSite.Us5 => "US5",
+                DatadogSite.Eu1 => "EU1",
+                DatadogSite.Us1Fed => "US1_FED",
+                DatadogSite.Ap1 => "AP1",
+                _ => "US1",
+            };
+
+            using var siteClass = new AndroidJavaClass("com.datadog.android.DatadogSite");
+            return siteClass.GetStatic<AndroidJavaObject>(siteName);
         }
 
-        public static AndroidJavaObject GetUploadFrequency(UploadFrequency frequency)
+        internal static AndroidJavaObject GetUploadFrequency(UploadFrequency frequency)
         {
-            string frequencyName = "AVERAGE";
-            switch (frequency)
+            string frequencyName = frequency switch
             {
-                case UploadFrequency.Frequent: frequencyName = "FREQUENT"; break;
-                case UploadFrequency.Average: frequencyName = "AVERAGE"; break;
-                case UploadFrequency.Rare: frequencyName = "RARE"; break;
-            }
-            using (var uploadFrequencyClass = new AndroidJavaClass("com.datadog.android.core.configuration.UploadFrequency"))
-            {
-                return uploadFrequencyClass.GetStatic<AndroidJavaObject>(frequencyName);
-            }
+                UploadFrequency.Frequent => "FREQUENT",
+                UploadFrequency.Average => "AVERAGE",
+                UploadFrequency.Rare => "RARE",
+                _ => "AVERAGE",
+            };
+
+            using var uploadFrequencyClass = new AndroidJavaClass("com.datadog.android.core.configuration.UploadFrequency");
+            return uploadFrequencyClass.GetStatic<AndroidJavaObject>(frequencyName);
         }
 
-        public static AndroidJavaObject GetBatchSize(BatchSize size)
+        internal static AndroidJavaObject GetBatchSize(BatchSize size)
         {
-            string sizeName = "AVERAGE";
-            switch (size)
+            string sizeName = size switch
             {
-                case BatchSize.Small: sizeName = "SMALL"; break;
-                case BatchSize.Medium: sizeName = "MEDIUM"; break;
-                case BatchSize.Large: sizeName = "LARGE"; break;
-            }
-            using (var uploadFrequencyClass = new AndroidJavaClass("com.datadog.android.core.configuration.BatchSize"))
-            {
-                return uploadFrequencyClass.GetStatic<AndroidJavaObject>(sizeName);
-            }
+                BatchSize.Small => "SMALL",
+                BatchSize.Medium => "MEDIUM",
+                BatchSize.Large => "LARGE",
+                _ => "MEDIUM"
+            };
+            using var uploadFrequencyClass = new AndroidJavaClass("com.datadog.android.core.configuration.BatchSize");
+            return uploadFrequencyClass.GetStatic<AndroidJavaObject>(sizeName);
         }
 
-        public static AndroidJavaObject GetTrackingConsent(TrackingConsent consent)
+        internal static AndroidJavaObject GetTrackingConsent(TrackingConsent consent)
         {
-            string consentName = "PENDING";
-            switch (consent)
+            string consentName = consent switch
             {
-                case TrackingConsent.Granted: consentName = "GRANTED"; break;
-                case TrackingConsent.NotGranted: consentName = "NOT_GRANTED"; break;
-                case TrackingConsent.Pending: consentName = "PENDING"; break;
-            }
-            using (var trackingContentClass = new AndroidJavaClass("com.datadog.android.privacy.TrackingConsent"))
-            {
-                return trackingContentClass.GetStatic<AndroidJavaObject>(consentName);
-            }
+                TrackingConsent.Granted => "GRANTED",
+                TrackingConsent.NotGranted => "NOT_GRANTED",
+                TrackingConsent.Pending => "PENDING",
+                _ => "PENDING"
+            };
+            using var trackingContentClass = new AndroidJavaClass("com.datadog.android.privacy.TrackingConsent");
+            return trackingContentClass.GetStatic<AndroidJavaObject>(consentName);
         }
-
-
     }
-
 }

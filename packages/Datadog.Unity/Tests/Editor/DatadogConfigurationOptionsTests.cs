@@ -1,8 +1,12 @@
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2023-Present Datadog, Inc.
+
 using System;
 using System.IO;
 using NUnit.Framework;
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 
 namespace Datadog.Unity.Editor.Tests
 {
@@ -41,7 +45,7 @@ namespace Datadog.Unity.Editor.Tests
 
             Assert.IsTrue(options.Enabled);
             Assert.IsEmpty(options.ClientToken);
-            Assert.AreEqual(options.Site, DatadogSite.us1);
+            Assert.AreEqual(options.Site, DatadogSite.Us1);
             Assert.AreEqual(options.DefaultLoggingLevel, LogType.Log);
             Assert.AreEqual(options.BatchSize, BatchSize.Medium);
             Assert.AreEqual(options.UploadFrequency, UploadFrequency.Average);
