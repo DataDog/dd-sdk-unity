@@ -23,6 +23,8 @@ namespace Datadog.Unity.Editor
                 options.Enabled = true;
                 options.Site = DatadogSite.us1;
                 options.DefaultLoggingLevel = LogType.Log;
+                options.BatchSize = BatchSize.Medium;
+                options.UploadFrequency = UploadFrequency.Average;
 
                 AssetDatabase.CreateAsset(options, settingsPath);
                 AssetDatabase.SaveAssets();
