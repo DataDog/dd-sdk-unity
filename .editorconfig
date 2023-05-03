@@ -10,6 +10,17 @@ trim_trailing_whitespace = true
 [*.cs]
 indent_style = space
 indent_size = 4
+csharp_space_before_new_parentheses = true
+# Prefix local calls with this
+dotnet_diagnostic.SA1101.severity = none
+# Field should not begin with an underscore
+dotnet_diagnostic.SA1309.severity = none
+# Parameter must not span multiple lines
+dotnet_diagnostic.SA1118.severity = none
+# File name should match first type
+dotnet_diagnostic.SA1649.severity = none
+# File may only contain a single type
+dotnet_diagnostic.SA1402.severity = none
 
 [*.json]
 indent_style = space

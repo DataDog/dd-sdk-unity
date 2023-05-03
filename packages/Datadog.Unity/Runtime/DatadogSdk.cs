@@ -8,23 +8,22 @@ namespace Datadog.Unity
 {
     public class DatadogSdk
     {
-        public static DatadogSdk instance = new DatadogSdk();
+        public static readonly DatadogSdk Instance = new ();
 
-        IDatadogPlatform platform;
+        private IDatadogPlatform _platform;
 
         private DatadogSdk()
         {
-
         }
 
         public static void InitWithPlatform(IDatadogPlatform platform)
         {
-            instance.platform = platform;
+            Instance._platform = platform;
         }
 
         public IDdLogger CreateLogger()
         {
-            return platform?.CreateLogger();
+            return _platform?.CreateLogger();
         }
     }
 }

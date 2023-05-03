@@ -4,7 +4,9 @@
 
 namespace Datadog.Unity
 {
-    /// An interface to wrap calls to various Datadog platforms
+    /// <summary>
+    /// An interface to wrap calls to various Datadog platforms.
+    /// </summary>
     public interface IDatadogPlatform
     {
         void Init(DatadogConfigurationOptions options);

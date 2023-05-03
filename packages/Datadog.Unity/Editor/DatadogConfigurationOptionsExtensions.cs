@@ -12,7 +12,7 @@ namespace Datadog.Unity.Editor
     {
         public static DatadogConfigurationOptions GetOrCreate(string settingsPath = null)
         {
-            settingsPath ??= DatadogConfigurationOptions._DefaultDatadogSettingsPath;
+            settingsPath ??= DatadogConfigurationOptions.DefaultDatadogSettingsPath;
             var options = AssetDatabase.LoadAssetAtPath<DatadogConfigurationOptions>(settingsPath);
             if (options == null)
             {
@@ -21,7 +21,7 @@ namespace Datadog.Unity.Editor
                 options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
                 options.ClientToken = string.Empty;
                 options.Enabled = true;
-                options.Site = DatadogSite.us1;
+                options.Site = DatadogSite.Us1;
                 options.DefaultLoggingLevel = LogType.Log;
                 options.BatchSize = BatchSize.Medium;
                 options.UploadFrequency = UploadFrequency.Average;
@@ -29,6 +29,7 @@ namespace Datadog.Unity.Editor
                 AssetDatabase.CreateAsset(options, settingsPath);
                 AssetDatabase.SaveAssets();
             }
+
             return options;
         }
     }

@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.datadoghq.unity": "file:../../../packages/Datadog.Unity",
+    "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.google.external-dependency-manager": "file:../../../dependencies/com.google.external-dependency-manager-1.2.175.tgz",
     "com.unity.collab-proxy": "2.0.1",
     "com.unity.feature.2d": "1.0.0",
