@@ -10,12 +10,22 @@ private class LogRegistry {
 
     var logs: [String: DDLogger] = [:]
 
-    func createLog() -> String {
-        let logger = Logger.builder
-            .sendNetworkInfo(true)
+    func createLog(options: LoggingOptions) -> String {
+        var logBuilder = Logger.builder
+            .sendNetworkInfo(options.sendNetworkInfo)
+            .sendLogsToDatadog(options.sendToDatadog)
             .printLogsToConsole(true)
-            .set(datadogReportingThreshold: .info)
-            .build()
+            .set(datadogReportingThreshold: options.datadogReportingThreshold)
+
+        if let loggerName = options.loggerName, !loggerName.isEmpty {
+            logBuilder = logBuilder.set(loggerName: loggerName)
+        }
+        if let serviceName = options.serviceName, !serviceName.isEmpty {
+            logBuilder = logBuilder.set(serviceName: serviceName)
+        }
+
+        let logger = logBuilder.build()
+
         let id = UUID()
         let idString = id.uuidString
         logs[idString] = logger
@@ -23,15 +33,40 @@ private class LogRegistry {
     }
 }
 
+struct LoggingOptions: Decodable {
+    let serviceName: String?
+    let loggerName: String?
+    let sendNetworkInfo: Bool
+    let sendToDatadog: Bool
+    let datadogReportingThreshold: LogLevel
+
+    enum CodingKeys: String, CodingKey {
+        case serviceName = "ServiceName"
+        case loggerName = "LoggerName"
+        case sendNetworkInfo = "SendNetworkInfo"
+        case sendToDatadog = "SendToDatadog"
+        case datadogReportingThreshold = "DatadogReportingThreshold"
+    }
+}
+
 /// Create a logger for use in Unity, returns the UUID of the logger
-@_cdecl("DatadogLogging_CreateLog")
-func DatadogLogging_CreateLog() -> UnsafeMutablePointer<CChar>? {
-    let loggerId = LogRegistry.shared.createLog()
-    return strdup(loggerId)
+@_cdecl("DatadogLogging_CreateLogger")
+func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
+    if let jsonLoggingOptions = jsonLoggingOptions,
+       let stringLoggingOptions = String(cString: jsonLoggingOptions, encoding: .utf8),
+       let data = stringLoggingOptions.data(using: .utf8),
+       let options = try? JSONDecoder().decode(LoggingOptions.self, from: data) {
+
+
+        let loggerId = LogRegistry.shared.createLog(options: options)
+        return strdup(loggerId)
+    }
+
+    return nil
 }
 
 @_cdecl("DatadogLogging_Log")
-func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, message: UnsafeMutablePointer<CChar>?) {
+func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, message: UnsafeMutablePointer<CChar>?) {
     guard let logId = logId, let message = message else {
         return
     }
@@ -39,6 +74,7 @@ func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, message: UnsafeMuta
     if let idString = String(cString: logId, encoding: .utf8),
        let logger = LogRegistry.shared.logs[idString],
        let swiftMessage = String(cString: message, encoding: .utf8) {
-       logger.log(level: .info, message: swiftMessage, error: nil, attributes: nil)
+        let logLevel = LogLevel(rawValue: logLevel) ?? .info
+        logger.log(level: logLevel, message: swiftMessage, error: nil, attributes: nil)
     }
 }

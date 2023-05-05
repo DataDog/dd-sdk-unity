@@ -3,7 +3,10 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Datadog.Unity.Logs;
+using UnityEngine;
 
 namespace Datadog.Unity.iOS
 {
@@ -16,9 +19,11 @@ namespace Datadog.Unity.iOS
             _loggerId = loggerId;
         }
 
-        public static DatadogiOSLogger Create()
+        public static DatadogiOSLogger Create(DatadogLoggingOptions options)
         {
-            var loggerId = DatadogLoggingBridge.DatadogLogging_CreateLog();
+            var jsonOptions = JsonUtility.ToJson(options, false);
+            UnityEngine.Debug.Log(jsonOptions);
+            var loggerId = DatadogLoggingBridge.DatadogLogging_CreateLogger(jsonOptions);
             if (loggerId != null)
             {
                 return new DatadogiOSLogger(loggerId);
@@ -27,18 +32,19 @@ namespace Datadog.Unity.iOS
             return null;
         }
 
-        public void Log(string message)
+        public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
-            DatadogLoggingBridge.DatadogLogging_Log(_loggerId, message);
+            // TODO: Support attributes and errors
+            DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message);
         }
     }
 
     internal static class DatadogLoggingBridge
     {
         [DllImport("__Internal")]
-        public static extern string DatadogLogging_CreateLog();
+        public static extern string DatadogLogging_CreateLogger(string optionsJson);
 
         [DllImport("__Internal")]
-        public static extern void DatadogLogging_Log(string loggerId, string message);
+        public static extern void DatadogLogging_Log(string loggerId, int logLevel, string message);
     }
 }

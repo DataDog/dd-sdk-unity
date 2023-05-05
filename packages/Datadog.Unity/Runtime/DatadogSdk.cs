@@ -2,13 +2,13 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
-using UnityEngine;
+using Datadog.Unity.Logs;
 
 namespace Datadog.Unity
 {
     public class DatadogSdk
     {
-        public static readonly DatadogSdk Instance = new ();
+        public static readonly DatadogSdk Instance = new();
 
         private IDatadogPlatform _platform;
 
@@ -16,14 +16,21 @@ namespace Datadog.Unity
         {
         }
 
+        public IDdLogger DefaultLogger
+        {
+            get; private set;
+        }
+
         public static void InitWithPlatform(IDatadogPlatform platform)
         {
             Instance._platform = platform;
+            var options = new DatadogLoggingOptions();
+            Instance.DefaultLogger = Instance._platform.CreateLogger(options);
         }
 
-        public IDdLogger CreateLogger()
+        public IDdLogger CreateLogger(DatadogLoggingOptions options)
         {
-            return _platform?.CreateLogger();
+            return _platform?.CreateLogger(options);
         }
     }
 }

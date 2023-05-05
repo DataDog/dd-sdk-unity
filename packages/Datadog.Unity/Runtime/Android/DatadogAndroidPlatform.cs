@@ -2,16 +2,19 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System.Runtime.CompilerServices;
+using Datadog.Unity.Logs;
 using UnityEngine;
 using UnityEngine.Scripting;
 
 [assembly: UnityEngine.Scripting.Preserve]
 [assembly: UnityEngine.Scripting.AlwaysLinkAssembly]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
 
 namespace Datadog.Unity.Android
 {
     // These are mappings to android.util.Log
-    internal enum AndroidLogLevels
+    internal enum AndroidLogLevel
     {
         Verbose = 2,
         Debug = 3,
@@ -39,7 +42,7 @@ namespace Datadog.Unity.Android
         public void Init(DatadogConfigurationOptions options)
         {
             var datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
-            datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevels.Verbose);
+            datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
 
             using var credentials = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Credentials",
@@ -63,16 +66,29 @@ namespace Datadog.Unity.Android
                 DatadogConfigurationHelpers.GetTrackingConsent(TrackingConsent.Granted));
         }
 
-        public IDdLogger CreateLogger()
+        public IDdLogger CreateLogger(DatadogLoggingOptions options)
         {
             using var loggerBuilder = new AndroidJavaObject("com.datadog.android.log.Logger$Builder");
-            var androidLoger = loggerBuilder.Call<AndroidJavaObject>("build");
-            return new DatadogAndroidLogger(androidLoger);
+            if (options.ServiceName != null)
+            {
+                loggerBuilder.Call("setServiceName", options.ServiceName);
+            }
+            if (options.LoggerName != null)
+            {
+                loggerBuilder.Call("setLoggerName", options.LoggerName);
+            }
+            loggerBuilder.Call<AndroidJavaObject>("setNetworkInfoEnabled", options.SendNetworkInfo);
+            loggerBuilder.Call<AndroidJavaObject>("setDatadogLogsEnabled", options.SendToDatadog);
+            var androidReportingThreshold = (int)DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(options.DatadogReportingThreshold);
+            loggerBuilder.Call<AndroidJavaObject>("setDatadogLogsMinPriority", androidReportingThreshold);
+
+            var androidLogger = loggerBuilder.Call<AndroidJavaObject>("build");
+            return new DatadogAndroidLogger(androidLogger);
         }
 
         private AndroidJavaObject GetApplicationContext()
         {
-            using AndroidJavaClass unityPlayer = new ("com.unity3d.player.UnityPlayer");
+            using AndroidJavaClass unityPlayer = new("com.unity3d.player.UnityPlayer");
             using AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
             return currentActivity.Call<AndroidJavaObject>("getApplicationContext");
         }

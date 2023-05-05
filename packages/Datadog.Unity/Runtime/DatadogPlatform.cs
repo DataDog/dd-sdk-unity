@@ -2,6 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using Datadog.Unity.Logs;
+
 namespace Datadog.Unity
 {
     /// <summary>
@@ -11,11 +13,6 @@ namespace Datadog.Unity
     {
         void Init(DatadogConfigurationOptions options);
 
-        IDdLogger CreateLogger();
-    }
-
-    public interface IDdLogger
-    {
-        void Log(string message);
+        IDdLogger CreateLogger(DatadogLoggingOptions options);
     }
 }

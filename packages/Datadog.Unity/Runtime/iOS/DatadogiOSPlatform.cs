@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 using Datadog.Unity;
+using Datadog.Unity.Logs;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -26,9 +27,9 @@ namespace Datadog.Unity.iOS
         {
         }
 
-        public IDdLogger CreateLogger()
+        public IDdLogger CreateLogger(DatadogLoggingOptions options)
         {
-            return DatadogiOSLogger.Create();
+            return DatadogiOSLogger.Create(options);
         }
     }
 }

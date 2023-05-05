@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using Datadog.Unity;
+using Datadog.Unity.Logs;
 using UnityEngine;
 
 public class TestBehavior : MonoBehaviour
@@ -10,7 +11,11 @@ public class TestBehavior : MonoBehaviour
     // Start is called before the first frame update
     public void Start()
     {
-        var logger = DatadogSdk.Instance.CreateLogger();
-        logger.Log("Hello from Unity!");
+        var logger = DatadogSdk.Instance.CreateLogger(new DatadogLoggingOptions()
+        {
+            SendNetworkInfo = true,
+            DatadogReportingThreshold = DdLogLevel.Notice,
+        });
+        logger.Info("Hello from Unity!");
     }
 }
