@@ -22,7 +22,6 @@ namespace Datadog.Unity.iOS
         public static DatadogiOSLogger Create(DatadogLoggingOptions options)
         {
             var jsonOptions = JsonUtility.ToJson(options, false);
-            UnityEngine.Debug.Log(jsonOptions);
             var loggerId = DatadogLoggingBridge.DatadogLogging_CreateLogger(jsonOptions);
             if (loggerId != null)
             {
