@@ -1,0 +1,29 @@
+<!--
+ENV vars:
+- endpoint: GenericEndpoint
+- request: GenericRequest
+- selected_schema: SRSchema
+-->
+
+<table id="data" class="table table-striped">
+<thead class="table-dark">
+  <tr>
+    <th>TIME</th>
+    <th class="text-center">CONTENT LENGTH</th>
+    <th class="text-center">RECORDS COUNT</th>
+    <th></th>
+  </tr>
+</thead>
+<tbody>
+  {% for request in endpoint.requests %}
+    <tr>
+      <td>{{ request.date.strftime('%H:%M:%S') }}</td>
+      <td class="text-center">{{ request.content_length|filesizeformat(true) }}</td>
+      <td class="text-center">{{ request.schema_with_name('session-replay').segment_json['records']|count }}</td>
+      <td class="text-center">
+        <a href="{{ request.follow_url(schema=selected_schema) }}" role="button" class="btn btn-primary btn-sm">See details</a>
+      </td>
+    </tr>
+  {% endfor %}
+</tbody>
+</table>
