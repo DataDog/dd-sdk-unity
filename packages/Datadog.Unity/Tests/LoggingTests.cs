@@ -56,7 +56,7 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
-        public void CreateLoggerForwardsRequstToPlatform()
+        public void CreateLoggerForwardsRequestToPlatform()
         {
             // Given
             var mockLogger = new Mock<IDdLogger>();
