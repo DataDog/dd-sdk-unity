@@ -10,7 +10,7 @@ private class LogRegistry {
 
     var logs: [String: DDLogger] = [:]
 
-    func createLog(options: LoggingOptions) -> String {
+    func createLogger(options: LoggingOptions) -> String {
         var logBuilder = Logger.builder
             .sendNetworkInfo(options.sendNetworkInfo)
             .sendLogsToDatadog(options.sendToDatadog)
