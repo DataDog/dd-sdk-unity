@@ -2,6 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
+using System.Collections.Generic;
+using Datadog.Unity.Logs;
 using UnityEngine;
 
 namespace Datadog.Unity.Android
@@ -15,9 +18,11 @@ namespace Datadog.Unity.Android
             _androidLogger = androidLogger;
         }
 
-        public void Log(string message)
+        public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
-            _androidLogger.Call("log", 4, message);
+            // TODO - Support attributes and errors
+            var androidLevel = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(level);
+            _androidLogger.Call("log", (int)androidLevel, message);
         }
     }
 }
