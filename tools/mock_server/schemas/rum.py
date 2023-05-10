@@ -55,7 +55,7 @@ class RUMSchema(Schema):
         for event in self.event_jsons:
             vd = validate_event(
                 event=event,
-                schema_path='/Users/maciek.grzybowski/Temp/rum-events-format/rum-events-format.json'
+                schema_path='.schemas/rum-events-format.json'
             )
 
             pills = []  # pills rendered below validation result

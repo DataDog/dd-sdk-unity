@@ -54,7 +54,7 @@ class SRSchema(Schema):
     def segment_data(self) -> CardTab:
         vd = validate_event(
             event=self.segment_json,
-            schema_path='/Users/maciek.grzybowski/Temp/rum-events-format/session-replay-mobile-format.json'
+            schema_path='.schemas/session-replay-mobile-format.json'
         )
 
         obj = {
@@ -67,12 +67,12 @@ class SRSchema(Schema):
 
     def records_data(self) -> CardTab:
         record_schema_path_by_type = {
-            4: '/Users/maciek.grzybowski/Temp/rum-events-format/schemas/session-replay/common/meta-record-schema.json',
-            6: '/Users/maciek.grzybowski/Temp/rum-events-format/schemas/session-replay/common/focus-record-schema.json',
-            7: '/Users/maciek.grzybowski/Temp/rum-events-format/schemas/session-replay/common/view-end-record-schema.json',
-            8: '/Users/maciek.grzybowski/Temp/rum-events-format/schemas/session-replay/common/visual-viewport-record-schema.json',
-            10: '/Users/maciek.grzybowski/Temp/rum-events-format/schemas/session-replay/mobile/full-snapshot-record-schema.json',
-            11: '/Users/maciek.grzybowski/Temp/rum-events-format/schemas/session-replay/mobile/incremental-snapshot-record-schema.json',
+            4: '.schemas/session-replay/common/meta-record-schema.json',
+            6: '.schemas/session-replay/common/focus-record-schema.json',
+            7: '.schemas/session-replay/common/view-end-record-schema.json',
+            8: '.schemas/session-replay/common/visual-viewport-record-schema.json',
+            10: '.schemas/session-replay/mobile/full-snapshot-record-schema.json',
+            11: '.schemas/schemas/session-replay/mobile/incremental-snapshot-record-schema.json',
         }
 
         obj = {

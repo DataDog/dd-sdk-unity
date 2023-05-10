@@ -6,6 +6,7 @@
 # Copyright 2019-2020 Datadog, Inc.
 # -----------------------------------------------------------
 
+import argparse
 import os
 import json
 
@@ -16,17 +17,13 @@ from typing import Optional
 from dataclasses import dataclass, is_dataclass, asdict
 from flask import Flask, request, Request, render_template, url_for, redirect
 import flask
+from schema_update import schemas_path_exists, update_schemas
 from schemas.schema import Schema
 from schemas.raw import RAWSchema
 from schemas.rum import RUMSchema
 from schemas.session_replay import SRSchema
 from server_address import get_best_server_address, get_localhost
 from templates.components.card import Card, CardTab
-
-
-# If `--prefer-localhost` argument is set, the server will listen on http://127.0.0.1:8000.
-# By default it tries to discover private IP address on local network and uses localhost as fallback.
-prefer_localhost_flag = "--prefer-localhost" in sys.argv
 
 app = Flask(__name__)
 
@@ -234,5 +231,18 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
 
 
 if __name__ == '__main__':
-    address = get_localhost() if prefer_localhost_flag is True else get_best_server_address()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prefer-localhost", action='store_true')
+    parser.add_argument("--update-schemas", action='store_true')
+
+    args = parser.parse_args()
+    if args.update_schemas:
+        update_schemas()
+        exit()
+
+    if not schemas_path_exists():
+        print('Missing .schemas. Please run app.py --update-schemas')
+        exit()
+
+    address = get_localhost() if args.prefer_localhost is True else get_best_server_address()
     app.run(debug=True, host=address.ip)
