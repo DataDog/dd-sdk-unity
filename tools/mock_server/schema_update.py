@@ -18,9 +18,7 @@ def schemas_path_exists():
     """
     Test to see if schemas are available
     """
-    if os.path.exists(schemas_path) and os.path.isdir(schemas_path):
-        return True
-    return False
+    return os.path.exists(schemas_path) and os.path.isdir(schemas_path):
 
 def update_schemas():
     """
