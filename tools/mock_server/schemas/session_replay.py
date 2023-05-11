@@ -67,12 +67,12 @@ class SRSchema(Schema):
 
     def records_data(self) -> CardTab:
         record_schema_path_by_type = {
-            4: '.schemas/session-replay/common/meta-record-schema.json',
-            6: '.schemas/session-replay/common/focus-record-schema.json',
-            7: '.schemas/session-replay/common/view-end-record-schema.json',
-            8: '.schemas/session-replay/common/visual-viewport-record-schema.json',
-            10: '.schemas/session-replay/mobile/full-snapshot-record-schema.json',
-            11: '.schemas/schemas/session-replay/mobile/incremental-snapshot-record-schema.json',
+            4: '.schemas/schemas/session-replay/common/meta-record-schema.json',
+            6: '.schemas/schemas/session-replay/common/focus-record-schema.json',
+            7: '.schemas/schemas/session-replay/common/view-end-record-schema.json',
+            8: '.schemas/schemas/session-replay/common/visual-viewport-record-schema.json',
+            10: '.schemas/schemas/session-replay/mobile/full-snapshot-record-schema.json',
+            11: '.schemas/schemas/schemas/session-replay/mobile/incremental-snapshot-record-schema.json',
         }
 
         obj = {

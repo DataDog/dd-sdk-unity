@@ -25,23 +25,23 @@ def update_schemas():
     Update RUM schemas to current master of the schema repo
     """
 
-    with TemporaryDirectory() as temp_dir:
-        print(f"Running git clone on {schema_repo} to {temp_dir}")
-        os.system(f'git clone {schema_repo} {temp_dir}')
+    if os.path.exists(schemas_path):
+        if not os.path.exists(os.path.join(schemas_path, '.git')):
+            print(f'⚠️ {schemas_path} exists but is not a git repo. Deleting and starting over.')
+            shutil.rmtree(schemas_path)
+            _clone_schemas_repo()
+        else:
+            _update_schemas_repo()
+    else:
+        _clone_schemas_repo()
 
-        if not os.path.exists(schemas_path):
-          os.mkdir(schemas_path)
-        schemas = glob.glob(f"{temp_dir}/schemas/**", recursive=True)
+def _clone_schemas_repo():
+    print(f"Running git clone of {schema_repo}")
+    os.system(f'git clone {schema_repo} {schemas_path}')
 
-        for file in schemas:
-            base_file = file.replace(f'{temp_dir}/schemas/', '')
-            if len(base_file) == 0: continue
-            target_file = os.path.join(schemas_path, base_file)
-
-            if os.path.isdir(file):
-                if not os.path.exists(target_file):
-                    os.mkdir(target_file)
-                continue
-
-            shutil.copy2(file, target_file)
-            print(f'Copied {temp_dir} to {schemas_path}/{base_file}')
+def _update_schemas_repo():
+    print(f"Running git pull on {schemas_path}")
+    pwd = os.getcwd()
+    os.chdir(schemas_path)
+    os.system('git pull')
+    os.chdir(pwd)
