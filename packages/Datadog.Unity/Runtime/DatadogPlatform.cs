@@ -13,6 +13,8 @@ namespace Datadog.Unity
     {
         void Init(DatadogConfigurationOptions options);
 
+        void SetTrackingConsent(TrackingConsent trackingConsent);
+
         IDdLogger CreateLogger(DatadogLoggingOptions options);
     }
 }

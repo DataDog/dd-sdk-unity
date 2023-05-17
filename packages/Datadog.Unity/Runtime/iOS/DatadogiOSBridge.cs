@@ -33,7 +33,7 @@ namespace Datadog.Unity.iOS
 
         public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
-            // TODO: Support attributes and errors
+            // TODO: RUMM-3271, RUMM-3272 - Support attributes and errors
             DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message);
         }
     }

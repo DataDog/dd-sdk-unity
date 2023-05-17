@@ -42,7 +42,6 @@ namespace Datadog.Unity.Android
         public void Init(DatadogConfigurationOptions options)
         {
             var datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
-            datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
 
             using var credentials = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Credentials",
@@ -56,6 +55,13 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
 
+            if (options.CustomEndpoint != string.Empty)
+            {
+                configBuilder.Call<AndroidJavaObject>("useCustomLogsEndpoint", options.CustomEndpoint);
+                configBuilder.Call<AndroidJavaObject>("useCustomCrashReportsEndpoint", options.CustomEndpoint + "/logs");
+                configBuilder.Call<AndroidJavaObject>("useCustomRumEndpoint", options.CustomEndpoint + "/rum");
+            }
+
             var configuration = configBuilder.Call<AndroidJavaObject>("build");
 
             datadogClass.CallStatic(
@@ -64,6 +70,12 @@ namespace Datadog.Unity.Android
                 credentials,
                 configuration,
                 DatadogConfigurationHelpers.GetTrackingConsent(TrackingConsent.Granted));
+            datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
+        }
+
+        public void SetTrackingConsent(TrackingConsent trackingConsent)
+        {
+            // TODO:
         }
 
         public IDdLogger CreateLogger(DatadogLoggingOptions options)
@@ -73,10 +85,12 @@ namespace Datadog.Unity.Android
             {
                 loggerBuilder.Call("setServiceName", options.ServiceName);
             }
+
             if (options.LoggerName != null)
             {
                 loggerBuilder.Call("setLoggerName", options.LoggerName);
             }
+
             loggerBuilder.Call<AndroidJavaObject>("setNetworkInfoEnabled", options.SendNetworkInfo);
             loggerBuilder.Call<AndroidJavaObject>("setDatadogLogsEnabled", options.SendToDatadog);
             var androidReportingThreshold = (int)DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(options.DatadogReportingThreshold);

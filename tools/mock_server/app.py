@@ -229,6 +229,9 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
         print(f'⚠️ Could not find endpoint with hash {endpoint_hash}')
         return redirect(url_for('inspect'))
 
+def run(prefer_localhost: bool):
+    address = get_localhost() if prefer_localhost is True else get_best_server_address()
+    app.run(debug=True, host=address.ip)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -244,5 +247,4 @@ if __name__ == '__main__':
         print('Missing .schemas. Please run app.py --update-schemas')
         exit()
 
-    address = get_localhost() if args.prefer_localhost is True else get_best_server_address()
-    app.run(debug=True, host=address.ip)
+    run(args.prefer_localhost)

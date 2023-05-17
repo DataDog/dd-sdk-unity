@@ -51,7 +51,12 @@ namespace Datadog.Unity.Editor.iOS
 
                 AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"));
 
-                pbxProject.WriteToFile(projectPath);
+                var projectInString = pbxProject.WriteToString();
+
+                // Remove Bitcode. It's deprecated by Apple and Datadog doesn't support it.
+                projectInString = projectInString.Replace("ENABLE_BITCODE = YES;", "ENABLE_BITCODE = NO;");
+
+                File.WriteAllText(projectPath, projectInString);
             }
             catch (Exception e)
             {
@@ -91,6 +96,15 @@ namespace Datadog.Unity.Editor.iOS
 
         internal static void GenerateOptionsFile(string path, DatadogConfigurationOptions options)
         {
+            var customEndpointString = string.Empty;
+            if (options.CustomEndpoint != string.Empty)
+            {
+                customEndpointString = $@"
+    [builder setWithCustomLogsEndpoint:[[NSURL alloc] initWithString:@""{options.CustomEndpoint}/logs""]];
+    [builder setWithCustomRUMEndpoint:[[NSURL alloc] initWithString:@""{options.CustomEndpoint}/rum""]];
+";
+            }
+
             var optionsFileString = $@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
 #include <Datadog/Datadog-Swift.h>
@@ -98,12 +112,14 @@ namespace Datadog.Unity.Editor.iOS
 #include <DatadogCrashReporting/DatadogCrashReporting-Swift.h>
 
 DDConfiguration* buildDatadogConfiguration() {{
+    [DDDatadog setVerbosityLevel:DDSDKVerbosityLevelDebug];
     DDConfigurationBuilder *builder = [DDConfiguration builderWithClientToken:@""{options.ClientToken}""
                                                                   environment:@""prod""];
     [builder enableTracing:NO];
     [builder enableCrashReportingUsing:[DDCrashReportingPlugin new]];
     [builder setWithBatchSize:{GetObjCBatchSize(options.BatchSize)}];
     [builder setWithUploadFrequency:{GetObjCUploadFrequency(options.UploadFrequency)}];
+    {customEndpointString}
 
     return [builder build];
 }}
