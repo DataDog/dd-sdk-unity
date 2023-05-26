@@ -12,9 +12,9 @@ import subprocess
 
 def get_unity_path(version: str = "2021.3.24f1"):
     # REVISIT: Only get the Mac version for now
-    return '/Applications/Unity/Hub/Editor/2021.3.24f1/Unity.app/Contents/MacOS/Unity'
+    return "/Applications/Unity/Hub/Editor/2021.3.24f1/Unity.app/Contents/MacOS/Unity"
 
 def run_unity_command(*args):
-    process = subprocess.run([get_unity_path(), *args], stdout=subprocess.PIPE, universal_newlines=True)
+    process = subprocess.Popen([get_unity_path(), *args], stdout=subprocess.PIPE, universal_newlines=True)
     for line in process.stdout:
-        print(line)
+        print(f"[unity] {line}", end='')

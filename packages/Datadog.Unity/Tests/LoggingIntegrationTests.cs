@@ -16,6 +16,7 @@ using UnityEngine.TestTools;
 public class LoggingIntegrationTests
 {
     [UnityTest]
+    [Category("integration")]
     public IEnumerator LoggingIntegrationTestsSimplePasses()
     {
         var mockServerHelper = new MockServerHelper();
@@ -27,6 +28,10 @@ public class LoggingIntegrationTests
         var serverRequests = task.Result;
 
         Assert.AreEqual(1, serverRequests.Count);
+        var log = new LogDecoder(serverRequests[0]);
+        Assert.AreEqual("info", log.Status);
+        Assert.AreEqual("Awake from test behavior", log.Message);
+        Assert.AreEqual("logging.service", log.ServiceName);
     }
 
     public class TestLoggingMonoBehavior : MonoBehaviour, IMonoBehaviourTest

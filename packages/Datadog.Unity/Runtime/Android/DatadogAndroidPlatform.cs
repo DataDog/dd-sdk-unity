@@ -83,12 +83,12 @@ namespace Datadog.Unity.Android
             using var loggerBuilder = new AndroidJavaObject("com.datadog.android.log.Logger$Builder");
             if (options.ServiceName != null)
             {
-                loggerBuilder.Call("setServiceName", options.ServiceName);
+                loggerBuilder.Call<AndroidJavaObject>("setServiceName", options.ServiceName);
             }
 
             if (options.LoggerName != null)
             {
-                loggerBuilder.Call("setLoggerName", options.LoggerName);
+                loggerBuilder.Call<AndroidJavaObject>("setLoggerName", options.LoggerName);
             }
 
             loggerBuilder.Call<AndroidJavaObject>("setNetworkInfoEnabled", options.SendNetworkInfo);
