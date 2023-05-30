@@ -66,7 +66,7 @@ def main():
     modify_datadog_settings(local_server_address)
 
     run_unity_command(
-        "-runTests", "-batchmode", "-projectPath", integration_project_path,
+        "-runTests", "-batchMode", "-projectPath", integration_project_path,
         "-testCategory", "integration", "-testPlatform", "android",
         "-testResults", "tmp/results.xml", "-logFile", "-"
     )
