@@ -4,7 +4,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
+#if UNITY_ANDROID
 using Datadog.Unity.Android;
+#endif
 using Datadog.Unity.Logs;
 using Moq;
 using NUnit.Framework;
@@ -14,6 +16,7 @@ namespace Datadog.Unity.Tests
 {
     public class LoggingTests
     {
+#if UNITY_ANDROID
         [TestCase(DdLogLevel.Debug, AndroidLogLevel.Debug)]
         [TestCase(DdLogLevel.Info, AndroidLogLevel.Info)]
         [TestCase(DdLogLevel.Notice, AndroidLogLevel.Info)]
@@ -25,6 +28,7 @@ namespace Datadog.Unity.Tests
             var translated = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(ddLogLevel);
             Assert.AreEqual(androidLogLevel, (int)translated);
         }
+#endif
 
         [TestCase(LogType.Error, DdLogLevel.Error)]
         [TestCase(LogType.Assert, DdLogLevel.Critical)]

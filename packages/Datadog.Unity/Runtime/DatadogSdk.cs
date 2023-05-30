@@ -28,6 +28,11 @@ namespace Datadog.Unity
             Instance.DefaultLogger = Instance._platform.CreateLogger(options);
         }
 
+        public void SetTrackingConsent(TrackingConsent trackingConsent)
+        {
+            Instance._platform.SetTrackingConsent(trackingConsent);
+        }
+
         public IDdLogger CreateLogger(DatadogLoggingOptions options)
         {
             return _platform?.CreateLogger(options);

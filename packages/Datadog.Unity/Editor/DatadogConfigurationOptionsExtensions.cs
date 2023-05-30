@@ -22,6 +22,7 @@ namespace Datadog.Unity.Editor
                 options.ClientToken = string.Empty;
                 options.Enabled = true;
                 options.Site = DatadogSite.Us1;
+                options.CustomEndpoint = string.Empty;
                 options.DefaultLoggingLevel = LogType.Log;
                 options.BatchSize = BatchSize.Medium;
                 options.UploadFrequency = UploadFrequency.Average;

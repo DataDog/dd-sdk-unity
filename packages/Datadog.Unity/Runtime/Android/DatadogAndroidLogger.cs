@@ -20,7 +20,7 @@ namespace Datadog.Unity.Android
 
         public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
-            // TODO - Support attributes and errors
+            // TODO: RUMM-3271, RUMM-3272 - Support attributes and errors
             var androidLevel = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(level);
             _androidLogger.Call("log", (int)androidLevel, message);
         }

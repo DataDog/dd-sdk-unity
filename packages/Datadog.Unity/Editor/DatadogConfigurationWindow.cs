@@ -42,6 +42,7 @@ namespace Datadog.Unity.Editor
 
             _options.ClientToken = EditorGUILayout.TextField("Client Token", _options.ClientToken);
             _options.Site = (DatadogSite)EditorGUILayout.EnumPopup("Datadog Site", _options.Site);
+            _options.CustomEndpoint = EditorGUILayout.TextField("Custom Endpoint", _options.CustomEndpoint);
             _options.BatchSize = (BatchSize)EditorGUILayout.EnumPopup("Batch Size", _options.BatchSize);
             _options.UploadFrequency = (UploadFrequency)EditorGUILayout.EnumPopup("Upload Frequency", _options.UploadFrequency);
 

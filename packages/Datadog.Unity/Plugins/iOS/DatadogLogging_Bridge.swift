@@ -5,6 +5,21 @@
 import Foundation
 import Datadog
 
+@_cdecl("Datadog_SetTrackingConsent")
+func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
+    let trackingConsent: TrackingConsent?
+    switch(trackingConsentInt) {
+    case 0: trackingConsent = .granted
+    case 1: trackingConsent = .notGranted
+    case 2: trackingConsent = .pending
+    default: trackingConsent = nil
+    }
+
+    if let trackingConsent = trackingConsent {
+        Datadog.set(trackingConsent: trackingConsent)
+    }
+}
+
 private class LogRegistry {
     public static let shared = LogRegistry()
 
@@ -58,7 +73,7 @@ func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>
        let options = try? JSONDecoder().decode(LoggingOptions.self, from: data) {
 
 
-        let loggerId = LogRegistry.shared.createLog(options: options)
+        let loggerId = LogRegistry.shared.createLogger(options: options)
         return strdup(loggerId)
     }
 
