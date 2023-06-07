@@ -40,5 +40,7 @@ namespace Datadog.Unity.Logs
         }
 
         public abstract void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null);
+
+        public abstract void AddTag(string tag, string value = null);
     }
 }

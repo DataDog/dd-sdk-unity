@@ -93,3 +93,20 @@ func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, mess
         logger.log(level: logLevel, message: swiftMessage, error: nil, attributes: nil)
     }
 }
+
+@_cdecl("DatadogLogging_AddTag")
+func DatadogLogging_AddTag(logId: UnsafeMutablePointer<CChar>?, tag: UnsafeMutablePointer<CChar>?, value: UnsafeMutablePointer<CChar>?) {
+    guard let logId = logId, let tag = tag else {
+        return
+    }
+
+    if let idString = String(cString: logId, encoding: .utf8),
+       let logger = LogRegistry.shared.logs[idString],
+       let swiftTag = String(cString: tag, encoding: .utf8) {
+        if let value = value, let swiftValue = String(cString: value, encoding: .utf8) {
+            logger.addTag(withKey: swiftTag, value: swiftValue)
+        } else {
+            logger.add(tag: swiftTag)
+        }
+    }
+}

@@ -4,10 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using UnityEngine;
 
 namespace Datadog.Unity.Tests.Integration
@@ -25,7 +27,7 @@ namespace Datadog.Unity.Tests.Integration
             _endpoint = configuration.CustomEndpoint;
         }
 
-        public async Task<List<Dictionary<string, object>>> PollRequests(TimeSpan duration, int count)
+        public async Task<List<MockServerLog>> PollRequests(TimeSpan duration, Func<List<MockServerLog>, bool> parseRequests)
         {
             List<Dictionary<string, object>> requests = new();
             var timeoutTime = DateTime.Now + duration;
@@ -39,11 +41,18 @@ namespace Datadog.Unity.Tests.Integration
                     try
                     {
                         var content = await inspect.Content.ReadAsStringAsync();
-                        var json = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(content);
-                        if (json.Count >= count)
+                        var contractResolver = new DefaultContractResolver
                         {
-                            requests = json;
-                            stopPolling = true;
+                            NamingStrategy = new SnakeCaseNamingStrategy(),
+                        };
+                        var serverLog = JsonConvert.DeserializeObject<List<MockServerLog>>(content, new JsonSerializerSettings()
+                        {
+                            ContractResolver = contractResolver,
+                        });
+
+                        if (parseRequests(serverLog))
+                        {
+                            return serverLog;
                         }
                     }
                     catch (Exception e)
@@ -55,7 +64,48 @@ namespace Datadog.Unity.Tests.Integration
                 await Task.Delay(500);
             } while (!stopPolling && DateTime.Now < timeoutTime);
 
-            return requests;
+            return new List<MockServerLog>();
+        }
+    }
+
+    public class MockServerLog
+    {
+        public string Endpoint { get; set; }
+
+        public List<MockServerRequest> Requests { get; set; }
+    }
+
+    public class MockServerRequest
+    {
+        public string Method { get; set; }
+
+        public List<MockServerSchema> Schemas { get; set; }
+    }
+
+    public class MockServerSchema
+    {
+        public List<string> Headers { get; set; }
+
+        public Dictionary<string, string> ParsedHeaders
+        {
+            get
+            {
+                var headerDict = new Dictionary<string, string>();
+                foreach (var header in Headers) {
+                    var colonIndex = header.IndexOf(':');
+                    var parts = (header[..colonIndex], header[(colonIndex + 1)..].Trim());
+                    headerDict[parts.Item1] = parts.Item2;
+                }
+
+                return headerDict;
+            }
+        }
+
+        public string DecompressedData { get; set; }
+
+        public T ParseDecompressedJsonData<T>()
+        {
+            return JsonConvert.DeserializeObject<T>(DecompressedData);
         }
     }
 }
