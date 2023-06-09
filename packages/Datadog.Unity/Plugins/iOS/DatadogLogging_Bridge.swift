@@ -81,7 +81,7 @@ func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>
 }
 
 @_cdecl("DatadogLogging_Log")
-func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, message: UnsafeMutablePointer<CChar>?) {
+func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, message: UnsafeMutablePointer<CChar>?, attributes: UnsafePointer<CChar>?) {
     guard let logId = logId, let message = message else {
         return
     }
@@ -89,8 +89,17 @@ func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, mess
     if let idString = String(cString: logId, encoding: .utf8),
        let logger = LogRegistry.shared.logs[idString],
        let swiftMessage = String(cString: message, encoding: .utf8) {
+
+        var decodedAttributes: [String: Encodable]?
+        if let attributes = attributes,
+           let attributeString = String(cString: attributes, encoding: .utf8),
+           let attributesData = attributeString.data(using: .utf8),
+           let jsonAttributes = try? JSONSerialization.jsonObject(with: attributesData) as? [String: Any] {
+            decodedAttributes = castJsonAttributesToSwift(jsonAttributes)
+        }
+
         let logLevel = LogLevel(rawValue: logLevel) ?? .info
-        logger.log(level: logLevel, message: swiftMessage, error: nil, attributes: nil)
+        logger.log(level: logLevel, message: swiftMessage, error: nil, attributes: decodedAttributes)
     }
 }
 
@@ -107,6 +116,126 @@ func DatadogLogging_AddTag(logId: UnsafeMutablePointer<CChar>?, tag: UnsafeMutab
             logger.addTag(withKey: swiftTag, value: swiftValue)
         } else {
             logger.add(tag: swiftTag)
+        }
+    }
+}
+
+
+internal func castJsonAttributesToSwift(_ jsonObject: [String: Any?]) -> [String: Encodable] {
+    var casted: [String: Encodable] = [:]
+
+    jsonObject.forEach { key, value in
+        if let value = value {
+            casted[key] = castAnyToEncodable(value)
+        }
+    }
+
+    return casted
+}
+
+internal func castAnyToEncodable(_ jsonAny: Any) -> Encodable {
+    switch jsonAny {
+    case let number as NSNumber:
+        if CFGetTypeID(number) == CFBooleanGetTypeID() {
+            return CFBooleanGetValue(number)
+        } else {
+            switch CFNumberGetType(number) {
+            case .charType:
+                return number.uint8Value
+            case .sInt8Type:
+                return number.int8Value
+            case .sInt16Type:
+                return number.int16Value
+            case .sInt32Type:
+                return number.int32Value
+            case .sInt64Type:
+                return number.int64Value
+            case .shortType:
+                return number.uint16Value
+            case .longType:
+                return number.uint32Value
+            case .longLongType:
+                return number.uint64Value
+            case .intType, .nsIntegerType, .cfIndexType:
+                return number.intValue
+            case .floatType, .float32Type:
+                return number.floatValue
+            case .doubleType, .float64Type, .cgFloatType:
+                return number.doubleValue
+            @unknown default:
+                return JsonEncodable(jsonAny)
+            }
+        }
+    case let string as String:
+        return string
+    default:
+        return JsonEncodable(jsonAny)
+    }
+}
+
+// This is similar to AnyEncodable, but for simplicity, it only looks for types
+// that are JSON serializable
+internal class JsonEncodable: Encodable {
+    public let value: Any
+
+    init(_ value: Any) {
+        self.value = value
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch value {
+        case let number as NSNumber:
+            try encodeNSNumber(number, into: &container)
+        case is NSNull, is Void:
+            try container.encodeNil()
+        case let string as String:
+            try container.encode(string)
+        case let array as [Any]:
+            try container.encode(array.map { JsonEncodable($0) })
+        case let dictionary as [String: Any]:
+            try container.encode(dictionary.mapValues { JsonEncodable($0) })
+        default:
+            let context = EncodingError.Context(
+                codingPath: container.codingPath,
+                // swiftlint:disable:next line_length
+                debugDescription: "Value \(value) cannot be encoded - \(type(of: value)) is not supported by `JsonEncodable`."
+            )
+            throw EncodingError.invalidValue(value, context)
+        }
+    }
+}
+
+private func encodeNSNumber(_ number: NSNumber, into container: inout SingleValueEncodingContainer) throws {
+    if CFGetTypeID(number) == CFBooleanGetTypeID() {
+        try container.encode(CFBooleanGetValue(number))
+    } else {
+        switch CFNumberGetType(number) {
+        case .charType:
+            try container.encode(number.uint8Value)
+        case .sInt8Type:
+            try container.encode(number.int8Value)
+        case .sInt16Type:
+            try container.encode(number.int16Value)
+        case .sInt32Type:
+            try container.encode(number.int32Value)
+        case .sInt64Type:
+            try container.encode(number.int64Value)
+        case .shortType:
+            try container.encode(number.uint16Value)
+        case .longType:
+            try container.encode(number.uint32Value)
+        case .longLongType:
+            try container.encode(number.uint64Value)
+        case .intType, .nsIntegerType, .cfIndexType:
+            try container.encode(number.intValue)
+        case .floatType, .float32Type:
+            try container.encode(number.floatValue)
+        case .doubleType, .float64Type, .cgFloatType:
+            try container.encode(number.doubleValue)
+        @unknown default:
+            return
         }
     }
 }
