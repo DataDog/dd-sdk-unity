@@ -68,7 +68,7 @@ def main():
     run_unity_command(
         "-runTests", "-batchMode", "-projectPath", integration_project_path,
         "-testCategory", "integration", "-testPlatform", "android",
-        "-testResults", "tmp/results.xml", "-logFile", "-"
+        "-testResults", "tmp/results.xml", "-logFile", "-",
     )
 
     mock_server.terminate()

@@ -18,6 +18,15 @@ namespace Datadog.Unity.Android
             _androidLogger = androidLogger;
         }
 
+        public override void AddTag(string tag, string value = null)
+        {
+            if (value != null) {
+                _androidLogger.Call("addTag", tag, value);
+            } else {
+                _androidLogger.Call("addTag", tag);
+            }
+        }
+
         public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
             // TODO: RUMM-3271, RUMM-3272 - Support attributes and errors

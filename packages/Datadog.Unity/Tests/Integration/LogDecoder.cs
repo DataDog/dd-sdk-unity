@@ -3,6 +3,8 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Tests.Integration
 {
@@ -14,6 +16,8 @@ namespace Datadog.Unity.Tests.Integration
         {
             _rawJson = rawJson;
         }
+
+        public Dictionary<string, string> Headers { get; private set; }
 
         public string Status
         {
@@ -28,6 +32,60 @@ namespace Datadog.Unity.Tests.Integration
         public string ServiceName
         {
             get { return _rawJson["service"] as string; }
+        }
+
+        public string RawTags
+        {
+            get { return _rawJson["ddtags"] as string; }
+        }
+
+        public string[] Tags
+        {
+            get { return RawTags.Split(','); }
+        }
+
+        public string LoggerName
+        {
+            get { return GetNestedProperty<string>("logger.name"); }
+        }
+
+        private T GetNestedProperty<T>(string key)
+        {
+#if UNITY_ANDROID
+            var parts = key.Split('.');
+            var lookupMap = _rawJson;
+            for (int i = 0; i < (parts.Length - 1); i++)
+            {
+                lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
+            }
+
+            return (T)lookupMap[parts.Last()];
+#endif
+
+            return (T)_rawJson[key];
+        }
+
+        public static List<LogDecoder> LogsFromMockServer(List<MockServerLog> mockServerLogs)
+        {
+            var logs = new List<LogDecoder>();
+            foreach (var mockLog in mockServerLogs)
+            {
+                if (mockLog.Endpoint.Contains("/logs"))
+                {
+                    mockLog.Requests.ForEach((e) => e.Schemas.ForEach((schema) =>
+                    {
+                        var json = schema.ParseDecompressedJsonData<List<Dictionary<string, object>>>();
+                        foreach (var jsonLog in json)
+                        {
+                            var log = new LogDecoder(jsonLog);
+                            log.Headers = schema.ParsedHeaders;
+                            logs.Add(log);
+                        }
+                    }));
+                }
+            }
+
+            return logs;
         }
     }
 }

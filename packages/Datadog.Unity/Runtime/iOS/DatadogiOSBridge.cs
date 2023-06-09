@@ -36,6 +36,11 @@ namespace Datadog.Unity.iOS
             // TODO: RUMM-3271, RUMM-3272 - Support attributes and errors
             DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message);
         }
+
+        public override void AddTag(string tag, string value = null)
+        {
+            DatadogLoggingBridge.DatadogLogging_AddTag(_loggerId, tag, value);
+        }
     }
 
     internal static class DatadogLoggingBridge
@@ -45,5 +50,8 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         public static extern void DatadogLogging_Log(string loggerId, int logLevel, string message);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogLogging_AddTag(string loggerId, string tag, string value);
     }
 }
