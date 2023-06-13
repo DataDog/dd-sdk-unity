@@ -8,7 +8,7 @@ import Datadog
 @_cdecl("Datadog_SetTrackingConsent")
 func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
     let trackingConsent: TrackingConsent?
-    switch(trackingConsentInt) {
+    switch trackingConsentInt {
     case 0: trackingConsent = .granted
     case 1: trackingConsent = .notGranted
     case 2: trackingConsent = .pending
@@ -72,7 +72,6 @@ func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>
        let data = stringLoggingOptions.data(using: .utf8),
        let options = try? JSONDecoder().decode(LoggingOptions.self, from: data) {
 
-
         let loggerId = LogRegistry.shared.createLogger(options: options)
         return strdup(loggerId)
     }
@@ -120,6 +119,62 @@ func DatadogLogging_AddTag(logId: UnsafeMutablePointer<CChar>?, tag: UnsafeMutab
     }
 }
 
+@_cdecl("DatadogLogging_RemoveTag")
+func DatadogLogging_RemoveTag(logId: UnsafeMutablePointer<CChar>?, tag: UnsafeMutablePointer<CChar>?) {
+    guard let logId = logId, let tag = tag else {
+        return
+    }
+
+    if let idString = String(cString: logId, encoding: .utf8),
+       let logger = LogRegistry.shared.logs[idString],
+       let swiftTag = String(cString: tag, encoding: .utf8) {
+        logger.remove(tag: swiftTag)
+    }
+}
+
+@_cdecl("DatadogLogging_RemoveTagWithKey")
+func DatadogLogging_RemoveTagWithKey(logId: UnsafeMutablePointer<CChar>?, tag: UnsafeMutablePointer<CChar>?) {
+    guard let logId = logId, let tag = tag else {
+        return
+    }
+
+    if let idString = String(cString: logId, encoding: .utf8),
+       let logger = LogRegistry.shared.logs[idString],
+       let swiftTag = String(cString: tag, encoding: .utf8) {
+        logger.removeTag(withKey: swiftTag)
+    }
+}
+
+@_cdecl("DatadogLogging_AddAttribute")
+func DatadogLogging_AddAttribute(logId: UnsafeMutablePointer<CChar>?, attributeJson: UnsafeMutablePointer<CChar>?) {
+    guard let logId = logId, let attributeJson = attributeJson else {
+        return
+    }
+
+    if let idString = String(cString: logId, encoding: .utf8),
+       let logger = LogRegistry.shared.logs[idString],
+       let attributeString = String(cString: attributeJson, encoding: .utf8),
+       let attributeData = attributeString.data(using: .utf8),
+       let jsonAttribute = try? JSONSerialization.jsonObject(with: attributeData) as? [String: Any] {
+        jsonAttribute.forEach { (key, value) in
+            logger.addAttribute(forKey: key, value: castAnyToEncodable(value))
+        }
+    }
+}
+
+
+@_cdecl("DatadogLogging_RemoveAttribute")
+func DatadogLogging_RemoveAttribute(logId: UnsafeMutablePointer<CChar>?, key: UnsafeMutablePointer<CChar>?) {
+    guard let logId = logId, let key = key else {
+        return
+    }
+
+    if let idString = String(cString: logId, encoding: .utf8),
+       let logger = LogRegistry.shared.logs[idString],
+       let swiftKey = String(cString: key, encoding: .utf8) {
+        logger.removeAttribute(forKey: swiftKey)
+    }
+}
 
 internal func castJsonAttributesToSwift(_ jsonObject: [String: Any?]) -> [String: Encodable] {
     var casted: [String: Encodable] = [:]
