@@ -19,6 +19,11 @@ namespace Datadog.Unity.Tests.Integration
 
         public Dictionary<string, string> Headers { get; private set; }
 
+        public Dictionary<string, object> RawJson
+        {
+            get { return _rawJson; }
+        }
+
         public string Status
         {
             get { return _rawJson["status"] as string; }

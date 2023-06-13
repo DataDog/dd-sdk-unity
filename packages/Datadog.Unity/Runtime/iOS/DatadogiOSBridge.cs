@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Datadog.Unity.Logs;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Datadog.Unity.iOS
@@ -33,8 +34,11 @@ namespace Datadog.Unity.iOS
 
         public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
-            // TODO: RUMM-3271, RUMM-3272 - Support attributes and errors
-            DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message);
+            // TODO: RUMM-3272 - Support errors
+            // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports
+            // Dictionaries, where JsonUtility does not.
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+            DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message, jsonAttributes);
         }
 
         public override void AddTag(string tag, string value = null)
@@ -49,7 +53,7 @@ namespace Datadog.Unity.iOS
         public static extern string DatadogLogging_CreateLogger(string optionsJson);
 
         [DllImport("__Internal")]
-        public static extern void DatadogLogging_Log(string loggerId, int logLevel, string message);
+        public static extern void DatadogLogging_Log(string loggerId, int logLevel, string message, string attributes);
 
         [DllImport("__Internal")]
         public static extern void DatadogLogging_AddTag(string loggerId, string tag, string value);
