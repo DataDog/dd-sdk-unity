@@ -54,11 +54,47 @@ namespace Datadog.Unity.Android
                     AndroidJavaObject javaValue;
                     switch (item.Value)
                     {
+                        // Integer types - okay to convert all of these to Java ints
+                        case byte val:
+                            javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
+                            break;
+                        case sbyte val:
+                            javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
+                            break;
+                        case short val:
+                            javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
+                            break;
+                        case ushort val:
+                            javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
+                            break;
+                        case char val:
+                            javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
+                            break;
                         case int val:
                             javaValue = new AndroidJavaObject("java.lang.Integer", val);
                             break;
+                        case uint val:
+                            // Pass unisgned int as a long to avoid potential overflow
+                            javaValue = new AndroidJavaObject("java.lang.Long", (long)val);
+                            break;
+                        case nint val:
+                            javaValue = new AndroidJavaObject("java.lang.Long", (long)val);
+                            break;
+                        case nuint val:
+                            javaValue = new AndroidJavaObject("java.lang.Long", (long)val);
+                            break;
+                        case long val:
+                            javaValue = new AndroidJavaObject("java.lang.Long", val);
+                            break;
+                        case ulong val:
+                            // Potential loss of precision here
+                            javaValue = new AndroidJavaObject("java.lang.Long", val);
+                            break;
                         case string val:
                             javaValue = new AndroidJavaObject("java.lang.String", val);
+                            break;
+                        case decimal val:
+                            javaValue = new AndroidJavaObject("java.lang.Double", (double)val);
                             break;
                         case float val:
                             javaValue = new AndroidJavaObject("java.lang.Float", val);
