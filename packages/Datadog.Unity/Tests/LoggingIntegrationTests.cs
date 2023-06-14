@@ -44,6 +44,7 @@ namespace Datadog.Unity.Tests
             Assert.AreEqual("string value", (string)debugLog.RawJson["logger-attribute1"]);
             Assert.AreEqual(1000, (long)debugLog.RawJson["logger-attribute2"]);
             Assert.Contains("tag1:tag-value", debugLog.Tags);
+            Assert.Contains("tag1:second-value", debugLog.Tags);
             Assert.Contains("my-tag", debugLog.Tags);
             Assert.AreEqual("not_silent_logger", debugLog.LoggerName);
             Assert.AreEqual("string", debugLog.RawJson["stringAttribute"]);
@@ -53,6 +54,7 @@ namespace Datadog.Unity.Tests
             Assert.AreEqual("info message", infoLog.Message);
             Assert.AreEqual("logging.service", infoLog.ServiceName);
             Assert.Contains("tag1:tag-value", infoLog.Tags);
+            Assert.Contains("tag1:second-value", debugLog.Tags);
             CollectionAssert.DoesNotContain(infoLog.Tags, "my-tag");
             Assert.AreEqual("string value", (string)infoLog.RawJson["logger-attribute1"]);
             Assert.AreEqual(1000, (long)infoLog.RawJson["logger-attribute2"]);
@@ -65,6 +67,7 @@ namespace Datadog.Unity.Tests
             Assert.AreEqual("warn message", warnLog.Message);
             Assert.AreEqual("logging.service", warnLog.ServiceName);
             Assert.Contains("tag1:tag-value", warnLog.Tags);
+            Assert.Contains("tag1:second-value", debugLog.Tags);
             CollectionAssert.DoesNotContain(warnLog.Tags, "my-tag");
             Assert.AreEqual("string value", (string)warnLog.RawJson["logger-attribute1"]);
             Assert.AreEqual(1000, (long)warnLog.RawJson["logger-attribute2"]);
@@ -75,6 +78,7 @@ namespace Datadog.Unity.Tests
             Assert.AreEqual("error message", errorLog.Message);
             Assert.AreEqual("logging.service", errorLog.ServiceName);
             CollectionAssert.DoesNotContain(errorLog.Tags, "tag1:tag-value");
+            CollectionAssert.DoesNotContain(errorLog.Tags, "tag1:second-value");
             CollectionAssert.DoesNotContain(errorLog.Tags, "my-tag");
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
@@ -108,6 +112,7 @@ namespace Datadog.Unity.Tests
                 };
                 var logger = DatadogSdk.Instance.CreateLogger(loggingOptions);
                 logger.AddTag("tag1", "tag-value");
+                logger.AddTag("tag1", "second-value");
                 logger.AddTag("my-tag");
                 logger.AddAttribute("logger-attribute1", "string value");
                 logger.AddAttribute("logger-attribute2", 1000);
@@ -126,7 +131,7 @@ namespace Datadog.Unity.Tests
                 logger.Warn("warn message", new() { { "doubleAttribute", 10.34 } });
 
                 logger.RemoveAttribute("logger-attribute1");
-                logger.RemoveTagWithKey("tag1");
+                logger.RemoveTagsWithKey("tag1");
 
                 logger.Error("error message", new() { { "attribute", "value" } });
 

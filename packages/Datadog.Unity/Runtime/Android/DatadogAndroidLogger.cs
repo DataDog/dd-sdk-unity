@@ -55,7 +55,7 @@ namespace Datadog.Unity.Android
             _androidLogger.Call("removeTag", tag);
         }
 
-        public override void RemoveTagWithKey(string key)
+        public override void RemoveTagsWithKey(string key)
         {
             _androidLogger.Call("removeTagsWithKey", key);
         }

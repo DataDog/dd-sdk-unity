@@ -45,7 +45,7 @@ namespace Datadog.Unity.Logs
 
         public abstract void RemoveTag(string tag);
 
-        public abstract void RemoveTagWithKey(string key);
+        public abstract void RemoveTagsWithKey(string key);
 
         public abstract void AddAttribute(string key, object value);
 

@@ -51,7 +51,7 @@ namespace Datadog.Unity.iOS
             DatadogLoggingBridge.DatadogLogging_RemoveTag(_loggerId, tag);
         }
 
-        public override void RemoveTagWithKey(string key)
+        public override void RemoveTagsWithKey(string key)
         {
             DatadogLoggingBridge.DatadogLogging_RemoveTagWithKey(_loggerId, key);
         }
