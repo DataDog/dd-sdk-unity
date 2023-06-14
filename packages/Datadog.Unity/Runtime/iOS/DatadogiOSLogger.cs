@@ -45,6 +45,37 @@ namespace Datadog.Unity.iOS
         {
             DatadogLoggingBridge.DatadogLogging_AddTag(_loggerId, tag, value);
         }
+
+        public override void RemoveTag(string tag)
+        {
+            DatadogLoggingBridge.DatadogLogging_RemoveTag(_loggerId, tag);
+        }
+
+        public override void RemoveTagsWithKey(string key)
+        {
+            DatadogLoggingBridge.DatadogLogging_RemoveTagWithKey(_loggerId, key);
+        }
+
+        public override void AddAttribute(string key, object value)
+        {
+            var jsonArg = new Dictionary<string, object>() {
+                { key, value },
+            };
+            var jsonString = JsonConvert.SerializeObject(jsonArg);
+            DatadogLoggingBridge.DatadogLogging_AddAttribute(_loggerId, jsonString);
+        }
+
+        public override void RemoveAttribute(string key)
+        {
+            DatadogLoggingBridge.DatadogLogging_RemoveAttribute(_loggerId, key);
+        }
+    }
+
+    // Used to wrap attributes sent to iOS so that even primitives can ba parsed as JSON objects
+    public class WrappedAttribute
+    {
+        [JsonProperty("value")]
+        public object Value { get; set; }
     }
 
     internal static class DatadogLoggingBridge
@@ -57,5 +88,17 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         public static extern void DatadogLogging_AddTag(string loggerId, string tag, string value);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogLogging_RemoveTag(string loggerId, string tag);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogLogging_RemoveTagWithKey(string loggerId, string tag);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogLogging_AddAttribute(string loggerId, string jsonAttribute);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogLogging_RemoveAttribute(string loggerId, string tag);
     }
 }
