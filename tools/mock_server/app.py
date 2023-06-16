@@ -184,6 +184,19 @@ def inspect():
     global endpoints
     return render_template('endpoints.html', title='Endpoints', endpoints=endpoints)
 
+@app.route('/reset')
+def reset():
+    """
+    GET /reset
+
+    Clear currently logged requests on all endpoints
+    """
+    global endpoints
+    for e in endpoints:
+        e.requests.clear()
+    return 'OK', 200
+
+
 
 @app.route('/inspect/<schema_name>/<endpoint_hash>')
 def inspect_endpoint(schema_name, endpoint_hash):
