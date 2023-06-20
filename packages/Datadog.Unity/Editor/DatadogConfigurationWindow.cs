@@ -48,6 +48,9 @@ namespace Datadog.Unity.Editor
 
             EditorGUILayout.Space();
             GUILayout.Label("Logging", EditorStyles.boldLabel);
+            _options.ForwardUnityLogs = EditorGUILayout.ToggleLeft(
+                new GUIContent("Forward Unity Logs", "Whether calls to Debug.Log functions should be forwarded to Datadog."),
+                _options.ForwardUnityLogs);
             _options.DefaultLoggingLevel = (LogType)EditorGUILayout.EnumPopup("Default Logging Level", _options.DefaultLoggingLevel);
         }
 
