@@ -88,6 +88,9 @@ namespace Datadog.Unity.Tests
         [Test]
         public void UnityLogsAreForwardedToDefaultLogger_WhenForwardUnityLogsIsTrue()
         {
+            var mockUnityLogger = new Mock<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
             mockPlatform
@@ -108,6 +111,8 @@ namespace Datadog.Unity.Tests
         public void UnityLogsAreForwardedToDefaultLoggerWithProperLevel()
         {
             LogAssert.ignoreFailingMessages = true;
+            var mockUnityLogger = new Mock<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger.Object;
 
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
@@ -129,6 +134,33 @@ namespace Datadog.Unity.Tests
             mockLogger.Verify(l => l.Log(DdLogLevel.Error, "Test LogError", null, null));
             mockLogger.Verify(l => l.Log(DdLogLevel.Warn, "Test LogWarning", null, null));
             mockLogger.Verify(l => l.Log(DdLogLevel.Critical, "Test LogAssertion", null, null));
+        }
+
+        [Test]
+        public void UnityLogsAreForwardsLogsBackToUnity()
+        {
+            // Given
+            LogAssert.ignoreFailingMessages = true;
+            var mockUnityLogger = new Mock<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+
+            var mockLogger = new Mock<IDdLogger>();
+            var logArgs = new List<DdLogLevel>();
+            var messageArgs = new List<string>();
+            mockLogger.Setup(m => m.Log(Capture.In(logArgs), Capture.In(messageArgs), null, null));
+
+            // When
+            Debug.Log("Test Logs");
+            Debug.LogError("Test LogError");
+            Debug.LogWarning("Test LogWarning");
+            Debug.LogAssertion("Test LogAssertion");
+
+            // Then
+            // Don't ask me why, but this is how Unity formats its messages by default
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Log, null, "{0}", "Test Logs"));
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Error, null, "{0}", "Test LogError"));
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Warning, null, "{0}", "Test LogWarning"));
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Assert, null, "{0}", "Test LogAssertion"));
         }
 
         [Test]

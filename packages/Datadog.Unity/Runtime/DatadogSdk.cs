@@ -12,6 +12,7 @@ namespace Datadog.Unity
         public static readonly DatadogSdk Instance = new();
 
         private IDatadogPlatform _platform;
+        private DdUnityLogHandler _logHandler;
 
         private DatadogSdk()
         {
@@ -47,11 +48,11 @@ namespace Datadog.Unity
             _platform = platform;
 
             var loggingOptions = new DatadogLoggingOptions();
-            Instance.DefaultLogger = Instance._platform.CreateLogger(loggingOptions);
-
+            DefaultLogger = _platform.CreateLogger(loggingOptions);
             if (options.ForwardUnityLogs)
             {
-                Application.logMessageReceivedThreaded += OnLogMessageRecieved;
+                _logHandler = new(DefaultLogger);
+                _logHandler.Attach();
             }
         }
 
@@ -59,13 +60,8 @@ namespace Datadog.Unity
         {
             _platform = null;
             DefaultLogger = null;
-            Application.logMessageReceivedThreaded -= OnLogMessageRecieved;
-        }
-
-        private void OnLogMessageRecieved(string message, string stackTrace, LogType type)
-        {
-            var logLevel = DdLogHelpers.LogTypeToDdLogLevel(type);
-            DefaultLogger?.Log(logLevel, message);
+            _logHandler?.Detach();
+            _logHandler = null;
         }
     }
 }
