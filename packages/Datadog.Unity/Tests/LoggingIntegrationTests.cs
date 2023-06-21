@@ -30,14 +30,14 @@ namespace Datadog.Unity.Tests
             var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
             {
                 var logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 4;
+                return logs.Count >= 5;
             });
 
             yield return new WaitUntil(() => task.IsCompleted);
             var serverLog = task.Result;
             var logs = LogDecoder.LogsFromMockServer(serverLog);
 
-            Assert.AreEqual(4, logs.Count);
+            Assert.AreEqual(5, logs.Count);
 
             var debugLog = logs[0];
             Assert.AreEqual("debug", debugLog.Status);
@@ -85,6 +85,19 @@ namespace Datadog.Unity.Tests
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
             Assert.AreEqual("value", (string)errorLog.RawJson["attribute"]);
+
+            var exceptionLog = logs[4];
+            Assert.AreEqual("warn", exceptionLog.Status);
+            Assert.AreEqual("Warning: this error occurred", exceptionLog.Message);
+            Assert.AreEqual("logging.service", exceptionLog.ServiceName);
+            CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:tag-value");
+            CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:second-value");
+            CollectionAssert.DoesNotContain(exceptionLog.Tags, "my-tag");
+            Assert.IsFalse(exceptionLog.RawJson.ContainsKey("logger-attribute1"));
+            Assert.AreEqual(1000, (long)exceptionLog.RawJson["logger-attribute2"]);
+            Assert.AreEqual("System.InvalidOperationException", exceptionLog.ErrorKind);
+            Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
+            Assert.NotNull(exceptionLog.ErrorStack);
         }
 
         public class TestLoggingMonoBehavior : MonoBehaviour, IMonoBehaviourTest
@@ -136,6 +149,15 @@ namespace Datadog.Unity.Tests
                 logger.RemoveTagsWithKey("tag1");
 
                 logger.Error("error message", new() { { "attribute", "value" } });
+
+                try
+                {
+                    throw new InvalidOperationException("Error Message");
+                }
+                catch (Exception e)
+                {
+                    logger.Warn("Warning: this error occurred", error: e);
+                }
 
                 _didSendLog = true;
             }

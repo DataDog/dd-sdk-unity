@@ -42,7 +42,11 @@ namespace Datadog.Unity.Android
             var androidLevel = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(level);
 
             using var javaAttributes = DictionaryToJavaMap(attributes);
-            _androidLogger.Call("log", (int)androidLevel, message, null, null, null, javaAttributes);
+            var errorKind = error?.GetType()?.ToString();
+            var errorMessage = error?.Message;
+            var errorStack = error?.StackTrace?.ToString();
+
+            _androidLogger.Call("log", (int)androidLevel, message, errorKind, errorMessage, errorStack, javaAttributes);
         }
 
         public override void RemoveAttribute(string key)

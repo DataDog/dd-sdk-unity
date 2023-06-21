@@ -34,11 +34,22 @@ namespace Datadog.Unity.iOS
 
         public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
         {
-            // TODO: RUMM-3272 - Support errors
             // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports
             // Dictionaries, where JsonUtility does not.
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
-            DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message, jsonAttributes);
+            string jsonError = null;
+            if (error != null)
+            {
+                var errorInfo = new Dictionary<string, string>()
+                {
+                    { "type", error.GetType()?.ToString() ?? string.Empty },
+                    { "message", error.Message ?? string.Empty },
+                    { "stackTrace", error.StackTrace?.ToString() ?? string.Empty },
+                };
+                jsonError = JsonConvert.SerializeObject(errorInfo);
+            }
+
+            DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message, jsonAttributes, jsonError);
         }
 
         public override void AddTag(string tag, string value = null)
@@ -71,20 +82,13 @@ namespace Datadog.Unity.iOS
         }
     }
 
-    // Used to wrap attributes sent to iOS so that even primitives can ba parsed as JSON objects
-    public class WrappedAttribute
-    {
-        [JsonProperty("value")]
-        public object Value { get; set; }
-    }
-
     internal static class DatadogLoggingBridge
     {
         [DllImport("__Internal")]
         public static extern string DatadogLogging_CreateLogger(string optionsJson);
 
         [DllImport("__Internal")]
-        public static extern void DatadogLogging_Log(string loggerId, int logLevel, string message, string attributes);
+        public static extern void DatadogLogging_Log(string loggerId, int logLevel, string message, string attributes, string errorInfo);
 
         [DllImport("__Internal")]
         public static extern void DatadogLogging_AddTag(string loggerId, string tag, string value);

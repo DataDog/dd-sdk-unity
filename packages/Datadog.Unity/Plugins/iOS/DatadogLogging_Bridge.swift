@@ -64,11 +64,27 @@ struct LoggingOptions: Decodable {
     }
 }
 
+func decodeCString(cString: UnsafeMutablePointer<CChar>?) -> String? {
+    guard let cString = cString else {
+        return nil
+    }
+
+    return String(cString: cString, encoding: .utf8)
+}
+
+func decodeJsonCString(cString: UnsafeMutablePointer<CChar>?) -> [String: Any]? {
+    guard let string = decodeCString(cString: cString),
+          let data = string.data(using: .utf8) else {
+        return nil
+    }
+
+    return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+}
+
 /// Create a logger for use in Unity, returns the UUID of the logger
 @_cdecl("DatadogLogging_CreateLogger")
 func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
-    if let jsonLoggingOptions = jsonLoggingOptions,
-       let stringLoggingOptions = String(cString: jsonLoggingOptions, encoding: .utf8),
+    if let stringLoggingOptions = decodeCString(cString: jsonLoggingOptions),
        let data = stringLoggingOptions.data(using: .utf8),
        let options = try? JSONDecoder().decode(LoggingOptions.self, from: data) {
 
@@ -80,7 +96,13 @@ func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>
 }
 
 @_cdecl("DatadogLogging_Log")
-func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, message: UnsafeMutablePointer<CChar>?, attributes: UnsafePointer<CChar>?) {
+func DatadogLogging_Log(
+    logId: UnsafeMutablePointer<CChar>?,
+    logLevel: Int,
+    message: UnsafeMutablePointer<CChar>?,
+    attributes: UnsafeMutablePointer<CChar>?,
+    error: UnsafeMutablePointer<CChar>?) {
+
     guard let logId = logId, let message = message else {
         return
     }
@@ -90,15 +112,28 @@ func DatadogLogging_Log(logId: UnsafeMutablePointer<CChar>?, logLevel: Int, mess
        let swiftMessage = String(cString: message, encoding: .utf8) {
 
         var decodedAttributes: [String: Encodable]?
-        if let attributes = attributes,
-           let attributeString = String(cString: attributes, encoding: .utf8),
-           let attributesData = attributeString.data(using: .utf8),
-           let jsonAttributes = try? JSONSerialization.jsonObject(with: attributesData) as? [String: Any] {
+        if let jsonAttributes = decodeJsonCString(cString: attributes) {
             decodedAttributes = castJsonAttributesToSwift(jsonAttributes)
         }
 
+        var errorKind: String?
+        var errorMessage: String?
+        var stackTrace: String?
+        if let jsonError = decodeJsonCString(cString: error) {
+            errorKind = jsonError["type"] as? String
+            errorMessage = jsonError["message"] as? String
+            stackTrace = jsonError["stackTrace"] as? String
+        }
+
         let logLevel = LogLevel(rawValue: logLevel) ?? .info
-        logger.log(level: logLevel, message: swiftMessage, error: nil, attributes: decodedAttributes)
+        logger.log(
+            level: logLevel,
+            message: swiftMessage,
+            errorKind: errorKind,
+            errorMessage: errorMessage,
+            stackTrace: stackTrace,
+            attributes: decodedAttributes
+        )
     }
 }
 
@@ -153,15 +188,12 @@ func DatadogLogging_AddAttribute(logId: UnsafeMutablePointer<CChar>?, attributeJ
 
     if let idString = String(cString: logId, encoding: .utf8),
        let logger = LogRegistry.shared.logs[idString],
-       let attributeString = String(cString: attributeJson, encoding: .utf8),
-       let attributeData = attributeString.data(using: .utf8),
-       let jsonAttribute = try? JSONSerialization.jsonObject(with: attributeData) as? [String: Any] {
+       let jsonAttribute = decodeJsonCString(cString: attributeJson) {
         jsonAttribute.forEach { (key, value) in
             logger.addAttribute(forKey: key, value: castAnyToEncodable(value))
         }
     }
 }
-
 
 @_cdecl("DatadogLogging_RemoveAttribute")
 func DatadogLogging_RemoveAttribute(logId: UnsafeMutablePointer<CChar>?, key: UnsafeMutablePointer<CChar>?) {

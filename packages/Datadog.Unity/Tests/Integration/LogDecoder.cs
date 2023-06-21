@@ -54,6 +54,21 @@ namespace Datadog.Unity.Tests.Integration
             get { return GetNestedProperty<string>("logger.name"); }
         }
 
+        public string ErrorKind
+        {
+            get { return GetNestedProperty<string>("error.kind"); }
+        }
+
+        public string ErrorMessage
+        {
+            get { return GetNestedProperty<string>("error.message"); }
+        }
+
+        public string ErrorStack
+        {
+            get { return GetNestedProperty<string>("error.stack"); }
+        }
+
         private T GetNestedProperty<T>(string key)
         {
 #if UNITY_ANDROID
