@@ -10,7 +10,7 @@ namespace Datadog.Unity.Tests.Integration
 {
     public class LogDecoder
     {
-        private Dictionary<string, object> _rawJson;
+        private readonly Dictionary<string, object> _rawJson;
 
         public LogDecoder(Dictionary<string, object> rawJson)
         {
@@ -97,8 +97,10 @@ namespace Datadog.Unity.Tests.Integration
                         var json = schema.ParseDecompressedJsonData<List<Dictionary<string, object>>>();
                         foreach (var jsonLog in json)
                         {
-                            var log = new LogDecoder(jsonLog);
-                            log.Headers = schema.ParsedHeaders;
+                            var log = new LogDecoder(jsonLog)
+                            {
+                                Headers = schema.ParsedHeaders,
+                            };
                             logs.Add(log);
                         }
                     }));

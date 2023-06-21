@@ -17,7 +17,7 @@ namespace Datadog.Unity.Tests.Integration
     public class MockServerHelper
     {
         private readonly HttpClient _client = new();
-        private string _endpoint;
+        private readonly string _endpoint;
 
         public MockServerHelper()
         {
@@ -34,7 +34,6 @@ namespace Datadog.Unity.Tests.Integration
 
         public async Task<List<MockServerLog>> PollRequests(TimeSpan duration, Func<List<MockServerLog>, bool> parseRequests)
         {
-            List<Dictionary<string, object>> requests = new();
             var timeoutTime = DateTime.Now + duration;
 
             var stopPolling = false;
@@ -67,7 +66,8 @@ namespace Datadog.Unity.Tests.Integration
                 }
 
                 await Task.Delay(500);
-            } while (!stopPolling && DateTime.Now < timeoutTime);
+            }
+            while (!stopPolling && DateTime.Now < timeoutTime);
 
             return new List<MockServerLog>();
         }
@@ -96,7 +96,8 @@ namespace Datadog.Unity.Tests.Integration
             get
             {
                 var headerDict = new Dictionary<string, string>();
-                foreach (var header in Headers) {
+                foreach (var header in Headers)
+                {
                     var colonIndex = header.IndexOf(':');
                     var parts = (header[..colonIndex], header[(colonIndex + 1)..].Trim());
                     headerDict[parts.Item1] = parts.Item2;

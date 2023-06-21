@@ -67,7 +67,9 @@ namespace Datadog.Unity.Android
         private AndroidJavaObject DictionaryToJavaMap(IDictionary<string, object> attributes)
         {
             var javaMap = new AndroidJavaObject("java.util.HashMap");
-            IntPtr putMethod = AndroidJNIHelper.GetMethodID(javaMap.GetRawClass(), "put",
+            IntPtr putMethod = AndroidJNIHelper.GetMethodID(
+                javaMap.GetRawClass(),
+                "put",
                 "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
 
             if (attributes != null)
@@ -145,6 +147,7 @@ namespace Datadog.Unity.Android
                 case bool val:
                     javaValue = new AndroidJavaObject("java.lang.Boolean", val);
                     break;
+
                 // TODO: Need to support lists / arrays
                 case IDictionary<string, object> val:
                     javaValue = DictionaryToJavaMap(val);
