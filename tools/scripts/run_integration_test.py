@@ -6,9 +6,8 @@
 # Copyright 2023-Present Datadog, Inc.
 # -----------------------------------------------------------
 
+import argparse
 import subprocess
-import sys
-import json
 import os
 import threading
 
@@ -45,6 +44,14 @@ def modify_datadog_settings(local_server_address):
 
 
 def main():
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("--platform")
+    args = arg_parser.parse_args()
+
+    if args.platform is None:
+        print('--platform is required')
+        return
+
     mock_server = run_mock_server()
 
     # Find the IP address we started on
@@ -67,7 +74,8 @@ def main():
 
     run_unity_command(
         "-runTests", "-batchMode", "-projectPath", integration_project_path,
-        "-testCategory", "integration", "-testPlatform", "android",
+        "-buildTarget", args.platform,
+        "-testCategory", "integration", "-testPlatform", args.platform,
         "-testResults", "tmp/results.xml", "-logFile", "-",
     )
 

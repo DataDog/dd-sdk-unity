@@ -27,6 +27,11 @@ namespace Datadog.Unity.Tests.Integration
             _endpoint = configuration.CustomEndpoint;
         }
 
+        public async Task Clear()
+        {
+            await _client.GetAsync($"{_endpoint}/reset");
+        }
+
         public async Task<List<MockServerLog>> PollRequests(TimeSpan duration, Func<List<MockServerLog>, bool> parseRequests)
         {
             List<Dictionary<string, object>> requests = new();

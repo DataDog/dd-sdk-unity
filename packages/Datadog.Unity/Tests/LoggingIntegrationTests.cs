@@ -22,6 +22,8 @@ namespace Datadog.Unity.Tests
         public IEnumerator LoggingIntegrationScenario()
         {
             var mockServerHelper = new MockServerHelper();
+            var resetTask = mockServerHelper.Clear();
+            yield return new WaitUntil(() => resetTask.IsCompleted);
 
             yield return new MonoBehaviourTest<TestLoggingMonoBehavior>();
 
