@@ -13,7 +13,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace Datadog.Unity.Tests
+namespace Datadog.Unity.Tests.Integration
 {
     public class LoggingIntegrationTests
     {
