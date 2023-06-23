@@ -11,11 +11,18 @@ using Datadog.Unity.Logs;
 using Moq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests
 {
     public class LoggingTests
     {
+        [TearDown]
+        public void TearDown()
+        {
+            DatadogSdk.Shutdown();
+        }
+
 #if UNITY_ANDROID
         [TestCase(DdLogLevel.Debug, AndroidLogLevel.Debug)]
         [TestCase(DdLogLevel.Info, AndroidLogLevel.Info)]
@@ -52,11 +59,108 @@ namespace Datadog.Unity.Tests
                 .Returns(mockLogger.Object);
 
             // When
-            DatadogSdk.InitWithPlatform(mockPlatform.Object);
+            DatadogSdk.InitWithPlatform(mockPlatform.Object, new());
 
             // Then
             mockPlatform.Verify(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()), Times.Once);
             Assert.AreEqual(DatadogSdk.Instance.DefaultLogger, mockLogger.Object);
+        }
+
+        [Test]
+        public void UnityLogsAreNotForwardedToDefaultLogger_WhenForwardUnityLogsIsFalse()
+        {
+            var mockLogger = new Mock<IDdLogger>();
+            var mockPlatform = new Mock<IDatadogPlatform>();
+            mockPlatform
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Returns(mockLogger.Object);
+
+            DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
+            {
+                ForwardUnityLogs = false,
+            });
+
+            Debug.Log("Test Logs");
+
+            mockLogger.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public void UnityLogsAreForwardedToDefaultLogger_WhenForwardUnityLogsIsTrue()
+        {
+            var mockUnityLogger = new Mock<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+
+            var mockLogger = new Mock<IDdLogger>();
+            var mockPlatform = new Mock<IDatadogPlatform>();
+            mockPlatform
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Returns(mockLogger.Object);
+
+            DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
+            {
+                ForwardUnityLogs = true,
+            });
+
+            Debug.Log("Test Logs");
+
+            mockLogger.Verify(l => l.Log(DdLogLevel.Info, "Test Logs", null, null));
+        }
+
+        [Test]
+        public void UnityLogsAreForwardedToDefaultLoggerWithProperLevel()
+        {
+            LogAssert.ignoreFailingMessages = true;
+            var mockUnityLogger = new Mock<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+
+            var mockLogger = new Mock<IDdLogger>();
+            var mockPlatform = new Mock<IDatadogPlatform>();
+            mockPlatform
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Returns(mockLogger.Object);
+
+            DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
+            {
+                ForwardUnityLogs = true,
+            });
+
+            Debug.Log("Test Logs");
+            Debug.LogError("Test LogError");
+            Debug.LogWarning("Test LogWarning");
+            Debug.LogAssertion("Test LogAssertion");
+
+            mockLogger.Verify(l => l.Log(DdLogLevel.Info, "Test Logs", null, null));
+            mockLogger.Verify(l => l.Log(DdLogLevel.Error, "Test LogError", null, null));
+            mockLogger.Verify(l => l.Log(DdLogLevel.Warn, "Test LogWarning", null, null));
+            mockLogger.Verify(l => l.Log(DdLogLevel.Critical, "Test LogAssertion", null, null));
+        }
+
+        [Test]
+        public void UnityLogsAreForwardsLogsBackToUnity()
+        {
+            // Given
+            LogAssert.ignoreFailingMessages = true;
+            var mockUnityLogger = new Mock<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+
+            var mockLogger = new Mock<IDdLogger>();
+            var logArgs = new List<DdLogLevel>();
+            var messageArgs = new List<string>();
+            mockLogger.Setup(m => m.Log(Capture.In(logArgs), Capture.In(messageArgs), null, null));
+
+            // When
+            Debug.Log("Test Logs");
+            Debug.LogError("Test LogError");
+            Debug.LogWarning("Test LogWarning");
+            Debug.LogAssertion("Test LogAssertion");
+
+            // Then
+            // Don't ask me why, but this is how Unity formats its messages by default
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Log, null, "{0}", "Test Logs"));
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Error, null, "{0}", "Test LogError"));
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Warning, null, "{0}", "Test LogWarning"));
+            mockUnityLogger.Verify(l => l.LogFormat(LogType.Assert, null, "{0}", "Test LogAssertion"));
         }
 
         [Test]
@@ -68,7 +172,7 @@ namespace Datadog.Unity.Tests
             mockPlatform
                 .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
                 .Returns(mockLogger.Object);
-            DatadogSdk.InitWithPlatform(mockPlatform.Object);
+            DatadogSdk.InitWithPlatform(mockPlatform.Object, new());
 
             // When
             var options = new DatadogLoggingOptions()

@@ -86,6 +86,7 @@ namespace Datadog.Unity
         public LogType DefaultLoggingLevel;
         public BatchSize BatchSize;
         public UploadFrequency UploadFrequency;
+        public bool ForwardUnityLogs;
 
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";
 

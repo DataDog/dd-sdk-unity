@@ -33,7 +33,7 @@ namespace Datadog.Unity.Android
             var options = DatadogConfigurationOptions.Load();
             var datadogPlatform = new DatadogAndroidPlatform();
             datadogPlatform.Init(options);
-            DatadogSdk.InitWithPlatform(datadogPlatform);
+            DatadogSdk.InitWithPlatform(datadogPlatform, options);
         }
     }
 

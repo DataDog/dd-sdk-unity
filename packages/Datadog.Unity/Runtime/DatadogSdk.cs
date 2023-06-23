@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using Datadog.Unity.Logs;
+using UnityEngine;
 
 namespace Datadog.Unity
 {
@@ -11,6 +12,7 @@ namespace Datadog.Unity
         public static readonly DatadogSdk Instance = new();
 
         private IDatadogPlatform _platform;
+        private DdUnityLogHandler _logHandler;
 
         private DatadogSdk()
         {
@@ -21,11 +23,14 @@ namespace Datadog.Unity
             get; private set;
         }
 
-        public static void InitWithPlatform(IDatadogPlatform platform)
+        public static void InitWithPlatform(IDatadogPlatform platform, DatadogConfigurationOptions options)
         {
-            Instance._platform = platform;
-            var options = new DatadogLoggingOptions();
-            Instance.DefaultLogger = Instance._platform.CreateLogger(options);
+            Instance.Init(platform, options);
+        }
+
+        public static void Shutdown()
+        {
+            Instance.ShutdownInstance();
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
@@ -36,6 +41,27 @@ namespace Datadog.Unity
         public IDdLogger CreateLogger(DatadogLoggingOptions options)
         {
             return _platform?.CreateLogger(options);
+        }
+
+        private void Init(IDatadogPlatform platform, DatadogConfigurationOptions options)
+        {
+            _platform = platform;
+
+            var loggingOptions = new DatadogLoggingOptions();
+            DefaultLogger = _platform.CreateLogger(loggingOptions);
+            if (options.ForwardUnityLogs)
+            {
+                _logHandler = new(DefaultLogger);
+                _logHandler.Attach();
+            }
+        }
+
+        private void ShutdownInstance()
+        {
+            _platform = null;
+            DefaultLogger = null;
+            _logHandler?.Detach();
+            _logHandler = null;
         }
     }
 }

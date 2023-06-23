@@ -69,7 +69,8 @@ namespace Datadog.Unity.iOS
 
         public override void AddAttribute(string key, object value)
         {
-            var jsonArg = new Dictionary<string, object>() {
+            var jsonArg = new Dictionary<string, object>()
+            {
                 { key, value },
             };
             var jsonString = JsonConvert.SerializeObject(jsonArg);
