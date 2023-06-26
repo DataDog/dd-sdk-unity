@@ -48,12 +48,21 @@ namespace Datadog.Unity.Android
                 options.ClientToken,
                 "prod",
                 string.Empty,     // variant
-                null,   // rumApplicationId
-                null); // serviceName
-            using var configBuilder = new AndroidJavaObject("com.datadog.android.core.configuration.Configuration$Builder", true, false, false, false);
+                null,             // rumApplicationId
+                null);            // serviceName
+            using var configBuilder = new AndroidJavaObject("com.datadog.android.core.configuration.Configuration$Builder",
+                true,       // logsEnabled
+                false,      // tracesEnabled
+                true,       // crashReportsEnabled
+                false);     // rumEnabled
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
+
+            using var crashPlugin = new AndroidJavaObject("com.datadog.android.ndk.NdkCrashReportsPlugin");
+            using var featureEnum = new AndroidJavaClass("com.datadog.android.plugin.Feature");
+            using var feature = featureEnum.GetStatic<AndroidJavaObject>("CRASH");
+            configBuilder.Call<AndroidJavaObject>("addPlugin", crashPlugin, feature);
 
             if (options.CustomEndpoint != string.Empty)
             {

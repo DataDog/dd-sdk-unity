@@ -1,7 +1,5 @@
 fileFormatVersion: 2
-guid: 94851a717435b449f9f9f3d82764dd36
-labels:
-- NuGetForUnity
+guid: 2dff20ab6cee243bf9dcb9635f24e070
 PluginImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -25,7 +23,12 @@ PluginImporter:
       settings:
         DefaultValueInitialized: true
   - first:
-      Windows Store Apps: WindowsStoreApps
+      iPhone: iOS
+    second:
+      enabled: 1
+      settings: {}
+  - first:
+      tvOS: tvOS
     second:
       enabled: 1
       settings: {}

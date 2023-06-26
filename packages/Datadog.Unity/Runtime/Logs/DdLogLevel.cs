@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Datadog.Unity.Logs
 {
-    // Note - these levels should match the ordering of the Datadog.LogLevel enum
+    // Note - these levels should match the ordering of the Datadog.LogLevel enum in iOS
     public enum DdLogLevel
     {
         Debug = 0,

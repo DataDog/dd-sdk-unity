@@ -21,6 +21,8 @@ dotnet_diagnostic.SA1118.severity = none
 dotnet_diagnostic.SA1649.severity = none
 # File may only contain a single type
 dotnet_diagnostic.SA1402.severity = none
+# Do not user #region
+dotnet_diagnostic.SA1124.severity = none
 
 [*.json]
 indent_style = space

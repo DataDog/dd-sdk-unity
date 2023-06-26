@@ -20,7 +20,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 // Android Resolver Dependencies Start
     implementation 'com.datadoghq:dd-sdk-android:1.19.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:7
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.6.21' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:8
+    implementation 'com.datadoghq:dd-sdk-android-ndk:1.19.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:9
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.6.21' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:10
 // Android Resolver Dependencies End
 **DEPS**}
 
@@ -35,6 +36,13 @@ android {
   }
 }
 // Android Resolver Exclusions End
+
+buildscript {
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21"
+    }
+}
+
 android {
     compileSdkVersion **APIVERSION**
     buildToolsVersion '**BUILDTOOLS**'
