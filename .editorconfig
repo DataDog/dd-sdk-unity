@@ -23,6 +23,9 @@ dotnet_diagnostic.SA1649.severity = none
 dotnet_diagnostic.SA1402.severity = none
 # Do not user #region
 dotnet_diagnostic.SA1124.severity = none
+# Space after keywords (dotnet format) takes care
+# of this for us, and it conflicts with `new()` spacing
+dotnet_diagnostic.SA1000.severity = none
 
 [*.json]
 indent_style = space

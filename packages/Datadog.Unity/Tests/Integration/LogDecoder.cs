@@ -69,22 +69,6 @@ namespace Datadog.Unity.Tests.Integration
             get { return GetNestedProperty<string>("error.stack"); }
         }
 
-        private T GetNestedProperty<T>(string key)
-        {
-#if UNITY_ANDROID
-            var parts = key.Split('.');
-            var lookupMap = _rawJson;
-            for (int i = 0; i < (parts.Length - 1); i++)
-            {
-                lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
-            }
-
-            return (T)lookupMap[parts.Last()];
-#endif
-
-            return (T)_rawJson[key];
-        }
-
         public static List<LogDecoder> LogsFromMockServer(List<MockServerLog> mockServerLogs)
         {
             var logs = new List<LogDecoder>();
@@ -108,6 +92,22 @@ namespace Datadog.Unity.Tests.Integration
             }
 
             return logs;
+        }
+
+        private T GetNestedProperty<T>(string key)
+        {
+#if UNITY_ANDROID
+            var parts = key.Split('.');
+            var lookupMap = _rawJson;
+            for (int i = 0; i < (parts.Length - 1); i++)
+            {
+                lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
+            }
+
+            return (T)lookupMap[parts.Last()];
+#endif
+
+            return (T)_rawJson[key];
         }
     }
 }

@@ -26,7 +26,8 @@ public class TestBehavior : MonoBehaviour
             { "my_attribute", 122 },
             { "second_attribute", "with_value" },
             { "bool_attribute", true },
-            { "nested_attribute", new Dictionary<string, object>()
+            {
+                "nested_attribute", new Dictionary<string, object>()
                 {
                     { "internal_attribute", 1.234 },
                 }

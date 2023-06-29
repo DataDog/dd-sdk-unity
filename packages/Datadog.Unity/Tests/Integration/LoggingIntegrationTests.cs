@@ -134,7 +134,8 @@ namespace Datadog.Unity.Tests.Integration
                 logger.Debug("debug message", new() { { "stringAttribute", "string" } });
 
                 logger.RemoveTag("my-tag");
-                logger.Info("info message", new() {
+                logger.Info("info message", new()
+                {
                     {
                         "nestedAttribute", new Dictionary<string, object>()
                         {

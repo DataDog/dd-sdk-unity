@@ -99,7 +99,7 @@ namespace Datadog.Unity.Tests.Integration
                 foreach (var header in Headers)
                 {
                     var colonIndex = header.IndexOf(':');
-                    var parts = (header[..colonIndex], header[(colonIndex + 1)..].Trim());
+                    var parts = (header[..colonIndex], header[(colonIndex + 1) ..].Trim());
                     headerDict[parts.Item1] = parts.Item2;
                 }
 
