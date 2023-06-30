@@ -41,7 +41,6 @@ namespace Datadog.Unity.Editor.iOS
                 CopyAndAddFramework("Datadog.xcframework", pathToProject, pbxProject);
                 CopyAndAddFramework("DatadogObjc.xcframework", pathToProject, pbxProject);
                 CopyAndAddFramework("DatadogCrashReporting.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("CrashReporter.xcframework", pathToProject, pbxProject, false);
 
                 var optionsFile = Path.Combine("MainApp", "DatadogOptions.m");
                 var optionsPath = Path.Combine(pathToProject, optionsFile);
