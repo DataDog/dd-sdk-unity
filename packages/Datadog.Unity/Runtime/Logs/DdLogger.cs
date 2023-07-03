@@ -51,4 +51,31 @@ namespace Datadog.Unity.Logs
 
         public abstract void RemoveAttribute(string key);
     }
+
+    internal class DdNoopLogger : IDdLogger
+    {
+        public override void AddAttribute(string key, object value)
+        {
+        }
+
+        public override void AddTag(string tag, string value = null)
+        {
+        }
+
+        public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        {
+        }
+
+        public override void RemoveAttribute(string key)
+        {
+        }
+
+        public override void RemoveTag(string tag)
+        {
+        }
+
+        public override void RemoveTagsWithKey(string key)
+        {
+        }
+    }
 }

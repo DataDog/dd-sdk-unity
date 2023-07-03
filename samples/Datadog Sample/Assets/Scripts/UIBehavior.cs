@@ -38,8 +38,8 @@ public class UIBehavior : MonoBehaviour
 
 #region iOS implementations
     #if PLATFORM_IOS
-    // CrashHelper.swift
-    [DllImport("__Internal")]
+    // SwiftCrashHelper.swift
+    [DllImport("__Internal", EntryPoint="PerformNativeSwiftCrash")]
     private static extern void PerformNativeCrash();
 
     [DllImport("__Internal", EntryPoint="throwObjectiveC")]

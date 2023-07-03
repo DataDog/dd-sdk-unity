@@ -92,7 +92,8 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {
-            PostBuildProcess.AddInitializationToMain(_mainFilePath);
+            var options = new DatadogConfigurationOptions();
+            PostBuildProcess.AddInitializationToMain(_mainFilePath, options);
 
             string fileContents = File.ReadAllText(_mainFilePath);
 
@@ -115,7 +116,8 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void RemoveDatadogBlocksRemovesDatadogBlocks()
         {
-            PostBuildProcess.AddInitializationToMain(_mainFilePath);
+            var options = new DatadogConfigurationOptions();
+            PostBuildProcess.AddInitializationToMain(_mainFilePath, options);
 
             var fileContents = File.ReadAllLines(_mainFilePath);
             var cleanContents = PostBuildProcess.RemoveDatadogBlocks(new List<string>(fileContents));

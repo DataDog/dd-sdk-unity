@@ -11,7 +11,7 @@ namespace Datadog.Unity
     {
         public static readonly DatadogSdk Instance = new();
 
-        private IDatadogPlatform _platform;
+        private IDatadogPlatform _platform = new DatadogNoopPlatform();
         private DdUnityLogHandler _logHandler;
 
         private DatadogSdk()

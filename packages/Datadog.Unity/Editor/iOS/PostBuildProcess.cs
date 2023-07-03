@@ -44,11 +44,12 @@ namespace Datadog.Unity.Editor.iOS
 
                 var optionsFile = Path.Combine("MainApp", "DatadogOptions.m");
                 var optionsPath = Path.Combine(pathToProject, optionsFile);
-                GenerateOptionsFile(optionsPath, DatadogConfigurationOptionsExtensions.GetOrCreate());
+                var datadogOptions = DatadogConfigurationOptionsExtensions.GetOrCreate();
+                GenerateOptionsFile(optionsPath, datadogOptions);
                 var optionsFileGuid = pbxProject.AddFile(optionsFile, optionsFile, PBXSourceTree.Source);
                 pbxProject.AddFileToBuild(mainTarget, optionsFileGuid);
 
-                AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"));
+                AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"), datadogOptions);
 
                 var projectInString = pbxProject.WriteToString();
 
@@ -126,7 +127,7 @@ DDConfiguration* buildDatadogConfiguration() {{
             File.WriteAllText(path, optionsFileString);
         }
 
-        internal static void AddInitializationToMain(string pathToMain)
+        internal static void AddInitializationToMain(string pathToMain, DatadogConfigurationOptions options)
         {
             if (!File.Exists(pathToMain))
             {
@@ -135,7 +136,10 @@ DDConfiguration* buildDatadogConfiguration() {{
 
             var mainText = new List<string>(File.ReadAllLines(pathToMain));
             mainText = RemoveDatadogBlocks(mainText);
-            AddDatadogBlocks(mainText);
+            if (options.Enabled)
+            {
+                AddDatadogBlocks(mainText);
+            }
 
             File.WriteAllLines(pathToMain, mainText);
         }

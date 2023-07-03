@@ -19,7 +19,10 @@ namespace Datadog.Unity.iOS
         public static void InitializeDatadog()
         {
             var options = DatadogConfigurationOptions.Load();
-            DatadogSdk.InitWithPlatform(new DatadogiOSPlatform(), options);
+            if (options.Enabled)
+            {
+                DatadogSdk.InitWithPlatform(new DatadogiOSPlatform(), options);
+            }
         }
     }
 
