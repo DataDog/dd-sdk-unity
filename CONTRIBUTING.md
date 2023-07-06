@@ -56,6 +56,11 @@ cp -r Carthage/Build/DatadogObjc.xcframework ../../packages/Datadog.Unity/Plugin
 
 After creating the XCode project, disable Bitcode for all Unity targets.
 
+### Tools Prerequisites
+
+If you need to use any of python scripts in tools, you will need Python 3 and `GitPython` package
+
+
 ## Building for Android
 
 ```

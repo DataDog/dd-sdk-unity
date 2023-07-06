@@ -53,7 +53,8 @@ namespace Datadog.Unity.Android
                 string.Empty,     // variant
                 null,             // rumApplicationId
                 null);            // serviceName
-            using var configBuilder = new AndroidJavaObject("com.datadog.android.core.configuration.Configuration$Builder",
+            using var configBuilder = new AndroidJavaObject(
+                "com.datadog.android.core.configuration.Configuration$Builder",
                 true,       // logsEnabled
                 false,      // tracesEnabled
                 true,       // crashReportsEnabled

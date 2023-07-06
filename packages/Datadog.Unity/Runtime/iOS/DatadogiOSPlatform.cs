@@ -28,6 +28,9 @@ namespace Datadog.Unity.iOS
 
     internal class DatadogiOSPlatform : IDatadogPlatform
     {
+        [DllImport("__Internal")]
+        public static extern void Datadog_SetTrackingConsent(int trackingConsent);
+
         public void Init(DatadogConfigurationOptions options)
         {
         }
@@ -41,8 +44,5 @@ namespace Datadog.Unity.iOS
         {
             return DatadogiOSLogger.Create(options);
         }
-
-        [DllImport("__Internal")]
-        public static extern void Datadog_SetTrackingConsent(int trackingConsent);
     }
 }
