@@ -35,7 +35,7 @@ The trackingConsent setting can be one of the following values:
 
   * TrackingConsent.Pending: The Unity SDK starts collecting and batching the data but does not send it to Datadog. The Unity SDK waits for the new tracking consent value to decide what to do with the batched data.
   * TrackingConsent.Granted: The Unity SDK starts collecting the data and sends it to Datadog.
-  * TrackingConsent.NotGranted: The Unity SDK does not collect any data. No logs, traces, or RUM events are sent to Datadog.
+  * TrackingConsent.NotGranted: The Unity SDK does not collect any data. No logs are sent to Datadog.
 
 Before Datadog will send any data, we need to confirm the user's `Tracking Consent`. This is set to `TrackingConsent.Pending` during initialization,
 and needs to be set to `TrackingConsent.Granted` before Datadog will send any information.
