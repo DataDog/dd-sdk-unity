@@ -59,7 +59,7 @@ public class StressTestSceneBehavior : MonoBehaviour
     {
         var milliseconds = _stopwatch.ElapsedMilliseconds;
         double timePerLog = ((double)milliseconds) / (TargetFrameCount * LogsPerFrame);
-        var finalString = $"Sending {TargetFrameCount} logs over {LogsPerFrame} took {milliseconds}ms or {timePerLog}ms / log";
+        var finalString = $"Sending {LogsPerFrame} logs over {TargetFrameCount} frames took {milliseconds}ms or {timePerLog}ms / log";
         ResultText.text = finalString;
     }
 
