@@ -8,6 +8,7 @@ using System.Linq;
 using Datadog.Unity.Android;
 #endif
 using Datadog.Unity.Logs;
+using Datadog.Unity.Worker;
 using Moq;
 using NUnit.Framework;
 using UnityEngine;
@@ -55,14 +56,14 @@ namespace Datadog.Unity.Tests
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
                 .Returns(mockLogger.Object);
 
             // When
             DatadogSdk.InitWithPlatform(mockPlatform.Object, new());
 
             // Then
-            mockPlatform.Verify(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()), Times.Once);
+            mockPlatform.Verify(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()), Times.Once);
             Assert.AreEqual(DatadogSdk.Instance.DefaultLogger, mockLogger.Object);
         }
 
@@ -72,7 +73,7 @@ namespace Datadog.Unity.Tests
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
                 .Returns(mockLogger.Object);
 
             DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
@@ -94,7 +95,7 @@ namespace Datadog.Unity.Tests
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
                 .Returns(mockLogger.Object);
 
             DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
@@ -117,7 +118,7 @@ namespace Datadog.Unity.Tests
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
                 .Returns(mockLogger.Object);
 
             DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
@@ -170,7 +171,7 @@ namespace Datadog.Unity.Tests
             var mockLogger = new Mock<IDdLogger>();
             var mockPlatform = new Mock<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>()))
+                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
                 .Returns(mockLogger.Object);
             DatadogSdk.InitWithPlatform(mockPlatform.Object, new());
 
@@ -184,7 +185,7 @@ namespace Datadog.Unity.Tests
             var logger = DatadogSdk.Instance.CreateLogger(options);
 
             // Then
-            mockPlatform.Verify(m => m.CreateLogger(options));
+            mockPlatform.Verify(m => m.CreateLogger(options, It.IsAny<DatadogWorker>()));
             Assert.AreEqual(logger, mockLogger.Object);
         }
 

@@ -105,9 +105,9 @@ namespace Datadog.Unity.Tests.Integration
             }
 
             return (T)lookupMap[parts.Last()];
-#endif
-
+#else
             return (T)_rawJson[key];
+#endif
         }
     }
 }
