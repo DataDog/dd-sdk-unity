@@ -37,7 +37,7 @@ namespace Datadog.Unity.Logs
             }
         }
 
-        #region Messgages
+        #region Messages
 
         internal class LogMessage : IDatadogWorkerMessage
         {

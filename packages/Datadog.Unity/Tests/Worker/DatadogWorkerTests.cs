@@ -38,7 +38,7 @@ namespace Datadog.Unity.Worker.Tests
 
             _worker.Start();
 
-            // Yield to the procssing thread
+            // Yield to the processing thread
             Thread.Sleep(10);
 
             _mockProcessor.Verify(m => m.Process(message), Times.Once);
