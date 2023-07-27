@@ -96,6 +96,8 @@ namespace Datadog.Unity.Worker
                 }
                 catch(InvalidOperationException)
                 {
+                    // This is an expected exception and is thrown when the work queue
+                    // is completed while .Take is waiting on a new item.
                 }
             }
         }
