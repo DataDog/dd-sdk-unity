@@ -4,6 +4,7 @@
 
 using System.Runtime.CompilerServices;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Worker;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -40,7 +41,7 @@ namespace Datadog.Unity.Android
         }
     }
 
-    public class DatadogAndroidPlatform : IDatadogPlatform
+    internal class DatadogAndroidPlatform : IDatadogPlatform
     {
         public void Init(DatadogConfigurationOptions options)
         {
@@ -91,7 +92,7 @@ namespace Datadog.Unity.Android
             // TODO:
         }
 
-        public IDdLogger CreateLogger(DatadogLoggingOptions options)
+        public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             using var loggerBuilder = new AndroidJavaObject("com.datadog.android.log.Logger$Builder");
             if (options.ServiceName != null)
@@ -110,7 +111,9 @@ namespace Datadog.Unity.Android
             loggerBuilder.Call<AndroidJavaObject>("setDatadogLogsMinPriority", androidReportingThreshold);
 
             var androidLogger = loggerBuilder.Call<AndroidJavaObject>("build");
-            return new DatadogAndroidLogger(androidLogger);
+
+            var innerLogger = new DatadogAndroidLogger(androidLogger);
+            return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
         private AndroidJavaObject GetApplicationContext()

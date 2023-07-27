@@ -23,10 +23,10 @@ public class StressTestSceneBehavior : MonoBehaviour
     public TextMeshProUGUI ResultText;
 
     private const string AlphaNumeric = "abcdefghijklmnopqrztuvwxyzABCDEFGHIJKLMNOPQRZTUVWXYZ01234567890_";
+    private readonly Stopwatch _stopwatch = new();
 
     private bool _isRunningTest = false;
     private int _currentTestFrame = 0;
-    private Stopwatch _stopwatch = new();
 
     // Update is called once per frame
     public void Update()
@@ -70,7 +70,8 @@ public class StressTestSceneBehavior : MonoBehaviour
         var randomAttrValue = RandomString(10, 30);
 
         _stopwatch.Start();
-        DatadogSdk.Instance.DefaultLogger.Log(DdLogLevel.Critical, randomLog, new() {
+        DatadogSdk.Instance.DefaultLogger.Log(DdLogLevel.Critical, randomLog, new()
+        {
             { randomAttr, randomAttrValue },
         });
         _stopwatch.Stop();

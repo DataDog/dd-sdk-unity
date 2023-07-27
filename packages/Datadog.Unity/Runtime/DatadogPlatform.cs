@@ -3,18 +3,19 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using Datadog.Unity.Logs;
+using Datadog.Unity.Worker;
 
 namespace Datadog.Unity
 {
     /// <summary>
     /// An interface to wrap calls to various Datadog platforms.
     /// </summary>
-    public interface IDatadogPlatform
+    internal interface IDatadogPlatform
     {
         void Init(DatadogConfigurationOptions options);
 
         void SetTrackingConsent(TrackingConsent trackingConsent);
 
-        IDdLogger CreateLogger(DatadogLoggingOptions options);
+        IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
     }
 }

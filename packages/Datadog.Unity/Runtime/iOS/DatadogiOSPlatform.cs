@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using Datadog.Unity;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Worker;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -40,9 +41,10 @@ namespace Datadog.Unity.iOS
             Datadog_SetTrackingConsent((int)trackingConsent);
         }
 
-        public IDdLogger CreateLogger(DatadogLoggingOptions options)
+        public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
-            return DatadogiOSLogger.Create(options);
+            var innerLogger = DatadogiOSLogger.Create(options);
+            return new DdWorkerProxyLogger(worker, innerLogger);
         }
     }
 }

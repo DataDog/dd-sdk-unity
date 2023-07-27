@@ -1,5 +1,5 @@
 {
-    "name": "com.datadoghq.android",
+    "name": "com.datadoghq.unity.android",
     "rootNamespace": "Datadog.Unity.Android",
     "references": [
         "com.datadog.unity"

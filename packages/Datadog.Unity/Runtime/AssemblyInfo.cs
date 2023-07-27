@@ -5,3 +5,8 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.android")]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.ios")]
+
+// This is the Moq library
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
