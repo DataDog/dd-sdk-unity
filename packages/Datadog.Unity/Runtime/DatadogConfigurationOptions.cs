@@ -87,6 +87,8 @@ namespace Datadog.Unity
         public BatchSize BatchSize;
         public UploadFrequency UploadFrequency;
         public bool ForwardUnityLogs;
+        public bool RumEnabled;
+        public string RumApplicationId;
 
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";
 

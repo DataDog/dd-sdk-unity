@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 
 namespace Datadog.Unity
@@ -17,5 +18,7 @@ namespace Datadog.Unity
         void SetTrackingConsent(TrackingConsent trackingConsent);
 
         IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
+
+        IDdRum InitRum(DatadogConfigurationOptions options);
     }
 }

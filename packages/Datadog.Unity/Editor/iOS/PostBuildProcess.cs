@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
@@ -105,6 +106,19 @@ namespace Datadog.Unity.Editor.iOS
 ";
             }
 
+            var builderSetup = $@"
+    DDConfigurationBuilder *builder = [DDConfiguration builderWithClientToken:@""{options.ClientToken}""
+                                                                  environment:@""prod""];
+";
+            if (options.RumEnabled && options.RumApplicationId != string.Empty)
+            {
+                builderSetup = $@"
+    DDConfigurationBuilder *builder = [DDConfiguration builderWithRumApplicationID:@""{options.RumApplicationId}""
+                                                                       clientToken:@""{options.ClientToken}""
+                                                                       environment:@""prod""];
+";
+            }
+
             var optionsFileString = $@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
 #include <Datadog/Datadog-Swift.h>
@@ -113,8 +127,8 @@ namespace Datadog.Unity.Editor.iOS
 
 DDConfiguration* buildDatadogConfiguration() {{
     [DDDatadog setVerbosityLevel:DDSDKVerbosityLevelDebug];
-    DDConfigurationBuilder *builder = [DDConfiguration builderWithClientToken:@""{options.ClientToken}""
-                                                                  environment:@""prod""];
+    {builderSetup}
+
     [builder enableTracing:NO];
     [builder enableCrashReportingUsing:[DDCrashReportingPlugin new]];
     [builder setWithBatchSize:{GetObjCBatchSize(options.BatchSize)}];
@@ -138,7 +152,7 @@ DDConfiguration* buildDatadogConfiguration() {{
             mainText = RemoveDatadogBlocks(mainText);
             if (options.Enabled)
             {
-                AddDatadogBlocks(mainText);
+                AddDatadogBlocks(mainText, options.RumEnabled);
             }
 
             File.WriteAllLines(pathToMain, mainText);
@@ -169,7 +183,7 @@ DDConfiguration* buildDatadogConfiguration() {{
             return newLines;
         }
 
-        private static void AddDatadogBlocks(List<string> lines)
+        private static void AddDatadogBlocks(List<string> lines, bool includeRum)
         {
             // Find the first blank line, insert there.
             int firstBlank = lines.FindIndex(0, x => x.Trim().Length == 0);
@@ -189,14 +203,22 @@ DDConfiguration* buildDatadogConfiguration() {{
                 insertLine += 1;
             }
 
-            lines.InsertRange(insertLine, new string[]
+            var newLines = new List<string>()
             {
                 $"        {DatadogBlockStart}",
                 "        [DDDatadog initializeWithAppContext:[DDAppContext new]",
                 "                            trackingConsent:[DDTrackingConsent pending]",
                 "                              configuration:buildDatadogConfiguration()];",
-                $"        {DatadogBlockEnd}",
-            });
+            };
+
+            if (includeRum)
+            {
+                newLines.Add(string.Empty);
+                newLines.Add("        DDGlobal.rum = [[DDRUMMonitor alloc] init];");
+            }
+            newLines.Add($"        {DatadogBlockEnd}");
+
+            lines.InsertRange(insertLine, newLines);
         }
 
         private static string GetObjCBatchSize(BatchSize batchSize)

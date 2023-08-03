@@ -52,6 +52,13 @@ namespace Datadog.Unity.Editor
                 new GUIContent("Forward Unity Logs", "Whether calls to Debug.Log functions should be forwarded to Datadog."),
                 _options.ForwardUnityLogs);
             _options.DefaultLoggingLevel = (LogType)EditorGUILayout.EnumPopup("Default Logging Level", _options.DefaultLoggingLevel);
+
+            EditorGUILayout.Space();
+            GUILayout.Label("RUM Options", EditorStyles.boldLabel);
+            _options.RumEnabled = EditorGUILayout.ToggleLeft(
+                new GUIContent("Enable RUM", "Whether to enable Real User Monitoring (RUM)"),
+                _options.RumEnabled);
+            _options.RumApplicationId = EditorGUILayout.TextField("RUM Application Id", _options.RumApplicationId);
         }
 
         public override void OnDeactivate()

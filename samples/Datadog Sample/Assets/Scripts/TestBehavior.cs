@@ -14,6 +14,11 @@ public class TestBehavior : MonoBehaviour
     {
         DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
 
+        DatadogSdk.Instance.Rum.StartView("Test View", attributes: new()
+        {
+            { "view_attribute", "active" },
+        });
+
         var logger = DatadogSdk.Instance.CreateLogger(new DatadogLoggingOptions()
         {
             SendNetworkInfo = true,

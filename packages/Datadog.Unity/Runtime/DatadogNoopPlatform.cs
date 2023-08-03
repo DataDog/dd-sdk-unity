@@ -3,15 +3,21 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 
 namespace Datadog.Unity
 {
-    internal class DatadogNoopPlatform : IDatadogPlatform
+    internal class DatadogNoOpPlatform : IDatadogPlatform
     {
         public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
-            return new DdNoopLogger();
+            return new DdNoOpLogger();
+        }
+
+        public IDdRum InitRum(DatadogConfigurationOptions options)
+        {
+            return new DdNoOpRum();
         }
 
         public void Init(DatadogConfigurationOptions options)
