@@ -25,3 +25,5 @@ func DatadogRum_StopView(key: UnsafeMutablePointer<CChar>?, attributes: UnsafeMu
         Global.rum.stopView(key: key, attributes: decodedAttributes)
     }
 }
+
+
