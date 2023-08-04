@@ -48,6 +48,7 @@ namespace Datadog.Unity
         private void Init(IDatadogPlatform platform, DatadogConfigurationOptions options)
         {
             _platform = platform;
+            platform.Init(options);
 
             // Create our worker thread
             _worker = new();

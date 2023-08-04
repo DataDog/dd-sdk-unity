@@ -1,0 +1,13 @@
+{
+  "name": "com.datadoghq.unity.native",
+  "rootNamespace": "Datadog.Unity.Native",
+  "references": [
+    "com.datadog.unity"
+  ],
+  "includePlatforms": [
+    "WindowsStandalone64",
+    "macOSStandalone",
+    "Editor"
+  ],
+  "autoReferenced": true
+}

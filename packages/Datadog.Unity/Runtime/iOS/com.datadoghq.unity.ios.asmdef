@@ -7,7 +7,6 @@
     "includePlatforms": [
         "Editor",
         "iOS",
-        "macOSStandalone",
         "tvOS"
     ],
     "excludePlatforms": [],
