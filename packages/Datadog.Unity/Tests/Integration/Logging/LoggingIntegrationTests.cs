@@ -5,15 +5,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Datadog.Unity;
 using Datadog.Unity.Logs;
-using Datadog.Unity.Tests.Integration;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace Datadog.Unity.Tests.Integration
+namespace Datadog.Unity.Tests.Integration.Logging
 {
     public class LoggingIntegrationTests
     {

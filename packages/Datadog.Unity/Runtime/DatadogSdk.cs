@@ -26,11 +26,7 @@ namespace Datadog.Unity
             get; private set;
         }
 
-        public IDdRum Rum
-        {
-            get;
-            private set;
-        } = new DdNoOpRum();
+        public IDdRum Rum { get; private set; } = new DdNoOpRum();
 
         public static void Shutdown()
         {
@@ -77,6 +73,7 @@ namespace Datadog.Unity
                     _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
                     Rum = new DdWorkerProxyRum(_worker);
                 }
+
                 // Else log issue
             }
 

@@ -216,6 +216,7 @@ DDConfiguration* buildDatadogConfiguration() {{
                 newLines.Add(string.Empty);
                 newLines.Add("        DDGlobal.rum = [[DDRUMMonitor alloc] init];");
             }
+
             newLines.Add($"        {DatadogBlockEnd}");
 
             lines.InsertRange(insertLine, newLines);
