@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Tests.Integration.Rum.Decoders
@@ -20,7 +21,24 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
             }
         }
 
-        public RumViewEventDecoder(JObject rawJson) : base(rawJson)
+        public Dictionary<string, long> CustomTimings
+        {
+            get
+            {
+                var timings = rumEvent["view"]["custom_timings"];
+                var timingDict = new Dictionary<string, long>();
+                foreach (var timing in timings)
+                {
+                    var property = (JProperty)timing;
+                    timingDict.Add(property.Name, property.Value.Value<long>());
+                }
+
+                return timingDict;
+            }
+        }
+
+        public RumViewEventDecoder(JObject rawJson)
+            : base(rawJson)
         {
             View = new (rawJson.GetValue("view") as JObject);
         }
@@ -54,15 +72,15 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
     public class RumViewInfoDecoder
     {
-        public readonly Dictionary<string, object> viewData;
+        public readonly JObject viewData;
 
-        public string Id { get => viewData["id"] as string; }
+        public string Id { get => viewData["id"].Value<string>(); }
 
-        public string Name { get => viewData["name"] as string; }
+        public string Name { get => viewData["name"].Value<string>(); }
 
-        public string Path { get => viewData["url"] as string; }
+        public string Path { get => viewData["url"].Value<string>(); }
 
-        public RumViewInfoDecoder(Dictionary<string, object> viewData)
+        public RumViewInfoDecoder(JObject viewData)
         {
             this.viewData = viewData;
         }

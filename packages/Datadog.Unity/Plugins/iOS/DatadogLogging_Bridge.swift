@@ -63,24 +63,6 @@ struct LoggingOptions: Decodable {
         case datadogReportingThreshold = "DatadogReportingThreshold"
     }
 }
-
-func decodeCString(cString: UnsafeMutablePointer<CChar>?) -> String? {
-    guard let cString = cString else {
-        return nil
-    }
-
-    return String(cString: cString, encoding: .utf8)
-}
-
-func decodeJsonCString(cString: UnsafeMutablePointer<CChar>?) -> [String: Any]? {
-    guard let string = decodeCString(cString: cString),
-          let data = string.data(using: .utf8) else {
-        return nil
-    }
-
-    return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-}
-
 /// Create a logger for use in Unity, returns the UUID of the logger
 @_cdecl("DatadogLogging_CreateLogger")
 func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {

@@ -30,12 +30,43 @@ namespace Datadog.Unity.iOS
 
         public void AddTiming(string name)
         {
-            throw new NotImplementedException();
+            DatadogRumBridge.DatadogRum_AddTiming(name);
+        }
+
+        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            DatadogRumBridge.DatadogRum_AddUserAction(type.ToString(), name, jsonAttributes);
+        }
+
+        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            DatadogRumBridge.DatadogRum_StartUserAction(type.ToString(), name, jsonAttributes);
+        }
+
+        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            DatadogRumBridge.DatadogRum_StopUserAction(type.ToString(), name, jsonAttributes);
         }
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            var errorType = error?.GetType()?.ToString();
+            var errorMessage = error?.Message;
+            var stackTrace = error?.StackTrace;
+
+            DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
         }
 
         public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
@@ -82,5 +113,20 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         public static extern void DatadogRum_StopView(string key, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_AddTiming(string name);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_AddUserAction(string type, string name, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_StartUserAction(string type, string name, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_StopUserAction(string type, string name, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_AddError(string message, string source, string type, string stack, string attributes);
     }
 }

@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -28,72 +29,46 @@ namespace Datadog.Unity.Tests.Integration.Rum
             yield return new MonoBehaviourTest<TestRumMonoBehavior>();
             var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
             {
-                var events = RumEventsFromMockServer(serverLog);
-                var sessions = RumSessionsFromEvents(events);
-                return sessions.Count >= 1 && sessions[0].Visits.Count >= 1;
+                var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
+                var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
+                // Second view makes sure the first one has been closed
+                return sessions.Count >= 1 && sessions[0].Visits.Count >= 2;
             });
 
             yield return new WaitUntil(() => task.IsCompleted);
             var serverLog = task.Result;
-            var sessions = RumSessionsFromEvents(RumEventsFromMockServer(serverLog));
+            var sessions = RumDecoderHelpers.RumSessionsFromEvents(
+                RumDecoderHelpers.RumEventsFromMockServer(serverLog));
 
             Assert.AreEqual(1, sessions.Count);
 
             var session = sessions.First();
-            Assert.AreEqual(1, session.Visits.Count);
+            Assert.AreEqual(2, session.Visits.Count);
 
             var viewVisit = session.Visits.First();
             Assert.AreEqual("First Screen", viewVisit.Name);
-        }
 
-        private List<RumEventDecoder> RumEventsFromMockServer(List<MockServerLog> mockServerLogs)
-        {
-            var rumEvents = new List<RumEventDecoder>();
-            foreach (var mockLog in mockServerLogs)
-            {
-                if (mockLog.Endpoint.Contains("/rum"))
-                {
-                    mockLog.Requests.ForEach((e) => e.Schemas.ForEach((schema) =>
-                    {
-                        var lines = schema.DecompressedData.Split("\n");
-                        foreach (var line in lines)
-                        {
-                            var jsonRum = JObject.Parse(line);
-                            var rumEvent = RumEventDecoder.fromJson(jsonRum);
-                            if (rumEvent != null)
-                            {
-                                rumEvents.Add(rumEvent);
-                            }
-                        }
-                    }));
-                }
-            }
+            Assert.AreEqual(1, viewVisit.ActionEvents.Count);
+            var firstAction = viewVisit.ActionEvents[0];
+            Assert.AreEqual("tap", firstAction.ActionType);
+            Assert.AreEqual("Tapped Download", firstAction.ActionName);
 
-            return rumEvents;
-        }
+            var contentReadyTiming = viewVisit.ViewEvents.Last().CustomTimings["content-ready"];
+            Assert.IsNotNull(contentReadyTiming);
+            // TODO: Timings are messed up because we don't capture time on the main thread.
+            // Assert.GreaterOrEqual(50 * 1000 * 1000, contentReadyTiming);
 
-        private List<RumSessionDecoder> RumSessionsFromEvents(List<RumEventDecoder> events)
-        {
-            var sessionMap = new Dictionary<string, List<RumEventDecoder>>();
-            foreach (var rumEvent in events)
-            {
-                var session = rumEvent.Session;
-                if (session == null)
-                {
-                    continue;
-                }
+            var firstInteractionTiming = viewVisit.ViewEvents.Last().CustomTimings["first-interaction"];
+            Assert.IsNotNull(firstInteractionTiming);
+            Assert.GreaterOrEqual(firstInteractionTiming, contentReadyTiming);
 
-                if (!sessionMap.ContainsKey(session))
-                {
-                    sessionMap.Add(session, new List<RumEventDecoder>());
-                }
-
-                sessionMap[session].Add(rumEvent);
-            }
-
-            var orderedSessions = sessionMap.Values.OrderBy(e => e.First().Date).ToList();
-
-            return orderedSessions.Select(x => new RumSessionDecoder(x)).ToList();
+            Assert.AreEqual(1, viewVisit.ErrorEvents.Count);
+            var errorEvent = viewVisit.ErrorEvents[0];
+            Assert.AreEqual("System.Exception", errorEvent.ErrorType);
+            Assert.AreEqual("Test Exception", errorEvent.Message);
+            Assert.IsNotNull(errorEvent.Stack);
+            Assert.AreEqual("custom", errorEvent.Source);
+            Assert.AreEqual("first_call", errorEvent.Attributes["error_attribute"].Value<string>());
         }
     }
 
@@ -104,12 +79,36 @@ namespace Datadog.Unity.Tests.Integration.Rum
         public void Awake()
         {
             IsTestFinished = false;
-
             DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
 
+            StartCoroutine(RumTest());
+        }
+
+        public IEnumerator RumTest()
+        {
             var rum = DatadogSdk.Instance.Rum;
             rum?.StartView("FirstScreen", name: "First Screen");
-            rum?.StopView("FirstScreen");
+
+            yield return new WaitForSeconds(0.05f);
+            rum?.AddTiming("content-ready");
+
+            yield return new WaitForSeconds(0.5f);
+            rum?.AddTiming("first-interaction");
+            rum?.AddUserAction(RumUserActionType.Tap, "Tapped Download");
+
+            try
+            {
+                throw new Exception("Test Exception");
+            }
+            catch(Exception e)
+            {
+                rum?.AddError(e, RumErrorSource.Custom, new()
+                {
+                    { "error_attribute", "first_call" },
+                });
+            }
+
+            rum?.StartView("FinishedScreen", name: "Finished Screen");
 
             IsTestFinished = true;
         }

@@ -39,6 +39,8 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
             switch (type)
             {
                 case "view": return new RumViewEventDecoder(eventJson);
+                case "action": return new RumActionEventDecoder(eventJson);
+                case "error": return new RumErrorEventDecoder(eventJson);
             }
 
             return null;

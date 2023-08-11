@@ -18,12 +18,35 @@ namespace Datadog.Unity.Rum
 
     public enum RumHttpMethod
     {
+        Post,
         Get,
+        Head,
+        Put,
+        Delete,
+        Patch,
     }
 
     public enum RumResourceType
     {
+        Document,
         Image,
+        Xhr,
+        Beacon,
+        Css,
+        Fetch,
+        Font,
+        Js,
+        Media,
+        Other,
+        Native,
+    }
+
+    public enum RumUserActionType
+    {
+        Tap,
+        Scroll,
+        Swipe,
+        Custom,
     }
 
     public interface IDdRum
@@ -33,6 +56,12 @@ namespace Datadog.Unity.Rum
         public void StopView(string key, Dictionary<string, object> attributes = null);
 
         public void AddTiming(string name);
+
+        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);
+
+        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);
+
+        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null);
 
@@ -66,6 +95,18 @@ namespace Datadog.Unity.Rum
         }
 
         public void AddTiming(string name)
+        {
+        }
+
+        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+        }
+
+        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+        }
+
+        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
         }
 
