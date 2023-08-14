@@ -74,7 +74,7 @@ namespace Datadog.Unity
                     Rum = new DdWorkerProxyRum(_worker);
                 }
 
-                // Else log issue
+                // TODO: RUMM-3515 Else log issue -- need an internal logger for this first.
             }
 
             Application.quitting += OnQuitting;

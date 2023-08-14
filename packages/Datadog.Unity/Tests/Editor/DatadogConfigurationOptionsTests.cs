@@ -50,8 +50,8 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(options.DefaultLoggingLevel, LogType.Log);
             Assert.AreEqual(options.BatchSize, BatchSize.Medium);
             Assert.AreEqual(options.UploadFrequency, UploadFrequency.Average);
-            Assert.AreEqual(options.RumEnabled, false);
-            Assert.AreEqual(options.RumApplicationId, string.Empty);
+            Assert.IsFalse(false);
+            Assert.IsEmpty(options.RumApplicationId);
         }
     }
 }
