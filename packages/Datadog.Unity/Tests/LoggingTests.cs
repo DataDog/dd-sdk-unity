@@ -9,7 +9,7 @@ using Datadog.Unity.Android;
 #endif
 using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
-using Moq;
+using NSubstitute;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -53,75 +53,75 @@ namespace Datadog.Unity.Tests
         public void DatadogInitCreatesDefaultLogger()
         {
             // Given
-            var mockLogger = new Mock<IDdLogger>();
-            var mockPlatform = new Mock<IDatadogPlatform>();
+            var mockLogger = Substitute.For<IDdLogger>();
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
-                .Returns(mockLogger.Object);
+                .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
+                .Returns(mockLogger);
 
             // When
-            DatadogSdk.InitWithPlatform(mockPlatform.Object, new());
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // Then
-            mockPlatform.Verify(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()), Times.Once);
-            Assert.AreEqual(DatadogSdk.Instance.DefaultLogger, mockLogger.Object);
+            mockPlatform.Received().CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>());
+            Assert.AreEqual(DatadogSdk.Instance.DefaultLogger, mockLogger);
         }
 
         [Test]
         public void UnityLogsAreNotForwardedToDefaultLogger_WhenForwardUnityLogsIsFalse()
         {
-            var mockLogger = new Mock<IDdLogger>();
-            var mockPlatform = new Mock<IDatadogPlatform>();
+            var mockLogger = Substitute.For<IDdLogger>();
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
-                .Returns(mockLogger.Object);
+                .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
+                .Returns(mockLogger);
 
-            DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
+            DatadogSdk.InitWithPlatform(mockPlatform, new()
             {
                 ForwardUnityLogs = false,
             });
 
             Debug.Log("Test Logs");
 
-            mockLogger.VerifyNoOtherCalls();
+            mockLogger.DidNotReceiveWithAnyArgs().Log(default, default);
         }
 
         [Test]
         public void UnityLogsAreForwardedToDefaultLogger_WhenForwardUnityLogsIsTrue()
         {
-            var mockUnityLogger = new Mock<ILogHandler>();
-            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+            var mockUnityLogger = Substitute.For<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger;
 
-            var mockLogger = new Mock<IDdLogger>();
-            var mockPlatform = new Mock<IDatadogPlatform>();
+            var mockLogger = Substitute.For<IDdLogger>();
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
-                .Returns(mockLogger.Object);
+                .CreateLogger( Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
+                .Returns(mockLogger);
 
-            DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
+            DatadogSdk.InitWithPlatform(mockPlatform, new()
             {
                 ForwardUnityLogs = true,
             });
 
             Debug.Log("Test Logs");
 
-            mockLogger.Verify(l => l.Log(DdLogLevel.Info, "Test Logs", null, null));
+            mockLogger.Received().Log(DdLogLevel.Info, "Test Logs", null, null);
         }
 
         [Test]
         public void UnityLogsAreForwardedToDefaultLoggerWithProperLevel()
         {
             LogAssert.ignoreFailingMessages = true;
-            var mockUnityLogger = new Mock<ILogHandler>();
-            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+            var mockUnityLogger = Substitute.For<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger;
 
-            var mockLogger = new Mock<IDdLogger>();
-            var mockPlatform = new Mock<IDatadogPlatform>();
+            var mockLogger = Substitute.For<IDdLogger>();
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
-                .Returns(mockLogger.Object);
+                .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
+                .Returns(mockLogger);
 
-            DatadogSdk.InitWithPlatform(mockPlatform.Object, new()
+            DatadogSdk.InitWithPlatform(mockPlatform, new()
             {
                 ForwardUnityLogs = true,
             });
@@ -131,10 +131,10 @@ namespace Datadog.Unity.Tests
             Debug.LogWarning("Test LogWarning");
             Debug.LogAssertion("Test LogAssertion");
 
-            mockLogger.Verify(l => l.Log(DdLogLevel.Info, "Test Logs", null, null));
-            mockLogger.Verify(l => l.Log(DdLogLevel.Error, "Test LogError", null, null));
-            mockLogger.Verify(l => l.Log(DdLogLevel.Warn, "Test LogWarning", null, null));
-            mockLogger.Verify(l => l.Log(DdLogLevel.Critical, "Test LogAssertion", null, null));
+            mockLogger.Received().Log(DdLogLevel.Info, "Test Logs", null, null);
+            mockLogger.Received().Log(DdLogLevel.Error, "Test LogError", null, null);
+            mockLogger.Received().Log(DdLogLevel.Warn, "Test LogWarning", null, null);
+            mockLogger.Received().Log(DdLogLevel.Critical, "Test LogAssertion", null, null);
         }
 
         [Test]
@@ -142,13 +142,11 @@ namespace Datadog.Unity.Tests
         {
             // Given
             LogAssert.ignoreFailingMessages = true;
-            var mockUnityLogger = new Mock<ILogHandler>();
-            Debug.unityLogger.logHandler = mockUnityLogger.Object;
+            var mockUnityLogger = Substitute.For<ILogHandler>();
+            Debug.unityLogger.logHandler = mockUnityLogger;
 
-            var mockLogger = new Mock<IDdLogger>();
-            var logArgs = new List<DdLogLevel>();
+            var mockLogger = Substitute.For<IDdLogger>();
             var messageArgs = new List<string>();
-            mockLogger.Setup(m => m.Log(Capture.In(logArgs), Capture.In(messageArgs), null, null));
 
             // When
             Debug.Log("Test Logs");
@@ -158,22 +156,22 @@ namespace Datadog.Unity.Tests
 
             // Then
             // Don't ask me why, but this is how Unity formats its messages by default
-            mockUnityLogger.Verify(l => l.LogFormat(LogType.Log, null, "{0}", "Test Logs"));
-            mockUnityLogger.Verify(l => l.LogFormat(LogType.Error, null, "{0}", "Test LogError"));
-            mockUnityLogger.Verify(l => l.LogFormat(LogType.Warning, null, "{0}", "Test LogWarning"));
-            mockUnityLogger.Verify(l => l.LogFormat(LogType.Assert, null, "{0}", "Test LogAssertion"));
+            mockUnityLogger.Received().LogFormat(LogType.Log, null, "{0}", "Test Logs");
+            mockUnityLogger.Received().LogFormat(LogType.Error, null, "{0}", "Test LogError");
+            mockUnityLogger.Received().LogFormat(LogType.Warning, null, "{0}", "Test LogWarning");
+            mockUnityLogger.Received().LogFormat(LogType.Assert, null, "{0}", "Test LogAssertion");
         }
 
         [Test]
         public void CreateLoggerForwardsRequestToPlatform()
         {
             // Given
-            var mockLogger = new Mock<IDdLogger>();
-            var mockPlatform = new Mock<IDatadogPlatform>();
+            var mockLogger = Substitute.For<IDdLogger>();
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
-                .Setup(m => m.CreateLogger(It.IsAny<DatadogLoggingOptions>(), It.IsAny<DatadogWorker>()))
-                .Returns(mockLogger.Object);
-            DatadogSdk.InitWithPlatform(mockPlatform.Object, new());
+                .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
+                .Returns(mockLogger);
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When
             var options = new DatadogLoggingOptions()
@@ -185,26 +183,30 @@ namespace Datadog.Unity.Tests
             var logger = DatadogSdk.Instance.CreateLogger(options);
 
             // Then
-            mockPlatform.Verify(m => m.CreateLogger(options, It.IsAny<DatadogWorker>()));
-            Assert.AreEqual(logger, mockLogger.Object);
+            mockPlatform.Received().CreateLogger(options, Arg.Any<DatadogWorker>());
+            Assert.AreEqual(logger, mockLogger);
         }
 
         [Test]
         public void LoggerForwardsCorrectLevelsToLog()
         {
             // Given
-            var mockLogger = new Mock<IDdLogger>();
+            var mockLogger = Substitute.For<IDdLogger>();
             var logArgs = new List<DdLogLevel>();
             var messageArgs = new List<string>();
-            mockLogger.Setup(m => m.Log(Capture.In(logArgs), Capture.In(messageArgs), null, null));
+            mockLogger.Log(
+                Arg.Do<DdLogLevel>(l => logArgs.Add(l)),
+                Arg.Do<string>(m => messageArgs.Add(m)),
+                null,
+                null);
 
             // When
-            mockLogger.Object.Debug("debug message");
-            mockLogger.Object.Info("info message");
-            mockLogger.Object.Notice("notice message");
-            mockLogger.Object.Warn("warn message");
-            mockLogger.Object.Error("error message");
-            mockLogger.Object.Critical("critical message");
+            mockLogger.Debug("debug message");
+            mockLogger.Info("info message");
+            mockLogger.Notice("notice message");
+            mockLogger.Warn("warn message");
+            mockLogger.Error("error message");
+            mockLogger.Critical("critical message");
 
             Assert.IsTrue(logArgs.SequenceEqual(
                 new[] { DdLogLevel.Debug, DdLogLevel.Info, DdLogLevel.Notice, DdLogLevel.Warn, DdLogLevel.Error, DdLogLevel.Critical }));
