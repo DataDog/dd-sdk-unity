@@ -4,6 +4,7 @@
 
 using System.Runtime.CompilerServices;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 using UnityEngine;
 using UnityEngine.Scripting;
@@ -114,6 +115,12 @@ namespace Datadog.Unity.Android
 
             var innerLogger = new DatadogAndroidLogger(androidLogger);
             return new DdWorkerProxyLogger(worker, innerLogger);
+        }
+
+        public IDdRum InitRum(DatadogConfigurationOptions options)
+        {
+            // TODO: RUMM-3410 - Add Android Rum interface
+            return new DdNoOpRum();
         }
 
         private AndroidJavaObject GetApplicationContext()

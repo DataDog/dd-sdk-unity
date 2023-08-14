@@ -27,6 +27,8 @@ namespace Datadog.Unity.Editor
                 options.BatchSize = BatchSize.Medium;
                 options.UploadFrequency = UploadFrequency.Average;
                 options.ForwardUnityLogs = false;
+                options.RumEnabled = false;
+                options.RumApplicationId = string.Empty;
 
                 AssetDatabase.CreateAsset(options, settingsPath);
                 AssetDatabase.SaveAssets();

@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ namespace Datadog.Unity
     {
         public static readonly DatadogSdk Instance = new();
 
-        private IDatadogPlatform _platform = new DatadogNoopPlatform();
+        private IDatadogPlatform _platform = new DatadogNoOpPlatform();
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
 
@@ -24,6 +25,8 @@ namespace Datadog.Unity
         {
             get; private set;
         }
+
+        public IDdRum Rum { get; private set; } = new DdNoOpRum();
 
         public static void Shutdown()
         {
@@ -62,6 +65,18 @@ namespace Datadog.Unity
                 _logHandler.Attach();
             }
 
+            if (options.RumEnabled)
+            {
+                if (options.RumApplicationId != null)
+                {
+                    var platformRum = _platform.InitRum(options);
+                    _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
+                    Rum = new DdWorkerProxyRum(_worker);
+                }
+
+                // Else log issue
+            }
+
             Application.quitting += OnQuitting;
         }
 
@@ -71,11 +86,12 @@ namespace Datadog.Unity
             DefaultLogger = null;
             _logHandler?.Detach();
             _logHandler = null;
+            _worker.Stop();
         }
 
         private void OnQuitting()
         {
-            _worker.Stop();
+            ShutdownInstance();
         }
     }
 }

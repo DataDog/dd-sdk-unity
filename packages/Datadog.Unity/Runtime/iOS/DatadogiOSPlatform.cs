@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using Datadog.Unity;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 using UnityEngine;
 using UnityEngine.Scripting;
@@ -45,6 +46,11 @@ namespace Datadog.Unity.iOS
         {
             var innerLogger = DatadogiOSLogger.Create(options);
             return new DdWorkerProxyLogger(worker, innerLogger);
+        }
+
+        public IDdRum InitRum(DatadogConfigurationOptions options)
+        {
+            return new DatadogiOSRum();
         }
     }
 }
