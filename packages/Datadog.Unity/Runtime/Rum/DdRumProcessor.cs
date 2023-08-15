@@ -10,6 +10,8 @@ namespace Datadog.Unity.Rum
 {
     internal class DdRumProcessor : IDatadogWorkerProcessor
     {
+        private const string DdRumTimestampAttribute = "_dd.timestamp";
+
         public const string RumTargetName = "rum";
 
         private readonly IDdRum _rum;
@@ -24,38 +26,62 @@ namespace Datadog.Unity.Rum
             switch (message)
             {
                 case StartViewMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.StartView(msg.Key, msg.Name, msg.Attributes);
                     break;
                 case StopViewMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.StopView(msg.Key, msg.Attributes);
                     break;
-                case AddTimingMessage msg:
-                    _rum.AddTiming(msg.Name);
-                    break;
                 case AddUserActionMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.AddUserAction(msg.Type, msg.Name, msg.Attributes);
                     break;
                 case StartUserActionMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.StartUserAction(msg.Type, msg.Name, msg.Attributes);
                     break;
                 case StopUserActionMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.StopUserAction(msg.Type, msg.Name, msg.Attributes);
                     break;
                 case AddErrorMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.AddError(msg.Error, msg.Source, msg.Attributes);
                     break;
             }
         }
 
+        private void InjectTime(DateTime? time, Dictionary<string, object> attributes)
+        {
+            if (time == null) return;
+
+            var offset = new DateTimeOffset(time.Value);
+            attributes[DdRumTimestampAttribute] = offset.ToUnixTimeMilliseconds();
+        }
+
         #region Messages
 
-        internal class StartViewMessage : IDatadogWorkerMessage
+        internal abstract class DdRumWorkerMessage : IDatadogWorkerMessage
         {
-            public StartViewMessage(string key, string name, Dictionary<string, object> attributes)
+            public DateTime? MessageTime { get; private set; }
+
+            public string FeatureTarget => DdRumProcessor.RumTargetName;
+
+            public DdRumWorkerMessage(DateTime? messageTime)
+            {
+                MessageTime = messageTime;
+            }
+        }
+
+        internal class StartViewMessage : DdRumWorkerMessage
+        {
+            public StartViewMessage(DateTime messageTime, string key, string name, Dictionary<string, object> attributes)
+                : base(messageTime)
             {
                 Key = key;
                 Name = name;
-                Attributes = attributes;
+                Attributes = attributes ?? new ();
             }
 
             public string Key { get; private set; }
@@ -63,44 +89,30 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class StopViewMessage : IDatadogWorkerMessage
+        internal class StopViewMessage : DdRumWorkerMessage
         {
-            public StopViewMessage(string key, Dictionary<string, object> attributes)
+            public StopViewMessage(DateTime messageTime, string key, Dictionary<string, object> attributes)
+                : base(messageTime)
             {
                 Key = key;
-                Attributes = attributes;
+                Attributes = attributes ?? new ();
             }
 
             public string Key { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class AddTimingMessage : IDatadogWorkerMessage
+        internal class AddUserActionMessage : DdRumWorkerMessage
         {
-            public AddTimingMessage(string name)
-            {
-                Name = name;
-            }
-
-            public string Name { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
-        }
-
-        internal class AddUserActionMessage : IDatadogWorkerMessage
-        {
-            public AddUserActionMessage(RumUserActionType type, string name, Dictionary<string, object> attributes)
+            public AddUserActionMessage(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
+                : base(messageTime)
             {
                 Type = type;
                 Name = name;
-                Attributes = attributes;
+                Attributes = attributes ?? new ();
             }
 
             public RumUserActionType Type { get; private set; }
@@ -108,17 +120,16 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class StartUserActionMessage : IDatadogWorkerMessage
+        internal class StartUserActionMessage : DdRumWorkerMessage
         {
-            public StartUserActionMessage(RumUserActionType type, string name, Dictionary<string, object> attributes)
+            public StartUserActionMessage(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
+                : base(messageTime)
             {
                 Type = type;
                 Name = name;
-                Attributes = attributes;
+                Attributes = attributes ?? new ();
             }
 
             public RumUserActionType Type { get; private set; }
@@ -126,17 +137,16 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class StopUserActionMessage : IDatadogWorkerMessage
+        internal class StopUserActionMessage : DdRumWorkerMessage
         {
-            public StopUserActionMessage(RumUserActionType type, string name, Dictionary<string, object> attributes)
+            public StopUserActionMessage(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
+                : base(messageTime)
             {
                 Type = type;
                 Name = name;
-                Attributes = attributes;
+                Attributes = attributes ?? new ();
             }
 
             public RumUserActionType Type { get; private set; }
@@ -144,17 +154,16 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class AddErrorMessage : IDatadogWorkerMessage
+        internal class AddErrorMessage : DdRumWorkerMessage
         {
-            public AddErrorMessage(Exception error, RumErrorSource source, Dictionary<string, object> attributes)
+            public AddErrorMessage(DateTime messageTime, Exception error, RumErrorSource source, Dictionary<string, object> attributes)
+                : base(messageTime)
             {
                 Error = error;
                 Source = source;
-                Attributes = attributes;
+                Attributes = attributes ?? new ();
             }
 
             public Exception Error { get; private set; }
@@ -162,13 +171,12 @@ namespace Datadog.Unity.Rum
             public RumErrorSource Source { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class AddAttributeMessage : IDatadogWorkerMessage
+        internal class AddAttributeMessage : DdRumWorkerMessage
         {
             public AddAttributeMessage(string key, object value)
+                : base(null)
             {
                 Key = key;
                 Value = value;
@@ -177,20 +185,17 @@ namespace Datadog.Unity.Rum
             public string Key { get; private set; }
 
             public object Value { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
-        internal class RemoveAttributeMessage : IDatadogWorkerMessage
+        internal class RemoveAttributeMessage : DdRumWorkerMessage
         {
             public RemoveAttributeMessage(string key)
+                : base(null)
             {
                 Key = key;
             }
 
             public string Key { get; private set; }
-
-            public string FeatureTarget => RumTargetName;
         }
 
         #endregion

@@ -55,8 +55,6 @@ namespace Datadog.Unity.Rum
 
         public void StopView(string key, Dictionary<string, object> attributes = null);
 
-        public void AddTiming(string name);
-
         public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);
 
         public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);

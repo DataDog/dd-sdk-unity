@@ -53,15 +53,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("tap", firstAction.ActionType);
             Assert.AreEqual("Tapped Download", firstAction.ActionName);
 
-            var contentReadyTiming = viewVisit.ViewEvents.Last().CustomTimings["content-ready"];
-            Assert.IsNotNull(contentReadyTiming);
-            // TODO: Timings are messed up because we don't capture time on the main thread.
-            // Assert.GreaterOrEqual(50 * 1000 * 1000, contentReadyTiming);
-
-            var firstInteractionTiming = viewVisit.ViewEvents.Last().CustomTimings["first-interaction"];
-            Assert.IsNotNull(firstInteractionTiming);
-            Assert.GreaterOrEqual(firstInteractionTiming, contentReadyTiming);
-
             Assert.AreEqual(1, viewVisit.ErrorEvents.Count);
             var errorEvent = viewVisit.ErrorEvents[0];
             Assert.AreEqual("System.Exception", errorEvent.ErrorType);
@@ -90,10 +81,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
             rum?.StartView("FirstScreen", name: "First Screen");
 
             yield return new WaitForSeconds(0.05f);
-            rum?.AddTiming("content-ready");
-
-            yield return new WaitForSeconds(0.5f);
-            rum?.AddTiming("first-interaction");
             rum?.AddUserAction(RumUserActionType.Tap, "Tapped Download");
 
             try

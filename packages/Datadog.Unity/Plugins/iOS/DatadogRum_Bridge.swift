@@ -26,13 +26,6 @@ func DatadogRum_StopView(key: CString?, attributes: CString?) {
     }
 }
 
-@_cdecl("DatadogRum_AddTiming")
-func DatadogRum_AddTiming(name: CString?) {
-    if let name = decodeCString(cString: name) {
-        Global.rum.addTiming(name: name)
-    }
-}
-
 @_cdecl("DatadogRum_AddUserAction")
 func DatadogRum_AddUserAction(type: CString?, name: CString?, attributes: CString?) {
     if let type = decodeUserActionType(fromCStirng: type),

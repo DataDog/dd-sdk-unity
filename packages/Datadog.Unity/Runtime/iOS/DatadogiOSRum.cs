@@ -28,11 +28,6 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StopView(key, jsonAttributes);
         }
 
-        public void AddTiming(string name)
-        {
-            DatadogRumBridge.DatadogRum_AddTiming(name);
-        }
-
         public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
@@ -113,9 +108,6 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         public static extern void DatadogRum_StopView(string key, string attributes);
-
-        [DllImport("__Internal")]
-        public static extern void DatadogRum_AddTiming(string name);
 
         [DllImport("__Internal")]
         public static extern void DatadogRum_AddUserAction(string type, string name, string attributes);
