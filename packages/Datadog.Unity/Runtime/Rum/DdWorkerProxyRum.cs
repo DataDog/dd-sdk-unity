@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
 
 namespace Datadog.Unity.Rum
@@ -52,18 +51,20 @@ namespace Datadog.Unity.Rum
 
         public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(new DdRumProcessor.StartResourceLoadingMessage(_dateProvider.Now, key, httpMethod, url, attributes));
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, int? size = null,
+        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(
+                new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size, attributes));
         }
 
         public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(
+                new DdRumProcessor.StopResourceLoadingWithErrorMessage(_dateProvider.Now, key, error, attributes));
         }
 
         public void AddAttribute(string key, object value)

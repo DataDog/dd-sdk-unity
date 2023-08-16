@@ -66,28 +66,47 @@ namespace Datadog.Unity.iOS
 
         public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            DatadogRumBridge.DatadogRum_StartResourceLoading(key, httpMethod.ToString(), url, jsonAttributes);
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, int? size = null,
+        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            // Note - using -1 as a special value to mean null, as sending optionals to C from C# is... difficult
+            DatadogRumBridge.DatadogRum_StopResourceLoading(key, kind.ToString(), statusCode ?? -1, size ?? -1, jsonAttributes);
         }
 
         public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            var errorType = error?.GetType()?.ToString();
+            var errorMessage = error?.Message;
+            var stackTrace = error?.StackTrace;
+
+            DatadogRumBridge.DatadogRum_StopResourceLoadingWithError(key, errorType, errorMessage, jsonAttributes);
         }
 
         public void AddAttribute(string key, object value)
         {
-            throw new NotImplementedException();
+            var valueDict = new Dictionary<string, object>()
+            {
+                { "value", value },
+            };
+            var encodedValue = JsonConvert.SerializeObject(valueDict);
+            DatadogRumBridge.DatadogRum_AddAttribute(key, encodedValue);
         }
 
         public void RemoveAttribute(string key)
         {
-            throw new NotImplementedException();
+            DatadogRumBridge.DatadogRum_RemoveAttribute(key);
         }
 
         public void AddFeatureFlagEvaluation(string key, object value)
@@ -100,7 +119,7 @@ namespace Datadog.Unity.iOS
             throw new NotImplementedException();
         }
     }
-
+    
     internal static class DatadogRumBridge
     {
         [DllImport("__Internal")]
@@ -120,5 +139,21 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         public static extern void DatadogRum_AddError(string message, string source, string type, string stack, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_AddAttribute(string key, string value);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_RemoveAttribute(string key);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_StartResourceLoading(string key, string httpMethod, string url, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_StopResourceLoading(string key, string kind, int statusCode, long size, string attributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_StopResourceLoadingWithError(string key, string errorType,
+            string errorMessage, string jsonAttributes);
     }
 }

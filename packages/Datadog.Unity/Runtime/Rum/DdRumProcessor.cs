@@ -49,6 +49,24 @@ namespace Datadog.Unity.Rum
                     InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.AddError(msg.Error, msg.Source, msg.Attributes);
                     break;
+                case AddAttributeMessage msg:
+                    _rum.AddAttribute(msg.Key, msg.Value);
+                    break;
+                case RemoveAttributeMessage msg:
+                    _rum.RemoveAttribute(msg.Key);
+                    break;
+                case StartResourceLoadingMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
+                    _rum.StartResourceLoading(msg.Key, msg.HttpMethod, msg.Url, msg.Attributes);
+                    break;
+                case StopResourceLoadingMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
+                    _rum.StopResourceLoading(msg.Key, msg.ResourceType, msg.StatusCode, msg.Size, msg.Attributes);
+                    break;
+                case StopResourceLoadingWithErrorMessage msg:
+                    InjectTime(msg.MessageTime, msg.Attributes);
+                    _rum.StopResourceLoading(msg.Key, msg.Error, msg.Attributes);
+                    break;
             }
         }
 
@@ -196,6 +214,68 @@ namespace Datadog.Unity.Rum
             }
 
             public string Key { get; private set; }
+        }
+
+        internal class StartResourceLoadingMessage : DdRumWorkerMessage
+        {
+            public StartResourceLoadingMessage(DateTime messageTime, string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes)
+                : base(messageTime)
+            {
+                Key = key;
+                HttpMethod = httpMethod;
+                Url = url;
+                Attributes = attributes ?? new();
+            }
+
+            public string Key { get; private set; }
+
+            public RumHttpMethod HttpMethod { get; private set; }
+
+            public string Url { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
+        }
+
+        internal class StopResourceLoadingMessage : DdRumWorkerMessage
+        {
+            public StopResourceLoadingMessage(DateTime messageTime, string key, RumResourceType resourceType, int? statusCode, long? size, Dictionary<string, object> attributes)
+                : base(messageTime)
+            {
+                Key = key;
+                ResourceType = resourceType;
+                StatusCode = statusCode;
+                Size = size;
+                Attributes = attributes ?? new();
+            }
+
+            public string Key { get; private set; }
+
+            public RumResourceType ResourceType { get; private set; }
+
+            public long? Size { get; private set; }
+
+            public int? StatusCode { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
+        }
+
+        internal class StopResourceLoadingWithErrorMessage : DdRumWorkerMessage
+        {
+            public StopResourceLoadingWithErrorMessage(DateTime messageTime, string key, Exception error, Dictionary<string, object> attributes)
+                : base(messageTime)
+            {
+                Key = key;
+                Error = error;
+                Attributes = attributes ?? new();
+            }
+
+            public string Key { get; private set; }
+
+            public RumResourceType ResourceType { get; private set; }
+
+            public Exception Error { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
         }
 
         #endregion

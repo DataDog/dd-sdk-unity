@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json;
@@ -32,7 +33,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
                 // Second view makes sure the first one has been closed
-                return sessions.Count >= 1 && sessions[0].Visits.Count >= 2;
+                return sessions.Count >= 1 && sessions[0].Visits.Count >= 3;
             });
 
             yield return new WaitUntil(() => task.IsCompleted);
@@ -43,23 +44,43 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual(1, sessions.Count);
 
             var session = sessions.First();
-            Assert.AreEqual(2, session.Visits.Count);
+            Assert.AreEqual(3, session.Visits.Count);
 
-            var viewVisit = session.Visits.First();
-            Assert.AreEqual("First Screen", viewVisit.Name);
+            var firstVisit = session.Visits[0];
+            Assert.AreEqual("First Screen", firstVisit.Name);
+            Assert.AreEqual(1, firstVisit.ViewEvents.First().Attributes["onboarding_stage"].Value<int>());
 
-            Assert.AreEqual(1, viewVisit.ActionEvents.Count);
-            var firstAction = viewVisit.ActionEvents[0];
+            Assert.AreEqual(1, firstVisit.ActionEvents.Count);
+            var firstAction = firstVisit.ActionEvents[0];
             Assert.AreEqual("tap", firstAction.ActionType);
             Assert.AreEqual("Tapped Download", firstAction.ActionName);
+            Assert.AreEqual(1, firstAction.Attributes["onboarding_stage"].Value<int>());
 
-            Assert.AreEqual(1, viewVisit.ErrorEvents.Count);
-            var errorEvent = viewVisit.ErrorEvents[0];
+            Assert.AreEqual(1, firstVisit.ResourceEvents.Count);
+            var firstResource = firstVisit.ResourceEvents[0];
+            Assert.AreEqual("http://fake/resource/1", firstResource.Url);
+            Assert.AreEqual("GET", firstResource.Method);
+            Assert.AreEqual("image", firstResource.ResourceType);
+            Assert.AreEqual(200, firstResource.StatusCode);
+            Assert.AreEqual(121999, firstResource.Size);
+            Assert.GreaterOrEqual(firstResource.Duration, 50 * 1000 * 1000);
+
+            Assert.AreEqual(1, firstVisit.ErrorEvents.Count);
+            var resourceError = firstVisit.ErrorEvents[0];
+            Assert.AreEqual("http://fake/resource/2", resourceError.ResourceUrl);
+            Assert.AreEqual("POST", resourceError.ResourceMethod);
+            Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
+            Assert.AreEqual("network", resourceError.Source);
+
+            var secondVisit = session.Visits[1];
+            Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
+            var errorEvent = secondVisit.ErrorEvents[0];
             Assert.AreEqual("System.Exception", errorEvent.ErrorType);
             Assert.AreEqual("Test Exception", errorEvent.Message);
             Assert.IsNotNull(errorEvent.Stack);
             Assert.AreEqual("custom", errorEvent.Source);
             Assert.AreEqual("first_call", errorEvent.Attributes["error_attribute"].Value<string>());
+            Assert.AreEqual(1, errorEvent.Attributes["onboarding_stage"].Value<int>());
         }
     }
 
@@ -78,11 +99,24 @@ namespace Datadog.Unity.Tests.Integration.Rum
         public IEnumerator RumTest()
         {
             var rum = DatadogSdk.Instance.Rum;
+            rum?.AddAttribute("onboarding_stage", 1);
             rum?.StartView("FirstScreen", name: "First Screen");
 
             yield return new WaitForSeconds(0.05f);
             rum?.AddUserAction(RumUserActionType.Tap, "Tapped Download");
 
+            var resourceKey1 = "/resource/1";
+            var resourceKey2 = "/resource/2";
+            rum?.StartResourceLoading(resourceKey1, RumHttpMethod.Get, $"http://fake{resourceKey1}");
+            rum?.StartResourceLoading(resourceKey2, RumHttpMethod.Post, $"http://fake{resourceKey2}");
+
+            yield return new WaitForSeconds(0.05f);
+            rum?.StopResourceLoading(resourceKey1, RumResourceType.Image, 200, 121999);
+
+            yield return new WaitForSeconds(0.03f);
+            rum?.StopResourceLoading(resourceKey2, new NetworkInformationException());
+
+            rum?.StartView("ErrorScreen", name: "Error Screen");
             try
             {
                 throw new Exception("Test Exception");

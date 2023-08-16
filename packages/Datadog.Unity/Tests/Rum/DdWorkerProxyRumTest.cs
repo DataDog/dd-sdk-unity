@@ -188,5 +188,116 @@ namespace Datadog.Unity.Rum.Tests
             Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
             Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
         }
+
+        [Test]
+        public void AddAttributeForwardsPropertiesToPlatform()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+
+            // When
+            rum.AddAttribute("test_attribute_2", 588182);
+            Thread.Sleep(10);
+
+            // Then
+            _mockRum.Received(1).AddAttribute("test_attribute_2", 588182);
+        }
+
+        [Test]
+        public void RemoveAttributeForwardsPropertiesToPlatform()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+
+            // When
+            rum.RemoveAttribute("test_attribute_2");
+            Thread.Sleep(10);
+
+            // Then
+            _mockRum.Received(1).RemoveAttribute("test_attribute_2");
+        }
+
+        [Test]
+        public void StartResourceLoadingForwardsToPlatformAddsTime()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+            var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
+            Dictionary<string, object> capturedAttributes = null;
+            _mockRum.StartResourceLoading(Arg.Any<string>(), Arg.Any<RumHttpMethod>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockDateProvider.Now.Returns(date);
+
+            // When
+            rum.StartResourceLoading("fake_resource", RumHttpMethod.Head, "http://fake/resource", new()
+            {
+                { "attribute_1", "my property" },
+                { "int_attribute_3", 222 },
+            });
+            Thread.Sleep(10);
+
+            // Then
+            var dateOffset = new DateTimeOffset(date);
+            _mockRum.Received(1).StartResourceLoading("fake_resource", RumHttpMethod.Head, "http://fake/resource", Arg.Any<Dictionary<string, object>>());
+            Assert.IsNotNull(capturedAttributes);
+            Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
+            Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
+            Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
+        }
+
+        [Test]
+        public void StopResourceLoadingForwardsToPlatformAddsTime()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+            var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
+            Dictionary<string, object> capturedAttributes = null;
+            _mockRum.StopResourceLoading(Arg.Any<string>(), Arg.Any<RumResourceType>(), Arg.Any<int?>(), Arg.Any<int>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockDateProvider.Now.Returns(date);
+
+            // When
+            rum.StopResourceLoading("fake_resource", RumResourceType.Css, 200, 123999, new()
+            {
+                { "attribute_1", "my property" },
+                { "int_attribute_3", 222 },
+            });
+            Thread.Sleep(10);
+
+            // Then
+            var dateOffset = new DateTimeOffset(date);
+            _mockRum.Received(1).StopResourceLoading("fake_resource", RumResourceType.Css, 200, 123999, Arg.Any<Dictionary<string, object>>());
+            Assert.IsNotNull(capturedAttributes);
+            Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
+            Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
+            Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
+        }
+
+        [Test]
+        public void StopResourceLoadingWithErrorForwardsToPlatformAddsTime()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+            var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
+            Dictionary<string, object> capturedAttributes = null;
+            _mockRum.StopResourceLoading(Arg.Any<string>(), Arg.Any<Exception>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockDateProvider.Now.Returns(date);
+
+            var exception = new Exception();
+
+            // When
+            rum.StopResourceLoading("fake_resource", exception, new()
+            {
+                { "attribute_1", "my property" },
+                { "int_attribute_3", 222 },
+            });
+            Thread.Sleep(10);
+
+            // Then
+            var dateOffset = new DateTimeOffset(date);
+            _mockRum.Received(1).StopResourceLoading("fake_resource", exception, Arg.Any<Dictionary<string, object>>());
+            Assert.IsNotNull(capturedAttributes);
+            Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
+            Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
+            Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
+        }
     }
 }

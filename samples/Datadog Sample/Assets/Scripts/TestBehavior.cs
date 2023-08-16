@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using Datadog.Unity;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using UnityEngine;
 
 public class TestBehavior : MonoBehaviour
@@ -38,5 +39,7 @@ public class TestBehavior : MonoBehaviour
                 }
             },
         });
+
+        DatadogSdk.Instance.Rum.StopResourceLoading("key", RumResourceType.Native);
     }
 }
