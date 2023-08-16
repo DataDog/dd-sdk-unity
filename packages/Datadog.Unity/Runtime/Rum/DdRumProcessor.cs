@@ -29,6 +29,21 @@ namespace Datadog.Unity.Rum
                 case StopViewMessage msg:
                     _rum.StopView(msg.Key, msg.Attributes);
                     break;
+                case AddTimingMessage msg:
+                    _rum.AddTiming(msg.Name);
+                    break;
+                case AddUserActionMessage msg:
+                    _rum.AddUserAction(msg.Type, msg.Name, msg.Attributes);
+                    break;
+                case StartUserActionMessage msg:
+                    _rum.StartUserAction(msg.Type, msg.Name, msg.Attributes);
+                    break;
+                case StopUserActionMessage msg:
+                    _rum.StopUserAction(msg.Type, msg.Name, msg.Attributes);
+                    break;
+                case AddErrorMessage msg:
+                    _rum.AddError(msg.Error, msg.Source, msg.Attributes);
+                    break;
             }
         }
 
@@ -75,6 +90,60 @@ namespace Datadog.Unity.Rum
             }
 
             public string Name { get; private set; }
+
+            public string FeatureTarget => RumTargetName;
+        }
+
+        internal class AddUserActionMessage : IDatadogWorkerMessage
+        {
+            public AddUserActionMessage(RumUserActionType type, string name, Dictionary<string, object> attributes)
+            {
+                Type = type;
+                Name = name;
+                Attributes = attributes;
+            }
+
+            public RumUserActionType Type { get; private set; }
+
+            public string Name { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
+
+            public string FeatureTarget => RumTargetName;
+        }
+
+        internal class StartUserActionMessage : IDatadogWorkerMessage
+        {
+            public StartUserActionMessage(RumUserActionType type, string name, Dictionary<string, object> attributes)
+            {
+                Type = type;
+                Name = name;
+                Attributes = attributes;
+            }
+
+            public RumUserActionType Type { get; private set; }
+
+            public string Name { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
+
+            public string FeatureTarget => RumTargetName;
+        }
+
+        internal class StopUserActionMessage : IDatadogWorkerMessage
+        {
+            public StopUserActionMessage(RumUserActionType type, string name, Dictionary<string, object> attributes)
+            {
+                Type = type;
+                Name = name;
+                Attributes = attributes;
+            }
+
+            public RumUserActionType Type { get; private set; }
+
+            public string Name { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
 
             public string FeatureTarget => RumTargetName;
         }

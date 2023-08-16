@@ -66,11 +66,13 @@ public class UIBehavior : MonoBehaviour
     #if !PLATFORM_IOS && !PLATFORM_ANDROID
     private static void PerformNativeCrash()
     {
+        // TODO: Add crashing behavior for non-mobile platforms
         Debug.Log("I don't know how to crash on this platform... 😞");
     }
 
     private static void PerformNativeThrow()
     {
+        // TODO: Add throw behavior for non-mobile platforms
         Debug.Log("I don't know how to throw on this platform... 😞");
     }
     #endif

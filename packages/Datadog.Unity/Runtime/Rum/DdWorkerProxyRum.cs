@@ -33,6 +33,21 @@ namespace Datadog.Unity.Rum
             _worker.AddMessage(new DdRumProcessor.AddTimingMessage(name));
         }
 
+        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+            _worker.AddMessage(new DdRumProcessor.AddUserActionMessage(type, name, attributes));
+        }
+
+        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+            _worker.AddMessage(new DdRumProcessor.StartUserActionMessage(type, name, attributes));
+        }
+
+        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        {
+            _worker.AddMessage(new DdRumProcessor.StopUserActionMessage(type, name, attributes));
+        }
+
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(new DdRumProcessor.AddErrorMessage(error, source, attributes));
