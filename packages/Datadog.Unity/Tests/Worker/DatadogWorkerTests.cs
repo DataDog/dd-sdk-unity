@@ -3,20 +3,20 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System.Threading;
-using Moq;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Worker.Tests
 {
     public class DatadogWorkerTests
     {
-        private Mock<IDatadogWorkerProcessor> _mockProcessor;
+        private IDatadogWorkerProcessor _mockProcessor;
         private DatadogWorker _worker;
 
         [SetUp]
         public void SetUp()
         {
-            _mockProcessor = new();
+            _mockProcessor = Substitute.For<IDatadogWorkerProcessor>();
             _worker = new();
         }
 
@@ -29,33 +29,33 @@ namespace Datadog.Unity.Worker.Tests
         [Test]
         public void WorkerSendsMessagesToProcessor()
         {
-            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor.Object);
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
 
             // Can add messages before the worker is started, they will be processed when the worker starts
             var message = new MockWorkerMessage("fake data");
             _worker.AddMessage(message);
-            _mockProcessor.Verify(m => m.Process(message), Times.Never);
+            _mockProcessor.DidNotReceive().Process(message);
 
             _worker.Start();
 
             // Yield to the processing thread
             Thread.Sleep(10);
 
-            _mockProcessor.Verify(m => m.Process(message), Times.Once);
+            _mockProcessor.Received(1).Process(message);
         }
 
         [Test]
         public void StoppedWorkerFinishesSendingMessages()
         {
-            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor.Object);
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
 
             var message = new MockWorkerMessage("fake data");
             _worker.AddMessage(message);
-            _mockProcessor.Verify(m => m.Process(message), Times.Never);
+            _mockProcessor.DidNotReceive().Process(message);
             _worker.Start();
             _worker.Stop();
 
-            _mockProcessor.Verify(m => m.Process(message), Times.Once);
+            _mockProcessor.Received(1).Process(message);
         }
     }
 
