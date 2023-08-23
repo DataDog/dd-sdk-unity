@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 {
@@ -27,6 +28,10 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                             if (rumEvent != null)
                             {
                                 rumEvents.Add(rumEvent);
+                            }
+                            else
+                            {
+                                Debug.LogWarning("Failed to decode RUMEvent from MockServerLog");
                             }
                         }
                     }));

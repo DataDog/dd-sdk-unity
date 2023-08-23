@@ -48,7 +48,7 @@ namespace Datadog.Unity.Worker
         {
             if (_workerThread == null)
             {
-                // Already stopped
+                Debug.Log("Stopping already stopped worker?");
                 return;
             }
 
@@ -90,16 +90,19 @@ namespace Datadog.Unity.Worker
                     var message = _workQueue.Take();
                     if (message != null && _processors.ContainsKey(message.FeatureTarget))
                     {
+
                         var processor = _processors[message.FeatureTarget];
                         processor?.Process(message);
                     }
                 }
                 catch(InvalidOperationException)
                 {
+                    Debug.Log("Stopping worker.");
                     // This is an expected exception and is thrown when the work queue
                     // is completed while .Take is waiting on a new item.
                 }
             }
+            Debug.Log("Stopped!");
         }
     }
 }

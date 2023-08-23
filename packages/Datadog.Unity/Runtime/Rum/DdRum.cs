@@ -55,8 +55,6 @@ namespace Datadog.Unity.Rum
 
         public void StopView(string key, Dictionary<string, object> attributes = null);
 
-        public void AddTiming(string name);
-
         public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);
 
         public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null);
@@ -68,7 +66,7 @@ namespace Datadog.Unity.Rum
         public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url,
             Dictionary<string, object> attributes = null);
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, int? size = null,
+        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null);
 
         public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null);
@@ -120,7 +118,7 @@ namespace Datadog.Unity.Rum
             throw new NotImplementedException();
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, int? size = null,
+        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
         }

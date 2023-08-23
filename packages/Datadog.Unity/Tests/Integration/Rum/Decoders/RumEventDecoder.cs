@@ -28,6 +28,8 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
             get => jsonGetProp<long>(rumEvent, "date");
         }
 
+        public JObject Attributes => rumEvent["context"] as JObject;
+
         protected RumEventDecoder(JObject rawJson)
         {
             rumEvent = rawJson;
@@ -41,6 +43,7 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                 case "view": return new RumViewEventDecoder(eventJson);
                 case "action": return new RumActionEventDecoder(eventJson);
                 case "error": return new RumErrorEventDecoder(eventJson);
+                case "resource": return new RumResourceEventDecoder(eventJson);
             }
 
             return null;

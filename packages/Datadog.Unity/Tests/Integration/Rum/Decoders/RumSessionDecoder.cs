@@ -11,7 +11,7 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
     {
         public readonly List<RumViewVisit> Visits;
 
-        public RumSessionDecoder(List<RumEventDecoder> events, bool shouldDiscardApplciationLaunch = true)
+        public RumSessionDecoder(List<RumEventDecoder> events, bool shouldDiscardApplicationLaunch = true)
         {
             var orderedEvents = events.OrderBy(e => e.Date);
 
@@ -46,11 +46,15 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                         visit = viewVisitsById[errorEvent.ViewInfo.Id];
                         visit?.ErrorEvents.Add(errorEvent);
                         break;
+                    case RumResourceEventDecoder resourceEvent:
+                        visit = viewVisitsById[resourceEvent.ViewInfo.Id];
+                        visit?.ResourceEvents.Add(resourceEvent);
+                        break;
                 }
             }
 
             var visits = viewVisitsById.Values.ToList();
-            if (shouldDiscardApplciationLaunch)
+            if (shouldDiscardApplicationLaunch)
             {
                 visits = visits.Where(x => x.Name != "ApplicationLaunch").ToList();
             }

@@ -26,13 +26,6 @@ func DatadogRum_StopView(key: CString?, attributes: CString?) {
     }
 }
 
-@_cdecl("DatadogRum_AddTiming")
-func DatadogRum_AddTiming(name: CString?) {
-    if let name = decodeCString(cString: name) {
-        Global.rum.addTiming(name: name)
-    }
-}
-
 @_cdecl("DatadogRum_AddUserAction")
 func DatadogRum_AddUserAction(type: CString?, name: CString?, attributes: CString?) {
     if let type = decodeUserActionType(fromCStirng: type),
@@ -79,6 +72,64 @@ func DatadogRum_AddError(message: CString?, source: CString?, type: CString?, st
     }
 }
 
+@_cdecl("DatadogRum_StartResourceLoading")
+func DatadogRum_StartResourceLoading(key: CString?, httpMethod: CString?, url: CString, attributes: CString?) {
+    if let key = decodeCString(cString: key),
+       let httpMethod = decodeHttpMethod(fromCString: httpMethod),
+       let url = decodeCString(cString: url) {
+
+        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+        Global.rum.startResourceLoading(resourceKey: key, httpMethod: httpMethod, urlString: url, attributes: decodedAttributes)
+    }
+}
+
+@_cdecl("DatadogRum_StopResourceLoading")
+func DatadogRum_StopResourceLoading(key: CString?, resourceType: CString?, statusCode: Int,
+                                    size: Int64, attributes: CString?) {
+    if let key = decodeCString(cString: key),
+       let resourceType = decodeResourceType(fromCString: resourceType) {
+
+        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+        // Using -1 as a special value to mean nil, as passing optional ints in C# is difficult.
+        let statusCode = statusCode == -1 ? nil : statusCode
+        let size = size == -1 ? nil : size;
+
+        Global.rum.stopResourceLoading(resourceKey: key, statusCode: statusCode, kind: resourceType, size: size, attributes: decodedAttributes)
+    }
+}
+
+@_cdecl("DatadogRum_StopResourceLoadingWithError")
+func DatadogRum_StopResourceLoadingWithError(key: CString?, errorType: CString?, errorMessage: CString?, attributes: CString?) {
+    if let key = decodeCString(cString: key),
+       let errorMessage = decodeCString(cString: errorMessage) {
+
+        let errorType = decodeCString(cString: errorType)
+
+        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+        Global.rum.stopResourceLoadingWithError(resourceKey: key, errorMessage: errorMessage, type: errorType, attributes: decodedAttributes)
+    }
+}
+
+@_cdecl("DatadogRum_AddAttribute")
+func DatadogRum_AddAttribute(key: CString?, value: CString?) {
+    if let key = decodeCString(cString: key) {
+        let value = decodeJsonAttributes(fromCString: value)
+        if let attrValue = value["value"] {
+            Global.rum.addAttribute(forKey: key, value: attrValue)
+        }
+    }
+}
+
+@_cdecl("DatadogRum_RemoveAttribute")
+func DatadogRum_RemoveAttribute(key: CString?) {
+    if let key = decodeCString(cString: key) {
+        Global.rum.removeAttribute(forKey: key)
+    }
+}
+
 func decodeUserActionType(fromCStirng cStirng: CString?) -> RUMUserActionType? {
     guard let actionTypeString = decodeCString(cString: cStirng) else {
         return nil
@@ -105,6 +156,45 @@ func decodeErrorSource(fromCString cString: CString?) -> RUMErrorSource? {
     case "WebView": return .webview
     case "Console": return .console
     case "Custom": return .custom
+    default:
+        return nil
+    }
+}
+
+func decodeHttpMethod(fromCString cString: CString?) -> RUMMethod? {
+    guard let httpMethodString = decodeCString(cString: cString) else {
+        return nil
+    }
+
+    switch httpMethodString {
+    case "Post": return .post
+    case "Get": return .get
+    case "Head": return .head
+    case "Put": return .put
+    case "Delete": return .delete
+    case "Patch": return .patch
+    default:
+        return nil
+    }
+}
+
+func decodeResourceType(fromCString cString: CString?) -> RUMResourceType? {
+    guard let resourceTypeString = decodeCString(cString: cString) else {
+        return nil
+    }
+
+    switch resourceTypeString {
+    case "Document": return .document
+    case "Image": return .image
+    case "Xhr": return .xhr
+    case "Beacon": return .beacon
+    case "Css": return .css
+    case "Fetch": return .fetch
+    case "Font": return .font
+    case "Js": return .js
+    case "Media": return .media
+    case "Other": return .other
+    case "Native": return .native
     default:
         return nil
     }

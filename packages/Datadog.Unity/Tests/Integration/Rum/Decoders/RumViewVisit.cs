@@ -17,6 +17,7 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
         public List<RumViewEventDecoder> ViewEvents = new ();
         public List<RumActionEventDecoder> ActionEvents = new ();
         public List<RumErrorEventDecoder> ErrorEvents = new ();
+        public List<RumResourceEventDecoder> ResourceEvents = new ();
 
         public RumViewVisit(string id, string name, string path)
         {

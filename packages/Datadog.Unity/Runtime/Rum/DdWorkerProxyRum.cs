@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
 
 namespace Datadog.Unity.Rum
@@ -12,61 +11,60 @@ namespace Datadog.Unity.Rum
     internal class DdWorkerProxyRum : IDdRum
     {
         private readonly DatadogWorker _worker;
+        private readonly IDateProvider _dateProvider;
 
-        public DdWorkerProxyRum(DatadogWorker worker)
+        public DdWorkerProxyRum(DatadogWorker worker, IDateProvider dateProvider = null)
         {
+            _dateProvider = dateProvider ?? new DefaultDateProvider();
             _worker = worker;
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StartViewMessage(key, name, attributes));
+            _worker.AddMessage(new DdRumProcessor.StartViewMessage(_dateProvider.Now, key, name, attributes));
         }
 
         public void StopView(string key, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StopViewMessage(key, attributes));
-        }
-
-        public void AddTiming(string name)
-        {
-            _worker.AddMessage(new DdRumProcessor.AddTimingMessage(name));
+            _worker.AddMessage(new DdRumProcessor.StopViewMessage(_dateProvider.Now, key, attributes));
         }
 
         public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.AddUserActionMessage(type, name, attributes));
+            _worker.AddMessage(new DdRumProcessor.AddUserActionMessage(_dateProvider.Now, type, name, attributes));
         }
 
         public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StartUserActionMessage(type, name, attributes));
+            _worker.AddMessage(new DdRumProcessor.StartUserActionMessage(_dateProvider.Now, type, name, attributes));
         }
 
         public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StopUserActionMessage(type, name, attributes));
+            _worker.AddMessage(new DdRumProcessor.StopUserActionMessage(_dateProvider.Now, type, name, attributes));
         }
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.AddErrorMessage(error, source, attributes));
+            _worker.AddMessage(new DdRumProcessor.AddErrorMessage(_dateProvider.Now, error, source, attributes));
         }
 
         public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(new DdRumProcessor.StartResourceLoadingMessage(_dateProvider.Now, key, httpMethod, url, attributes));
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, int? size = null,
+        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(
+                new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size, attributes));
         }
 
         public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(
+                new DdRumProcessor.StopResourceLoadingWithErrorMessage(_dateProvider.Now, key, error, attributes));
         }
 
         public void AddAttribute(string key, object value)

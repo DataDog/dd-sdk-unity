@@ -21,7 +21,9 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
         public string SourceType => jsonGetProp<string>(rumEvent, "error.source_type");
 
-        public JObject Attributes => rumEvent["context"] as JObject;
+        public string ResourceUrl => jsonGetProp<string>(rumEvent, "error.resource.url");
+
+        public string ResourceMethod => jsonGetProp<string>(rumEvent, "error.resource.method");
 
         public RumErrorEventDecoder(JObject rawJson)
             : base(rawJson)
