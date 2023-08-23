@@ -79,12 +79,12 @@ namespace Datadog.Unity.Rum
 
         public void AddFeatureFlagEvaluation(string key, object value)
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(new DdRumProcessor.AddFeatureFlagEvaluationMessage(key, value));
         }
 
         public void StopSession()
         {
-            throw new NotImplementedException();
+            _worker.AddMessage(new DdRumProcessor.StopSessionMessage());
         }
     }
 }

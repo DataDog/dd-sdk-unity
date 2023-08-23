@@ -251,7 +251,7 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.StopResourceLoading(Arg.Any<string>(), Arg.Any<RumResourceType>(), Arg.Any<int?>(), Arg.Any<int>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.StopResourceLoading(Arg.Any<string>(), Arg.Any<RumResourceType>(), Arg.Any<int?>(), Arg.Any<long?>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             // When
@@ -298,6 +298,34 @@ namespace Datadog.Unity.Rum.Tests
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
             Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
+        }
+
+        [Test]
+        public void AddFeatureFlagEvaluationForwardsPropertiesToPlatform()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+
+            // When
+            rum.AddFeatureFlagEvaluation("test_flag", "testing_value");
+            Thread.Sleep(10);
+
+            // Then
+            _mockRum.Received(1).AddFeatureFlagEvaluation("test_flag", "testing_value");
+        }
+
+        [Test]
+        public void StopSessionForwardsPropertiesToPlatform()
+        {
+            // Given
+            var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
+
+            // When
+            rum.StopSession();
+            Thread.Sleep(10);
+
+            // Then
+            _mockRum.Received(1).StopSession();
         }
     }
 }

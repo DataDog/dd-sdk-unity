@@ -72,6 +72,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
             Assert.AreEqual("network", resourceError.Source);
 
+            var finalFirstVisitView = firstVisit.ViewEvents.Last();
+            Assert.IsEmpty(finalFirstVisitView.FeatureFlags);
+
             var secondVisit = session.Visits[1];
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
             var errorEvent = secondVisit.ErrorEvents[0];
@@ -81,6 +84,15 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("custom", errorEvent.Source);
             Assert.AreEqual("first_call", errorEvent.Attributes["error_attribute"].Value<string>());
             Assert.AreEqual(1, errorEvent.Attributes["onboarding_stage"].Value<int>());
+
+            Assert.AreEqual(1, secondVisit.ActionEvents.Count);
+            var secondAction = secondVisit.ActionEvents[0];
+            Assert.AreEqual("tap", secondAction.ActionType);
+            Assert.AreEqual("Tapped Exception", secondAction.ActionName);
+
+            var finalSecondVisitView = secondVisit.ViewEvents.Last();
+            Assert.AreEqual("True", finalSecondVisitView.FeatureFlags["mock_flag_a"].Value<string>());
+            Assert.AreEqual("mock_value", finalSecondVisitView.FeatureFlags["mock_flag_b"].Value<string>());
         }
     }
 
@@ -117,6 +129,11 @@ namespace Datadog.Unity.Tests.Integration.Rum
             rum?.StopResourceLoading(resourceKey2, new NetworkInformationException());
 
             rum?.StartView("ErrorScreen", name: "Error Screen");
+            rum?.AddFeatureFlagEvaluation("mock_flag_a", true);
+            rum?.AddFeatureFlagEvaluation("mock_flag_b", "mock_value");
+
+            rum?.AddUserAction(RumUserActionType.Tap, "Tapped Exception");
+
             try
             {
                 throw new Exception("Test Exception");

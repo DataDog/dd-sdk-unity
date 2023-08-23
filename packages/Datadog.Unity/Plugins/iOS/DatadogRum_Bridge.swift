@@ -130,6 +130,19 @@ func DatadogRum_RemoveAttribute(key: CString?) {
     }
 }
 
+@_cdecl("DatadogRum_AddFeatureFlagEvaluation")
+func DatadogRum_AddFeatureFlagEvaluation(key: CString?, value: CString?) {
+    if let key = decodeCString(cString: key),
+       let value = decodeCString(cString: value) {
+        Global.rum.addFeatureFlagEvaluation(name: key, value: value)
+    }
+}
+
+@_cdecl("DatadogRum_StopSession")
+func DatadogRum_StopSession() {
+    Global.rum.stopSession()
+}
+
 func decodeUserActionType(fromCStirng cStirng: CString?) -> RUMUserActionType? {
     guard let actionTypeString = decodeCString(cString: cStirng) else {
         return nil
