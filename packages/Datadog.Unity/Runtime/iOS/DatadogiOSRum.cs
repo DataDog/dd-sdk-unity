@@ -111,15 +111,15 @@ namespace Datadog.Unity.iOS
 
         public void AddFeatureFlagEvaluation(string key, object value)
         {
-            throw new NotImplementedException();
+            DatadogRumBridge.DatadogRum_AddFeatureFlagEvaluation(key, value?.ToString() ?? "null");
         }
 
         public void StopSession()
         {
-            throw new NotImplementedException();
+            DatadogRumBridge.DatadogRum_StopSession();
         }
     }
-    
+
     internal static class DatadogRumBridge
     {
         [DllImport("__Internal")]
@@ -155,5 +155,12 @@ namespace Datadog.Unity.iOS
         [DllImport("__Internal")]
         public static extern void DatadogRum_StopResourceLoadingWithError(string key, string errorType,
             string errorMessage, string jsonAttributes);
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_AddFeatureFlagEvaluation(string key, string value);
+
+
+        [DllImport("__Internal")]
+        public static extern void DatadogRum_StopSession();
     }
 }

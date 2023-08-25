@@ -67,12 +67,21 @@ namespace Datadog.Unity.Rum
                     InjectTime(msg.MessageTime, msg.Attributes);
                     _rum.StopResourceLoading(msg.Key, msg.Error, msg.Attributes);
                     break;
+                case AddFeatureFlagEvaluationMessage msg:
+                    _rum.AddFeatureFlagEvaluation(msg.Key, msg.Value);
+                    break;
+                case StopSessionMessage msg:
+                    _rum.StopSession();
+                    break;
             }
         }
 
         private void InjectTime(DateTime? time, Dictionary<string, object> attributes)
         {
-            if (time == null) return;
+            if (time == null)
+            {
+                return;
+            }
 
             var offset = new DateTimeOffset(time.Value);
             attributes[DdRumTimestampAttribute] = offset.ToUnixTimeMilliseconds();
@@ -276,6 +285,28 @@ namespace Datadog.Unity.Rum
             public Exception Error { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+        }
+
+        internal class AddFeatureFlagEvaluationMessage : DdRumWorkerMessage
+        {
+            public AddFeatureFlagEvaluationMessage(string key, object value)
+                : base(null)
+            {
+                Key = key;
+                Value = value;
+            }
+
+            public string Key { get; private set; }
+
+            public object Value { get; private set; }
+        }
+
+        internal class StopSessionMessage : DdRumWorkerMessage
+        {
+            public StopSessionMessage()
+                : base(null)
+            {
+            }
         }
 
         #endregion
