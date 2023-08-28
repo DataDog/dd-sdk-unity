@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Runtime.CompilerServices;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -44,23 +45,30 @@ namespace Datadog.Unity.Android
 
     internal class DatadogAndroidPlatform : IDatadogPlatform
     {
+        private AndroidJavaClass _datadogClass;
+
+        public DatadogAndroidPlatform()
+        {
+            _datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
+        }
+
         public void Init(DatadogConfigurationOptions options)
         {
-            var datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
+            var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
 
             using var credentials = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Credentials",
                 options.ClientToken,
                 "prod",
                 string.Empty,     // variant
-                null,             // rumApplicationId
+                applicationId,
                 null);            // serviceName
             using var configBuilder = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Configuration$Builder",
                 true,       // logsEnabled
-                false,      // tracesEnabled
-                true,       // crashReportsEnabled
-                false);     // rumEnabled
+                false,                // tracesEnabled
+                true,                 // crashReportsEnabled
+                options.RumEnabled);
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
@@ -77,20 +85,32 @@ namespace Datadog.Unity.Android
                 configBuilder.Call<AndroidJavaObject>("useCustomRumEndpoint", options.CustomEndpoint + "/rum");
             }
 
+            if (options.RumEnabled)
+            {
+                configBuilder.Call<AndroidJavaObject>("disableInteractionTracking");
+                IntPtr useViewTrackingStrategyMethod = AndroidJNIHelper.GetMethodID(
+                    configBuilder.GetRawClass(),
+                    "useViewTrackingStrategy",
+                    "(Lcom/datadog/android/rum/tracking/ViewTrackingStrategy;)Lcom/datadog/android/core/configuration/Configuration$Builder;"
+                );
+                var args = new object[] { null };
+                AndroidJNI.CallObjectMethod(configBuilder.GetRawObject(), useViewTrackingStrategyMethod, AndroidJNIHelper.CreateJNIArgArray(args));
+            }
+
             var configuration = configBuilder.Call<AndroidJavaObject>("build");
 
-            datadogClass.CallStatic(
+            _datadogClass.CallStatic(
                 "initialize",
                 GetApplicationContext(),
                 credentials,
                 configuration,
                 DatadogConfigurationHelpers.GetTrackingConsent(TrackingConsent.Granted));
-            datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
+            _datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
-            // TODO:
+            _datadogClass.CallStatic("setTrackingConsent", DatadogConfigurationHelpers.GetTrackingConsent(trackingConsent));
         }
 
         public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
@@ -119,8 +139,9 @@ namespace Datadog.Unity.Android
 
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
-            // TODO: RUMM-3410 - Add Android Rum interface
-            return new DdNoOpRum();
+            using var rumMonitorBuilder = new AndroidJavaObject("com.datadog.android.rum.RumMonitor$Builder");
+            var rum = rumMonitorBuilder.Call<AndroidJavaObject>("build");
+            return new DatadogAndroidRum(rum);
         }
 
         private AndroidJavaObject GetApplicationContext()

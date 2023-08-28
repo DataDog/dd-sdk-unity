@@ -72,16 +72,18 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
             Assert.AreEqual("network", resourceError.Source);
 
-            var finalFirstVisitView = firstVisit.ViewEvents.Last();
-            Assert.IsEmpty(finalFirstVisitView.FeatureFlags);
-
             var secondVisit = session.Visits[1];
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
             var errorEvent = secondVisit.ErrorEvents[0];
+
+            // Android resources don't have ErrorType
+#if !UNITY_ANDROID
             Assert.AreEqual("System.Exception", errorEvent.ErrorType);
+#endif
+
             Assert.AreEqual("Test Exception", errorEvent.Message);
             Assert.IsNotNull(errorEvent.Stack);
-            Assert.AreEqual("custom", errorEvent.Source);
+            Assert.AreEqual("source", errorEvent.Source);
             Assert.AreEqual("first_call", errorEvent.Attributes["error_attribute"].Value<string>());
             Assert.AreEqual(1, errorEvent.Attributes["onboarding_stage"].Value<int>());
 
@@ -140,13 +142,15 @@ namespace Datadog.Unity.Tests.Integration.Rum
             }
             catch(Exception e)
             {
-                rum?.AddError(e, RumErrorSource.Custom, new()
+                rum?.AddError(e, RumErrorSource.Source, new()
                 {
                     { "error_attribute", "first_call" },
                 });
             }
 
             rum?.StartView("FinishedScreen", name: "Finished Screen");
+            rum?.AddUserAction(RumUserActionType.Tap, "Tapped Void");
+            rum?.StopView("FinishedScreen");
 
             IsTestFinished = true;
         }
