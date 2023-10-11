@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using UnityEngine;
 
@@ -45,6 +46,10 @@ namespace Datadog.Unity
             {
                 _ddLogger.Critical(exception.Message, error: exception);
             }
+            catch (Exception e)
+            {
+                // TODO: RUM-734 telemetry
+            }
             finally
             {
                 // Pass exception onto Unity
@@ -56,13 +61,23 @@ namespace Datadog.Unity
         {
             try
             {
+                if (args.Length >= 1 && InternalLogger.DatadogTag.Equals(args[0]))
+                {
+                    // Don't forward internal logs
+                    return;
+                }
+
                 var logLevel = DdLogHelpers.LogTypeToDdLogLevel(logType);
                 var message = args.Length == 0 ? format : string.Format(format, args);
                 _ddLogger.Log(logLevel, message);
             }
+            catch (Exception e)
+            {
+                // TODO: RUM-734 telemetry
+            }
             finally
             {
-                // Pass exception onto Unity
+                // The log onto Unity
                 _defaultLogHandler.LogFormat(logType, context, format, args);
             }
         }

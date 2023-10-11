@@ -2,6 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
+using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -16,6 +18,7 @@ namespace Datadog.Unity
         private IDatadogPlatform _platform = new DatadogNoOpPlatform();
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
+        private InternalLogger _internalLogger;
 
         private DatadogSdk()
         {
@@ -55,7 +58,7 @@ namespace Datadog.Unity
             // Create our worker thread
             _worker = new();
             _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
-            _worker.Start();
+            _internalLogger = new InternalLogger();
 
             var loggingOptions = new DatadogLoggingOptions();
             DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);
@@ -67,15 +70,19 @@ namespace Datadog.Unity
 
             if (options.RumEnabled)
             {
-                if (options.RumApplicationId != null)
+                if (options.RumApplicationId is not null and not "")
                 {
                     var platformRum = _platform.InitRum(options);
                     _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
                     Rum = new DdWorkerProxyRum(_worker);
                 }
-
-                // TODO: RUMM-3515 Else log issue -- need an internal logger for this first.
+                else
+                {
+                    _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but am Application ID is not set. ");
+                }
             }
+
+            _worker.Start();
 
             Application.quitting += OnQuitting;
         }
