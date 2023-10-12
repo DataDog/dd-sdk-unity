@@ -78,7 +78,7 @@ namespace Datadog.Unity
                 }
                 else
                 {
-                    _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but am Application ID is not set. ");
+                    _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but an Application ID is not set. ");
                 }
             }
 
