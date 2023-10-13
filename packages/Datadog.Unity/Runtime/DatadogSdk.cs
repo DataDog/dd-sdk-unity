@@ -31,6 +31,8 @@ namespace Datadog.Unity
 
         public IDdRum Rum { get; private set; } = new DdNoOpRum();
 
+        internal InternalLogger InternalLogger => _internalLogger;
+
         public static void Shutdown()
         {
             Instance.ShutdownInstance();
@@ -58,7 +60,7 @@ namespace Datadog.Unity
             // Create our worker thread
             _worker = new();
             _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
-            _internalLogger = new InternalLogger();
+            _internalLogger = new InternalLogger(_worker, _platform);
 
             var loggingOptions = new DatadogLoggingOptions();
             DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);

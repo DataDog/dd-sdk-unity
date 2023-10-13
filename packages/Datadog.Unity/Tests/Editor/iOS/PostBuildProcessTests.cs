@@ -89,6 +89,25 @@ namespace Datadog.Unity.Editor.iOS
             Assert.AreEqual($"[builder setWithUploadFrequency:{expectedUploadFrequency}];", uploadFrequencyLines.First().Trim());
         }
 
+        [TestCase(0.0f)]
+        [TestCase(12.0f)]
+        [TestCase(100.0f)]
+        [Ignore("setSampleTelemetry needs to be added to the Obj-C interface")]
+        public void GenerateOptionsFileWritesTelemetrySampleRate(float sampleRate)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                TelemetrySampleRate = sampleRate,
+            };
+            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
+
+            var lines = File.ReadAllLines(_optionsFilePath);
+            var sampleTelemetryLines = lines.Where(l => l.Contains("setSampleTelemetry"));
+            var telemetryLines = sampleTelemetryLines as string[] ?? sampleTelemetryLines.ToArray();
+            Assert.AreEqual(1, telemetryLines.Length);
+            Assert.AreEqual($"[builder setSampleTelemetry:{sampleRate}];", telemetryLines.First().Trim());
+        }
+
         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {

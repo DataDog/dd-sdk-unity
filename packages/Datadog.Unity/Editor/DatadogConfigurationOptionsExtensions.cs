@@ -29,6 +29,7 @@ namespace Datadog.Unity.Editor
                 options.ForwardUnityLogs = false;
                 options.RumEnabled = false;
                 options.RumApplicationId = string.Empty;
+                options.TelemetrySampleRate = 20.0f;
 
                 AssetDatabase.CreateAsset(options, settingsPath);
                 AssetDatabase.SaveAssets();

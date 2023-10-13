@@ -5,21 +5,6 @@
 import Foundation
 import Datadog
 
-@_cdecl("Datadog_SetTrackingConsent")
-func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
-    let trackingConsent: TrackingConsent?
-    switch trackingConsentInt {
-    case 0: trackingConsent = .granted
-    case 1: trackingConsent = .notGranted
-    case 2: trackingConsent = .pending
-    default: trackingConsent = nil
-    }
-
-    if let trackingConsent = trackingConsent {
-        Datadog.set(trackingConsent: trackingConsent)
-    }
-}
-
 private class LogRegistry {
     public static let shared = LogRegistry()
 

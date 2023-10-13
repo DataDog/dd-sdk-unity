@@ -20,5 +20,9 @@ namespace Datadog.Unity
         IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
 
         IDdRum InitRum(DatadogConfigurationOptions options);
+
+        void SendDebugTelemetry(string message);
+
+        void SendErrorTelemetry(string message, string stack, string kind);
     }
 }

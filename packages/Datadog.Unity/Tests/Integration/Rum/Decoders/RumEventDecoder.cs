@@ -46,6 +46,7 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                 case "action": return new RumActionEventDecoder(eventJson);
                 case "error": return new RumErrorEventDecoder(eventJson);
                 case "resource": return new RumResourceEventDecoder(eventJson);
+                case "telemetry": return new RumTelemetryEventDecoder(eventJson);
             }
 
             return null;
