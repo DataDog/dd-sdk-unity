@@ -159,7 +159,6 @@ namespace Datadog.Unity.iOS
         [DllImport("__Internal")]
         public static extern void DatadogRum_AddFeatureFlagEvaluation(string key, string value);
 
-
         [DllImport("__Internal")]
         public static extern void DatadogRum_StopSession();
     }

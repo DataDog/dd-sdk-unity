@@ -31,5 +31,17 @@ namespace Datadog.Unity.Logs
                 _ => DdLogLevel.Info,
             };
         }
+
+        internal static LogType DdLogLevelToLogType(DdLogLevel logLevel)
+        {
+            return logLevel switch
+            {
+                DdLogLevel.Error => LogType.Error,
+                DdLogLevel.Critical => LogType.Exception,
+                DdLogLevel.Warn => LogType.Warning,
+                DdLogLevel.Info => LogType.Log,
+                _ => LogType.Log,
+            };
+        }
     }
 }
