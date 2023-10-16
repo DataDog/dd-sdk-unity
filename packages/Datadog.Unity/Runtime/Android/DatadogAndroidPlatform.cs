@@ -173,9 +173,9 @@ namespace Datadog.Unity.Android
         private AndroidJavaObject GetInternalProxy()
         {
             using AndroidJavaObject datadogInstance = _datadogClass.GetStatic<AndroidJavaObject>("INSTANCE");
-            AndroidJavaObject ddInternal = datadogInstance.Call<AndroidJavaObject>("get_internal");
+            AndroidJavaObject internalProxy = datadogInstance.Call<AndroidJavaObject>("get_internal");
 
-            return ddInternal;
+            return internalProxy;
         }
     }
 }
