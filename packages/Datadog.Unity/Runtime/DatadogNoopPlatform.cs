@@ -20,6 +20,16 @@ namespace Datadog.Unity
             return new DdNoOpRum();
         }
 
+        public void SendDebugTelemetry(string message)
+        {
+
+        }
+
+        public void SendErrorTelemetry(string message, string stack, string kind)
+        {
+
+        }
+
         public void Init(DatadogConfigurationOptions options)
         {
         }

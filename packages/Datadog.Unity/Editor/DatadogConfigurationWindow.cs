@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -59,6 +60,9 @@ namespace Datadog.Unity.Editor
                 new GUIContent("Enable RUM", "Whether to enable Real User Monitoring (RUM)"),
                 _options.RumEnabled);
             _options.RumApplicationId = EditorGUILayout.TextField("RUM Application Id", _options.RumApplicationId);
+            _options.TelemetrySampleRate =
+                EditorGUILayout.FloatField("Telemetry Sample Rate", _options.TelemetrySampleRate);
+            _options.TelemetrySampleRate = Math.Clamp(_options.TelemetrySampleRate, 0.0f, 100.0f);
         }
 
         public override void OnDeactivate()

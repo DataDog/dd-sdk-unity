@@ -89,6 +89,7 @@ namespace Datadog.Unity
         public bool ForwardUnityLogs;
         public bool RumEnabled;
         public string RumApplicationId;
+        public float TelemetrySampleRate;
 
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";
 

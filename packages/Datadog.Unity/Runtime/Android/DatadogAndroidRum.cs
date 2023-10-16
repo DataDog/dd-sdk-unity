@@ -24,6 +24,7 @@ namespace Datadog.Unity.Android
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+            name ??= key;
             _rum.Call("startView", key, name, javaAttributes);
         }
 
@@ -82,8 +83,8 @@ namespace Datadog.Unity.Android
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
 
             // Because they're nullable, statusCode and size need to be converted to objects
-            var javaStatusCode = DatadogAndroidHelpers.ObjectToJavaObject(statusCode);
-            var javaSize = DatadogAndroidHelpers.ObjectToJavaObject(size);
+            var javaStatusCode = statusCode != null ? new AndroidJavaObject("java.lang.Integer", (int)statusCode) : null;
+            var javaSize = size != null ? new AndroidJavaObject("java.lang.Long", (long)size) : null;
             _rum.Call("stopResource", key, javaStatusCode, javaSize, javaResourceType, javaAttributes);
         }
 

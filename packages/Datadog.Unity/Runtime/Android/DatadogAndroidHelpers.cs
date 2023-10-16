@@ -94,7 +94,7 @@ namespace Datadog.Unity.Android
                     javaValue = new AndroidJavaObject("java.lang.Boolean", val);
                     break;
 
-                // TODO: Need to support lists / arrays
+                // TODO: Need to support lists / arrays and null
                 case IDictionary<string, object> val:
                     javaValue = DictionaryToJavaMap(val);
                     break;

@@ -72,6 +72,7 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
+            configBuilder.Call<AndroidJavaObject>("sampleTelemetry", options.TelemetrySampleRate);
 
             using var crashPlugin = new AndroidJavaObject("com.datadog.android.ndk.NdkCrashReportsPlugin");
             using var featureEnum = new AndroidJavaClass("com.datadog.android.plugin.Feature");
@@ -141,7 +142,25 @@ namespace Datadog.Unity.Android
         {
             using var rumMonitorBuilder = new AndroidJavaObject("com.datadog.android.rum.RumMonitor$Builder");
             var rum = rumMonitorBuilder.Call<AndroidJavaObject>("build");
+
+            using var globalRum = new AndroidJavaClass("com.datadog.android.rum.GlobalRum");
+            globalRum.CallStatic<bool>("registerIfAbsent", rum);
+
             return new DatadogAndroidRum(rum);
+        }
+
+        public void SendDebugTelemetry(string message)
+        {
+            using var proxy = GetInternalProxy();
+            using AndroidJavaObject telemetry = proxy.Call<AndroidJavaObject>("get_telemetry");
+            telemetry.Call("debug", message);
+        }
+
+        public void SendErrorTelemetry(string message, string stack, string kind)
+        {
+            using var proxy = GetInternalProxy();
+            using AndroidJavaObject telemetry = proxy.Call<AndroidJavaObject>("get_telemetry");
+            telemetry.Call("error", message, stack, kind);
         }
 
         private AndroidJavaObject GetApplicationContext()
@@ -149,6 +168,14 @@ namespace Datadog.Unity.Android
             using AndroidJavaClass unityPlayer = new("com.unity3d.player.UnityPlayer");
             using AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
             return currentActivity.Call<AndroidJavaObject>("getApplicationContext");
+        }
+
+        private AndroidJavaObject GetInternalProxy()
+        {
+            using AndroidJavaObject datadogInstance = _datadogClass.GetStatic<AndroidJavaObject>("INSTANCE");
+            AndroidJavaObject internalProxy = datadogInstance.Call<AndroidJavaObject>("get_internal");
+
+            return internalProxy;
         }
     }
 }
