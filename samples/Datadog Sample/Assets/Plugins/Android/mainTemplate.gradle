@@ -42,9 +42,11 @@ android {
   }
 }
 // Android Resolver Exclusions End
+configurations {
+    compileClasspath
+}
 android {
     ndkPath "**NDKPATH**"
-
     compileSdkVersion **APIVERSION**
     buildToolsVersion '**BUILDTOOLS**'
 

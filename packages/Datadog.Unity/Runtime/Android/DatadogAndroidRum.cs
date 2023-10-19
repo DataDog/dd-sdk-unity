@@ -59,7 +59,8 @@ namespace Datadog.Unity.Android
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             var message = error.Message;
-            var stack = error.StackTrace;
+            var processedStack = new DatadogExceptionProcessor().ProcessStackTrace(error);
+            var stack = processedStack ?? error.StackTrace;
             var javaErrorSource = GetErrorSource(source);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
 

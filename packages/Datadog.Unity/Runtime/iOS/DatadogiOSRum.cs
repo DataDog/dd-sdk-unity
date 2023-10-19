@@ -12,6 +12,8 @@ namespace Datadog.Unity.iOS
 {
     internal class DatadogiOSRum : IDdRum
     {
+        private DatadogExceptionProcessor _exceptionProcessor = new DatadogExceptionProcessor();
+
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
@@ -59,7 +61,8 @@ namespace Datadog.Unity.iOS
 
             var errorType = error?.GetType()?.ToString();
             var errorMessage = error?.Message;
-            var stackTrace = error?.StackTrace;
+            var processedStackTrace = _exceptionProcessor.ProcessStackTrace(error);
+            var stackTrace = processedStackTrace != null ? processedStackTrace : error?.StackTrace;
 
             DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
         }

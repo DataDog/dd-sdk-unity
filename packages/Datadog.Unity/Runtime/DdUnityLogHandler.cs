@@ -5,6 +5,7 @@
 using System;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using UnityEngine;
 
 namespace Datadog.Unity
@@ -12,11 +13,13 @@ namespace Datadog.Unity
     internal class DdUnityLogHandler : ILogHandler
     {
         private readonly DdLogger _ddLogger;
+        private readonly IDdRum _ddRum;
         private ILogHandler _defaultLogHandler = null;
 
-        public DdUnityLogHandler(DdLogger datadogLogger)
+        public DdUnityLogHandler(DdLogger datadogLogger, IDdRum datadogRum)
         {
             _ddLogger = datadogLogger;
+            _ddRum = datadogRum;
         }
 
         public void Attach()
@@ -45,6 +48,7 @@ namespace Datadog.Unity
             try
             {
                 _ddLogger.Critical(exception.Message, error: exception);
+                _ddRum?.AddError(exception, RumErrorSource.Source);
             }
             catch (Exception e)
             {

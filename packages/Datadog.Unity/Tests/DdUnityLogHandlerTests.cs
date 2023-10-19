@@ -6,17 +6,17 @@ using System;
 using System.Collections.Generic;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using NSubstitute;
 using NUnit.Framework;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Datadog.Unity.Tests
 {
     public class DdUnityLogHandlerTests
     {
-        private ILogHandler _originalLogHandler = null;
-        private ILogHandler _mockLogger = null;
+        private ILogHandler _originalLogHandler;
+        private ILogHandler _mockLogger;
 
         [SetUp]
         public void SetUp()
@@ -38,7 +38,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
 
             // When
             handler.Attach();
@@ -52,7 +52,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -67,7 +67,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
 
             // When
             handler.Detach();
@@ -77,11 +77,11 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
-        public void LogExceptionSendsToDatadog()
+        public void LogExceptionSendsToDatadogLogs()
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -94,11 +94,29 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
+        public void LogExceptionSendsToDatadogRum_WhenRumProvided()
+        {
+            // Given
+            var datadogLogger = Substitute.For<DdLogger>(DdLogLevel.Critical, 100.0f);
+            var datadogRum = Substitute.For<IDdRum>();
+            var handler = new DdUnityLogHandler(datadogLogger, datadogRum);
+            handler.Attach();
+
+            // When
+            var exception = new InvalidCastException("Fake Message");
+            var context = new UnityEngine.Object();
+            handler.LogException(exception, context);
+
+            // Then
+            datadogRum.Received().AddError(exception, RumErrorSource.Source, null);
+        }
+
+        [Test]
         public void LogExceptionSendsToOriginalLogHandler()
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -115,7 +133,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
             datadogLogger.When(logger =>
             {
@@ -145,7 +163,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -163,7 +181,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
             datadogLogger.When(logger =>
             {
@@ -193,7 +211,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -219,7 +237,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When

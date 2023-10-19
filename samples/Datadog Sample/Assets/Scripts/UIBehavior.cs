@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -13,6 +14,11 @@ public class UIBehavior : MonoBehaviour
     public void OnCrashButtonPressed()
     {
         PerformNativeCrash();
+    }
+
+    public void OnCSThrowButtonPressed()
+    {
+        throw new Exception("Please don't touch that button");
     }
 
     public void OnThrowButtonPressed()

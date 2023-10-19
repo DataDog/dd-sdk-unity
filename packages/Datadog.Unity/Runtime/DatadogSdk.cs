@@ -66,15 +66,16 @@ namespace Datadog.Unity
 
             var loggingOptions = new DatadogLoggingOptions();
             DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);
-            if (options.ForwardUnityLogs)
-            {
-                _logHandler = new(DefaultLogger);
-                _logHandler.Attach();
-            }
 
             if (options.RumEnabled)
             {
                 EnableRum(options);
+            }
+
+            if (options.ForwardUnityLogs)
+            {
+                _logHandler = new DdUnityLogHandler(DefaultLogger, Rum);
+                _logHandler.Attach();
             }
 
             _worker.Start();
