@@ -41,7 +41,7 @@ namespace Datadog.Unity.Logs
 
         internal class LogMessage : IDatadogWorkerMessage
         {
-            public LogMessage(IDdLogger logger, DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error)
+            public LogMessage(DdLogger logger, DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error)
             {
                 Logger = logger;
                 Level = level;
@@ -52,7 +52,7 @@ namespace Datadog.Unity.Logs
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
 
-            public IDdLogger Logger { get; private set; }
+            public DdLogger Logger { get; private set; }
 
             public DdLogLevel Level { get; private set; }
 
@@ -65,7 +65,7 @@ namespace Datadog.Unity.Logs
 
         internal class AddTagMessage : IDatadogWorkerMessage
         {
-            public AddTagMessage(IDdLogger logger, string tag, string value)
+            public AddTagMessage(DdLogger logger, string tag, string value)
             {
                 Logger = logger;
                 Tag = tag;
@@ -74,7 +74,7 @@ namespace Datadog.Unity.Logs
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
 
-            public IDdLogger Logger { get; private set; }
+            public DdLogger Logger { get; private set; }
 
             public string Tag { get; private set; }
 
@@ -83,7 +83,7 @@ namespace Datadog.Unity.Logs
 
         internal class RemoveTagMessage : IDatadogWorkerMessage
         {
-            public RemoveTagMessage(IDdLogger logger, string tag)
+            public RemoveTagMessage(DdLogger logger, string tag)
             {
                 Logger = logger;
                 Tag = tag;
@@ -91,14 +91,14 @@ namespace Datadog.Unity.Logs
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
 
-            public IDdLogger Logger { get; private set; }
+            public DdLogger Logger { get; private set; }
 
             public string Tag { get; private set; }
         }
 
         internal class RemoveTagsWithKeyMessage : IDatadogWorkerMessage
         {
-            public RemoveTagsWithKeyMessage(IDdLogger logger, string tag)
+            public RemoveTagsWithKeyMessage(DdLogger logger, string tag)
             {
                 Logger = logger;
                 Tag = tag;
@@ -106,14 +106,14 @@ namespace Datadog.Unity.Logs
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
 
-            public IDdLogger Logger { get; private set; }
+            public DdLogger Logger { get; private set; }
 
             public string Tag { get; private set; }
         }
 
         internal class AddAttributeMessage : IDatadogWorkerMessage
         {
-            public AddAttributeMessage(IDdLogger logger, string key, object value)
+            public AddAttributeMessage(DdLogger logger, string key, object value)
             {
                 Logger = logger;
                 Key = key;
@@ -122,7 +122,7 @@ namespace Datadog.Unity.Logs
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
 
-            public IDdLogger Logger { get; private set; }
+            public DdLogger Logger { get; private set; }
 
             public string Key { get; private set; }
 
@@ -131,7 +131,7 @@ namespace Datadog.Unity.Logs
 
         internal class RemoveAttributeMessage : IDatadogWorkerMessage
         {
-            public RemoveAttributeMessage(IDdLogger logger, string key)
+            public RemoveAttributeMessage(DdLogger logger, string key)
             {
                 Logger = logger;
                 Key = key;
@@ -139,7 +139,7 @@ namespace Datadog.Unity.Logs
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
 
-            public IDdLogger Logger { get; private set; }
+            public DdLogger Logger { get; private set; }
 
             public string Key { get; private set; }
         }

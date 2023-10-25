@@ -7,9 +7,6 @@
 #ifndef DatadogOptions_h
 #define DatadogOptions_h
 
-#import <Datadog/Datadog-Swift.h>
-#import <DatadogObjc/DatadogObjc-Swift.h>
-
-extern "C" DDConfiguration *buildDatadogConfiguration();
+extern "C" void initializeDatadog();
 
 #endif /* DatadogOptions_h */

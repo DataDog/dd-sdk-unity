@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 {
@@ -47,6 +48,9 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                 case "error": return new RumErrorEventDecoder(eventJson);
                 case "resource": return new RumResourceEventDecoder(eventJson);
                 case "telemetry": return new RumTelemetryEventDecoder(eventJson);
+                default:
+                    Debug.Log($"Unknown RUM event type: {type}");
+                    break;
             }
 
             return null;

@@ -17,7 +17,7 @@ namespace Datadog.Unity
 
         void SetTrackingConsent(TrackingConsent trackingConsent);
 
-        IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
+        DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
 
         IDdRum InitRum(DatadogConfigurationOptions options);
 

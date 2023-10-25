@@ -113,15 +113,15 @@ namespace Datadog.Unity.Tests.Integration.Logging
 
                 var silentLogger = DatadogSdk.Instance.CreateLogger(new()
                 {
-                    SendToDatadog = false,
-                    LoggerName = "silent_logger",
+                    RemoteSampleRate = 0.0f,
+                    Name = "silent_logger",
                 });
                 silentLogger.Info("Interesting logging information");
 
                 var loggingOptions = new DatadogLoggingOptions()
                 {
-                    ServiceName = "logging.service",
-                    LoggerName = "not_silent_logger",
+                    Service = "logging.service",
+                    Name = "not_silent_logger",
                 };
                 var logger = DatadogSdk.Instance.CreateLogger(loggingOptions);
                 logger.AddTag("tag1", "tag-value");

@@ -3,7 +3,9 @@
 // Copyright 2023-Present Datadog, Inc.
 
 import Foundation
-import Datadog
+import DatadogCore
+import DatadogRUM
+import DatadogInternal
 
 @_cdecl("DatadogRum_StartView")
 func DatadogRum_StartView(key: CString?, name: CString?, attributes: CString?) {
@@ -12,7 +14,7 @@ func DatadogRum_StartView(key: CString?, name: CString?, attributes: CString?) {
         let name = decodeCString(cString: name)
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.startView(key: key, name: name, attributes: decodedAttributes)
+        RUMMonitor.shared().startView(key: key, name: name, attributes: decodedAttributes)
     }
 }
 
@@ -22,40 +24,40 @@ func DatadogRum_StopView(key: CString?, attributes: CString?) {
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.stopView(key: key, attributes: decodedAttributes)
+        RUMMonitor.shared().stopView(key: key, attributes: decodedAttributes)
     }
 }
 
-@_cdecl("DatadogRum_AddUserAction")
-func DatadogRum_AddUserAction(type: CString?, name: CString?, attributes: CString?) {
+@_cdecl("DatadogRum_AddAction")
+func DatadogRum_AddAction(type: CString?, name: CString?, attributes: CString?) {
     if let type = decodeUserActionType(fromCStirng: type),
        let name = decodeCString(cString: name) {
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.addUserAction(type: type, name: name, attributes: decodedAttributes)
+        RUMMonitor.shared().addAction(type: type, name: name, attributes: decodedAttributes)
     }
 }
 
-@_cdecl("DatadogRum_StartUserAction")
-func DatadogRum_StartUserAction(type: CString?, name: CString?, attributes: CString?) {
+@_cdecl("DatadogRum_StartAction")
+func DatadogRum_StartAction(type: CString?, name: CString?, attributes: CString?) {
     if let type = decodeUserActionType(fromCStirng: type),
        let name = decodeCString(cString: name) {
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.startUserAction(type: type, name: name, attributes: decodedAttributes)
+        RUMMonitor.shared().startAction(type: type, name: name, attributes: decodedAttributes)
     }
 }
 
-@_cdecl("DatadogRum_StopUserAction")
-func DatadogRum_StopUserAction(type: CString?, name: CString?, attributes: CString?) {
+@_cdecl("DatadogRum_StopAction")
+func DatadogRum_StopAction(type: CString?, name: CString?, attributes: CString?) {
     if let type = decodeUserActionType(fromCStirng: type),
        let name = decodeCString(cString: name) {
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.stopUserAction(type: type, name: name, attributes: decodedAttributes)
+        RUMMonitor.shared().stopAction(type: type, name: name, attributes: decodedAttributes)
     }
 }
 
@@ -68,24 +70,24 @@ func DatadogRum_AddError(message: CString?, source: CString?, type: CString?, st
         let stack = decodeCString(cString: stack)
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.addError(message: message, type: type, source: source, stack: stack, attributes: decodedAttributes)
+        RUMMonitor.shared().addError(message: message, type: type, stack: stack, source: source, attributes: decodedAttributes)
     }
 }
 
-@_cdecl("DatadogRum_StartResourceLoading")
-func DatadogRum_StartResourceLoading(key: CString?, httpMethod: CString?, url: CString, attributes: CString?) {
+@_cdecl("DatadogRum_StartResource")
+func DatadogRum_StartResource(key: CString?, httpMethod: CString?, url: CString, attributes: CString?) {
     if let key = decodeCString(cString: key),
        let httpMethod = decodeHttpMethod(fromCString: httpMethod),
        let url = decodeCString(cString: url) {
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.startResourceLoading(resourceKey: key, httpMethod: httpMethod, urlString: url, attributes: decodedAttributes)
+        RUMMonitor.shared().startResource(resourceKey: key, httpMethod: httpMethod, urlString: url, attributes: decodedAttributes)
     }
 }
 
-@_cdecl("DatadogRum_StopResourceLoading")
-func DatadogRum_StopResourceLoading(key: CString?, resourceType: CString?, statusCode: Int,
+@_cdecl("DatadogRum_StopResource")
+func DatadogRum_StopResource(key: CString?, resourceType: CString?, statusCode: Int,
                                     size: Int64, attributes: CString?) {
     if let key = decodeCString(cString: key),
        let resourceType = decodeResourceType(fromCString: resourceType) {
@@ -96,12 +98,12 @@ func DatadogRum_StopResourceLoading(key: CString?, resourceType: CString?, statu
         let statusCode = statusCode == -1 ? nil : statusCode
         let size = size == -1 ? nil : size;
 
-        Global.rum.stopResourceLoading(resourceKey: key, statusCode: statusCode, kind: resourceType, size: size, attributes: decodedAttributes)
+        RUMMonitor.shared().stopResource(resourceKey: key, statusCode: statusCode, kind: resourceType, size: size, attributes: decodedAttributes)
     }
 }
 
-@_cdecl("DatadogRum_StopResourceLoadingWithError")
-func DatadogRum_StopResourceLoadingWithError(key: CString?, errorType: CString?, errorMessage: CString?, attributes: CString?) {
+@_cdecl("DatadogRum_StopResourceWithError")
+func DatadogRum_StopResourceWithError(key: CString?, errorType: CString?, errorMessage: CString?, attributes: CString?) {
     if let key = decodeCString(cString: key),
        let errorMessage = decodeCString(cString: errorMessage) {
 
@@ -109,7 +111,7 @@ func DatadogRum_StopResourceLoadingWithError(key: CString?, errorType: CString?,
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        Global.rum.stopResourceLoadingWithError(resourceKey: key, errorMessage: errorMessage, type: errorType, attributes: decodedAttributes)
+        RUMMonitor.shared().stopResourceWithError(resourceKey: key, message: errorMessage, type: errorType, response: nil, attributes: decodedAttributes)
     }
 }
 
@@ -118,7 +120,7 @@ func DatadogRum_AddAttribute(key: CString?, value: CString?) {
     if let key = decodeCString(cString: key) {
         let value = decodeJsonAttributes(fromCString: value)
         if let attrValue = value["value"] {
-            Global.rum.addAttribute(forKey: key, value: attrValue)
+            RUMMonitor.shared().addAttribute(forKey: key, value: attrValue)
         }
     }
 }
@@ -126,7 +128,7 @@ func DatadogRum_AddAttribute(key: CString?, value: CString?) {
 @_cdecl("DatadogRum_RemoveAttribute")
 func DatadogRum_RemoveAttribute(key: CString?) {
     if let key = decodeCString(cString: key) {
-        Global.rum.removeAttribute(forKey: key)
+        RUMMonitor.shared().removeAttribute(forKey: key)
     }
 }
 
@@ -134,16 +136,16 @@ func DatadogRum_RemoveAttribute(key: CString?) {
 func DatadogRum_AddFeatureFlagEvaluation(key: CString?, value: CString?) {
     if let key = decodeCString(cString: key),
        let value = decodeCString(cString: value) {
-        Global.rum.addFeatureFlagEvaluation(name: key, value: value)
+        RUMMonitor.shared().addFeatureFlagEvaluation(name: key, value: value)
     }
 }
 
 @_cdecl("DatadogRum_StopSession")
 func DatadogRum_StopSession() {
-    Global.rum.stopSession()
+    RUMMonitor.shared().stopSession()
 }
 
-func decodeUserActionType(fromCStirng cStirng: CString?) -> RUMUserActionType? {
+func decodeUserActionType(fromCStirng cStirng: CString?) -> RUMActionType? {
     guard let actionTypeString = decodeCString(cString: cStirng) else {
         return nil
     }

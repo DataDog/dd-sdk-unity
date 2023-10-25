@@ -19,7 +19,7 @@ namespace Datadog.Unity.Editor.iOS
         private static readonly string _cleanMainfile = "main.txt";
 
         private string _tempDirectory;
-        private string _optionsFilePath;
+        private string _initializationFilePath;
         private string _mainFilePath;
 
         [SetUp]
@@ -27,7 +27,7 @@ namespace Datadog.Unity.Editor.iOS
         {
             _tempDirectory = Path.Combine("tmp", Guid.NewGuid().ToString());
             Directory.CreateDirectory(_tempDirectory);
-            _optionsFilePath = Path.Combine(_tempDirectory, "options.m");
+            _initializationFilePath = Path.Combine(_tempDirectory, "DatadogInitialization.swift");
             _mainFilePath = Path.Combine(_tempDirectory, _cleanMainfile);
             File.Copy(_cleanMainfile, _mainFilePath);
         }
@@ -41,72 +41,72 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void GenerateOptionsFileCreatesFile()
         {
-            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, new DatadogConfigurationOptions());
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, new DatadogConfigurationOptions());
 
-            File.Exists(_optionsFilePath);
+            File.Exists(_initializationFilePath);
         }
 
         [Test]
         public void GenerateOptionsFileWritesAutoGenerationWarning()
         {
-            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, new DatadogConfigurationOptions());
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, new DatadogConfigurationOptions());
 
-            string fileContents = File.ReadAllText(_optionsFilePath);
+            string fileContents = File.ReadAllText(_initializationFilePath);
             Assert.IsTrue(fileContents.Contains("THIS FILE IS AUTO GENERATED"));
         }
 
-        [TestCase(BatchSize.Small, "DDBatchSizeSmall")]
-        [TestCase(BatchSize.Medium, "DDBatchSizeMedium")]
-        [TestCase(BatchSize.Large, "DDBatchSizeLarge")]
+        [TestCase(BatchSize.Small, ".small")]
+        [TestCase(BatchSize.Medium, ".medium")]
+        [TestCase(BatchSize.Large, ".large")]
         public void GenerationOptionsFileWritesBatchSize(BatchSize batchSize, string expectedBatchSizeString)
         {
             var options = new DatadogConfigurationOptions()
             {
                 BatchSize = batchSize,
             };
-            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
 
-            var lines = File.ReadAllLines(_optionsFilePath);
-            var batchSizeLines = lines.Where(l => l.Contains("setWithBatchSize"));
-            Assert.AreEqual(1, batchSizeLines.Count());
-            Assert.AreEqual($"[builder setWithBatchSize:{expectedBatchSizeString}];", batchSizeLines.First().Trim());
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var batchSizeLines = lines.Where(l => l.Contains("batchSize:")).ToArray();
+            Assert.AreEqual(1, batchSizeLines.Length);
+            Assert.AreEqual($"batchSize: {expectedBatchSizeString},", batchSizeLines.First().Trim());
         }
 
-        [TestCase(UploadFrequency.Rare, "DDUploadFrequencyRare")]
-        [TestCase(UploadFrequency.Average, "DDUploadFrequencyAverage")]
-        [TestCase(UploadFrequency.Frequent, "DDUploadFrequencyFrequent")]
-        public void GenerationOptionsFileWritesUploadFrequency(UploadFrequency uploadFrequency, string expectedUploadFrequency)
+        [TestCase(UploadFrequency.Rare, ".rare")]
+        [TestCase(UploadFrequency.Average, ".average")]
+        [TestCase(UploadFrequency.Frequent, ".frequent")]
+        public void GenerationOptionsFileWritesUploadFrequency(UploadFrequency uploadFrequency,
+            string expectedUploadFrequency)
         {
             var options = new DatadogConfigurationOptions()
             {
                 UploadFrequency = uploadFrequency,
             };
-            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
 
-            var lines = File.ReadAllLines(_optionsFilePath);
-            var uploadFrequencyLines = lines.Where(l => l.Contains("setWithUploadFrequency"));
-            Assert.AreEqual(1, uploadFrequencyLines.Count());
-            Assert.AreEqual($"[builder setWithUploadFrequency:{expectedUploadFrequency}];", uploadFrequencyLines.First().Trim());
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var uploadFrequencyLines = lines.Where(l => l.Contains("uploadFrequency:")).ToArray();
+            Assert.AreEqual(1, uploadFrequencyLines.Length);
+            Assert.AreEqual($"uploadFrequency: {expectedUploadFrequency}", uploadFrequencyLines.First().Trim());
         }
 
-        [TestCase(0.0f)]
-        [TestCase(12.0f)]
-        [TestCase(100.0f)]
-        [Ignore("setSampleTelemetry needs to be added to the Obj-C interface")]
-        public void GenerateOptionsFileWritesTelemetrySampleRate(float sampleRate)
-        {
-            var options = new DatadogConfigurationOptions()
-            {
-                TelemetrySampleRate = sampleRate,
-            };
-            PostBuildProcess.GenerateOptionsFile(_optionsFilePath, options);
+         [TestCase(0.0f)]
+         [TestCase(12.0f)]
+         [TestCase(100.0f)]
+         public void GenerateOptionsFileWritesTelemetrySampleRate(float sampleRate)
+         {
+             var options = new DatadogConfigurationOptions()
+             {
+                 TelemetrySampleRate = sampleRate,
+             };
+             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
 
-            var lines = File.ReadAllLines(_optionsFilePath);
-            var sampleTelemetryLines = lines.Where(l => l.Contains("setSampleTelemetry"));
-            var telemetryLines = sampleTelemetryLines as string[] ?? sampleTelemetryLines.ToArray();
-            Assert.AreEqual(1, telemetryLines.Length);
-            Assert.AreEqual($"[builder setSampleTelemetry:{sampleRate}];", telemetryLines.First().Trim());
-        }
+             var lines = File.ReadAllLines(_initializationFilePath);
+             var sampleTelemetryLines = lines.Where(l => l.Contains("telemetrySampleRate ="));
+             var telemetryLines = sampleTelemetryLines as string[] ?? sampleTelemetryLines.ToArray();
+             Assert.AreEqual(1, telemetryLines.Length);
+             Assert.AreEqual($"rumConfig.telemetrySampleRate = {sampleRate}", telemetryLines.First().Trim());
+         }
 
         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
@@ -117,15 +117,11 @@ namespace Datadog.Unity.Editor.iOS
             string fileContents = File.ReadAllText(_mainFilePath);
 
             var includeBlock = @"// > Datadog Generated Block
-#import <Datadog/Datadog-Swift.h>
-#import <DatadogObjc/DatadogObjc-Swift.h>
 #import ""DatadogOptions.h""
 // < End Datadog Generated Block";
 
             var initializationBlock = @"        // > Datadog Generated Block
-        [DDDatadog initializeWithAppContext:[DDAppContext new]
-                            trackingConsent:[DDTrackingConsent pending]
-                              configuration:buildDatadogConfiguration()];
+        initializeDatadog();
         // < End Datadog Generated Block";
 
             Assert.IsTrue(fileContents.Contains(includeBlock));

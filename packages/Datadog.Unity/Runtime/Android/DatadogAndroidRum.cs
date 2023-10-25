@@ -13,12 +13,10 @@ namespace Datadog.Unity.Android
     public class DatadogAndroidRum : IDdRum
     {
         private readonly AndroidJavaObject _rum;
-        private readonly AndroidJavaClass _globalRum;
 
         public DatadogAndroidRum(AndroidJavaObject rum)
         {
             _rum = rum;
-            _globalRum = new AndroidJavaClass("com.datadog.android.rum.GlobalRum");
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
@@ -39,7 +37,7 @@ namespace Datadog.Unity.Android
             var javaActionType = GetUserActionType(type);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
 
-            _rum.Call("addUserAction", javaActionType, name, javaAttributes);
+            _rum.Call("addAction", javaActionType, name, javaAttributes);
         }
 
         public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
@@ -47,7 +45,7 @@ namespace Datadog.Unity.Android
             var javaActionType = GetUserActionType(type);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
 
-            _rum.Call("startUserAction", javaActionType, name, javaAttributes);
+            _rum.Call("startAction", javaActionType, name, javaAttributes);
         }
 
         public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
@@ -55,7 +53,7 @@ namespace Datadog.Unity.Android
             var javaActionType = GetUserActionType(type);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
 
-            _rum.Call("stopUserAction", javaActionType, name, javaAttributes);
+            _rum.Call("stopAction", javaActionType, name, javaAttributes);
         }
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
@@ -101,13 +99,13 @@ namespace Datadog.Unity.Android
 
         public void AddAttribute(string key, object value)
         {
-            var javaValue = DatadogAndroidHelpers.ObjectToJavaObject(value);
-            _globalRum.CallStatic("addAttribute", key, javaValue);
+            AndroidJavaObject javaValue = value == null ? null : DatadogAndroidHelpers.ObjectToJavaObject(value);
+            _rum.Call("addAttribute", key, javaValue);
         }
 
         public void RemoveAttribute(string key)
         {
-            _globalRum.CallStatic("removeAttribute", key);
+            _rum.Call("removeAttribute", key);
         }
 
         public void AddFeatureFlagEvaluation(string key, object value)

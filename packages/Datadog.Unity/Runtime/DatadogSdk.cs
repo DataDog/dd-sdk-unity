@@ -24,7 +24,7 @@ namespace Datadog.Unity
         {
         }
 
-        public IDdLogger DefaultLogger
+        public DdLogger DefaultLogger
         {
             get; private set;
         }
@@ -43,7 +43,7 @@ namespace Datadog.Unity
             Instance._platform.SetTrackingConsent(trackingConsent);
         }
 
-        public IDdLogger CreateLogger(DatadogLoggingOptions options)
+        public DdLogger CreateLogger(DatadogLoggingOptions options)
         {
             return _platform?.CreateLogger(options, _worker);
         }

@@ -39,7 +39,7 @@ namespace Datadog.Unity.iOS
             Datadog_SetTrackingConsent((int)trackingConsent);
         }
 
-        public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
+        public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             var innerLogger = DatadogiOSLogger.Create(options);
             return new DdWorkerProxyLogger(worker, innerLogger);

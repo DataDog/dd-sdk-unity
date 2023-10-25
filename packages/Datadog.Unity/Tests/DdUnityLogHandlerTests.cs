@@ -37,7 +37,7 @@ namespace Datadog.Unity.Tests
         public void AttachReplacesUnityLogger()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
 
             // When
@@ -51,7 +51,7 @@ namespace Datadog.Unity.Tests
         public void DetachRevertsToOriginalLogger_WhenAttached()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
 
@@ -66,7 +66,7 @@ namespace Datadog.Unity.Tests
         public void DetachDoesNothing_WhenAttachNotCalled()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
 
             // When
@@ -80,7 +80,7 @@ namespace Datadog.Unity.Tests
         public void LogExceptionSendsToDatadog()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
 
@@ -90,14 +90,14 @@ namespace Datadog.Unity.Tests
             handler.LogException(exception, context);
 
             // Then
-            datadogLogger.Received().Critical(exception.Message, error: exception);
+            datadogLogger.Received().PlatformLog(DdLogLevel.Critical, exception.Message, error: exception);
         }
 
         [Test]
         public void LogExceptionSendsToOriginalLogHandler()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
 
@@ -114,12 +114,12 @@ namespace Datadog.Unity.Tests
         public void LogExceptionSendsToOriginalLogHandler_WhenDatadogLoggerFails()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
             datadogLogger.When(logger =>
             {
-                logger.Log(
+                logger.PlatformLog(
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
@@ -144,7 +144,7 @@ namespace Datadog.Unity.Tests
         public void LogFormatSendsToOriginalLogHandler(LogType logType)
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
 
@@ -162,12 +162,12 @@ namespace Datadog.Unity.Tests
         public void LogFormatSendsToOriginalLogHandler_WhenDatadogLoggerFails()
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
             datadogLogger.When(logger =>
             {
-                logger.Log(
+                logger.PlatformLog(
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
@@ -192,7 +192,7 @@ namespace Datadog.Unity.Tests
         public void LogFormatDoesNotSendToDatadog_WhenTagIsDatadog(LogType logType)
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
 
@@ -202,7 +202,7 @@ namespace Datadog.Unity.Tests
             handler.LogFormat(logType, context, "{0} format", args);
 
             // Then
-            datadogLogger.DidNotReceive().Log(
+            datadogLogger.DidNotReceive().PlatformLog(
                 Arg.Any<DdLogLevel>(),
                 Arg.Any<string>(),
                 Arg.Any<Dictionary<string, object>>(),
@@ -218,7 +218,7 @@ namespace Datadog.Unity.Tests
         public void LogFormatDoesNotSendToOriginalLogger_WhenTagIsDatadog(LogType logType)
         {
             // Given
-            var datadogLogger = Substitute.For<IDdLogger>();
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var handler = new DdUnityLogHandler(datadogLogger);
             handler.Attach();
 

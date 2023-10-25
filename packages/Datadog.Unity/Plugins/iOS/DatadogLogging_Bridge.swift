@@ -3,28 +3,17 @@
 // Copyright 2023-Present Datadog, Inc.
 
 import Foundation
-import Datadog
+import DatadogCore
+import DatadogLogs
+import DatadogInternal
 
 private class LogRegistry {
     public static let shared = LogRegistry()
 
-    var logs: [String: DDLogger] = [:]
+    var logs: [String: LoggerProtocol] = [:]
 
-    func createLogger(options: LoggingOptions) -> String {
-        var logBuilder = Logger.builder
-            .sendNetworkInfo(options.sendNetworkInfo)
-            .sendLogsToDatadog(options.sendToDatadog)
-            .printLogsToConsole(true)
-            .set(datadogReportingThreshold: options.datadogReportingThreshold)
-
-        if let loggerName = options.loggerName, !loggerName.isEmpty {
-            logBuilder = logBuilder.set(loggerName: loggerName)
-        }
-        if let serviceName = options.serviceName, !serviceName.isEmpty {
-            logBuilder = logBuilder.set(serviceName: serviceName)
-        }
-
-        let logger = logBuilder.build()
+    func createLogger(options: Logger.Configuration) -> String {
+        let logger = Logger.create(with: options)
 
         let id = UUID()
         let idString = id.uuidString
@@ -33,27 +22,57 @@ private class LogRegistry {
     }
 }
 
-struct LoggingOptions: Decodable {
-    let serviceName: String?
-    let loggerName: String?
-    let sendNetworkInfo: Bool
-    let sendToDatadog: Bool
-    let datadogReportingThreshold: LogLevel
+extension Logs.Configuration: Decodable {
+    public init(from decoder: Decoder) throws {
+        self.init()
+
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        customEndpoint = try values.decode(URL.self, forKey: CodingKeys.customEndpoint)
+    }
 
     enum CodingKeys: String, CodingKey {
-        case serviceName = "ServiceName"
-        case loggerName = "LoggerName"
-        case sendNetworkInfo = "SendNetworkInfo"
-        case sendToDatadog = "SendToDatadog"
-        case datadogReportingThreshold = "DatadogReportingThreshold"
+        case customEndpoint = "CustomEndpoint"
     }
 }
+
+extension Logger.Configuration: Decodable {
+    public init(from decoder:Decoder) throws {
+        self.init()
+        
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        service = try values.decode(String?.self, forKey: CodingKeys.service)
+        name = try values.decode(String?.self, forKey: CodingKeys.name)
+        networkInfoEnabled = try values.decode(Bool.self, forKey: CodingKeys.networkInfoEnabled)
+        bundleWithRumEnabled = try values.decode(Bool.self, forKey: CodingKeys.bundleWithRumEnabled)
+
+        // Always true for Unity:
+        remoteSampleRate = 100
+        remoteLogThreshold = .debug
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case service = "Service"
+        case name = "Name"
+        case networkInfoEnabled = "NetworkInfoEnabled"
+        case bundleWithRumEnabled = "BundleWithRumEnabled"
+    }
+}
+
+@_cdecl("DatadogLogginer_Enable")
+func DatadogLogging_Enable(jsonLoggingOptions: UnsafeMutablePointer<CChar>?) {
+    if let stringLoggingOptions = decodeCString(cString: jsonLoggingOptions),
+       let data = stringLoggingOptions.data(using: .utf8),
+       let options = try? JSONDecoder().decode(Logs.Configuration.self, from: data) {
+        Logs.enable(with: options)
+    }
+}
+
 /// Create a logger for use in Unity, returns the UUID of the logger
 @_cdecl("DatadogLogging_CreateLogger")
 func DatadogLogging_CreateLogger(jsonLoggingOptions: UnsafeMutablePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
     if let stringLoggingOptions = decodeCString(cString: jsonLoggingOptions),
        let data = stringLoggingOptions.data(using: .utf8),
-       let options = try? JSONDecoder().decode(LoggingOptions.self, from: data) {
+       let options = try? JSONDecoder().decode(Logger.Configuration.self, from: data) {
 
         let loggerId = LogRegistry.shared.createLogger(options: options)
         return strdup(loggerId)
@@ -93,7 +112,7 @@ func DatadogLogging_Log(
         }
 
         let logLevel = LogLevel(rawValue: logLevel) ?? .info
-        logger.log(
+        logger._internal.log(
             level: logLevel,
             message: swiftMessage,
             errorKind: errorKind,

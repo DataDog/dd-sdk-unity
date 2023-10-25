@@ -22,8 +22,8 @@ public class TestBehavior : MonoBehaviour
 
         var logger = DatadogSdk.Instance.CreateLogger(new DatadogLoggingOptions()
         {
-            SendNetworkInfo = true,
-            DatadogReportingThreshold = DdLogLevel.Debug,
+            NetworkInfoEnabled = true,
+            RemoteLogThreshold = DdLogLevel.Debug,
         });
         logger.Info("Hello from Unity!");
 

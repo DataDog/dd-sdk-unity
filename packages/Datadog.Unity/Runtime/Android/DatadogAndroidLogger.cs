@@ -10,18 +10,20 @@ using UnityEngine;
 
 namespace Datadog.Unity.Android
 {
-    internal class DatadogAndroidLogger : IDdLogger
+    internal class DatadogAndroidLogger : DdLogger
     {
         private readonly AndroidJavaObject _androidLogger;
 
-        public DatadogAndroidLogger(AndroidJavaObject androidLogger)
+        public DatadogAndroidLogger(DdLogLevel logLevel, float sampleRate, AndroidJavaObject androidLogger)
+            : base(logLevel, sampleRate)
         {
             _androidLogger = androidLogger;
         }
 
         public override void AddAttribute(string key, object value)
         {
-            _androidLogger.Call("addAttribute", key, value);
+            AndroidJavaObject javaValue = value == null ? null : DatadogAndroidHelpers.ObjectToJavaObject(value);
+            _androidLogger.Call("addAttribute", key, javaValue);
         }
 
         public override void AddTag(string tag, string value = null)
@@ -37,7 +39,7 @@ namespace Datadog.Unity.Android
             }
         }
 
-        public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
             var androidLevel = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(level);
 

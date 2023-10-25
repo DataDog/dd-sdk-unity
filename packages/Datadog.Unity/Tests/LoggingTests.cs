@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 #if UNITY_ANDROID
@@ -53,7 +54,7 @@ namespace Datadog.Unity.Tests
         public void DatadogInitCreatesDefaultLogger()
         {
             // Given
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
@@ -70,7 +71,7 @@ namespace Datadog.Unity.Tests
         [Test]
         public void UnityLogsAreNotForwardedToDefaultLogger_WhenForwardUnityLogsIsFalse()
         {
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
@@ -83,7 +84,7 @@ namespace Datadog.Unity.Tests
 
             Debug.Log("Test Logs");
 
-            mockLogger.DidNotReceiveWithAnyArgs().Log(default, default);
+            mockLogger.DidNotReceiveWithAnyArgs().PlatformLog(default, default);
         }
 
         [Test]
@@ -92,7 +93,7 @@ namespace Datadog.Unity.Tests
             var mockUnityLogger = Substitute.For<ILogHandler>();
             Debug.unityLogger.logHandler = mockUnityLogger;
 
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
                 .CreateLogger( Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
@@ -105,7 +106,7 @@ namespace Datadog.Unity.Tests
 
             Debug.Log("Test Logs");
 
-            mockLogger.Received().Log(DdLogLevel.Info, "Test Logs", null, null);
+            mockLogger.Received().PlatformLog(DdLogLevel.Info, "Test Logs", null, null);
         }
 
         [Test]
@@ -115,7 +116,7 @@ namespace Datadog.Unity.Tests
             var mockUnityLogger = Substitute.For<ILogHandler>();
             Debug.unityLogger.logHandler = mockUnityLogger;
 
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
@@ -131,10 +132,10 @@ namespace Datadog.Unity.Tests
             Debug.LogWarning("Test LogWarning");
             Debug.LogAssertion("Test LogAssertion");
 
-            mockLogger.Received().Log(DdLogLevel.Info, "Test Logs", null, null);
-            mockLogger.Received().Log(DdLogLevel.Error, "Test LogError", null, null);
-            mockLogger.Received().Log(DdLogLevel.Warn, "Test LogWarning", null, null);
-            mockLogger.Received().Log(DdLogLevel.Critical, "Test LogAssertion", null, null);
+            mockLogger.Received().PlatformLog(DdLogLevel.Info, "Test Logs", null, null);
+            mockLogger.Received().PlatformLog(DdLogLevel.Error, "Test LogError", null, null);
+            mockLogger.Received().PlatformLog(DdLogLevel.Warn, "Test LogWarning", null, null);
+            mockLogger.Received().PlatformLog(DdLogLevel.Critical, "Test LogAssertion", null, null);
         }
 
         [Test]
@@ -145,7 +146,7 @@ namespace Datadog.Unity.Tests
             var mockUnityLogger = Substitute.For<ILogHandler>();
             Debug.unityLogger.logHandler = mockUnityLogger;
 
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var messageArgs = new List<string>();
 
             // When
@@ -166,7 +167,7 @@ namespace Datadog.Unity.Tests
         public void CreateLoggerForwardsRequestToPlatform()
         {
             // Given
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
@@ -176,9 +177,9 @@ namespace Datadog.Unity.Tests
             // When
             var options = new DatadogLoggingOptions()
             {
-                LoggerName = "test_logger",
-                DatadogReportingThreshold = DdLogLevel.Warn,
-                SendToDatadog = false,
+                Name = "test_logger",
+                RemoteLogThreshold = DdLogLevel.Warn,
+                RemoteSampleRate = 100.0f,
             };
             var logger = DatadogSdk.Instance.CreateLogger(options);
 
@@ -191,10 +192,10 @@ namespace Datadog.Unity.Tests
         public void LoggerForwardsCorrectLevelsToLog()
         {
             // Given
-            var mockLogger = Substitute.For<IDdLogger>();
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
             var logArgs = new List<DdLogLevel>();
             var messageArgs = new List<string>();
-            mockLogger.Log(
+            mockLogger.PlatformLog(
                 Arg.Do<DdLogLevel>(l => logArgs.Add(l)),
                 Arg.Do<string>(m => messageArgs.Add(m)),
                 null,
@@ -212,6 +213,45 @@ namespace Datadog.Unity.Tests
                 new[] { DdLogLevel.Debug, DdLogLevel.Info, DdLogLevel.Notice, DdLogLevel.Warn, DdLogLevel.Error, DdLogLevel.Critical }));
             Assert.IsTrue(messageArgs.SequenceEqual(
                 new[] { "debug message", "info message", "notice message", "warn message", "error message", "critical message" }));
+        }
+
+        [Test]
+        public void LoggerDoesNotSendSampledLogsToPlatform()
+        {
+            // Given
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 0.0f);
+
+            // When
+            mockLogger.Debug("debug message");
+            mockLogger.Info("info message");
+            mockLogger.Notice("notice message");
+            mockLogger.Warn("warn message");
+            mockLogger.Error("error message");
+            mockLogger.Critical("critical message");
+
+            mockLogger.DidNotReceive().PlatformLog(Arg.Any<DdLogLevel>(), Arg.Any<string>(), Arg.Any<Dictionary<string, object>>(), Arg.Any<Exception>());
+        }
+
+        [Test]
+        public void LoggerDoesNotSendLogsToPlatform_WhenBelowThreshold()
+        {
+            // Given
+            var mockLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Warn, 100.0f);
+
+            // When
+            mockLogger.Debug("debug message");
+            mockLogger.Info("info message");
+            mockLogger.Notice("notice message");
+            mockLogger.Warn("warn message");
+            mockLogger.Error("error message");
+            mockLogger.Critical("critical message");
+
+            mockLogger.DidNotReceive().PlatformLog(DdLogLevel.Debug, "debug message");
+            mockLogger.DidNotReceive().PlatformLog(DdLogLevel.Info, "info message");
+            mockLogger.DidNotReceive().PlatformLog(DdLogLevel.Notice, "notice message");
+            mockLogger.Received().PlatformLog(DdLogLevel.Warn, "warn message");
+            mockLogger.Received().PlatformLog(DdLogLevel.Error, "error message");
+            mockLogger.Received().PlatformLog(DdLogLevel.Critical, "critical message");
         }
     }
 }
