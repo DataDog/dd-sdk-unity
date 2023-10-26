@@ -3,7 +3,6 @@
     <package>com.datadoghq:dd-sdk-android-logs:2.2.0</package>
     <package>com.datadoghq:dd-sdk-android-ndk:2.2.0</package>
     <package>com.datadoghq:dd-sdk-android-rum:2.2.0</package>
-    <package>org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22</package>
   </packages>
   <files />
   <settings>

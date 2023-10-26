@@ -9,6 +9,5 @@
     </androidPackage>
     <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2.2.0">
     </androidPackage>
-    <androidPackage spec="org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22" />
   </androidPackages>
 </dependencies>

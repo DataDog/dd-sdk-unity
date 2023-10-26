@@ -22,13 +22,9 @@ dependencies {
     implementation 'com.datadoghq:dd-sdk-android-logs:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:9
     implementation 'com.datadoghq:dd-sdk-android-ndk:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:11
     implementation 'com.datadoghq:dd-sdk-android-rum:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:7
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:12
 // Android Resolver Dependencies End
 
     constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
-            because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
-        }
         implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
             because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
         }

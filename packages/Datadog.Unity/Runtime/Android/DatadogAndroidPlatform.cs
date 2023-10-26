@@ -110,8 +110,8 @@ namespace Datadog.Unity.Android
                 rumClass.CallStatic("enable", rumConfig);
             }
 
-            using var crashPlugin = new AndroidJavaClass("com.datadog.android.ndk.NdkCrashReports");
-            crashPlugin.CallStatic("enable");
+            using var crashReportClass = new AndroidJavaClass("com.datadog.android.ndk.NdkCrashReports");
+            crashReportClass.CallStatic("enable");
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
