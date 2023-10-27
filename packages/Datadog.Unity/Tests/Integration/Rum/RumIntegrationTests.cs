@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration.Rum
@@ -33,7 +34,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
                 // Second view makes sure the first one has been closed
-                return sessions.Count >= 1 && sessions[0].Visits.Count >= 3;
+                return sessions.Count >= 1 && sessions[0].Visits.Count >= 5;
             });
 
             yield return new WaitUntil(() => task.IsCompleted);
@@ -44,9 +45,13 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual(1, sessions.Count);
 
             var session = sessions.First();
-            Assert.AreEqual(3, session.Visits.Count);
 
-            var firstVisit = session.Visits[0];
+            // Discard visits that are automatically recorded parts of integration testing
+            var visits = session.Visits.Where(
+                visit => visit.Name != string.Empty && !visit.Name.Contains("InitTestScene")).ToArray();
+            Assert.AreEqual(3, visits.Length);
+
+            var firstVisit = visits[0];
             Assert.AreEqual("First Screen", firstVisit.Name);
             Assert.AreEqual(1, firstVisit.ViewEvents.First().Attributes["onboarding_stage"].Value<int>());
 
@@ -72,7 +77,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
             Assert.AreEqual("network", resourceError.Source);
 
-            var secondVisit = session.Visits[1];
+            var secondVisit = visits[1];
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
             var errorEvent = secondVisit.ErrorEvents[0];
 
@@ -95,6 +100,12 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var finalSecondVisitView = secondVisit.ViewEvents.Last();
             Assert.AreEqual("True", finalSecondVisitView.FeatureFlags["mock_flag_a"].Value<string>());
             Assert.AreEqual("mock_value", finalSecondVisitView.FeatureFlags["mock_flag_b"].Value<string>());
+
+            var automaticVisit = visits[2];
+            var visitView = automaticVisit.ViewEvents.Last();
+            Assert.AreEqual(visitView.View.Name, "EmptyScene");
+            Assert.IsNotNull(visitView.Attributes["is_sub_scene"].Value<bool>());
+            Assert.AreEqual(true, visitView.Attributes["is_loaded"].Value<bool>());
         }
     }
 
@@ -148,9 +159,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 });
             }
 
-            rum?.StartView("FinishedScreen", name: "Finished Screen");
-            rum?.AddUserAction(RumUserActionType.Tap, "Tapped Void");
-            rum?.StopView("FinishedScreen");
+            SceneManager.LoadScene("Scenes/EmptyScene");
 
             IsTestFinished = true;
         }

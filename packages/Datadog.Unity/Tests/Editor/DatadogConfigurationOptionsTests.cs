@@ -51,6 +51,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(options.BatchSize, BatchSize.Medium);
             Assert.AreEqual(options.UploadFrequency, UploadFrequency.Average);
             Assert.IsFalse(options.RumEnabled);
+            Assert.IsTrue(options.AutomaticSceneTracking);
             Assert.IsEmpty(options.RumApplicationId);
         }
     }

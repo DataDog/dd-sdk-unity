@@ -11,4 +11,10 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/StressTestScene.unity
     guid: fa646dfc156d54b4890afb7f8d1f77b7
+  - enabled: 1
+    path: Assets/Scenes/EmptyScene.unity
+    guid: b74ef1828813b47beab5782cd4abf7f1
+  - enabled: 1
+    path: Assets/Scenes/AddedScene.unity
+    guid: 04f52f4e3212746099b9e04cbebe632d
   m_configObjects: {}
