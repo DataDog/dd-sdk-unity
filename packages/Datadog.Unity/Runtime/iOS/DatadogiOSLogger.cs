@@ -11,11 +11,12 @@ using UnityEngine;
 
 namespace Datadog.Unity.iOS
 {
-    public class DatadogiOSLogger : IDdLogger
+    public class DatadogiOSLogger : DdLogger
     {
         private readonly string _loggerId;
 
-        private DatadogiOSLogger(string loggerId)
+        private DatadogiOSLogger(DdLogLevel logLevel, float sampleRate, string loggerId)
+            : base(logLevel, sampleRate)
         {
             _loggerId = loggerId;
         }
@@ -26,13 +27,13 @@ namespace Datadog.Unity.iOS
             var loggerId = DatadogLoggingBridge.DatadogLogging_CreateLogger(jsonOptions);
             if (loggerId != null)
             {
-                return new DatadogiOSLogger(loggerId);
+                return new DatadogiOSLogger(options.RemoteLogThreshold, options.RemoteSampleRate, loggerId);
             }
 
             return null;
         }
 
-        public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error = null)
+        public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
             // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports
             // Dictionaries, where JsonUtility does not.

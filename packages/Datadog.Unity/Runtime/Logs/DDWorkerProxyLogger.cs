@@ -9,12 +9,13 @@ using Datadog.Unity.Worker;
 namespace Datadog.Unity.Logs
 {
     // Feeds calls to DdLogger through the DatadogWorker to be called on a background thread instead.
-    internal class DdWorkerProxyLogger : IDdLogger
+    internal class DdWorkerProxyLogger : DdLogger
     {
         private readonly DatadogWorker _worker;
-        private readonly IDdLogger _logger;
+        private readonly DdLogger _logger;
 
-        public DdWorkerProxyLogger(DatadogWorker worker, IDdLogger logger)
+        public DdWorkerProxyLogger(DatadogWorker worker, DdLogger logger)
+            : base(DdLogLevel.Debug, 100.0f)    // Prevent double sampling
         {
             _worker = worker;
             _logger = logger;
@@ -32,7 +33,7 @@ namespace Datadog.Unity.Logs
                 new DdLogsProcessor.AddTagMessage(_logger, tag, value));
         }
 
-        public override void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
             _worker.AddMessage(
                 new DdLogsProcessor.LogMessage(_logger, level, message, attributes, error));

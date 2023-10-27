@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
@@ -37,18 +37,25 @@ namespace Datadog.Unity.Editor.iOS
                 pbxProject.ReadFromFile(projectPath);
 
                 var mainTarget = pbxProject.GetUnityMainTargetGuid();
-                pbxProject.AddBuildProperty(mainTarget, "OTHER_LDFLAGS", "-ObjC");
 
-                CopyAndAddFramework("Datadog.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("DatadogObjc.xcframework", pathToProject, pbxProject);
+                CopyAndAddFramework("CrashReporter.xcframework", pathToProject, pbxProject);
+                CopyAndAddFramework("DatadogCore.xcframework", pathToProject, pbxProject);
+                CopyAndAddFramework("DatadogLogs.xcframework", pathToProject, pbxProject);
+                CopyAndAddFramework("DatadogRUM.xcframework", pathToProject, pbxProject);
+                CopyAndAddFramework("DatadogInternal.xcframework", pathToProject, pbxProject);
                 CopyAndAddFramework("DatadogCrashReporting.xcframework", pathToProject, pbxProject);
 
-                var optionsFile = Path.Combine("MainApp", "DatadogOptions.m");
-                var optionsPath = Path.Combine(pathToProject, optionsFile);
+                var initializationFile = Path.Combine("MainApp", "DatadogInitialization.swift");
+                var initializationPath = Path.Combine(pathToProject, initializationFile);
                 var datadogOptions = DatadogConfigurationOptionsExtensions.GetOrCreate();
-                GenerateOptionsFile(optionsPath, datadogOptions);
-                var optionsFileGuid = pbxProject.AddFile(optionsFile, optionsFile, PBXSourceTree.Source);
-                pbxProject.AddFileToBuild(mainTarget, optionsFileGuid);
+                GenerateInitializationFile(initializationPath, datadogOptions);
+                var initializationFileGuid = pbxProject.AddFile(initializationFile, initializationFile, PBXSourceTree.Source);
+                var swiftVersion = pbxProject.GetBuildPropertyForAnyConfig(mainTarget, "SWIFT_VERSION");
+                if (string.IsNullOrEmpty(swiftVersion))
+                {
+                    pbxProject.AddBuildProperty(mainTarget, "SWIFT_VERSION", "5");
+                }
+                pbxProject.AddFileToBuild(mainTarget, initializationFileGuid);
 
                 AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"), datadogOptions);
 
@@ -95,51 +102,60 @@ namespace Datadog.Unity.Editor.iOS
             pbxProject.AddFileToBuildSection(mainTarget, buildPhase, frameworkGuid);
         }
 
-        internal static void GenerateOptionsFile(string path, DatadogConfigurationOptions options)
+        internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options)
         {
-            var customEndpointString = string.Empty;
+            var sb = new StringBuilder($@"// Datadog Options File -
+// THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
+import Foundation
+import DatadogCore
+import DatadogLogs
+import DatadogRUM
+import DatadogCrashReporting
+
+@_cdecl(""initializeDatadog"")
+func initializeDatadog() {{
+    Datadog.verbosityLevel = .debug
+    let config = Datadog.Configuration(
+        clientToken: ""{options.ClientToken}"",
+        env: ""prod"",
+        batchSize: {GetSwiftBatchSize(options.BatchSize)},
+        uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)}
+    )
+    Datadog.initialize(with: config, trackingConsent: .pending)
+
+    var logsConfig = Logs.Configuration()
+");
             if (options.CustomEndpoint != string.Empty)
             {
-                customEndpointString = $@"
-    [builder setWithCustomLogsEndpoint:[[NSURL alloc] initWithString:@""{options.CustomEndpoint}/logs""]];
-    [builder setWithCustomRUMEndpoint:[[NSURL alloc] initWithString:@""{options.CustomEndpoint}/rum""]];
-";
+                sb.AppendLine($@"    logsConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/logs"")");
             }
 
-            var builderSetup = $@"
-    DDConfigurationBuilder *builder = [DDConfiguration builderWithClientToken:@""{options.ClientToken}""
-                                                                  environment:@""prod""];
-";
-            if (options.RumEnabled && options.RumApplicationId != string.Empty)
+            sb.AppendLine("    Logs.enable(with: logsConfig)");
+
+            if (options.RumEnabled)
             {
-                builderSetup = $@"
-    DDConfigurationBuilder *builder = [DDConfiguration builderWithRumApplicationID:@""{options.RumApplicationId}""
-                                                                       clientToken:@""{options.ClientToken}""
-                                                                       environment:@""prod""];
-";
+                sb.Append($@"
+    var rumConfig = RUM.Configuration(
+        applicationID: ""{options.RumApplicationId}""
+    )
+");
+                if (options.CustomEndpoint != string.Empty)
+                {
+                    sb.AppendLine($@"    rumConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/rum"")");
+                }
+
+                sb.AppendLine($"    rumConfig.telemetrySampleRate = {options.TelemetrySampleRate}");
+                sb.AppendLine("    RUM.enable(with: rumConfig)");
             }
 
-            var optionsFileString = $@"// Datadog Options File -
-// THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
-#include <Datadog/Datadog-Swift.h>
-#include <DatadogObjc/DatadogObjc-Swift.h>
-#include <DatadogCrashReporting/DatadogCrashReporting-Swift.h>
+            sb.AppendLine();
+            sb.AppendLine("    CrashReporting.enable()");
+            sb.AppendLine("}");
+            sb.AppendLine();
 
-DDConfiguration* buildDatadogConfiguration() {{
-    [DDDatadog setVerbosityLevel:DDSDKVerbosityLevelDebug];
-    {builderSetup}
-
-    [builder enableTracing:NO];
-    [builder enableCrashReportingUsing:[DDCrashReportingPlugin new]];
-    [builder setWithBatchSize:{GetObjCBatchSize(options.BatchSize)}];
-    [builder setWithUploadFrequency:{GetObjCUploadFrequency(options.UploadFrequency)}];
-    {customEndpointString}
-
-    return [builder build];
-}}
-";
-            File.WriteAllText(path, optionsFileString);
+            File.WriteAllText(path, sb.ToString());
         }
+
 
         internal static void AddInitializationToMain(string pathToMain, DatadogConfigurationOptions options)
         {
@@ -190,8 +206,6 @@ DDConfiguration* buildDatadogConfiguration() {{
             lines.InsertRange(firstBlank, new string[]
             {
                     DatadogBlockStart,
-                    "#import <Datadog/Datadog-Swift.h>",
-                    "#import <DatadogObjc/DatadogObjc-Swift.h>",
                     "#import \"DatadogOptions.h\"",
                     DatadogBlockEnd,
             });
@@ -206,39 +220,30 @@ DDConfiguration* buildDatadogConfiguration() {{
             var newLines = new List<string>()
             {
                 $"        {DatadogBlockStart}",
-                "        [DDDatadog initializeWithAppContext:[DDAppContext new]",
-                "                            trackingConsent:[DDTrackingConsent pending]",
-                "                              configuration:buildDatadogConfiguration()];",
+                "        initializeDatadog();",
+                $"        {DatadogBlockEnd}",
             };
-
-            if (includeRum)
-            {
-                newLines.Add(string.Empty);
-                newLines.Add("        DDGlobal.rum = [[DDRUMMonitor alloc] init];");
-            }
-
-            newLines.Add($"        {DatadogBlockEnd}");
 
             lines.InsertRange(insertLine, newLines);
         }
 
-        private static string GetObjCBatchSize(BatchSize batchSize)
+        private static string GetSwiftBatchSize(BatchSize batchSize)
         {
             return batchSize switch
             {
-                BatchSize.Small => "DDBatchSizeSmall",
-                BatchSize.Large => "DDBatchSizeLarge",
-                _ => "DDBatchSizeMedium",
+                BatchSize.Small => ".small",
+                BatchSize.Large => ".large",
+                _ => ".medium",
             };
         }
 
-        private static string GetObjCUploadFrequency(UploadFrequency uploadFrequency)
+        private static string GetSwiftUploadFrequency(UploadFrequency uploadFrequency)
         {
             return uploadFrequency switch
             {
-                UploadFrequency.Rare => "DDUploadFrequencyRare",
-                UploadFrequency.Frequent => "DDUploadFrequencyFrequent",
-                _ => "DDUploadFrequencyAverage",
+                UploadFrequency.Rare => ".rare",
+                UploadFrequency.Frequent => ".frequent",
+                _ => ".average",
             };
         }
     }

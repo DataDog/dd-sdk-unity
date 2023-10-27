@@ -10,7 +10,7 @@ namespace Datadog.Unity
 {
     internal class DatadogNoOpPlatform : IDatadogPlatform
     {
-        public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
+        public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             return new DdNoOpLogger();
         }

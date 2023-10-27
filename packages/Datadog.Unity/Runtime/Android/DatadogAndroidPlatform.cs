@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -55,58 +56,62 @@ namespace Datadog.Unity.Android
         public void Init(DatadogConfigurationOptions options)
         {
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
+            _datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
 
-            using var credentials = new AndroidJavaObject(
-                "com.datadog.android.core.configuration.Credentials",
-                options.ClientToken,
-                "prod",
-                string.Empty,     // variant
-                applicationId,
-                null);            // serviceName
             using var configBuilder = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Configuration$Builder",
-                true,       // logsEnabled
-                false,                // tracesEnabled
-                true,                 // crashReportsEnabled
-                options.RumEnabled);
+                options.ClientToken,
+                "prod",
+                string.Empty, // Variant Name
+                null // Service Name
+            );
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
-            configBuilder.Call<AndroidJavaObject>("sampleTelemetry", options.TelemetrySampleRate);
 
-            using var crashPlugin = new AndroidJavaObject("com.datadog.android.ndk.NdkCrashReportsPlugin");
-            using var featureEnum = new AndroidJavaClass("com.datadog.android.plugin.Feature");
-            using var feature = featureEnum.GetStatic<AndroidJavaObject>("CRASH");
-            configBuilder.Call<AndroidJavaObject>("addPlugin", crashPlugin, feature);
+#if DEBUG
+            using var internalProxyClass = new AndroidJavaClass("com.datadog.android._InternalProxy");
+            using var proxyInstance = internalProxyClass.GetStatic<AndroidJavaObject>("Companion");
+            proxyInstance.Call<AndroidJavaObject>("allowClearTextHttp", configBuilder);
+#endif
 
+            using var configuration = configBuilder.Call<AndroidJavaObject>("build");
+            _datadogClass.CallStatic<AndroidJavaObject>(
+                "initialize",
+                GetApplicationContext(),
+                configuration,
+                DatadogConfigurationHelpers.GetTrackingConsent(TrackingConsent.Pending));
+
+            // Configure logging
+            using var logsConfigBuilder = new AndroidJavaObject("com.datadog.android.log.LogsConfiguration$Builder");
             if (options.CustomEndpoint != string.Empty)
             {
-                configBuilder.Call<AndroidJavaObject>("useCustomLogsEndpoint", options.CustomEndpoint);
-                configBuilder.Call<AndroidJavaObject>("useCustomCrashReportsEndpoint", options.CustomEndpoint + "/logs");
-                configBuilder.Call<AndroidJavaObject>("useCustomRumEndpoint", options.CustomEndpoint + "/rum");
+                logsConfigBuilder.Call<AndroidJavaObject>("useCustomEndpoint", options.CustomEndpoint + "/logs");
             }
+
+            using var logsConfig = logsConfigBuilder.Call<AndroidJavaObject>("build");
+            using var logsClass = new AndroidJavaClass("com.datadog.android.log.Logs");
+            logsClass.CallStatic("enable", logsConfig);
 
             if (options.RumEnabled)
             {
-                configBuilder.Call<AndroidJavaObject>("disableInteractionTracking");
-                IntPtr useViewTrackingStrategyMethod = AndroidJNIHelper.GetMethodID(
-                    configBuilder.GetRawClass(),
-                    "useViewTrackingStrategy",
-                    "(Lcom/datadog/android/rum/tracking/ViewTrackingStrategy;)Lcom/datadog/android/core/configuration/Configuration$Builder;"
-                );
-                var args = new object[] { null };
-                AndroidJNI.CallObjectMethod(configBuilder.GetRawObject(), useViewTrackingStrategyMethod, AndroidJNIHelper.CreateJNIArgArray(args));
+                using var rumConfigBuilder = new AndroidJavaObject("com.datadog.android.rum.RumConfiguration$Builder", options.RumApplicationId);
+                rumConfigBuilder.Call<AndroidJavaObject>("disableUserInteractionTracking");
+                if (options.CustomEndpoint != string.Empty)
+                {
+                    rumConfigBuilder.Call<AndroidJavaObject>("useCustomEndpoint", options.CustomEndpoint + "/rum");
+                }
+
+                rumConfigBuilder.Call<AndroidJavaObject>("useViewTrackingStrategy", new object[] { null });
+                rumConfigBuilder.Call<AndroidJavaObject>("setTelemetrySampleRate", options.TelemetrySampleRate);
+
+                using var rumConfig = rumConfigBuilder.Call<AndroidJavaObject>("build");
+                using var rumClass = new AndroidJavaClass("com.datadog.android.rum.Rum");
+                rumClass.CallStatic("enable", rumConfig);
             }
 
-            var configuration = configBuilder.Call<AndroidJavaObject>("build");
-
-            _datadogClass.CallStatic(
-                "initialize",
-                GetApplicationContext(),
-                credentials,
-                configuration,
-                DatadogConfigurationHelpers.GetTrackingConsent(TrackingConsent.Granted));
-            _datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
+            using var crashReportClass = new AndroidJavaClass("com.datadog.android.ndk.NdkCrashReports");
+            crashReportClass.CallStatic("enable");
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
@@ -114,37 +119,31 @@ namespace Datadog.Unity.Android
             _datadogClass.CallStatic("setTrackingConsent", DatadogConfigurationHelpers.GetTrackingConsent(trackingConsent));
         }
 
-        public IDdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
+        public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             using var loggerBuilder = new AndroidJavaObject("com.datadog.android.log.Logger$Builder");
-            if (options.ServiceName != null)
+            if (options.Service != null)
             {
-                loggerBuilder.Call<AndroidJavaObject>("setServiceName", options.ServiceName);
+                loggerBuilder.Call<AndroidJavaObject>("setService", options.Service);
             }
 
-            if (options.LoggerName != null)
+            if (options.Name != null)
             {
-                loggerBuilder.Call<AndroidJavaObject>("setLoggerName", options.LoggerName);
+                loggerBuilder.Call<AndroidJavaObject>("setName", options.Name);
             }
 
-            loggerBuilder.Call<AndroidJavaObject>("setNetworkInfoEnabled", options.SendNetworkInfo);
-            loggerBuilder.Call<AndroidJavaObject>("setDatadogLogsEnabled", options.SendToDatadog);
-            var androidReportingThreshold = (int)DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(options.DatadogReportingThreshold);
-            loggerBuilder.Call<AndroidJavaObject>("setDatadogLogsMinPriority", androidReportingThreshold);
-
+            loggerBuilder.Call<AndroidJavaObject>("setNetworkInfoEnabled", options.NetworkInfoEnabled);
+            loggerBuilder.Call<AndroidJavaObject>("setBundleWithRumEnabled", options.BundleWithRumEnabled);
             var androidLogger = loggerBuilder.Call<AndroidJavaObject>("build");
 
-            var innerLogger = new DatadogAndroidLogger(androidLogger);
+            var innerLogger = new DatadogAndroidLogger(options.RemoteLogThreshold, options.RemoteSampleRate, androidLogger);
             return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
-            using var rumMonitorBuilder = new AndroidJavaObject("com.datadog.android.rum.RumMonitor$Builder");
-            var rum = rumMonitorBuilder.Call<AndroidJavaObject>("build");
-
-            using var globalRum = new AndroidJavaClass("com.datadog.android.rum.GlobalRum");
-            globalRum.CallStatic<bool>("registerIfAbsent", rum);
+            using var globalRumMonitorClass = new AndroidJavaClass("com.datadog.android.rum.GlobalRumMonitor");
+            var rum = globalRumMonitorClass.CallStatic<AndroidJavaObject>("get");
 
             return new DatadogAndroidRum(rum);
         }
@@ -173,7 +172,7 @@ namespace Datadog.Unity.Android
         private AndroidJavaObject GetInternalProxy()
         {
             using AndroidJavaObject datadogInstance = _datadogClass.GetStatic<AndroidJavaObject>("INSTANCE");
-            AndroidJavaObject internalProxy = datadogInstance.Call<AndroidJavaObject>("get_internal");
+            AndroidJavaObject internalProxy = datadogInstance.Call<AndroidJavaObject>("_internalProxy", new object[] { null });
 
             return internalProxy;
         }

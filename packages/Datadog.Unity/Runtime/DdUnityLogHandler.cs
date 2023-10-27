@@ -11,10 +11,10 @@ namespace Datadog.Unity
 {
     internal class DdUnityLogHandler : ILogHandler
     {
-        private readonly IDdLogger _ddLogger;
+        private readonly DdLogger _ddLogger;
         private ILogHandler _defaultLogHandler = null;
 
-        public DdUnityLogHandler(IDdLogger datadogLogger)
+        public DdUnityLogHandler(DdLogger datadogLogger)
         {
             _ddLogger = datadogLogger;
         }

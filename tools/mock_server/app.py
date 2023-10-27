@@ -147,7 +147,7 @@ def generic_post(rest):
     if existing := next((e for e in endpoints if e.hash() == gr.endpoint_hash()), None):
         existing.requests.append(gr)
         # write_to_file(endpoint=existing)
-        return f'OK - request recorded to known endpoint\n'
+        return f'OK - request recorded to known endpoint\n', 202
     else:
         endpoints.append(
             GenericEndpoint(

@@ -19,10 +19,16 @@ apply plugin: 'com.android.library'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 // Android Resolver Dependencies Start
-    implementation 'com.datadoghq:dd-sdk-android:1.19.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:7
-    implementation 'com.datadoghq:dd-sdk-android-ndk:1.19.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:9
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.6.21' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:10
+    implementation 'com.datadoghq:dd-sdk-android-logs:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:9
+    implementation 'com.datadoghq:dd-sdk-android-ndk:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:11
+    implementation 'com.datadoghq:dd-sdk-android-rum:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:7
 // Android Resolver Dependencies End
+
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+        }
+    }
 **DEPS**}
 
 // Android Resolver Exclusions Start
@@ -36,20 +42,15 @@ android {
   }
 }
 // Android Resolver Exclusions End
-
-buildscript {
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21"
-    }
-}
-
 android {
+    ndkPath "**NDKPATH**"
+
     compileSdkVersion **APIVERSION**
     buildToolsVersion '**BUILDTOOLS**'
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     defaultConfig {
@@ -69,9 +70,9 @@ android {
 
     aaptOptions {
         noCompress = **BUILTIN_NOCOMPRESS** + unityStreamingAssets.tokenize(', ')
-        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~"
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
     }**PACKAGING_OPTIONS**
-}**REPOSITORIES**
+}
 **IL_CPP_BUILD_SETUP**
 **SOURCE_BUILD_SETUP**
 **EXTERNAL_SOURCES**

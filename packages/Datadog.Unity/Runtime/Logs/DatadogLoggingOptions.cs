@@ -10,14 +10,16 @@ namespace Datadog.Unity.Logs
 
     public class DatadogLoggingOptions
     {
-        public string ServiceName = null;
+        public string Service = null;
 
-        public string LoggerName = null;
+        public string Name = null;
 
-        public bool SendNetworkInfo = false;
+        public bool NetworkInfoEnabled = false;
 
-        public bool SendToDatadog = true;
+        public bool BundleWithRumEnabled = true;
 
-        public DdLogLevel DatadogReportingThreshold = DdLogLevel.Debug;
+        public float RemoteSampleRate = 100.0f;
+
+        public DdLogLevel RemoteLogThreshold = DdLogLevel.Debug;
     }
 }

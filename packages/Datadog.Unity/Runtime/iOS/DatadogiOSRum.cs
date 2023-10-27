@@ -33,7 +33,7 @@ namespace Datadog.Unity.iOS
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            DatadogRumBridge.DatadogRum_AddUserAction(type.ToString(), name, jsonAttributes);
+            DatadogRumBridge.DatadogRum_AddAction(type.ToString(), name, jsonAttributes);
         }
 
         public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
@@ -41,7 +41,7 @@ namespace Datadog.Unity.iOS
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            DatadogRumBridge.DatadogRum_StartUserAction(type.ToString(), name, jsonAttributes);
+            DatadogRumBridge.DatadogRum_StartAction(type.ToString(), name, jsonAttributes);
         }
 
         public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
@@ -49,7 +49,7 @@ namespace Datadog.Unity.iOS
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            DatadogRumBridge.DatadogRum_StopUserAction(type.ToString(), name, jsonAttributes);
+            DatadogRumBridge.DatadogRum_StopAction(type.ToString(), name, jsonAttributes);
         }
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
@@ -69,7 +69,7 @@ namespace Datadog.Unity.iOS
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            DatadogRumBridge.DatadogRum_StartResourceLoading(key, httpMethod.ToString(), url, jsonAttributes);
+            DatadogRumBridge.DatadogRum_StartResource(key, httpMethod.ToString(), url, jsonAttributes);
         }
 
         public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
@@ -79,7 +79,7 @@ namespace Datadog.Unity.iOS
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
             // Note - using -1 as a special value to mean null, as sending optionals to C from C# is... difficult
-            DatadogRumBridge.DatadogRum_StopResourceLoading(key, kind.ToString(), statusCode ?? -1, size ?? -1, jsonAttributes);
+            DatadogRumBridge.DatadogRum_StopResource(key, kind.ToString(), statusCode ?? -1, size ?? -1, jsonAttributes);
         }
 
         public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
@@ -91,7 +91,7 @@ namespace Datadog.Unity.iOS
             var errorMessage = error?.Message;
             var stackTrace = error?.StackTrace;
 
-            DatadogRumBridge.DatadogRum_StopResourceLoadingWithError(key, errorType, errorMessage, jsonAttributes);
+            DatadogRumBridge.DatadogRum_StopResourceWithError(key, errorType, errorMessage, jsonAttributes);
         }
 
         public void AddAttribute(string key, object value)
@@ -129,13 +129,13 @@ namespace Datadog.Unity.iOS
         public static extern void DatadogRum_StopView(string key, string attributes);
 
         [DllImport("__Internal")]
-        public static extern void DatadogRum_AddUserAction(string type, string name, string attributes);
+        public static extern void DatadogRum_AddAction(string type, string name, string attributes);
 
         [DllImport("__Internal")]
-        public static extern void DatadogRum_StartUserAction(string type, string name, string attributes);
+        public static extern void DatadogRum_StartAction(string type, string name, string attributes);
 
         [DllImport("__Internal")]
-        public static extern void DatadogRum_StopUserAction(string type, string name, string attributes);
+        public static extern void DatadogRum_StopAction(string type, string name, string attributes);
 
         [DllImport("__Internal")]
         public static extern void DatadogRum_AddError(string message, string source, string type, string stack, string attributes);
@@ -147,13 +147,13 @@ namespace Datadog.Unity.iOS
         public static extern void DatadogRum_RemoveAttribute(string key);
 
         [DllImport("__Internal")]
-        public static extern void DatadogRum_StartResourceLoading(string key, string httpMethod, string url, string attributes);
+        public static extern void DatadogRum_StartResource(string key, string httpMethod, string url, string attributes);
 
         [DllImport("__Internal")]
-        public static extern void DatadogRum_StopResourceLoading(string key, string kind, int statusCode, long size, string attributes);
+        public static extern void DatadogRum_StopResource(string key, string kind, int statusCode, long size, string attributes);
 
         [DllImport("__Internal")]
-        public static extern void DatadogRum_StopResourceLoadingWithError(string key, string errorType,
+        public static extern void DatadogRum_StopResourceWithError(string key, string errorType,
             string errorMessage, string jsonAttributes);
 
         [DllImport("__Internal")]

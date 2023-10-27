@@ -3,8 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 import Foundation
-import Datadog
-import DatadogObjc
+import DatadogCore
 
 @_cdecl("Datadog_SetTrackingConsent")
 func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
