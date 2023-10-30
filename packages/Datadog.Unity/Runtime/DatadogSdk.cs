@@ -86,7 +86,7 @@ namespace Datadog.Unity
         {
             if (options.RumApplicationId is null or "")
             {
-                _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but an Application ID is not set. ");
+                _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but an Application ID is not set.");
                 return;
             }
 
