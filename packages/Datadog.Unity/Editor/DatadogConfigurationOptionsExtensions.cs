@@ -28,6 +28,7 @@ namespace Datadog.Unity.Editor
                 options.UploadFrequency = UploadFrequency.Average;
                 options.ForwardUnityLogs = false;
                 options.RumEnabled = false;
+                options.AutomaticSceneTracking = true;
                 options.RumApplicationId = string.Empty;
                 options.TelemetrySampleRate = 20.0f;
 

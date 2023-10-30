@@ -4,11 +4,10 @@
 
 using System;
 using System.Collections;
-using System.ComponentModel;
 using System.Linq;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
+using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.Assertions;
 using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration

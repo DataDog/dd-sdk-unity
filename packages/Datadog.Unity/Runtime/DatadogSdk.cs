@@ -3,11 +3,13 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Datadog.Unity
 {
@@ -72,21 +74,39 @@ namespace Datadog.Unity
 
             if (options.RumEnabled)
             {
-                if (options.RumApplicationId is not null and not "")
-                {
-                    var platformRum = _platform.InitRum(options);
-                    _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
-                    Rum = new DdWorkerProxyRum(_worker);
-                }
-                else
-                {
-                    _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but an Application ID is not set. ");
-                }
+                EnableRum(options);
             }
 
             _worker.Start();
 
             Application.quitting += OnQuitting;
+        }
+
+        private void EnableRum(DatadogConfigurationOptions options)
+        {
+            if (options.RumApplicationId is null or "")
+            {
+                _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but an Application ID is not set.");
+                return;
+            }
+
+            var platformRum = _platform.InitRum(options);
+            _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
+            Rum = new DdWorkerProxyRum(_worker);
+
+            if (options.AutomaticSceneTracking)
+            {
+                SceneManager.activeSceneChanged += SceneManagerOnActiveSceneChanged;
+            }
+        }
+
+        private void SceneManagerOnActiveSceneChanged(Scene previousScene, Scene nextScene)
+        {
+            Rum.StartView(nextScene.path, nextScene.name, new Dictionary<string, object>()
+            {
+                { "is_sub_scene", nextScene.isSubScene },
+                { "is_loaded", nextScene.isLoaded },
+            });
         }
 
         private void ShutdownInstance()

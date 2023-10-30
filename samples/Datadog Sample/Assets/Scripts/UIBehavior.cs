@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class UIBehavior : MonoBehaviour
 {
@@ -27,6 +28,16 @@ public class UIBehavior : MonoBehaviour
     public void OnCppThrow()
     {
         PerformCppThrow();
+    }
+
+    public void AddScene()
+    {
+        SceneManager.LoadScene("Scenes/AddedScene", LoadSceneMode.Additive);
+    }
+
+    public void MoveScene()
+    {
+        SceneManager.LoadScene("Scenes/EmptyScene", LoadSceneMode.Single);
     }
 
     // C / CPP exceptions

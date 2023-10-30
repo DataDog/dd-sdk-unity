@@ -8,7 +8,7 @@ namespace Datadog.Unity.Rum
 {
     public interface IDateProvider
     {
-        public DateTime Now { get;  }
+        public DateTime Now { get; }
     }
 
     public class DefaultDateProvider : IDateProvider
