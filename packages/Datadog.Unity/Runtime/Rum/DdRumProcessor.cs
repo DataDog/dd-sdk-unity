@@ -35,15 +35,15 @@ namespace Datadog.Unity.Rum
                     break;
                 case AddUserActionMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.AddUserAction(msg.Type, msg.Name, msg.Attributes);
+                    _rum.AddAction(msg.Type, msg.Name, msg.Attributes);
                     break;
                 case StartUserActionMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StartUserAction(msg.Type, msg.Name, msg.Attributes);
+                    _rum.StartAction(msg.Type, msg.Name, msg.Attributes);
                     break;
                 case StopUserActionMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StopUserAction(msg.Type, msg.Name, msg.Attributes);
+                    _rum.StopAction(msg.Type, msg.Name, msg.Attributes);
                     break;
                 case AddErrorMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
@@ -57,15 +57,15 @@ namespace Datadog.Unity.Rum
                     break;
                 case StartResourceLoadingMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StartResourceLoading(msg.Key, msg.HttpMethod, msg.Url, msg.Attributes);
+                    _rum.StartResource(msg.Key, msg.HttpMethod, msg.Url, msg.Attributes);
                     break;
                 case StopResourceLoadingMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StopResourceLoading(msg.Key, msg.ResourceType, msg.StatusCode, msg.Size, msg.Attributes);
+                    _rum.StopResource(msg.Key, msg.ResourceType, msg.StatusCode, msg.Size, msg.Attributes);
                     break;
                 case StopResourceLoadingWithErrorMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StopResourceLoading(msg.Key, msg.Error, msg.Attributes);
+                    _rum.StopResource(msg.Key, msg.Error, msg.Attributes);
                     break;
                 case AddFeatureFlagEvaluationMessage msg:
                     _rum.AddFeatureFlagEvaluation(msg.Key, msg.Value);

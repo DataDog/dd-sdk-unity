@@ -32,7 +32,7 @@ namespace Datadog.Unity.Android
             _rum.Call("stopView", key, javaAttributes);
         }
 
-        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             var javaActionType = GetUserActionType(type);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
@@ -40,7 +40,7 @@ namespace Datadog.Unity.Android
             _rum.Call("addAction", javaActionType, name, javaAttributes);
         }
 
-        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             var javaActionType = GetUserActionType(type);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
@@ -48,7 +48,7 @@ namespace Datadog.Unity.Android
             _rum.Call("startAction", javaActionType, name, javaAttributes);
         }
 
-        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             var javaActionType = GetUserActionType(type);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
@@ -66,7 +66,7 @@ namespace Datadog.Unity.Android
             _rum.Call("addErrorWithStacktrace", message, javaErrorSource, stack, javaAttributes);
         }
 
-        public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
+        public void StartResource(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
             var httpMethodString = GetHttpMethod(httpMethod);
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
@@ -74,7 +74,7 @@ namespace Datadog.Unity.Android
             _rum.Call("startResource", key, httpMethodString, url, javaAttributes);
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
+        public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
             var javaResourceType = GetResourceType(kind);
@@ -86,7 +86,7 @@ namespace Datadog.Unity.Android
             _rum.Call("stopResource", key, javaStatusCode, javaSize, javaResourceType, javaAttributes);
         }
 
-        public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
+        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
             var message = error.Message;
             var errorType = error.GetType().ToString();

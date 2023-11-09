@@ -67,6 +67,40 @@ namespace Datadog.Unity.Editor
             _options.TelemetrySampleRate =
                 EditorGUILayout.FloatField("Telemetry Sample Rate", _options.TelemetrySampleRate);
             _options.TelemetrySampleRate = Math.Clamp(_options.TelemetrySampleRate, 0.0f, 100.0f);
+
+            EditorGUILayout.Space();
+            _options.TraceSampleRate =
+                EditorGUILayout.FloatField("Trace Sample Rate", _options.TraceSampleRate);
+            _options.TraceSampleRate = Math.Clamp(_options.TraceSampleRate, 0.0f, 100.0f);
+
+            GUILayout.Label("First Party Hosts", EditorStyles.boldLabel);
+            int toRemove = -1;
+            for (int i = 0; i < _options.FirstPartyHosts.Count; ++i)
+            {
+                EditorGUILayout.BeginHorizontal();
+                var hostOption = _options.FirstPartyHosts[i];
+                hostOption.Host = EditorGUILayout.TextField(hostOption.Host);
+                hostOption.TracingHeaderType = (TracingHeaderType)EditorGUILayout.EnumFlagsField(hostOption.TracingHeaderType);
+                if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
+                {
+                    toRemove = i;
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            if (toRemove >= 0)
+            {
+                _options.FirstPartyHosts.RemoveAt(toRemove);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add Host", GUILayout.ExpandWidth(false)))
+            {
+                _options.FirstPartyHosts.Add(new FirstPartyHostOption());
+            }
+            EditorGUILayout.EndHorizontal();
+
             EditorGUI.EndDisabledGroup();
         }
 

@@ -128,24 +128,24 @@ namespace Datadog.Unity.Tests.Integration.Rum
             rum?.StartView("FirstScreen", name: "First Screen");
 
             yield return new WaitForSeconds(0.05f);
-            rum?.AddUserAction(RumUserActionType.Tap, "Tapped Download");
+            rum?.AddAction(RumUserActionType.Tap, "Tapped Download");
 
             var resourceKey1 = "/resource/1";
             var resourceKey2 = "/resource/2";
-            rum?.StartResourceLoading(resourceKey1, RumHttpMethod.Get, $"http://fake{resourceKey1}");
-            rum?.StartResourceLoading(resourceKey2, RumHttpMethod.Post, $"http://fake{resourceKey2}");
+            rum?.StartResource(resourceKey1, RumHttpMethod.Get, $"http://fake{resourceKey1}");
+            rum?.StartResource(resourceKey2, RumHttpMethod.Post, $"http://fake{resourceKey2}");
 
             yield return new WaitForSeconds(0.05f);
-            rum?.StopResourceLoading(resourceKey1, RumResourceType.Image, 200, 121999);
+            rum?.StopResource(resourceKey1, RumResourceType.Image, 200, 121999);
 
             yield return new WaitForSeconds(0.03f);
-            rum?.StopResourceLoading(resourceKey2, new NetworkInformationException());
+            rum?.StopResource(resourceKey2, new NetworkInformationException());
 
             rum?.StartView("ErrorScreen", name: "Error Screen");
             rum?.AddFeatureFlagEvaluation("mock_flag_a", true);
             rum?.AddFeatureFlagEvaluation("mock_flag_b", "mock_value");
 
-            rum?.AddUserAction(RumUserActionType.Tap, "Tapped Exception");
+            rum?.AddAction(RumUserActionType.Tap, "Tapped Exception");
 
             try
             {

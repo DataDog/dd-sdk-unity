@@ -2,12 +2,13 @@
   <androidPackages>
     <repositories>
       <repository>https://repo.maven.apache.org/maven2</repository>
+      <repository>https://oss.sonatype.org/content/repositories/snapshots</repository>
     </repositories>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2.2.0">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2+">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:2.2.0">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:2+">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2.2.0">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2+">
     </androidPackage>
   </androidPackages>
 </dependencies>

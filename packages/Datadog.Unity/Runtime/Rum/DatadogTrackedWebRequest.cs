@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using UnityEngine.Networking;
 
 namespace Datadog.Unity.Rum
@@ -10,9 +11,9 @@ namespace Datadog.Unity.Rum
     /// <summary>
     /// DatadogWebRequest is a wrapper around UnityWebRequest that allows us to track the request.
     /// </summary>
-    public class DatadogTrackedWebRequest : IDisposable
+    public class DatadogTrackedWebRequest
     {
-        private UnityWebRequest _innerRequest;
+        private readonly UnityWebRequest _innerRequest;
 
         public DatadogTrackedWebRequest()
         {
@@ -24,40 +25,40 @@ namespace Datadog.Unity.Rum
         /// funcitons properly, the DatadogTrackedWebRequest should be created before any operations
         /// are performed on the wrapped request, and the wrapped request should not be used after.
         /// </summary>
-        /// <param name="wrappedRequest">The request to wrap.</param>
-        public DatadogTrackedWebRequest(UnityWebRequest wrappedRequest)
+        /// <param name="webRequest">The request to wrap.</param>
+        public DatadogTrackedWebRequest(UnityWebRequest webRequest)
         {
-            _innerRequest = wrappedRequest;
+            _innerRequest = webRequest;
         }
 
         public DatadogTrackedWebRequest(string url)
+            : this(new UnityWebRequest(url))
         {
-            _innerRequest = new UnityWebRequest(url);
         }
 
         public DatadogTrackedWebRequest(Uri uri)
+            : this(new UnityWebRequest(uri))
         {
-            _innerRequest = new UnityWebRequest(uri);
         }
 
         public DatadogTrackedWebRequest(string url, string method)
+            : this(new UnityWebRequest(url, method))
         {
-            _innerRequest = new UnityWebRequest(url, method);
         }
 
         public DatadogTrackedWebRequest(Uri uri, string method)
+            : this(new UnityWebRequest(uri, method))
         {
-            _innerRequest = new UnityWebRequest(uri, method);
         }
 
         public DatadogTrackedWebRequest(string url, string method, DownloadHandler downloadHandler, UploadHandler uploadHandler)
+            : this(new UnityWebRequest(url, method, downloadHandler, uploadHandler))
         {
-            _innerRequest = new UnityWebRequest(url, method, downloadHandler, uploadHandler);
         }
 
         public DatadogTrackedWebRequest(Uri uri, string method, DownloadHandler downloadHandler, UploadHandler uploadHandler)
+            : this(new UnityWebRequest(uri, method, downloadHandler, uploadHandler))
         {
-            _innerRequest = new UnityWebRequest(uri, method, downloadHandler, uploadHandler);
         }
 
         public UnityWebRequest innerRequest => _innerRequest;
@@ -159,8 +160,38 @@ namespace Datadog.Unity.Rum
 
         public UnityWebRequestAsyncOperation SendWebRequest()
         {
-            // TODO: Add tracking here, maybe return custom AsyncOperation?
-            return _innerRequest.SendWebRequest();
+            var trackingHelper = DatadogSdk.Instance.ResourceTrackingHelper;
+            var tracingHeaders = trackingHelper.HeaderTypesForHost(_innerRequest.uri);
+            string rumKey = Guid.NewGuid().ToString();
+            var attributes = new Dictionary<string, object>();
+            if (tracingHeaders != TracingHeaderType.None)
+            {
+                var context = trackingHelper.GenerateTraceContext();
+                trackingHelper.GenerateDatadogAttributes(context, attributes);
+                var headers = new Dictionary<string, string>();
+                trackingHelper.GenerateTracingHeaders(context, tracingHeaders, headers);
+
+                foreach (var header in headers)
+                {
+                    SetRequestHeader(header.Key, header.Value);
+                }
+            }
+            DatadogSdk.Instance.Rum.StartResource(
+                rumKey,
+                EnumHelpers.HttpMethodFromString(_innerRequest.method),
+                _innerRequest.url,
+                attributes);
+            var operation = _innerRequest.SendWebRequest();
+            operation.completed += (op) =>
+            {
+                var contentType = GetResponseHeader("content-type");
+                DatadogSdk.Instance.Rum.StopResource(
+                    rumKey,
+                    EnumHelpers.ResourceTypeFromContentType(contentType),
+                    (int)responseCode,
+                    (long)downloadedBytes);
+            };
+            return operation;
         }
 
         public string GetRequestHeader(string name)

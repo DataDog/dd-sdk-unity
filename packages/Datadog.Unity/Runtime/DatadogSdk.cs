@@ -21,6 +21,7 @@ namespace Datadog.Unity
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
         private InternalLogger _internalLogger;
+        private ResourceTrackingHelper _resourceTrackingHelper;
 
         private DatadogSdk()
         {
@@ -34,6 +35,8 @@ namespace Datadog.Unity
         public IDdRum Rum { get; private set; } = new DdNoOpRum();
 
         internal InternalLogger InternalLogger => _internalLogger;
+
+        internal ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;
 
         public static void Shutdown()
         {
@@ -63,6 +66,7 @@ namespace Datadog.Unity
             _worker = new();
             _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
             _internalLogger = new InternalLogger(_worker, _platform);
+            _resourceTrackingHelper = new ResourceTrackingHelper(options);
 
             var loggingOptions = new DatadogLoggingOptions();
             DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);

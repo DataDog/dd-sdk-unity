@@ -5,6 +5,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Datadog.Unity.Rum;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -38,6 +39,19 @@ public class UIBehavior : MonoBehaviour
     public void MoveScene()
     {
         SceneManager.LoadScene("Scenes/EmptyScene", LoadSceneMode.Single);
+    }
+
+    public void WebRequest()
+    {
+        StartCoroutine(DoWebRequest());
+    }
+
+    private IEnumerator DoWebRequest()
+    {
+        var request = DatadogTrackedWebRequest.Get("https://httpbin.org/headers");
+        yield return request.SendWebRequest();
+
+        Debug.Log("Got ipsum: " + request.downloadHandler.text);
     }
 
     // C / CPP exceptions
