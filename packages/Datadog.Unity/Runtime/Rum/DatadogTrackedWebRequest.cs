@@ -9,7 +9,7 @@ using UnityEngine.Networking;
 namespace Datadog.Unity.Rum
 {
     /// <summary>
-    /// DatadogWebRequest is a wrapper around UnityWebRequest that allows us to track the request.
+    /// DatadogTrackedWebRequest is a wrapper around UnityWebRequest that allows us to track the request.
     /// </summary>
     public class DatadogTrackedWebRequest
     {
