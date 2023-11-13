@@ -92,11 +92,11 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.AddUserAction(Arg.Any<RumUserActionType>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.AddAction(Arg.Any<RumUserActionType>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.AddUserAction(RumUserActionType.Tap, "First Button", new ()
+            rum.AddAction(RumUserActionType.Tap, "First Button", new ()
             {
                 { "attribute_1", "my property" },
             });
@@ -104,7 +104,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).AddUserAction(RumUserActionType.Tap, "First Button", Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).AddAction(RumUserActionType.Tap, "First Button", Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
@@ -117,11 +117,11 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.StartUserAction(Arg.Any<RumUserActionType>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.StartAction(Arg.Any<RumUserActionType>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.StartUserAction(RumUserActionType.Scroll, "Scroll List", new ()
+            rum.StartAction(RumUserActionType.Scroll, "Scroll List", new ()
             {
                 { "attribute_1", "my property" },
             });
@@ -129,7 +129,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).StartUserAction(RumUserActionType.Scroll, "Scroll List", Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).StartAction(RumUserActionType.Scroll, "Scroll List", Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
@@ -142,11 +142,11 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.StopUserAction(Arg.Any<RumUserActionType>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.StopAction(Arg.Any<RumUserActionType>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.StopUserAction(RumUserActionType.Scroll, "Scroll List", new ()
+            rum.StopAction(RumUserActionType.Scroll, "Scroll List", new ()
             {
                 { "attribute_1", "my property" },
             });
@@ -154,7 +154,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).StopUserAction(RumUserActionType.Scroll, "Scroll List", Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).StopAction(RumUserActionType.Scroll, "Scroll List", Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(dateOffset.ToUnixTimeMilliseconds(), capturedAttributes["_dd.timestamp"]);
@@ -224,11 +224,11 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.StartResourceLoading(Arg.Any<string>(), Arg.Any<RumHttpMethod>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.StartResource(Arg.Any<string>(), Arg.Any<RumHttpMethod>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.StartResourceLoading("fake_resource", RumHttpMethod.Head, "http://fake/resource", new()
+            rum.StartResource("fake_resource", RumHttpMethod.Head, "http://fake/resource", new()
             {
                 { "attribute_1", "my property" },
                 { "int_attribute_3", 222 },
@@ -237,7 +237,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).StartResourceLoading("fake_resource", RumHttpMethod.Head, "http://fake/resource", Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).StartResource("fake_resource", RumHttpMethod.Head, "http://fake/resource", Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
@@ -251,11 +251,11 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.StopResourceLoading(Arg.Any<string>(), Arg.Any<RumResourceType>(), Arg.Any<int?>(), Arg.Any<long?>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.StopResource(Arg.Any<string>(), Arg.Any<RumResourceType>(), Arg.Any<int?>(), Arg.Any<long?>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.StopResourceLoading("fake_resource", RumResourceType.Css, 200, 123999, new()
+            rum.StopResource("fake_resource", RumResourceType.Css, 200, 123999, new()
             {
                 { "attribute_1", "my property" },
                 { "int_attribute_3", 222 },
@@ -264,7 +264,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).StopResourceLoading("fake_resource", RumResourceType.Css, 200, 123999, Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).StopResource("fake_resource", RumResourceType.Css, 200, 123999, Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);
@@ -278,13 +278,13 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.StopResourceLoading(Arg.Any<string>(), Arg.Any<Exception>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.StopResource(Arg.Any<string>(), Arg.Any<Exception>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             var exception = new Exception();
 
             // When
-            rum.StopResourceLoading("fake_resource", exception, new()
+            rum.StopResource("fake_resource", exception, new()
             {
                 { "attribute_1", "my property" },
                 { "int_attribute_3", 222 },
@@ -293,7 +293,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).StopResourceLoading("fake_resource", exception, Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).StopResource("fake_resource", exception, Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);

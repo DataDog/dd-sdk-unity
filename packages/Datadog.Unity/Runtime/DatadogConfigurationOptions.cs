@@ -1,6 +1,9 @@
 ﻿// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
+
+using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -21,6 +24,35 @@ namespace Datadog.Unity
         Us1Fed,
         [InspectorName("ap1")]
         Ap1,
+    }
+
+    [Flags]
+    public enum TracingHeaderType
+    {
+        /// <summary>
+        /// Do not add tracing headers
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Datadog's 'x-datadog-*' header
+        /// </summary>
+        Datadog = 1 << 1,
+
+        /// <summary>
+        /// Open telemetry B3 Single header
+        /// </summary>
+        B3 = 1 << 2,
+
+        /// <summary>
+        /// Open telemetry B3 multiple headers
+        /// </summary>
+        B3Multi = 1 << 3,
+
+        /// <summary>
+        /// W3C Trace Context header
+        /// </summary>
+        TraceContext = 1 << 4,
     }
 
     /// <summary>
@@ -72,6 +104,25 @@ namespace Datadog.Unity
         Pending,
     }
 
+    [Serializable]
+    public class FirstPartyHostOption
+    {
+        public string Host;
+        public TracingHeaderType TracingHeaderType;
+
+        public FirstPartyHostOption()
+        {
+            Host = "";
+            TracingHeaderType = TracingHeaderType.Datadog | TracingHeaderType.TraceContext;
+        }
+
+        public FirstPartyHostOption(string host, TracingHeaderType tracingHeaderType)
+        {
+            Host = host;
+            TracingHeaderType = tracingHeaderType;
+        }
+    }
+
     public class DatadogConfigurationOptions : ScriptableObject
     {
         public static readonly string DefaultDatadogSettingsPath = $"Assets/Resources/{_DefaultDatadogSettingsFileName}.asset";
@@ -91,6 +142,8 @@ namespace Datadog.Unity
         public string RumApplicationId;
         public bool AutomaticSceneTracking;
         public float TelemetrySampleRate;
+        public float TraceSampleRate = 20.0f;
+        public List<FirstPartyHostOption> FirstPartyHosts = new ();
 
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";
 

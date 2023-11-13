@@ -28,7 +28,7 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StopView(key, jsonAttributes);
         }
 
-        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
@@ -36,7 +36,7 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_AddAction(type.ToString(), name, jsonAttributes);
         }
 
-        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
@@ -44,7 +44,7 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StartAction(type.ToString(), name, jsonAttributes);
         }
 
-        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
@@ -64,7 +64,7 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
         }
 
-        public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
+        public void StartResource(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
@@ -72,7 +72,7 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StartResource(key, httpMethod.ToString(), url, jsonAttributes);
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
+        public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
@@ -82,7 +82,7 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StopResource(key, kind.ToString(), statusCode ?? -1, size ?? -1, jsonAttributes);
         }
 
-        public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
+        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);

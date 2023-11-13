@@ -6,7 +6,7 @@
             url "https://maven.google.com"
         }
         maven {
-            url "https://repo.maven.apache.org/maven2" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:5
+            url "https://repo.maven.apache.org/maven2" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
         }
         mavenLocal()
         mavenCentral()
@@ -19,9 +19,9 @@ apply plugin: 'com.android.library'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 // Android Resolver Dependencies Start
-    implementation 'com.datadoghq:dd-sdk-android-logs:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:9
-    implementation 'com.datadoghq:dd-sdk-android-ndk:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:11
-    implementation 'com.datadoghq:dd-sdk-android-rum:2.2.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:7
+    implementation 'com.datadoghq:dd-sdk-android-logs:2+' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:10
+    implementation 'com.datadoghq:dd-sdk-android-ndk:2+' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:12
+    implementation 'com.datadoghq:dd-sdk-android-rum:2+' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:8
 // Android Resolver Dependencies End
 
     constraints {

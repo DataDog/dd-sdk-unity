@@ -29,17 +29,17 @@ namespace Datadog.Unity.Rum
             _worker.AddMessage(new DdRumProcessor.StopViewMessage(_dateProvider.Now, key, attributes));
         }
 
-        public void AddUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(new DdRumProcessor.AddUserActionMessage(_dateProvider.Now, type, name, attributes));
         }
 
-        public void StartUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(new DdRumProcessor.StartUserActionMessage(_dateProvider.Now, type, name, attributes));
         }
 
-        public void StopUserAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
+        public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(new DdRumProcessor.StopUserActionMessage(_dateProvider.Now, type, name, attributes));
         }
@@ -49,19 +49,19 @@ namespace Datadog.Unity.Rum
             _worker.AddMessage(new DdRumProcessor.AddErrorMessage(_dateProvider.Now, error, source, attributes));
         }
 
-        public void StartResourceLoading(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
+        public void StartResource(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(new DdRumProcessor.StartResourceLoadingMessage(_dateProvider.Now, key, httpMethod, url, attributes));
         }
 
-        public void StopResourceLoading(string key, RumResourceType kind, int? statusCode = null, long? size = null,
+        public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(
                 new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size, attributes));
         }
 
-        public void StopResourceLoading(string key, Exception error, Dictionary<string, object> attributes = null)
+        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
             _worker.AddMessage(
                 new DdRumProcessor.StopResourceLoadingWithErrorMessage(_dateProvider.Now, key, error, attributes));

@@ -40,6 +40,6 @@ public class TestBehavior : MonoBehaviour
             },
         });
 
-        DatadogSdk.Instance.Rum.StopResourceLoading("key", RumResourceType.Native);
+        DatadogSdk.Instance.Rum.StopResource("key", RumResourceType.Native);
     }
 }
