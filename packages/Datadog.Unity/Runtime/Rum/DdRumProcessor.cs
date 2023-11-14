@@ -65,7 +65,7 @@ namespace Datadog.Unity.Rum
                     break;
                 case StopResourceLoadingWithErrorMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StopResource(msg.Key, msg.Error, msg.Attributes);
+                    _rum.StopResourceWithError(msg.Key, msg.ErrorType, msg.ErrorMessage, msg.Attributes);
                     break;
                 case AddFeatureFlagEvaluationMessage msg:
                     _rum.AddFeatureFlagEvaluation(msg.Key, msg.Value);
@@ -270,11 +270,13 @@ namespace Datadog.Unity.Rum
 
         internal class StopResourceLoadingWithErrorMessage : DdRumWorkerMessage
         {
-            public StopResourceLoadingWithErrorMessage(DateTime messageTime, string key, Exception error, Dictionary<string, object> attributes)
+            public StopResourceLoadingWithErrorMessage(DateTime messageTime, string key,
+                string errorType, string errorMessage, Dictionary<string, object> attributes)
                 : base(messageTime)
             {
                 Key = key;
-                Error = error;
+                ErrorType = errorType;
+                ErrorMessage = errorMessage;
                 Attributes = attributes ?? new();
             }
 
@@ -282,7 +284,9 @@ namespace Datadog.Unity.Rum
 
             public RumResourceType ResourceType { get; private set; }
 
-            public Exception Error { get; private set; }
+            public string ErrorType { get; private set; }
+
+            public string ErrorMessage { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
         }

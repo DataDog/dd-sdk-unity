@@ -46,12 +46,38 @@ public class UIBehavior : MonoBehaviour
         StartCoroutine(DoWebRequest());
     }
 
+    public void ErrorWebRequest()
+    {
+        StartCoroutine(DoErrorWebRequest());
+    }
+
+    public void BadWebRequest()
+    {
+        StartCoroutine(DoBadWebRequest());
+    }
+
     private IEnumerator DoWebRequest()
     {
         var request = DatadogTrackedWebRequest.Get("https://httpbin.org/headers");
         yield return request.SendWebRequest();
 
-        Debug.Log("Got ipsum: " + request.downloadHandler.text);
+        Debug.Log("Got result: " + request.downloadHandler.text);
+    }
+
+    private IEnumerator DoErrorWebRequest()
+    {
+        var request = DatadogTrackedWebRequest.Get("https://httpbin.org/status/500");
+        yield return request.SendWebRequest();
+
+        Debug.Log("Got result: " + request.downloadHandler.text);
+    }
+
+    private IEnumerator DoBadWebRequest()
+    {
+        var request = DatadogTrackedWebRequest.Get("https://127.9.12.123/test");
+        yield return request.SendWebRequest();
+
+        Debug.Log($"Bad request result was: {request.result}");
     }
 
     // C / CPP exceptions
