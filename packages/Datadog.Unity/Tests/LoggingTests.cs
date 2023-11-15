@@ -5,9 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-#if UNITY_ANDROID
-using Datadog.Unity.Android;
-#endif
 using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
 using NSubstitute;
@@ -34,7 +31,7 @@ namespace Datadog.Unity.Tests
         [TestCase(DdLogLevel.Critical, AndroidLogLevel.Assert)]
         public void DdLogLevelTranslatedToAndroidLogLevel(DdLogLevel ddLogLevel, int androidLogLevel)
         {
-            var translated = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(ddLogLevel);
+            var translated = InternalHelpers.DdLogLevelToAndroidLogLevel(ddLogLevel);
             Assert.AreEqual(androidLogLevel, (int)translated);
         }
 #endif

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using Datadog.Unity.Core;
 using UnityEngine;
 
 namespace Datadog.Unity.Worker
@@ -88,18 +89,40 @@ namespace Datadog.Unity.Worker
                 try
                 {
                     var message = _workQueue.Take();
-                    if (message != null && _processors.ContainsKey(message.FeatureTarget))
+                    if (message != null)
                     {
-                        var processor = _processors[message.FeatureTarget];
-                        processor?.Process(message);
+                        if (_processors.ContainsKey(message.FeatureTarget))
+                        {
+                            var processor = _processors[message.FeatureTarget];
+                            try
+                            {
+                                processor?.Process(message);
+                            }
+                            catch (Exception e)
+                            {
+                                if (message.FeatureTarget != DdTelemetryProcessor.TelemetryTargetName)
+                                {
+                                    // Don't get stuck repeatedly trying to report errors to telemetry
+                                    DatadogSdk.Instance.InternalLogger.TelemetryError(
+                                        $"Error processing message: {message}", e);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            DatadogSdk.Instance.InternalLogger.TelemetryError(
+                                $"Attempting to send message to unknown feature: {message.FeatureTarget}", null);
+                        }
                     }
                 }
-                catch(InvalidOperationException)
+                catch (InvalidOperationException)
                 {
-                    Debug.Log("Stopping worker.");
-
                     // This is an expected exception and is thrown when the work queue
                     // is completed while .Take is waiting on a new item.
+
+                    Debug.Log("Stopping worker.");
+
+
                 }
             }
 

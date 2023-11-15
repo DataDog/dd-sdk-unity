@@ -2,8 +2,6 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -17,17 +15,6 @@ using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Android
 {
-    // These are mappings to android.util.Log
-    internal enum AndroidLogLevel
-    {
-        Verbose = 2,
-        Debug = 3,
-        Info = 4,
-        Warn = 5,
-        Error = 6,
-        Assert = 7,
-    }
-
     [Preserve]
     public static class DatadogInitialization
     {
@@ -69,11 +56,14 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
 
+            if (options.CustomEndpoint != string.Empty && options.CustomEndpoint.StartsWith("http://"))
+            {
 #if DEBUG
             using var internalProxyClass = new AndroidJavaClass("com.datadog.android._InternalProxy");
             using var proxyInstance = internalProxyClass.GetStatic<AndroidJavaObject>("Companion");
             proxyInstance.Call<AndroidJavaObject>("allowClearTextHttp", configBuilder);
 #endif
+            }
 
             using var configuration = configBuilder.Call<AndroidJavaObject>("build");
             _datadogClass.CallStatic<AndroidJavaObject>(

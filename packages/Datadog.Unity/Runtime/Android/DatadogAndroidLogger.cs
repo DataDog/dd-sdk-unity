@@ -41,7 +41,7 @@ namespace Datadog.Unity.Android
 
         public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
-            var androidLevel = DatadogConfigurationHelpers.DdLogLevelToAndroidLogLevel(level);
+            var androidLevel = InternalHelpers.DdLogLevelToAndroidLogLevel(level);
 
             using var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             var errorKind = error?.GetType()?.ToString();

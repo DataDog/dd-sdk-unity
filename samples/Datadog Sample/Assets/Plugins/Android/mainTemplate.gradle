@@ -8,6 +8,9 @@
         maven {
             url "https://repo.maven.apache.org/maven2" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
         }
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
+        }
         mavenLocal()
         mavenCentral()
     }

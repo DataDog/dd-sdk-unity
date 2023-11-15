@@ -51,10 +51,13 @@ namespace Datadog.Unity.Logs
 
         public void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
-            if (level >= _logLevel && _sampler.Sample())
+            InternalHelpers.Wrap("Log", () =>
             {
-                PlatformLog(level, message, attributes, error);
-            }
+                if (level >= _logLevel && _sampler.Sample())
+                {
+                    PlatformLog(level, message, attributes, error);
+                }
+            });
         }
 
         public abstract void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null);

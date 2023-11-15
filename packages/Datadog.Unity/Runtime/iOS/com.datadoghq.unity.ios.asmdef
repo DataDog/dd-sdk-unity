@@ -5,9 +5,7 @@
         "com.datadog.unity"
     ],
     "includePlatforms": [
-        "Editor",
         "iOS",
-        "macOSStandalone",
         "tvOS"
     ],
     "excludePlatforms": [],

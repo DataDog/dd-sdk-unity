@@ -8,20 +8,6 @@ namespace Datadog.Unity.Android
 {
     internal static class DatadogConfigurationHelpers
     {
-        internal static AndroidLogLevel DdLogLevelToAndroidLogLevel(DdLogLevel logLevel)
-        {
-            return logLevel switch
-            {
-                DdLogLevel.Debug => AndroidLogLevel.Debug,
-                DdLogLevel.Info => AndroidLogLevel.Info,
-                DdLogLevel.Notice => AndroidLogLevel.Info,
-                DdLogLevel.Warn => AndroidLogLevel.Warn,
-                DdLogLevel.Error => AndroidLogLevel.Error,
-                DdLogLevel.Critical => AndroidLogLevel.Assert,
-                _ => AndroidLogLevel.Debug,
-            };
-        }
-
         internal static AndroidJavaObject GetSite(DatadogSite site)
         {
             string siteName = site switch

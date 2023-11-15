@@ -45,12 +45,28 @@ namespace Datadog.Unity
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
-            Instance._platform.SetTrackingConsent(trackingConsent);
+            InternalHelpers.Wrap("SetTrackingConsent", () =>
+            {
+                _platform.SetTrackingConsent(trackingConsent);
+            });
         }
 
         public DdLogger CreateLogger(DatadogLoggingOptions options)
         {
-            return _platform?.CreateLogger(options, _worker);
+            try
+            {
+                return _platform?.CreateLogger(options, _worker);
+            }
+            catch (Exception e)
+            {
+                var internalLogger = DatadogSdk.Instance.InternalLogger;
+                internalLogger?.Log(DdLogLevel.Warn, $"Error creating logger: {e}");
+                internalLogger?.Log(DdLogLevel.Warn, "A NoOp logger will be used instead.");
+
+                internalLogger?.TelemetryError("Error creating logger", e);
+
+                return new DdNoOpLogger();
+            }
         }
 
         internal static void InitWithPlatform(IDatadogPlatform platform, DatadogConfigurationOptions options)
@@ -60,30 +76,37 @@ namespace Datadog.Unity
 
         private void Init(IDatadogPlatform platform, DatadogConfigurationOptions options)
         {
-            _platform = platform;
-
-            // Create our worker thread
-            _worker = new();
-            _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
-            _internalLogger = new InternalLogger(_worker, _platform);
-            _resourceTrackingHelper = new ResourceTrackingHelper(options);
-
-            var loggingOptions = new DatadogLoggingOptions();
-            DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);
-            if (options.ForwardUnityLogs)
+            try
             {
-                _logHandler = new(DefaultLogger);
-                _logHandler.Attach();
-            }
+                _platform = platform;
 
-            if (options.RumEnabled)
+                // Create our worker thread
+                _worker = new ();
+                _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
+                _internalLogger = new InternalLogger(_worker, _platform);
+                _resourceTrackingHelper = new ResourceTrackingHelper(options);
+
+                var loggingOptions = new DatadogLoggingOptions();
+                DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);
+                if (options.ForwardUnityLogs)
+                {
+                    _logHandler = new (DefaultLogger);
+                    _logHandler.Attach();
+                }
+
+                if (options.RumEnabled)
+                {
+                    EnableRum(options);
+                }
+
+                _worker.Start();
+
+                Application.quitting += OnQuitting;
+            }
+            catch (Exception e)
             {
-                EnableRum(options);
+                _internalLogger?.TelemetryError("Error initializing DatadogSdk", e);
             }
-
-            _worker.Start();
-
-            Application.quitting += OnQuitting;
         }
 
         private void EnableRum(DatadogConfigurationOptions options)
@@ -119,7 +142,7 @@ namespace Datadog.Unity
             DefaultLogger = null;
             _logHandler?.Detach();
             _logHandler = null;
-            _worker.Stop();
+            _worker?.Stop();
         }
 
         private void OnQuitting()
