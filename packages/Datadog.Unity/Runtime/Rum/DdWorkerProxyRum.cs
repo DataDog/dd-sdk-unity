@@ -61,10 +61,19 @@ namespace Datadog.Unity.Rum
                 new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size, attributes));
         }
 
+        public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
+        {
+            _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
+                _dateProvider.Now, key, errorType, errorMessage, attributes));
+        }
+
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(
-                new DdRumProcessor.StopResourceLoadingWithErrorMessage(_dateProvider.Now, key, error, attributes));
+            var errorType = error?.GetType()?.ToString();
+            var errorMessage = error?.Message;
+
+            _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
+                _dateProvider.Now, key, errorType, errorMessage, attributes));
         }
 
         public void AddAttribute(string key, object value)

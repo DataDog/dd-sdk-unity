@@ -69,6 +69,9 @@ namespace Datadog.Unity.Rum
         public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null);
 
+        public void StopResourceWithError(string key, string errorType, string errorMessage,
+            Dictionary<string, object> attributes = null);
+
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null);
 
         public void AddAttribute(string key, object value);
@@ -115,6 +118,10 @@ namespace Datadog.Unity.Rum
 
         public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
+        {
+        }
+
+        public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
         {
         }
 

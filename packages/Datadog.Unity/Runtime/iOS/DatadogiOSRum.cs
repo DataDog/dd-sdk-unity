@@ -89,7 +89,14 @@ namespace Datadog.Unity.iOS
 
             var errorType = error?.GetType()?.ToString();
             var errorMessage = error?.Message;
-            var stackTrace = error?.StackTrace;
+
+            DatadogRumBridge.DatadogRum_StopResourceWithError(key, errorType, errorMessage, jsonAttributes);
+        }
+
+        public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
+        {
+            attributes ??= new Dictionary<string, object>();
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
             DatadogRumBridge.DatadogRum_StopResourceWithError(key, errorType, errorMessage, jsonAttributes);
         }

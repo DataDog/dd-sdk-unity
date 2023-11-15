@@ -162,8 +162,9 @@ namespace Datadog.Unity.Rum
         {
             var trackingHelper = DatadogSdk.Instance.ResourceTrackingHelper;
             var tracingHeaders = trackingHelper.HeaderTypesForHost(_innerRequest.uri);
-            string rumKey = Guid.NewGuid().ToString();
+            var rumKey = Guid.NewGuid().ToString();
             var attributes = new Dictionary<string, object>();
+
             if (tracingHeaders != TracingHeaderType.None)
             {
                 var context = trackingHelper.GenerateTraceContext();
@@ -176,6 +177,7 @@ namespace Datadog.Unity.Rum
                     SetRequestHeader(header.Key, header.Value);
                 }
             }
+
             DatadogSdk.Instance.Rum.StartResource(
                 rumKey,
                 EnumHelpers.HttpMethodFromString(_innerRequest.method),
@@ -184,13 +186,30 @@ namespace Datadog.Unity.Rum
             var operation = _innerRequest.SendWebRequest();
             operation.completed += (op) =>
             {
-                var contentType = GetResponseHeader("content-type");
-                DatadogSdk.Instance.Rum.StopResource(
-                    rumKey,
-                    EnumHelpers.ResourceTypeFromContentType(contentType),
-                    (int)responseCode,
-                    (long)downloadedBytes);
+                switch (result)
+                {
+                    case UnityWebRequest.Result.Success:
+                    case UnityWebRequest.Result.ProtocolError:
+                        // Protocol errors include successful calls that return error codes, so they're
+                        // put as part of a "successful" resource call
+                        var contentType = GetResponseHeader("content-type");
+                        DatadogSdk.Instance.Rum.StopResource(
+                            rumKey,
+                            EnumHelpers.ResourceTypeFromContentType(contentType),
+                            (int)responseCode,
+                            (long)downloadedBytes);
+                        break;
+                    case UnityWebRequest.Result.ConnectionError:
+                    case UnityWebRequest.Result.DataProcessingError:
+                        DatadogSdk.Instance.Rum.StopResourceWithError(rumKey, result.ToString(), error);
+                        break;
+                    default:
+                        DatadogSdk.Instance.InternalLogger.TelemetryError(
+                            $"Unexpected result from UnityWebRequest: {result}", null);
+                        break;
+                }
             };
+
             return operation;
         }
 
