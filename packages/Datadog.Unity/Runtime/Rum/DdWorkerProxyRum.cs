@@ -21,79 +21,129 @@ namespace Datadog.Unity.Rum
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StartViewMessage(_dateProvider.Now, key, name, attributes));
+            InternalHelpers.Wrap("StartView",
+                () =>
+                {
+                    _worker.AddMessage(new DdRumProcessor.StartViewMessage(_dateProvider.Now, key, name, attributes));
+                });
         }
 
         public void StopView(string key, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StopViewMessage(_dateProvider.Now, key, attributes));
+            InternalHelpers.Wrap("StopView",
+                () => { _worker.AddMessage(new DdRumProcessor.StopViewMessage(_dateProvider.Now, key, attributes)); });
         }
 
         public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.AddUserActionMessage(_dateProvider.Now, type, name, attributes));
+            InternalHelpers.Wrap("AddAction",
+                () =>
+                {
+                    _worker.AddMessage(
+                        new DdRumProcessor.AddUserActionMessage(_dateProvider.Now, type, name, attributes));
+                });
         }
 
         public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StartUserActionMessage(_dateProvider.Now, type, name, attributes));
+            InternalHelpers.Wrap("StartAction",
+                () =>
+                {
+                    _worker.AddMessage(
+                        new DdRumProcessor.StartUserActionMessage(_dateProvider.Now, type, name, attributes));
+                });
         }
 
         public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StopUserActionMessage(_dateProvider.Now, type, name, attributes));
+            InternalHelpers.Wrap("StopAction",
+                () =>
+                {
+                    _worker.AddMessage(
+                        new DdRumProcessor.StopUserActionMessage(_dateProvider.Now, type, name, attributes));
+                });
         }
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.AddErrorMessage(_dateProvider.Now, error, source, attributes));
+            InternalHelpers.Wrap("StopView",
+                () =>
+                {
+                    _worker.AddMessage(
+                        new DdRumProcessor.AddErrorMessage(_dateProvider.Now, error, source, attributes));
+                });
         }
 
-        public void StartResource(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
+        public void StartResource(string key, RumHttpMethod httpMethod, string url,
+            Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StartResourceLoadingMessage(_dateProvider.Now, key, httpMethod, url, attributes));
+            InternalHelpers.Wrap("StartResource",
+                () =>
+                {
+                    _worker.AddMessage(
+                        new DdRumProcessor.StartResourceLoadingMessage(_dateProvider.Now, key, httpMethod, url,
+                            attributes));
+                });
         }
 
         public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(
-                new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size, attributes));
+            InternalHelpers.Wrap("StopResource",
+                () =>
+                {
+                    _worker.AddMessage(
+                        new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size,
+                            attributes));
+                });
         }
 
-        public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
+        public void StopResourceWithError(string key, string errorType, string errorMessage,
+            Dictionary<string, object> attributes = null)
         {
-            _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
-                _dateProvider.Now, key, errorType, errorMessage, attributes));
+            InternalHelpers.Wrap("StopResourceWithError",
+                () =>
+                {
+                    _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
+                        _dateProvider.Now, key, errorType, errorMessage, attributes));
+                });
         }
 
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            var errorType = error?.GetType()?.ToString();
-            var errorMessage = error?.Message;
+            InternalHelpers.Wrap("StopResource",
+                () =>
+                {
+                    var errorType = error?.GetType()?.ToString();
+                    var errorMessage = error?.Message;
 
-            _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
-                _dateProvider.Now, key, errorType, errorMessage, attributes));
+                    _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
+                        _dateProvider.Now, key, errorType, errorMessage, attributes));
+                });
         }
 
         public void AddAttribute(string key, object value)
         {
-            _worker.AddMessage(new DdRumProcessor.AddAttributeMessage(key, value));
+            InternalHelpers.Wrap("AddAttribute",
+                () => { _worker.AddMessage(new DdRumProcessor.AddAttributeMessage(key, value)); });
         }
 
         public void RemoveAttribute(string key)
         {
-            _worker.AddMessage(new DdRumProcessor.RemoveAttributeMessage(key));
+            InternalHelpers.Wrap("RemoveAttribute",
+                () => { _worker.AddMessage(new DdRumProcessor.RemoveAttributeMessage(key)); });
         }
 
         public void AddFeatureFlagEvaluation(string key, object value)
         {
-            _worker.AddMessage(new DdRumProcessor.AddFeatureFlagEvaluationMessage(key, value));
+            InternalHelpers.Wrap("AddFeatureFlagEvaluation",
+                () => { _worker.AddMessage(new DdRumProcessor.AddFeatureFlagEvaluationMessage(key, value)); });
         }
 
         public void StopSession()
         {
-            _worker.AddMessage(new DdRumProcessor.StopSessionMessage());
+            InternalHelpers.Wrap("StopSession",
+                () => { _worker.AddMessage(new DdRumProcessor.StopSessionMessage()); });
         }
     }
 }
