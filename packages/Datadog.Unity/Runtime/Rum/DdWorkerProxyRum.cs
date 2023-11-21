@@ -24,14 +24,14 @@ namespace Datadog.Unity.Rum
             InternalHelpers.Wrap("StartView",
                 () =>
                 {
-                    _worker.AddMessage(new DdRumProcessor.StartViewMessage(_dateProvider.Now, key, name, attributes));
+                    _worker.AddMessage(DdRumProcessor.StartViewMessage.Create(_dateProvider.Now, key, name, attributes));
                 });
         }
 
         public void StopView(string key, Dictionary<string, object> attributes = null)
         {
             InternalHelpers.Wrap("StopView",
-                () => { _worker.AddMessage(new DdRumProcessor.StopViewMessage(_dateProvider.Now, key, attributes)); });
+                () => { _worker.AddMessage(DdRumProcessor.StopViewMessage.Create(_dateProvider.Now, key, attributes)); });
         }
 
         public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
@@ -40,7 +40,7 @@ namespace Datadog.Unity.Rum
                 () =>
                 {
                     _worker.AddMessage(
-                        new DdRumProcessor.AddUserActionMessage(_dateProvider.Now, type, name, attributes));
+                        DdRumProcessor.AddUserActionMessage.Create(_dateProvider.Now, type, name, attributes));
                 });
         }
 
@@ -50,7 +50,7 @@ namespace Datadog.Unity.Rum
                 () =>
                 {
                     _worker.AddMessage(
-                        new DdRumProcessor.StartUserActionMessage(_dateProvider.Now, type, name, attributes));
+                        DdRumProcessor.StartUserActionMessage.Create(_dateProvider.Now, type, name, attributes));
                 });
         }
 
@@ -60,7 +60,7 @@ namespace Datadog.Unity.Rum
                 () =>
                 {
                     _worker.AddMessage(
-                        new DdRumProcessor.StopUserActionMessage(_dateProvider.Now, type, name, attributes));
+                        DdRumProcessor.StopUserActionMessage.Create(_dateProvider.Now, type, name, attributes));
                 });
         }
 
@@ -70,7 +70,7 @@ namespace Datadog.Unity.Rum
                 () =>
                 {
                     _worker.AddMessage(
-                        new DdRumProcessor.AddErrorMessage(_dateProvider.Now, error, source, attributes));
+                        DdRumProcessor.AddErrorMessage.Create(_dateProvider.Now, error, source, attributes));
                 });
         }
 
@@ -81,7 +81,7 @@ namespace Datadog.Unity.Rum
                 () =>
                 {
                     _worker.AddMessage(
-                        new DdRumProcessor.StartResourceLoadingMessage(_dateProvider.Now, key, httpMethod, url,
+                        DdRumProcessor.StartResourceLoadingMessage.Create(_dateProvider.Now, key, httpMethod, url,
                             attributes));
                 });
         }
@@ -93,7 +93,7 @@ namespace Datadog.Unity.Rum
                 () =>
                 {
                     _worker.AddMessage(
-                        new DdRumProcessor.StopResourceLoadingMessage(_dateProvider.Now, key, kind, statusCode, size,
+                        DdRumProcessor.StopResourceLoadingMessage.Create(_dateProvider.Now, key, kind, statusCode, size,
                             attributes));
                 });
         }
@@ -104,7 +104,7 @@ namespace Datadog.Unity.Rum
             InternalHelpers.Wrap("StopResourceWithError",
                 () =>
                 {
-                    _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
+                    _worker.AddMessage(DdRumProcessor.StopResourceLoadingWithErrorMessage.Create(
                         _dateProvider.Now, key, errorType, errorMessage, attributes));
                 });
         }
@@ -117,7 +117,7 @@ namespace Datadog.Unity.Rum
                     var errorType = error?.GetType()?.ToString();
                     var errorMessage = error?.Message;
 
-                    _worker.AddMessage(new DdRumProcessor.StopResourceLoadingWithErrorMessage(
+                    _worker.AddMessage(DdRumProcessor.StopResourceLoadingWithErrorMessage.Create(
                         _dateProvider.Now, key, errorType, errorMessage, attributes));
                 });
         }
@@ -125,19 +125,19 @@ namespace Datadog.Unity.Rum
         public void AddAttribute(string key, object value)
         {
             InternalHelpers.Wrap("AddAttribute",
-                () => { _worker.AddMessage(new DdRumProcessor.AddAttributeMessage(key, value)); });
+                () => { _worker.AddMessage(DdRumProcessor.AddAttributeMessage.Create(key, value)); });
         }
 
         public void RemoveAttribute(string key)
         {
             InternalHelpers.Wrap("RemoveAttribute",
-                () => { _worker.AddMessage(new DdRumProcessor.RemoveAttributeMessage(key)); });
+                () => { _worker.AddMessage(DdRumProcessor.RemoveAttributeMessage.Create(key)); });
         }
 
         public void AddFeatureFlagEvaluation(string key, object value)
         {
             InternalHelpers.Wrap("AddFeatureFlagEvaluation",
-                () => { _worker.AddMessage(new DdRumProcessor.AddFeatureFlagEvaluationMessage(key, value)); });
+                () => { _worker.AddMessage(DdRumProcessor.AddFeatureFlagEvaluationMessage.Create(key, value)); });
         }
 
         public void StopSession()

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Datadog.Unity.Worker;
+using UnityEngine.Pool;
 
 namespace Datadog.Unity.Rum
 {
@@ -91,24 +92,20 @@ namespace Datadog.Unity.Rum
 
         internal abstract class DdRumWorkerMessage : IDatadogWorkerMessage
         {
-            public DateTime? MessageTime { get; private set; }
+            public DateTime? MessageTime { get; protected set; }
 
             public string FeatureTarget => DdRumProcessor.RumTargetName;
 
-            public DdRumWorkerMessage(DateTime? messageTime)
-            {
-                MessageTime = messageTime;
-            }
+            public abstract void Discard();
         }
 
         internal class StartViewMessage : DdRumWorkerMessage
         {
-            public StartViewMessage(DateTime messageTime, string key, string name, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StartViewMessage> _pool = new (
+                createFunc: () => new StartViewMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StartViewMessage()
             {
-                Key = key;
-                Name = name;
-                Attributes = attributes ?? new ();
             }
 
             public string Key { get; private set; }
@@ -116,30 +113,75 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StartViewMessage Create(DateTime messageTime, string key, string name, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Key = key;
+                obj.Name = name;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Key = null;
+                Name = null;
+                Attributes = null;
+            }
         }
 
         internal class StopViewMessage : DdRumWorkerMessage
         {
-            public StopViewMessage(DateTime messageTime, string key, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StopViewMessage> _pool = new (
+                createFunc: () => new StopViewMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StopViewMessage()
             {
-                Key = key;
-                Attributes = attributes ?? new ();
             }
 
             public string Key { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StopViewMessage Create(DateTime messageTime, string key, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Key = key;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Key = null;
+                Attributes = null;
+            }
         }
 
         internal class AddUserActionMessage : DdRumWorkerMessage
         {
-            public AddUserActionMessage(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<AddUserActionMessage> _pool = new (
+                createFunc: () => new AddUserActionMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddUserActionMessage()
             {
-                Type = type;
-                Name = name;
-                Attributes = attributes ?? new ();
             }
 
             public RumUserActionType Type { get; private set; }
@@ -147,16 +189,38 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static AddUserActionMessage Create(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Type = type;
+                obj.Name = name;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Name = null;
+                Attributes = null;
+            }
         }
 
         internal class StartUserActionMessage : DdRumWorkerMessage
         {
-            public StartUserActionMessage(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StartUserActionMessage> _pool = new (
+                createFunc: () => new StartUserActionMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StartUserActionMessage()
             {
-                Type = type;
-                Name = name;
-                Attributes = attributes ?? new ();
             }
 
             public RumUserActionType Type { get; private set; }
@@ -164,16 +228,38 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StartUserActionMessage Create(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Type = type;
+                obj.Name = name;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Name = null;
+                Attributes = null;
+            }
         }
 
         internal class StopUserActionMessage : DdRumWorkerMessage
         {
-            public StopUserActionMessage(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StopUserActionMessage> _pool = new (
+                createFunc: () => new StopUserActionMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StopUserActionMessage()
             {
-                Type = type;
-                Name = name;
-                Attributes = attributes ?? new ();
             }
 
             public RumUserActionType Type { get; private set; }
@@ -181,16 +267,38 @@ namespace Datadog.Unity.Rum
             public string Name { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StopUserActionMessage Create(DateTime messageTime, RumUserActionType type, string name, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Type = type;
+                obj.Name = name;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Name = null;
+                Attributes = null;
+            }
         }
 
         internal class AddErrorMessage : DdRumWorkerMessage
         {
-            public AddErrorMessage(DateTime messageTime, Exception error, RumErrorSource source, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<AddErrorMessage> _pool = new (
+                createFunc: () => new AddErrorMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddErrorMessage()
             {
-                Error = error;
-                Source = source;
-                Attributes = attributes ?? new ();
             }
 
             public Exception Error { get; private set; }
@@ -198,42 +306,97 @@ namespace Datadog.Unity.Rum
             public RumErrorSource Source { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static AddErrorMessage Create(DateTime messageTime, Exception error, RumErrorSource source, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Error = error;
+                obj.Source = source;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Error = null;
+                Source = default;
+                Attributes = null;
+            }
         }
 
         internal class AddAttributeMessage : DdRumWorkerMessage
         {
-            public AddAttributeMessage(string key, object value)
-                : base(null)
+            private static ObjectPool<AddAttributeMessage> _pool = new (
+                createFunc: () => new AddAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddAttributeMessage()
             {
-                Key = key;
-                Value = value;
             }
 
             public string Key { get; private set; }
 
             public object Value { get; private set; }
+
+            public static AddAttributeMessage Create(string key, object value)
+            {
+                var obj = _pool.Get();
+                obj.Key = key;
+                obj.Value = value;
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Key = null;
+                Value = null;
+            }
         }
 
         internal class RemoveAttributeMessage : DdRumWorkerMessage
         {
-            public RemoveAttributeMessage(string key)
-                : base(null)
+            private static ObjectPool<RemoveAttributeMessage> _pool = new (createFunc: () => new RemoveAttributeMessage());
+
+            private RemoveAttributeMessage()
             {
-                Key = key;
             }
 
             public string Key { get; private set; }
+
+            public static RemoveAttributeMessage Create(string key)
+            {
+                var obj = _pool.Get();
+                obj.Key = key;
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
         }
 
         internal class StartResourceLoadingMessage : DdRumWorkerMessage
         {
-            public StartResourceLoadingMessage(DateTime messageTime, string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StartResourceLoadingMessage> _pool = new (
+                createFunc: () => new StartResourceLoadingMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StartResourceLoadingMessage()
             {
-                Key = key;
-                HttpMethod = httpMethod;
-                Url = url;
-                Attributes = attributes ?? new();
             }
 
             public string Key { get; private set; }
@@ -243,18 +406,40 @@ namespace Datadog.Unity.Rum
             public string Url { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StartResourceLoadingMessage Create(DateTime messageTime, string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Key = key;
+                obj.HttpMethod = httpMethod;
+                obj.Url = url;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Key = null;
+                Url = null;
+                Attributes = null;
+            }
         }
 
         internal class StopResourceLoadingMessage : DdRumWorkerMessage
         {
-            public StopResourceLoadingMessage(DateTime messageTime, string key, RumResourceType resourceType, int? statusCode, long? size, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StopResourceLoadingMessage> _pool = new (
+                createFunc: () => new StopResourceLoadingMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StopResourceLoadingMessage()
             {
-                Key = key;
-                ResourceType = resourceType;
-                StatusCode = statusCode;
-                Size = size;
-                Attributes = attributes ?? new();
             }
 
             public string Key { get; private set; }
@@ -266,18 +451,42 @@ namespace Datadog.Unity.Rum
             public int? StatusCode { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StopResourceLoadingMessage Create(DateTime messageTime, string key, RumResourceType resourceType, int? statusCode, long? size, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Key = key;
+                obj.ResourceType = resourceType;
+                obj.StatusCode = statusCode;
+                obj.Size = size;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Key = null;
+                Size = null;
+                StatusCode = null;
+                Attributes = null;
+            }
         }
 
         internal class StopResourceLoadingWithErrorMessage : DdRumWorkerMessage
         {
-            public StopResourceLoadingWithErrorMessage(DateTime messageTime, string key,
-                string errorType, string errorMessage, Dictionary<string, object> attributes)
-                : base(messageTime)
+            private static ObjectPool<StopResourceLoadingWithErrorMessage> _pool = new (
+                createFunc: () => new StopResourceLoadingWithErrorMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private StopResourceLoadingWithErrorMessage()
             {
-                Key = key;
-                ErrorType = errorType;
-                ErrorMessage = errorMessage;
-                Attributes = attributes ?? new();
             }
 
             public string Key { get; private set; }
@@ -289,27 +498,78 @@ namespace Datadog.Unity.Rum
             public string ErrorMessage { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
+
+            public static StopResourceLoadingWithErrorMessage Create(DateTime messageTime, string key,
+                string errorType, string errorMessage, Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.MessageTime = messageTime;
+                obj.Key = key;
+                obj.ErrorType = errorType;
+                obj.ErrorMessage = errorMessage;
+                obj.Attributes = attributes ?? new();
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                MessageTime = null;
+                Key = null;
+                ErrorType = null;
+                ErrorMessage = null;
+                Attributes = null;
+            }
         }
 
         internal class AddFeatureFlagEvaluationMessage : DdRumWorkerMessage
         {
-            public AddFeatureFlagEvaluationMessage(string key, object value)
-                : base(null)
+            private static ObjectPool<AddFeatureFlagEvaluationMessage> _pool = new (
+                createFunc: () => new AddFeatureFlagEvaluationMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddFeatureFlagEvaluationMessage()
             {
-                Key = key;
-                Value = value;
             }
 
             public string Key { get; private set; }
 
             public object Value { get; private set; }
+
+            public static AddFeatureFlagEvaluationMessage Create(string key, object value)
+            {
+                var obj = _pool.Get();
+                obj.Key = key;
+                obj.Value = value;
+
+                return obj;
+            }
+
+            public override void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Key = null;
+                Value = null;
+            }
         }
 
         internal class StopSessionMessage : DdRumWorkerMessage
         {
             public StopSessionMessage()
-                : base(null)
             {
+            }
+
+            public override void Discard()
+            {
+                // This should be a fairly rare message, so we don't need to pool it.
             }
         }
 

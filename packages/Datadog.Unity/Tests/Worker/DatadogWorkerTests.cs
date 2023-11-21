@@ -45,6 +45,24 @@ namespace Datadog.Unity.Worker.Tests
         }
 
         [Test]
+        public void WorkerDiscardsMessagesWhenFinished()
+        {
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
+
+            // Can add messages before the worker is started, they will be processed when the worker starts
+            var message = new MockWorkerMessage("fake data");
+            _worker.AddMessage(message);
+            _mockProcessor.DidNotReceive().Process(message);
+
+            _worker.Start();
+
+            // Yield to the processing thread
+            Thread.Sleep(10);
+
+            Assert.IsTrue(message.WasDiscarded);
+        }
+
+        [Test]
         public void StoppedWorkerFinishesSendingMessages()
         {
             _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
@@ -66,10 +84,18 @@ namespace Datadog.Unity.Worker.Tests
         public MockWorkerMessage(string data)
         {
             Data = data;
+            WasDiscarded = false;
         }
 
         public string FeatureTarget => ProcessorName;
 
         public string Data { get; set; }
+
+        public bool WasDiscarded { get; private set; }
+
+        public void Discard()
+        {
+            WasDiscarded = true;
+        }
     }
 }
