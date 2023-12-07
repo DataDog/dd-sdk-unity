@@ -19,6 +19,8 @@ namespace Datadog.Unity.Worker
     internal interface IDatadogWorkerMessage
     {
         public string FeatureTarget { get; }
+
+        public void Discard();
     }
 
     // In order to ensure that we don't interrupt the main game loop when communicating to
@@ -113,6 +115,8 @@ namespace Datadog.Unity.Worker
                             DatadogSdk.Instance.InternalLogger.TelemetryError(
                                 $"Attempting to send message to unknown feature: {message.FeatureTarget}", null);
                         }
+
+                        message.Discard();
                     }
                 }
                 catch (InvalidOperationException)

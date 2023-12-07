@@ -8,6 +8,7 @@ using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace Datadog.Unity.Core
 {
@@ -38,7 +39,7 @@ namespace Datadog.Unity.Core
 
         public void TelemetryError(string message, Exception exception)
         {
-            _worker.AddMessage(new DdTelemetryProcessor.TelemetryErrorMessage(
+            _worker.AddMessage(DdTelemetryProcessor.TelemetryErrorMessage.Create(
                 message,
                 exception?.StackTrace?.ToString(),
                 exception?.GetType().ToString()));
@@ -46,7 +47,7 @@ namespace Datadog.Unity.Core
 
         public void TelemetryDebug(string message)
         {
-            _worker.AddMessage(new DdTelemetryProcessor.TelemetryDebugMessage(
+            _worker.AddMessage(DdTelemetryProcessor.TelemetryDebugMessage.Create(
                 message));
         }
     }
@@ -77,18 +78,46 @@ namespace Datadog.Unity.Core
 
         internal class TelemetryDebugMessage : IDatadogWorkerMessage
         {
+            private static ObjectPool<TelemetryDebugMessage> _pool = new (
+                createFunc: () => new TelemetryDebugMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private TelemetryDebugMessage()
+            {
+            }
+
             public string FeatureTarget => DdTelemetryProcessor.TelemetryTargetName;
 
             public string Message { get; private set; }
 
-            public TelemetryDebugMessage(string message)
+            public static TelemetryDebugMessage Create(string message)
             {
-                Message = message;
+                var obj = _pool.Get();
+
+                obj.Message = message;
+
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Message = null;
             }
         }
 
         internal class TelemetryErrorMessage : IDatadogWorkerMessage
         {
+            private static ObjectPool<TelemetryErrorMessage> _pool = new (
+                createFunc: () => new TelemetryErrorMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private TelemetryErrorMessage()
+            {
+            }
+
             public string FeatureTarget => DdTelemetryProcessor.TelemetryTargetName;
 
             public string Message { get; private set; }
@@ -97,11 +126,25 @@ namespace Datadog.Unity.Core
 
             public string Kind { get; private set; }
 
-            public TelemetryErrorMessage(string message, string stack, string kind)
+            public static TelemetryErrorMessage Create(string message, string stack, string kind)
             {
-                Message = message;
-                Stack = stack;
-                Kind = kind;
+                var obj = _pool.Get();
+                obj.Message = message;
+                obj.Stack = stack;
+                obj.Kind = kind;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Message = null;
+                Stack = null;
+                Kind = null;
             }
         }
     }

@@ -23,38 +23,32 @@ namespace Datadog.Unity.Logs
 
         public override void AddAttribute(string key, object value)
         {
-            _worker.AddMessage(
-                new DdLogsProcessor.AddAttributeMessage(_logger, key, value));
+            _worker.AddMessage(DdLogsProcessor.AddAttributeMessage.Create(_logger, key, value));
         }
 
         public override void AddTag(string tag, string value = null)
         {
-            _worker.AddMessage(
-                new DdLogsProcessor.AddTagMessage(_logger, tag, value));
+            _worker.AddMessage(DdLogsProcessor.AddTagMessage.Create(_logger, tag, value));
         }
 
         public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
-            _worker.AddMessage(
-                new DdLogsProcessor.LogMessage(_logger, level, message, attributes, error));
+            _worker.AddMessage(DdLogsProcessor.LogMessage.Create(_logger, level, message, attributes, error));
         }
 
         public override void RemoveAttribute(string key)
         {
-            _worker.AddMessage(
-                new DdLogsProcessor.RemoveAttributeMessage(_logger, key));
+            _worker.AddMessage(DdLogsProcessor.RemoveAttributeMessage.Create(_logger, key));
         }
 
         public override void RemoveTag(string tag)
         {
-            _worker.AddMessage(
-                new DdLogsProcessor.RemoveTagMessage(_logger, tag));
+            _worker.AddMessage(DdLogsProcessor.RemoveTagMessage.Create(_logger, tag));
         }
 
         public override void RemoveTagsWithKey(string key)
         {
-            _worker.AddMessage(
-                new DdLogsProcessor.RemoveTagsWithKeyMessage(_logger, key));
+            _worker.AddMessage(DdLogsProcessor.RemoveTagsWithKeyMessage.Create(_logger, key));
         }
     }
 }

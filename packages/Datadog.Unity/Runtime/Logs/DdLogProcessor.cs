@@ -4,7 +4,9 @@
 
 using System;
 using System.Collections.Generic;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
+using UnityEngine.Pool;
 
 namespace Datadog.Unity.Logs
 {
@@ -41,13 +43,11 @@ namespace Datadog.Unity.Logs
 
         internal class LogMessage : IDatadogWorkerMessage
         {
-            public LogMessage(DdLogger logger, DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error)
+            private static ObjectPool<LogMessage> _pool = new (
+                createFunc: () => new LogMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private LogMessage()
             {
-                Logger = logger;
-                Level = level;
-                Message = message;
-                Attributes = attributes;
-                Error = error;
             }
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
@@ -61,15 +61,39 @@ namespace Datadog.Unity.Logs
             public Dictionary<string, object> Attributes { get; private set; }
 
             public Exception Error { get; private set; }
+
+            public static LogMessage Create(DdLogger logger, DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error)
+            {
+                var obj = _pool.Get();
+                obj.Logger = logger;
+                obj.Level = level;
+                obj.Message = message;
+                obj.Attributes = attributes;
+                obj.Error = error;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Logger = null;
+                Message = null;
+                Attributes = null;
+                Error = null;
+            }
         }
 
         internal class AddTagMessage : IDatadogWorkerMessage
         {
-            public AddTagMessage(DdLogger logger, string tag, string value)
+            private static ObjectPool<AddTagMessage> _pool = new (
+                createFunc: () => new AddTagMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddTagMessage()
             {
-                Logger = logger;
-                Tag = tag;
-                Value = value;
             }
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
@@ -79,14 +103,36 @@ namespace Datadog.Unity.Logs
             public string Tag { get; private set; }
 
             public string Value { get; private set; }
+
+            public static AddTagMessage Create(DdLogger logger, string tag, string value)
+            {
+                var obj = _pool.Get();
+                obj.Logger = logger;
+                obj.Tag = tag;
+                obj.Value = value;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Logger = null;
+                Tag = null;
+                Value = null;
+            }
         }
 
         internal class RemoveTagMessage : IDatadogWorkerMessage
         {
-            public RemoveTagMessage(DdLogger logger, string tag)
+            private static ObjectPool<RemoveTagMessage> _pool = new (
+                createFunc: () => new RemoveTagMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private RemoveTagMessage()
             {
-                Logger = logger;
-                Tag = tag;
             }
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
@@ -94,14 +140,34 @@ namespace Datadog.Unity.Logs
             public DdLogger Logger { get; private set; }
 
             public string Tag { get; private set; }
+
+            public static RemoveTagMessage Create(DdLogger logger, string tag)
+            {
+                var obj = _pool.Get();
+                obj.Logger = logger;
+                obj.Tag = tag;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Logger = null;
+                Tag = null;
+            }
         }
 
         internal class RemoveTagsWithKeyMessage : IDatadogWorkerMessage
         {
-            public RemoveTagsWithKeyMessage(DdLogger logger, string tag)
+            private static ObjectPool<RemoveTagsWithKeyMessage> _pool = new (
+                createFunc: () => new RemoveTagsWithKeyMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private RemoveTagsWithKeyMessage()
             {
-                Logger = logger;
-                Tag = tag;
             }
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
@@ -109,15 +175,34 @@ namespace Datadog.Unity.Logs
             public DdLogger Logger { get; private set; }
 
             public string Tag { get; private set; }
+
+            public static RemoveTagsWithKeyMessage Create(DdLogger logger, string tag)
+            {
+                var obj = _pool.Get();
+                obj.Logger = logger;
+                obj.Tag = tag;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Logger = null;
+                Tag = null;
+            }
         }
 
         internal class AddAttributeMessage : IDatadogWorkerMessage
         {
-            public AddAttributeMessage(DdLogger logger, string key, object value)
+            private static ObjectPool<AddAttributeMessage> _pool = new (
+                createFunc: () => new AddAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddAttributeMessage()
             {
-                Logger = logger;
-                Key = key;
-                Value = value;
             }
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
@@ -127,14 +212,36 @@ namespace Datadog.Unity.Logs
             public string Key { get; private set; }
 
             public object Value { get; private set; }
+
+            public static AddAttributeMessage Create(DdLogger logger, string key, object value)
+            {
+                var obj = _pool.Get();
+                obj.Logger = logger;
+                obj.Key = key;
+                obj.Value = value;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Logger = null;
+                Key = null;
+                Value = null;
+            }
         }
 
         internal class RemoveAttributeMessage : IDatadogWorkerMessage
         {
-            public RemoveAttributeMessage(DdLogger logger, string key)
+            private static ObjectPool<RemoveAttributeMessage> _pool = new (
+                createFunc: () => new RemoveAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private RemoveAttributeMessage()
             {
-                Logger = logger;
-                Key = key;
             }
 
             public string FeatureTarget => DdLogsProcessor.LogsTargetName;
@@ -142,6 +249,25 @@ namespace Datadog.Unity.Logs
             public DdLogger Logger { get; private set; }
 
             public string Key { get; private set; }
+
+            public static RemoveAttributeMessage Create(DdLogger logger, string key)
+            {
+                var obj = _pool.Get();
+                obj.Logger = logger;
+                obj.Key = key;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Logger = null;
+                Key = null;
+            }
         }
 
         #endregion
