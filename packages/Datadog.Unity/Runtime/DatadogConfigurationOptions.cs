@@ -133,6 +133,7 @@ namespace Datadog.Unity
         public bool Enabled;
         public string ClientToken;
         public DatadogSite Site;
+        public string Environment;
         public string CustomEndpoint;
         public LogType DefaultLoggingLevel;
         public BatchSize BatchSize;

@@ -42,6 +42,7 @@ namespace Datadog.Unity.Editor
                 _options.Enabled);
 
             _options.ClientToken = EditorGUILayout.TextField("Client Token", _options.ClientToken);
+            _options.Environment = EditorGUILayout.TextField("Environment", _options.Environment);
             _options.Site = (DatadogSite)EditorGUILayout.EnumPopup("Datadog Site", _options.Site);
             _options.CustomEndpoint = EditorGUILayout.TextField("Custom Endpoint", _options.CustomEndpoint);
             _options.BatchSize = (BatchSize)EditorGUILayout.EnumPopup("Batch Size", _options.BatchSize);

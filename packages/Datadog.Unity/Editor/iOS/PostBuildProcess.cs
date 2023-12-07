@@ -104,6 +104,12 @@ namespace Datadog.Unity.Editor.iOS
 
         internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options)
         {
+            var environment = options.Environment;
+            if (environment is null or "")
+            {
+                environment = "prod";
+            }
+
             var sb = new StringBuilder($@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
 import Foundation
@@ -117,7 +123,7 @@ func initializeDatadog() {{
     Datadog.verbosityLevel = .debug
     let config = Datadog.Configuration(
         clientToken: ""{options.ClientToken}"",
-        env: ""prod"",
+        env: ""{options.Environment}"",
         batchSize: {GetSwiftBatchSize(options.BatchSize)},
         uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)}
     )
