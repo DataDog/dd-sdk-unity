@@ -90,23 +90,50 @@ namespace Datadog.Unity.Editor.iOS
             Assert.AreEqual($"uploadFrequency: {expectedUploadFrequency}", uploadFrequencyLines.First().Trim());
         }
 
-         [TestCase(0.0f)]
-         [TestCase(12.0f)]
-         [TestCase(100.0f)]
-         public void GenerateOptionsFileWritesTelemetrySampleRate(float sampleRate)
-         {
-             var options = new DatadogConfigurationOptions()
-             {
-                 TelemetrySampleRate = sampleRate,
-             };
-             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
+        [TestCase(0.0f)]
+        [TestCase(12.0f)]
+        [TestCase(100.0f)]
+        public void GenerateOptionsFileWritesTelemetrySampleRate(float sampleRate)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                TelemetrySampleRate = sampleRate,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
 
-             var lines = File.ReadAllLines(_initializationFilePath);
-             var sampleTelemetryLines = lines.Where(l => l.Contains("telemetrySampleRate ="));
-             var telemetryLines = sampleTelemetryLines as string[] ?? sampleTelemetryLines.ToArray();
-             Assert.AreEqual(1, telemetryLines.Length);
-             Assert.AreEqual($"rumConfig.telemetrySampleRate = {sampleRate}", telemetryLines.First().Trim());
-         }
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var sampleTelemetryLines = lines.Where(l => l.Contains("telemetrySampleRate ="));
+            var telemetryLines = sampleTelemetryLines as string[] ?? sampleTelemetryLines.ToArray();
+            Assert.AreEqual(1, telemetryLines.Length);
+            Assert.AreEqual($"rumConfig.telemetrySampleRate = {sampleRate}", telemetryLines.First().Trim());
+        }
+
+        [Test]
+        public void GenerateOptionsFileWritesDefaultEnv()
+        {
+            var options = new DatadogConfigurationOptions();
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var envLines = lines.Where(l => l.Contains("env: ")).ToArray();
+            Assert.AreEqual(1, envLines.Length);
+            Assert.AreEqual($"env: \"prod\",", envLines.First().Trim());
+        }
+
+        [Test]
+        public void GenerateOptionsFileWritesEnvFromOptions()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Env = "env-from-options",
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var envLines = lines.Where(l => l.Contains("env: ")).ToArray();
+            Assert.AreEqual(1, envLines.Length);
+            Assert.AreEqual($"env: \"env-from-options\",", envLines.First().Trim());
+        }
 
         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
