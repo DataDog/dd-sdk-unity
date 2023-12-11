@@ -41,7 +41,7 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void GenerateOptionsFileCreatesFile()
         {
-            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, new DatadogConfigurationOptions());
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, new DatadogConfigurationOptions(), null);
 
             File.Exists(_initializationFilePath);
         }
@@ -49,7 +49,7 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void GenerateOptionsFileWritesAutoGenerationWarning()
         {
-            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, new DatadogConfigurationOptions());
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, new DatadogConfigurationOptions(), null);
 
             string fileContents = File.ReadAllText(_initializationFilePath);
             Assert.IsTrue(fileContents.Contains("THIS FILE IS AUTO GENERATED"));
@@ -64,7 +64,7 @@ namespace Datadog.Unity.Editor.iOS
             {
                 BatchSize = batchSize,
             };
-            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
 
             var lines = File.ReadAllLines(_initializationFilePath);
             var batchSizeLines = lines.Where(l => l.Contains("batchSize:")).ToArray();
@@ -82,7 +82,7 @@ namespace Datadog.Unity.Editor.iOS
             {
                 UploadFrequency = uploadFrequency,
             };
-            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
 
             var lines = File.ReadAllLines(_initializationFilePath);
             var uploadFrequencyLines = lines.Where(l => l.Contains("uploadFrequency:")).ToArray();
@@ -99,7 +99,7 @@ namespace Datadog.Unity.Editor.iOS
              {
                  TelemetrySampleRate = sampleRate,
              };
-             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options);
+             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
 
              var lines = File.ReadAllLines(_initializationFilePath);
              var sampleTelemetryLines = lines.Where(l => l.Contains("telemetrySampleRate ="));
@@ -108,7 +108,32 @@ namespace Datadog.Unity.Editor.iOS
              Assert.AreEqual($"rumConfig.telemetrySampleRate = {sampleRate}", telemetryLines.First().Trim());
          }
 
-        [Test]
+         [Test]
+         public void MissingBuildIdDoesNotWriteBuildId()
+         {
+             var options = new DatadogConfigurationOptions();
+             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+             var lines = File.ReadAllLines(_initializationFilePath);
+             var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id:\""));
+             Assert.AreEqual(0, buildIdLines.Count());
+         }
+
+         [Test]
+         public void GeneratedBuildIdDoesNotWritesBuildId()
+         {
+             var uuid = Guid.NewGuid().ToString();
+
+             var options = new DatadogConfigurationOptions();
+             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, uuid);
+
+             var lines = File.ReadAllLines(_initializationFilePath);
+             var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id\":"));
+             Assert.AreEqual(1, buildIdLines.Count());
+             Assert.AreEqual($"\"_dd.build_id\": \"{uuid}\",", buildIdLines.First().Trim());
+         }
+
+         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {
             var options = new DatadogConfigurationOptions();

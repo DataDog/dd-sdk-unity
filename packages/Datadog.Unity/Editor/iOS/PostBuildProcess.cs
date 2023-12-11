@@ -5,8 +5,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
 using UnityEditor.iOS.Xcode.Extensions;
@@ -14,20 +17,23 @@ using UnityEngine;
 
 namespace Datadog.Unity.Editor.iOS
 {
-    public static class PostBuildProcess
+    public class PostBuildProcess : IPostprocessBuildWithReport
     {
         private const string DatadogBlockStart = "// > Datadog Generated Block";
         private const string DatadogBlockEnd = "// < End Datadog Generated Block";
         private static readonly string FrameworkLocation = "Packages/com.datadoghq.unity/Plugins/iOS";
 
-        [PostProcessBuild(1)]
-        public static void OnPostProcessBuild(BuildTarget target, string pathToProject)
+        public int callbackOrder => 1;
+
+        public void OnPostprocessBuild(BuildReport report)
         {
+            var target = report.summary.platform;
             if (target != BuildTarget.iOS)
             {
                 return;
             }
 
+            var pathToProject = report.summary.outputPath;
             Debug.Log("DatadogBuild: OnPostProcessBuild");
 
             try
@@ -48,7 +54,7 @@ namespace Datadog.Unity.Editor.iOS
                 var initializationFile = Path.Combine("MainApp", "DatadogInitialization.swift");
                 var initializationPath = Path.Combine(pathToProject, initializationFile);
                 var datadogOptions = DatadogConfigurationOptionsExtensions.GetOrCreate();
-                GenerateInitializationFile(initializationPath, datadogOptions);
+                GenerateInitializationFile(initializationPath, datadogOptions, report.summary.guid.ToString());
                 var initializationFileGuid = pbxProject.AddFile(initializationFile, initializationFile, PBXSourceTree.Source);
                 var swiftVersion = pbxProject.GetBuildPropertyForAnyConfig(mainTarget, "SWIFT_VERSION");
                 if (string.IsNullOrEmpty(swiftVersion))
@@ -58,6 +64,11 @@ namespace Datadog.Unity.Editor.iOS
                 pbxProject.AddFileToBuild(mainTarget, initializationFileGuid);
 
                 AddInitializationToMain(Path.Combine(pathToProject, "MainApp", "main.mm"), datadogOptions);
+
+                if (datadogOptions.OutputSymbols)
+                {
+                    AddSymbolGenAndCopyToProject(pbxProject, SymbolAssemblyBuildProcess.DatadogSymbolsDir);
+                }
 
                 var projectInString = pbxProject.WriteToString();
 
@@ -102,7 +113,7 @@ namespace Datadog.Unity.Editor.iOS
             pbxProject.AddFileToBuildSection(mainTarget, buildPhase, frameworkGuid);
         }
 
-        internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options)
+        internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options, string buildId)
         {
             var sb = new StringBuilder($@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
@@ -115,12 +126,25 @@ import DatadogCrashReporting
 @_cdecl(""initializeDatadog"")
 func initializeDatadog() {{
     Datadog.verbosityLevel = .debug
-    let config = Datadog.Configuration(
+    var config = Datadog.Configuration(
         clientToken: ""{options.ClientToken}"",
         env: ""prod"",
         batchSize: {GetSwiftBatchSize(options.BatchSize)},
         uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)}
     )
+");
+            if (buildId != null)
+            {
+                sb.Append($@"
+    config._internal_mutation {{
+        $0.additionalConfiguration = [
+            ""_dd.build_id"": ""{buildId}""
+        ]
+    }}
+");
+            }
+
+            sb.Append($@"
     Datadog.initialize(with: config, trackingConsent: .pending)
 
     var logsConfig = Logs.Configuration()
@@ -156,6 +180,29 @@ func initializeDatadog() {{
             File.WriteAllText(path, sb.ToString());
         }
 
+        internal static void AddSymbolGenAndCopyToProject(PBXProject pbxProject, string targetDir)
+        {
+            const string CopyPhaseName = "Copy dSYMs for Datadog";
+
+            var mainTarget = pbxProject.GetUnityMainTargetGuid();
+            var frameworkTarget = pbxProject.GetUnityFrameworkTargetGuid();
+
+            pbxProject.SetBuildProperty(mainTarget, "DEBUG_INFORMATION_FORMAT", "dwarf-with-dsym");
+            pbxProject.SetBuildProperty(frameworkTarget, "DEBUG_INFORMATION_FORMAT", "dwarf-with-dsym");
+
+            var buildPhases = pbxProject.GetAllBuildPhasesForTarget(mainTarget);
+            if (buildPhases.Any(buildPhase => pbxProject.GetBuildPhaseName(buildPhase) == CopyPhaseName))
+            {
+                return;
+            }
+
+            var copyDsymScript = new StringBuilder(@$"
+cd ""$BUILT_PRODUCTS_DIR""
+find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyBuildProcess.DatadogSymbolsDir}/"" ';'
+");
+
+            pbxProject.AddShellScriptBuildPhase(mainTarget, CopyPhaseName, "/bin/bash", copyDsymScript.ToString());
+        }
 
         internal static void AddInitializationToMain(string pathToMain, DatadogConfigurationOptions options)
         {
