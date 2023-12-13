@@ -3,18 +3,29 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.Android;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace Datadog.Unity.Editor
 {
-    public class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport
+    public class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
     {
         public const string DatadogSymbolsDir = "datadogSymbols";
 
+        // Relative to the gradle output directory
+        private static readonly List<string> AndroidLineNumberMappingsLocations = new ()
+        {
+            "../../IL2CppBackup/il2cppOutput/Symbols/LineNumberMappings.json",
+            "src/main/il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json",
+        };
+        private const string AndroidLineNumberMappingsOutputPath = "build/symbols";
+
+        // Relative to the output directory
         private const string IosLineNumberMappingsLocation =
             "Il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json";
 
@@ -43,6 +54,43 @@ namespace Datadog.Unity.Editor
                     default:
                         break;
                 }
+            }
+        }
+
+        public void OnPostGenerateGradleAndroidProject(string path)
+        {
+            bool foundFile = false;
+            try
+            {
+                // Find the line number mapping file and copy it to the proper location
+                // for the Datadog Gradle plugin to find
+                foreach (var mappingLocation in AndroidLineNumberMappingsLocations)
+                {
+                    var mappingsSrcPath = Path.Join(path, mappingLocation);
+                    if (File.Exists(mappingsSrcPath))
+                    {
+                        var mappingsDestPath = Path.Join(path, AndroidLineNumberMappingsOutputPath);
+                        if (!Directory.Exists(mappingsDestPath))
+                        {
+                            Directory.CreateDirectory(mappingsDestPath);
+                        }
+
+                        Debug.Log("Copying IL2CPP mappings file...");
+                        File.Copy(mappingsSrcPath, mappingsDestPath);
+                        foundFile = true;
+                        break;
+                    }
+                }
+
+                if (!foundFile)
+                {
+                    Debug.LogWarning("Could not find IL2CPP mappings file.");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Failed to copy IL2CPP mappings file");
+                Debug.LogException(e);
             }
         }
 
