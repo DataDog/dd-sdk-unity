@@ -15,7 +15,12 @@ namespace Datadog.Unity.Editor
 {
     public class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
     {
-        public const string DatadogSymbolsDir = "datadogSymbols";
+        internal const string DatadogSymbolsDir = "datadogSymbols";
+        internal const string AndroidLineNumberMappingsOutputPath = "build/symbols";
+
+        // Relative to the output directory
+        internal const string IosLineNumberMappingsLocation =
+            "Il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json";
 
         // Relative to the gradle output directory
         private static readonly List<string> AndroidLineNumberMappingsLocations = new ()
@@ -23,42 +28,38 @@ namespace Datadog.Unity.Editor
             "../../IL2CppBackup/il2cppOutput/Symbols/LineNumberMappings.json",
             "src/main/il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json",
         };
-        private const string AndroidLineNumberMappingsOutputPath = "build/symbols";
 
-        // Relative to the output directory
-        private const string IosLineNumberMappingsLocation =
-            "Il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json";
 
         // Make sure this is the last possible thing that's run
         public int callbackOrder => int.MaxValue;
 
+        private IBuildFileSystemProxy _fileSystemProxy = new DefaultBuildFileSystemProxy();
+
+        internal IBuildFileSystemProxy fileSystemProxy
+        {
+            get => _fileSystemProxy;
+            set => _fileSystemProxy = value;
+        }
+
         public void OnPostprocessBuild(BuildReport report)
         {
             var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
-            if (options.Enabled && options.OutputSymbols)
-            {
-                var symbolsDir = Path.Join(report.summary.outputPath, DatadogSymbolsDir);
-                if (!Directory.Exists(symbolsDir))
-                {
-                    Directory.CreateDirectory(symbolsDir);
-                }
-
-                var buildIdPath = Path.Join(symbolsDir, "build_id");
-                File.WriteAllText(buildIdPath, report.summary.guid.ToString());
-
-                switch (report.summary.platformGroup)
-                {
-                    case BuildTargetGroup.iOS:
-                        CopyIosSymbolFiles(report);
-                        break;
-                    default:
-                        break;
-                }
-            }
+            CopySymbols(options, report.summary.platformGroup, report.summary.guid.ToString(), report.summary.outputPath);
         }
 
         public void OnPostGenerateGradleAndroidProject(string path)
         {
+            var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
+            AndroidCopyMappingFile(options, path);
+        }
+
+        internal void AndroidCopyMappingFile(DatadogConfigurationOptions options, string path)
+        {
+            if (!options.Enabled || !options.OutputSymbols)
+            {
+                return;
+            }
+
             bool foundFile = false;
             try
             {
@@ -67,16 +68,16 @@ namespace Datadog.Unity.Editor
                 foreach (var mappingLocation in AndroidLineNumberMappingsLocations)
                 {
                     var mappingsSrcPath = Path.Join(path, mappingLocation);
-                    if (File.Exists(mappingsSrcPath))
+                    if (_fileSystemProxy.FileExists(mappingsSrcPath))
                     {
                         var mappingsDestPath = Path.Join(path, AndroidLineNumberMappingsOutputPath);
-                        if (!Directory.Exists(mappingsDestPath))
+                        if (!_fileSystemProxy.DirectoryExists(mappingsDestPath))
                         {
-                            Directory.CreateDirectory(mappingsDestPath);
+                            _fileSystemProxy.CreateDirectory(mappingsDestPath);
                         }
 
                         Debug.Log("Copying IL2CPP mappings file...");
-                        File.Copy(mappingsSrcPath, mappingsDestPath);
+                        _fileSystemProxy.CopyFile(mappingsSrcPath, mappingsDestPath);
                         foundFile = true;
                         break;
                     }
@@ -94,14 +95,44 @@ namespace Datadog.Unity.Editor
             }
         }
 
-        private void CopyIosSymbolFiles(BuildReport report)
+        internal void CopySymbols(DatadogConfigurationOptions options, BuildTargetGroup platformGroup, string buildGuid, string outputPath)
         {
-            var mappingsSrcPath = Path.Join(report.summary.outputPath, IosLineNumberMappingsLocation);
-            var mappingsDestPath = Path.Join(report.summary.outputPath, DatadogSymbolsDir, "LineNumberMappings.json");
-            if (File.Exists(mappingsSrcPath))
+            if (options.Enabled && options.OutputSymbols)
+            {
+                // Only iOS for now, but might change in the future
+                var shouldOutputBuildId = platformGroup == BuildTargetGroup.iOS;
+
+                if (shouldOutputBuildId)
+                {
+                    var symbolsDir = Path.Join(outputPath, DatadogSymbolsDir);
+                    if (!_fileSystemProxy.DirectoryExists(symbolsDir))
+                    {
+                        _fileSystemProxy.CreateDirectory(symbolsDir);
+                    }
+
+                    var buildIdPath = Path.Join(symbolsDir, "build_id");
+                    _fileSystemProxy.WriteAllText(buildIdPath, buildGuid);
+                }
+
+                switch (platformGroup)
+                {
+                    case BuildTargetGroup.iOS:
+                        CopyIosSymbolFiles(outputPath);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        private void CopyIosSymbolFiles(string outputPath)
+        {
+            var mappingsSrcPath = Path.Join(outputPath, IosLineNumberMappingsLocation);
+            var mappingsDestPath = Path.Join(outputPath, DatadogSymbolsDir, "LineNumberMappings.json");
+            if (_fileSystemProxy.FileExists(mappingsSrcPath))
             {
                 Debug.Log("Copying IL2CPP mappings file...");
-                File.Copy(mappingsSrcPath, mappingsDestPath);
+                _fileSystemProxy.CopyFile(mappingsSrcPath, mappingsDestPath);
             }
             else
             {
