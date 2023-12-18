@@ -45,10 +45,16 @@ namespace Datadog.Unity.Android
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
             _datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
 
+            var environment = options.Environment;
+            if (environment is null or "")
+            {
+                environment = "prod";
+            }
+
             using var configBuilder = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Configuration$Builder",
                 options.ClientToken,
-                "prod",
+                environment,
                 string.Empty, // Variant Name
                 null // Service Name
             );

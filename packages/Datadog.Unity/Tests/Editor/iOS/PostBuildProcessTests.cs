@@ -136,10 +136,37 @@ namespace Datadog.Unity.Editor.iOS
 
             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, uuid);
 
-            var lines = File.ReadAllLines(_initializationFilePath);
+			var lines = File.ReadAllLines(_initializationFilePath);
             var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id\":"));
             Assert.AreEqual(1, buildIdLines.Count());
             Assert.AreEqual($"\"_dd.build_id\": \"{uuid}\"", buildIdLines.First().Trim());
+		}
+
+		[Test]
+        public void GenerateOptionsFileWritesDefaultEnv()
+        {
+            var options = new DatadogConfigurationOptions();
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var envLines = lines.Where(l => l.Contains("env: ")).ToArray();
+            Assert.AreEqual(1, envLines.Length);
+            Assert.AreEqual($"env: \"prod\",", envLines.First().Trim());
+        }
+
+        [Test]
+        public void GenerateOptionsFileWritesEnvFromOptions()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Env = "env-from-options",
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var envLines = lines.Where(l => l.Contains("env: ")).ToArray();
+            Assert.AreEqual(1, envLines.Length);
+            Assert.AreEqual($"env: \"env-from-options\",", envLines.First().Trim());
         }
 
         [Test]

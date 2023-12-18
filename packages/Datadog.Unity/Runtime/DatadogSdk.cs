@@ -25,6 +25,7 @@ namespace Datadog.Unity
 
         private DatadogSdk()
         {
+            DefaultLogger = new DdNoOpLogger();
         }
 
         public DdLogger DefaultLogger
@@ -87,7 +88,7 @@ namespace Datadog.Unity
                 _resourceTrackingHelper = new ResourceTrackingHelper(options);
 
                 var loggingOptions = new DatadogLoggingOptions();
-                DefaultLogger = _platform.CreateLogger(loggingOptions, _worker);
+                DefaultLogger = CreateLogger(loggingOptions);
                 if (options.ForwardUnityLogs)
                 {
                     _logHandler = new (DefaultLogger);

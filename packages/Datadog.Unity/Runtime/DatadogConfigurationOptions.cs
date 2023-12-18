@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Datadog.Unity
 {
@@ -134,6 +135,7 @@ namespace Datadog.Unity
         public bool OutputSymbols;
         public string ClientToken;
         public DatadogSite Site;
+        public string Env;
         public string CustomEndpoint;
         public LogType DefaultLoggingLevel;
         public BatchSize BatchSize;
