@@ -132,6 +132,7 @@ namespace Datadog.Unity
 #pragma warning disable SA1401
 
         public bool Enabled;
+        public bool OutputSymbols;
         public string ClientToken;
         public DatadogSite Site;
         public string Env;

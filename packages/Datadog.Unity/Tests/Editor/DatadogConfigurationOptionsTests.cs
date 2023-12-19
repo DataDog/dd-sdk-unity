@@ -44,6 +44,7 @@ namespace Datadog.Unity.Editor.Tests
             var options = DatadogConfigurationOptionsExtensions.GetOrCreate(_assetPath);
 
             Assert.IsTrue(options.Enabled);
+            Assert.IsFalse(options.OutputSymbols);
             Assert.IsEmpty(options.ClientToken);
             Assert.IsEmpty(options.Env);
             Assert.AreEqual(options.Site, DatadogSite.Us1);

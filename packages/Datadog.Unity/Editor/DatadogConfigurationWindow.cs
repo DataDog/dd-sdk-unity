@@ -40,6 +40,11 @@ namespace Datadog.Unity.Editor
             _options.Enabled = EditorGUILayout.ToggleLeft(
                 new GUIContent("Enable Datadog", "Whether the Datadog Plugin should be enabled or not."),
                 _options.Enabled);
+            _options.OutputSymbols = EditorGUILayout.ToggleLeft(
+                new GUIContent(
+                    "Output Symbol Files",
+                    "Whether the Datadog Plugin should output symbol files for crash reporting."),
+                _options.OutputSymbols);
 
             _options.ClientToken = EditorGUILayout.TextField("Client Token", _options.ClientToken);
             _options.Env = EditorGUILayout.TextField("Env", _options.Env);
