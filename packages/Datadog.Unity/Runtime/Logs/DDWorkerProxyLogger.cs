@@ -15,7 +15,7 @@ namespace Datadog.Unity.Logs
         private readonly DdLogger _logger;
 
         public DdWorkerProxyLogger(DatadogWorker worker, DdLogger logger)
-            : base(DdLogLevel.Debug, 100.0f)    // Prevent double sampling
+            : base(DdLogLevel.Debug, 100.0f) // Prevent double sampling
         {
             _worker = worker;
             _logger = logger;

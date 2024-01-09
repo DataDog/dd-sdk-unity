@@ -141,7 +141,11 @@ func initializeDatadog() {{
         uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)}
     )
 ");
-            var additionalConfigurationItems = new List<string>();
+            var additionalConfigurationItems = new List<string>()
+            {
+                $"           \"{DatadogSdk.ConfigKeys.Source}\": \"unity\"",
+            };
+
             if (buildId != null)
             {
                 additionalConfigurationItems.Add($"            \"{DatadogSdk.ConfigKeys.BuildId}\": \"{buildId}\"");

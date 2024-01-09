@@ -35,6 +35,14 @@ namespace Datadog.Unity.Tests.Integration.Logging
             var serverLog = task.Result;
             var logs = LogDecoder.LogsFromMockServer(serverLog);
 
+            foreach (var log in serverLog)
+            {
+                foreach (var request in log.Requests)
+                {
+                    Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
+                }
+            }
+
             Assert.AreEqual(5, logs.Count);
 
             var debugLog = logs[0];

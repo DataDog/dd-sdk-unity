@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json.Linq;
@@ -37,6 +38,11 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             yield return new WaitUntil(() => task.IsCompleted);
             var serverLog = task.Result;
+            foreach (var log in serverLog)
+            {
+                VerifyCommonTags(log);
+            }
+
             var sessions = RumDecoderHelpers.RumSessionsFromEvents(
                 RumDecoderHelpers.RumEventsFromMockServer(serverLog));
 
@@ -104,6 +110,14 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual(visitView.View.Name, "EmptyScene");
             Assert.IsNotNull(visitView.Attributes["is_sub_scene"].Value<bool>());
             Assert.AreEqual(true, visitView.Attributes["is_loaded"].Value<bool>());
+        }
+
+        private void VerifyCommonTags(MockServerLog log)
+        {
+            foreach (var request in log.Requests)
+            {
+                Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
+            }
         }
     }
 

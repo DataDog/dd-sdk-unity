@@ -9,10 +9,10 @@ namespace Datadog.Unity.Rum
 {
     internal enum TraceIdRepresentation
     {
-        dec,
-        hex,
-        hex16Chars,
-        hex32Chars,
+        Dec,
+        Hex,
+        Hex16Chars,
+        Hex32Chars,
     }
 
     // A Uint128 value for a trace ID. This is held as two UInt64s,
@@ -32,7 +32,7 @@ namespace Datadog.Unity.Rum
 
         public override string ToString()
         {
-            return ToString(TraceIdRepresentation.dec);
+            return ToString(TraceIdRepresentation.Dec);
         }
 
         public string ToString(TraceIdRepresentation representation)
@@ -40,15 +40,15 @@ namespace Datadog.Unity.Rum
             switch (representation)
             {
                 default:
-                case TraceIdRepresentation.dec:
+                case TraceIdRepresentation.Dec:
                     var bigInteger = (BigInteger)_high << 64 | _low;
                     return bigInteger.ToString();
 
-                case TraceIdRepresentation.hex:
-                case TraceIdRepresentation.hex16Chars:
-                case TraceIdRepresentation.hex32Chars:
+                case TraceIdRepresentation.Hex:
+                case TraceIdRepresentation.Hex16Chars:
+                case TraceIdRepresentation.Hex32Chars:
                     string hexString;
-                    if (_high > 0 && representation != TraceIdRepresentation.hex16Chars)
+                    if (_high > 0 && representation != TraceIdRepresentation.Hex16Chars)
                     {
                         hexString = $"{_high:X}{_low:X16}";
                     }
@@ -57,12 +57,12 @@ namespace Datadog.Unity.Rum
                         hexString = $"{_low:X}";
                     }
 
-                    if (representation == TraceIdRepresentation.hex16Chars)
+                    if (representation == TraceIdRepresentation.Hex16Chars)
                     {
                         // Pad to 16 characters and truncate, just in case high was actually set
                         hexString = hexString.PadLeft(16, '0');
                     }
-                    else if (representation == TraceIdRepresentation.hex32Chars)
+                    else if (representation == TraceIdRepresentation.Hex32Chars)
                     {
                         hexString = hexString.PadLeft(32, '0');
                     }
@@ -75,6 +75,7 @@ namespace Datadog.Unity.Rum
         {
             byte[] bytes = new byte[sizeof(ulong)];
             _random.NextBytes(bytes);
+
             // Mask out the top bit
             bytes[7] &= 0x7f;
             var low = BitConverter.ToUInt64(bytes);

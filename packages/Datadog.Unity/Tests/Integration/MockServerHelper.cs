@@ -4,10 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
@@ -83,6 +85,37 @@ namespace Datadog.Unity.Tests.Integration
     public class MockServerRequest
     {
         public string Method { get; set; }
+
+        public string QueryString { get; set; }
+
+        public NameValueCollection QueryParameters
+        {
+            get => HttpUtility.ParseQueryString(QueryString);
+        }
+
+        public Dictionary<string, string> Tags
+        {
+            get
+            {
+                var tagDict = new Dictionary<string, string>();
+                var tagsValue = QueryParameters["tags"] ?? string.Empty;
+                foreach (var tag in QueryString.Split(","))
+                {
+                    var colonIndex = tag.IndexOf(":", StringComparison.Ordinal);
+                    if (colonIndex == -1)
+                    {
+                        tagDict[tag] = string.Empty;
+                    }
+                    else
+                    {
+                        var parts = (tag[..colonIndex], tag[(colonIndex + 1) ..]);
+                        tagDict[parts.Item1] = parts.Item2;
+                    }
+                }
+
+                return tagDict;
+            }
+        }
 
         public List<MockServerSchema> Schemas { get; set; }
     }

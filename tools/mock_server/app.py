@@ -41,12 +41,12 @@ class GenericRequest:
     def __init__(self, r: Request):
         self.method = r.method
         self.path = r.path
-        self.query_string = f'?{request.query_string.decode("utf-8")}' if request.query_string else ''
+        self.query_string = f'?{r.query_string.decode("utf-8")}' if r.query_string else ''
         self.date = datetime.datetime.now()
         self.content_type = r.content_type
         self.content_length = r.content_length
         self.data_as_text = r.get_data(as_text=True)
-        self.schemas = schemas_for_request(request)
+        self.schemas = schemas_for_request(r)
 
     def follow_url(self, schema: Schema):
         return url_for(

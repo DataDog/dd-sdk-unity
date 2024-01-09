@@ -63,9 +63,12 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
 
-            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
+            var additionalConfig = new Dictionary<string, object>()
+            {
+                { DatadogSdk.SourceConfigKey, "unity" },
+            };
 
-            var additionalConfig = new Dictionary<string, object>();
+            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
             if (sdkVersion != null)
             {
                 additionalConfig.Add(DatadogSdk.ConfigKeys.SdkVersion, sdkVersion);
@@ -73,15 +76,14 @@ namespace Datadog.Unity.Android
 
             configBuilder.Call<AndroidJavaObject>("setAdditionalConfiguration", DatadogAndroidHelpers.DictionaryToJavaMap(additionalConfig));
 
-
+#if DEBUG
             if (options.CustomEndpoint != string.Empty && options.CustomEndpoint.StartsWith("http://"))
             {
-#if DEBUG
-            using var internalProxyClass = new AndroidJavaClass("com.datadog.android._InternalProxy");
-            using var proxyInstance = internalProxyClass.GetStatic<AndroidJavaObject>("Companion");
-            proxyInstance.Call<AndroidJavaObject>("allowClearTextHttp", configBuilder);
-#endif
+                using var internalProxyClass = new AndroidJavaClass("com.datadog.android._InternalProxy");
+                using var proxyInstance = internalProxyClass.GetStatic<AndroidJavaObject>("Companion");
+                proxyInstance.Call<AndroidJavaObject>("allowClearTextHttp", configBuilder);
             }
+#endif
 
             using var configuration = configBuilder.Call<AndroidJavaObject>("build");
             _datadogClass.CallStatic<AndroidJavaObject>(

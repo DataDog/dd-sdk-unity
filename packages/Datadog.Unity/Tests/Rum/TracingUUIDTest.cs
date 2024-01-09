@@ -47,7 +47,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = new TracingUuid(high, low);
 
             // When
-            var str = uuid.ToString(TraceIdRepresentation.hex);
+            var str = uuid.ToString(TraceIdRepresentation.Hex);
 
             // Then
             Assert.AreEqual(expected, str);
@@ -62,7 +62,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = new TracingUuid(high, low);
 
             // When
-            var str = uuid.ToString(TraceIdRepresentation.hex16Chars);
+            var str = uuid.ToString(TraceIdRepresentation.Hex16Chars);
 
             // Then
             Assert.AreEqual(expected, str);
@@ -77,7 +77,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = new TracingUuid(high, low);
 
             // When
-            var str = uuid.ToString(TraceIdRepresentation.hex32Chars);
+            var str = uuid.ToString(TraceIdRepresentation.Hex32Chars);
 
             // Then
             Assert.AreEqual(expected, str);
@@ -94,7 +94,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = TracingUuid.Create63Bit();
 
             // Then
-            var str = uuid.ToString(TraceIdRepresentation.hex);
+            var str = uuid.ToString(TraceIdRepresentation.Hex);
             Assert.Less(str.Length, 17);
             if (str.Length == 16)
             {
@@ -114,7 +114,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = TracingUuid.Create64Bit();
 
             // Then
-            var str = uuid.ToString(TraceIdRepresentation.hex);
+            var str = uuid.ToString(TraceIdRepresentation.Hex);
             Assert.Less(str.Length, 17);
         }
 
@@ -129,7 +129,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = TracingUuid.Create64Bit();
 
             // Then
-            var str = uuid.ToString(TraceIdRepresentation.hex);
+            var str = uuid.ToString(TraceIdRepresentation.Hex);
             Assert.Less(str.Length, 63);
             Assert.Greater(str.Length, 0);
         }

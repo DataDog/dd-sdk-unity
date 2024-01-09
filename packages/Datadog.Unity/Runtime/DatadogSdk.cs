@@ -17,6 +17,8 @@ namespace Datadog.Unity
     {
         public static readonly DatadogSdk Instance = new();
 
+        internal const string SourceConfigKey = "_dd.source";
+
         private IDatadogPlatform _platform = new DatadogNoOpPlatform();
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
