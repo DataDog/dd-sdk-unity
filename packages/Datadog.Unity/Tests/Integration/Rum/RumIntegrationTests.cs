@@ -4,12 +4,10 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;

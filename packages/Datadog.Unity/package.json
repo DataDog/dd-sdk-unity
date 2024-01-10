@@ -1,9 +1,9 @@
 {
   "name": "com.datadoghq.unity",
-  "version": "0.0.1",
+  "version": "0.8.0",
   "displayName": "Datadog Unity",
-  "description": "Data Plugin for Unity",
-  "unity": "2019.4",
+  "description": "Datadog Plugin for Unity",
+  "unity": "2022.3",
   "license": "Apache 2.0",
   "keywords": [
     "logging",
@@ -11,6 +11,7 @@
   ],
   "type": "library",
   "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.2.1"
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.google.external-dependency-manager": "1.2.178"
   }
 }

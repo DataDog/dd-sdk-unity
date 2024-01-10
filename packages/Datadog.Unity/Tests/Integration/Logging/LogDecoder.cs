@@ -3,8 +3,6 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Tests.Integration.Logging
 {

@@ -5,7 +5,8 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1"
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
+        "com.google.external-dependency-manager": "1.2.178"
       }
     },
     "com.github-glitchenzo.nugetforunity": {
@@ -16,10 +17,11 @@
       "hash": "1360823f15ed590204b960472df505357c1bb929"
     },
     "com.google.external-dependency-manager": {
-      "version": "file:../../../dependencies/com.google.external-dependency-manager-1.2.175.tgz",
-      "depth": 0,
-      "source": "local-tarball",
-      "dependencies": {}
+      "version": "1.2.178",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
     },
     "com.unity.2d.animation": {
       "version": "9.0.3",
