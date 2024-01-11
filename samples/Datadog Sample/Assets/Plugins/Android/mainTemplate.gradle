@@ -1,21 +1,3 @@
-// Android Resolver Repos Start
-([rootProject] + (rootProject.subprojects as List)).each { project ->
-    project.repositories {
-        def unityProjectPath = $/file:///**DIR_UNITYPROJECT**/$.replace("\\", "/")
-        maven {
-            url "https://maven.google.com"
-        }
-        maven {
-            url "https://repo.maven.apache.org/maven2" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
-        }
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
-        }
-        mavenLocal()
-        mavenCentral()
-    }
-}
-// Android Resolver Repos End
 apply plugin: 'com.android.library'
 **APPLY_PLUGINS**
 

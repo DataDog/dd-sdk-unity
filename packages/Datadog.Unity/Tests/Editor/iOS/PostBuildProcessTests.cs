@@ -1,6 +1,7 @@
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
+#if UNITY_EDITOR_OSX
 
 using System;
 using System.Collections.Generic;
@@ -172,6 +173,8 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {
+            var importString = "#import";
+
             var options = new DatadogConfigurationOptions()
             {
                 Enabled = true
@@ -181,8 +184,8 @@ namespace Datadog.Unity.Editor.iOS
 
             string fileContents = File.ReadAllText(_mainFilePath);
 
-            var includeBlock = @"// > Datadog Generated Block
-#import ""DatadogOptions.h""
+            var includeBlock = @$"// > Datadog Generated Block
+{importString} ""DatadogOptions.h""
 // < End Datadog Generated Block";
 
             var initializationBlock = @"        // > Datadog Generated Block
@@ -206,3 +209,5 @@ namespace Datadog.Unity.Editor.iOS
         }
     }
 }
+
+#endif
