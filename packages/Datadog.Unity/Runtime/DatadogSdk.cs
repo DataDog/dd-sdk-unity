@@ -87,7 +87,10 @@ namespace Datadog.Unity
                 _internalLogger = new InternalLogger(_worker, _platform);
                 _resourceTrackingHelper = new ResourceTrackingHelper(options);
 
-                var loggingOptions = new DatadogLoggingOptions();
+                var loggingOptions = new DatadogLoggingOptions()
+                {
+                    RemoteLogThreshold = DdLogHelpers.LogTypeToDdLogLevel(options.RemoteLogThreshold),
+                };
                 DefaultLogger = CreateLogger(loggingOptions);
                 if (options.ForwardUnityLogs)
                 {

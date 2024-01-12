@@ -19,16 +19,22 @@ namespace Datadog.Unity.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
 
                 options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
+
+                // Base Config
                 options.ClientToken = string.Empty;
                 options.Enabled = true;
                 options.Env = string.Empty;
                 options.OutputSymbols = false;
                 options.Site = DatadogSite.Us1;
                 options.CustomEndpoint = string.Empty;
-                options.DefaultLoggingLevel = LogType.Log;
                 options.BatchSize = BatchSize.Medium;
                 options.UploadFrequency = UploadFrequency.Average;
+
+                // Logging
                 options.ForwardUnityLogs = false;
+                options.RemoteLogThreshold = LogType.Log;
+
+                // Rum
                 options.RumEnabled = false;
                 options.AutomaticSceneTracking = true;
                 options.RumApplicationId = string.Empty;

@@ -12,6 +12,7 @@ namespace Datadog.Unity.Editor
 {
     public class DatadogConfigurationWindow : SettingsProvider
     {
+        private bool _showAdvancedOptions;
         private DatadogConfigurationOptions _options;
 
         public DatadogConfigurationWindow(string path, SettingsScope scopes, IEnumerable<string> keywords = null)
@@ -52,13 +53,16 @@ namespace Datadog.Unity.Editor
             _options.CustomEndpoint = EditorGUILayout.TextField("Custom Endpoint", _options.CustomEndpoint);
             _options.BatchSize = (BatchSize)EditorGUILayout.EnumPopup("Batch Size", _options.BatchSize);
             _options.UploadFrequency = (UploadFrequency)EditorGUILayout.EnumPopup("Upload Frequency", _options.UploadFrequency);
+            _options.CrashReportingEnabled = EditorGUILayout.ToggleLeft(
+                new GUIContent("Enable Crash Reporting", "Whether to report native crashes to Datadog."),
+                _options.CrashReportingEnabled);
 
             EditorGUILayout.Space();
             GUILayout.Label("Logging", EditorStyles.boldLabel);
             _options.ForwardUnityLogs = EditorGUILayout.ToggleLeft(
                 new GUIContent("Forward Unity Logs", "Whether calls to Debug.Log functions should be forwarded to Datadog."),
                 _options.ForwardUnityLogs);
-            _options.DefaultLoggingLevel = (LogType)EditorGUILayout.EnumPopup("Default Logging Level", _options.DefaultLoggingLevel);
+            _options.RemoteLogThreshold = (LogType)EditorGUILayout.EnumPopup("Remote Log Threshold", _options.RemoteLogThreshold);
 
             EditorGUILayout.Space();
             GUILayout.Label("RUM Options", EditorStyles.boldLabel);
@@ -70,14 +74,14 @@ namespace Datadog.Unity.Editor
                 new GUIContent("Enable Automatic Scene Tracking", "Automatically start Datadog Views when Unity Scenes change"),
                 _options.AutomaticSceneTracking);
             _options.RumApplicationId = EditorGUILayout.TextField("RUM Application Id", _options.RumApplicationId);
-            _options.TelemetrySampleRate =
-                EditorGUILayout.FloatField("Telemetry Sample Rate", _options.TelemetrySampleRate);
-            _options.TelemetrySampleRate = Math.Clamp(_options.TelemetrySampleRate, 0.0f, 100.0f);
-
-            EditorGUILayout.Space();
+            _options.SessionSampleRate =
+                EditorGUILayout.FloatField("Session Sample Rate", _options.SessionSampleRate);
+            _options.SessionSampleRate = Math.Clamp(_options.SessionSampleRate, 0.0f, 100.0f);
             _options.TraceSampleRate =
                 EditorGUILayout.FloatField("Trace Sample Rate", _options.TraceSampleRate);
             _options.TraceSampleRate = Math.Clamp(_options.TraceSampleRate, 0.0f, 100.0f);
+
+            GUILayout.Space(12.0f);
 
             GUILayout.Label("First Party Hosts", EditorStyles.boldLabel);
             int toRemove = -1;
@@ -106,6 +110,16 @@ namespace Datadog.Unity.Editor
                 _options.FirstPartyHosts.Add(new FirstPartyHostOption());
             }
             EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space();
+            _showAdvancedOptions = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvancedOptions, "Advanced RUM Options");
+            if (_showAdvancedOptions)
+            {
+                _options.TelemetrySampleRate =
+                    EditorGUILayout.FloatField("Telemetry Sample Rate", _options.TelemetrySampleRate);
+                _options.TelemetrySampleRate = Math.Clamp(_options.TelemetrySampleRate, 0.0f, 100.0f);
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
 
             EditorGUI.EndDisabledGroup();
         }

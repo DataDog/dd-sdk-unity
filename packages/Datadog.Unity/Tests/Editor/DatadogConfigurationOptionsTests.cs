@@ -43,18 +43,29 @@ namespace Datadog.Unity.Editor.Tests
 
             var options = DatadogConfigurationOptionsExtensions.GetOrCreate(_assetPath);
 
+            // Base Config
             Assert.IsTrue(options.Enabled);
             Assert.IsFalse(options.OutputSymbols);
             Assert.IsEmpty(options.ClientToken);
             Assert.IsEmpty(options.Env);
-            Assert.AreEqual(options.Site, DatadogSite.Us1);
+            Assert.AreEqual( DatadogSite.Us1, options.Site);
             Assert.IsEmpty(options.CustomEndpoint);
-            Assert.AreEqual(options.DefaultLoggingLevel, LogType.Log);
-            Assert.AreEqual(options.BatchSize, BatchSize.Medium);
-            Assert.AreEqual(options.UploadFrequency, UploadFrequency.Average);
+            Assert.AreEqual(BatchSize.Medium, options.BatchSize);
+            Assert.AreEqual(UploadFrequency.Average, options.UploadFrequency);
+            Assert.IsTrue(options.CrashReportingEnabled);
+
+            // Logging
+            Assert.IsFalse(options.ForwardUnityLogs);
+            Assert.AreEqual(LogType.Log, options.RemoteLogThreshold);
+
+            // RUM
             Assert.IsFalse(options.RumEnabled);
-            Assert.IsTrue(options.AutomaticSceneTracking);
             Assert.IsEmpty(options.RumApplicationId);
+            Assert.IsTrue(options.AutomaticSceneTracking);
+            Assert.AreEqual(VitalsUpdateFrequency.Average, options.VitalsUpdateFrequency);
+            Assert.AreEqual(100.0f, options.SessionSampleRate);
+            Assert.AreEqual(20.0f, options.TraceSampleRate);
+            Assert.AreEqual(20.0f, options.TelemetrySampleRate);
         }
     }
 }

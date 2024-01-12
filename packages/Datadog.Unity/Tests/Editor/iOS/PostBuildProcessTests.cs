@@ -93,6 +93,93 @@ namespace Datadog.Unity.Editor.iOS
             Assert.AreEqual($"uploadFrequency: {expectedUploadFrequency}", uploadFrequencyLines.First().Trim());
         }
 
+        [Test]
+        public void GenerateOptionsFileDoesNotWriteCrashReportingIfDisabled()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                CrashReportingEnabled = false
+            };
+
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var crashReportingLines = lines.Where(l => l.Contains("CrashReporting.enable()")).ToArray();
+            Assert.IsEmpty(crashReportingLines);
+        }
+
+        [Test]
+        public void GenerateOptionsFileWritesCrashReportingIfEnabled()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                CrashReportingEnabled = true
+            };
+
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var crashReportingLines = lines.Where(l => l.Contains("CrashReporting.enable()")).ToArray();
+            Assert.AreEqual(1, crashReportingLines.Length);
+        }
+
+        [TestCase(0.0f)]
+        [TestCase(84.0f)]
+        [TestCase(100.0f)]
+        public void GenerateOptionsFileWritesSessionSampleRate(float sampleRate)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                SessionSampleRate = sampleRate,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var sampleSessionRateLines = lines.Where(l => l.Contains("sessionSampleRate ="));
+            var sessionRateLines = sampleSessionRateLines as string[] ?? sampleSessionRateLines.ToArray();
+            Assert.AreEqual(1, sessionRateLines.Length);
+            Assert.AreEqual($"rumConfig.sessionSampleRate = {sampleRate}", sessionRateLines.First().Trim());
+        }
+
+        public void GenerateOptionsFileRemovesVitalsUpdateFrequencyWhenNone()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                VitalsUpdateFrequency = VitalsUpdateFrequency.None
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var uploadFrequencyLines = lines.Where(l => l.Contains("vitalsUpdateFrequency =")).ToArray();
+            Assert.AreEqual(0, uploadFrequencyLines.Length);
+        }
+
+        [TestCase(VitalsUpdateFrequency.Rare, ".rare")]
+        [TestCase(VitalsUpdateFrequency.Average, ".average")]
+        [TestCase(VitalsUpdateFrequency.Frequent, ".frequent")]
+        public void GenerationOptionsFileWritesVitalUpdateFrequency(VitalsUpdateFrequency updateFrequency,
+            string expectedUpdateFrequency)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                VitalsUpdateFrequency = updateFrequency
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var uploadFrequencyLines = lines.Where(l => l.Contains("vitalsUpdateFrequency =")).ToArray();
+            Assert.AreEqual(1, uploadFrequencyLines.Length);
+            Assert.AreEqual($"rumConfig.vitalsUpdateFrequency = {expectedUpdateFrequency}", uploadFrequencyLines.First().Trim());
+        }
+
         [TestCase(0.0f)]
         [TestCase(12.0f)]
         [TestCase(100.0f)]
