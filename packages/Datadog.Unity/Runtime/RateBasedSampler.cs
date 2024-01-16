@@ -4,27 +4,32 @@
 
 using System;
 
-internal class RateBasedSampler {
-    private float _sampleRate;
-    private Random _random = new Random();
-
-    /// <param name="sampleRate">Sample rate should be between 0 and 1.</param>
-    public RateBasedSampler(float sampleRate)
+namespace Datadog.Unity
+{
+    internal class RateBasedSampler
     {
-        _sampleRate = Math.Clamp(sampleRate, 0.0f, 1.0f);
-    }
+        private float _sampleRate;
+        private Random _random = new Random();
 
-    public bool Sample() {
-        if (_sampleRate <= 0.0)
+        /// <param name="sampleRate">Sample rate should be between 0 and 1.</param>
+        public RateBasedSampler(float sampleRate)
         {
-            return false;
+            _sampleRate = Math.Clamp(sampleRate, 0.0f, 1.0f);
         }
 
-        if (_sampleRate >= 1.0)
+        public bool Sample()
         {
-            return true;
-        }
+            if (_sampleRate <= 0.0)
+            {
+                return false;
+            }
 
-        return _random.NextDouble() <= _sampleRate;
+            if (_sampleRate >= 1.0)
+            {
+                return true;
+            }
+
+            return _random.NextDouble() <= _sampleRate;
+        }
     }
 }

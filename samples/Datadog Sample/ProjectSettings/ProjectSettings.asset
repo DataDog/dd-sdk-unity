@@ -847,7 +847,7 @@ PlayerSettings:
   suppressCommonWarnings: 1
   allowUnsafeCode: 0
   useDeterministicCompilation: 1
-  additionalIl2CppArgs: ' --emit-source-mapping'
+  additionalIl2CppArgs: ' '
   scriptingRuntimeVersion: 1
   gcIncremental: 1
   gcWBarrierValidation: 0

@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
-using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Pool;
 

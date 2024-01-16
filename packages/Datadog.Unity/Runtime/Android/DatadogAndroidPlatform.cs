@@ -45,7 +45,7 @@ namespace Datadog.Unity.Android
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
             _datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
 
-            var environment = options.Environment;
+            var environment = options.Env;
             if (environment is null or "")
             {
                 environment = "prod";
