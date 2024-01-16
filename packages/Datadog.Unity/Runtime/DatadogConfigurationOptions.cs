@@ -111,12 +111,12 @@ namespace Datadog.Unity
     public enum VitalsUpdateFrequency
     {
         /// <summary>
-        /// Disable vitals collection.
+        /// Disable mobile vitals collection.
         /// </summary>
         None,
 
         /// <summary>
-        /// Collect vials every ~100ms.
+        /// Collect mobile vitals every ~100ms.
         /// </summary>
         Frequent,
 
