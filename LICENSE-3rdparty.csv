@@ -7,4 +7,4 @@ test,Castle.Core,Apache-2.0,Copyright 2004-2021 Castle Project
 build,Microsoft.Unity.Analyzers,MIT,Copyright (c) Microsoft Corporation
 test,NSubstitute,BSD 3-Clause,Copyright (c) 2009 Anthony Egerton and David Tchepak
 build,NSubstitute.Analyzers.CSharp,MIT,Copyright (c) 2018 Tomasz Podolak
-build,StyleCop.Analyzsers,MIT,Copyright (c) Tunnel Vision Laboratories, LLC
+build,StyleCop.Analyzsers,MIT,"Copyright (c) Tunnel Vision Laboratories, LLC"
