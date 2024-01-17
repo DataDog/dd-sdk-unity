@@ -99,15 +99,25 @@ namespace Datadog.Unity.Android
                 }
 
                 rumConfigBuilder.Call<AndroidJavaObject>("useViewTrackingStrategy", new object[] { null });
+                rumConfigBuilder.Call<AndroidJavaObject>("setSessionSampleRate", options.SessionSampleRate);
                 rumConfigBuilder.Call<AndroidJavaObject>("setTelemetrySampleRate", options.TelemetrySampleRate);
+
+                if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
+                {
+                    using var updateFrequency = DatadogConfigurationHelpers.GetVitalsUpdateFrequency(options.VitalsUpdateFrequency);
+                    rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
+                }
 
                 using var rumConfig = rumConfigBuilder.Call<AndroidJavaObject>("build");
                 using var rumClass = new AndroidJavaClass("com.datadog.android.rum.Rum");
                 rumClass.CallStatic("enable", rumConfig);
             }
 
-            using var crashReportClass = new AndroidJavaClass("com.datadog.android.ndk.NdkCrashReports");
-            crashReportClass.CallStatic("enable");
+            if (options.CrashReportingEnabled)
+            {
+                using var crashReportClass = new AndroidJavaClass("com.datadog.android.ndk.NdkCrashReports");
+                crashReportClass.CallStatic("enable");
+            }
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)

@@ -174,14 +174,23 @@ func initializeDatadog() {{
                     sb.AppendLine($@"    rumConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/rum"")");
                 }
 
+                if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
+                {
+                    sb.AppendLine($"    rumConfig.vitalsUpdateFrequency = {GetSwiftVitalsUpdateFrequency(options.VitalsUpdateFrequency)}");
+                }
+
+                sb.AppendLine($"    rumConfig.sessionSampleRate = {options.SessionSampleRate}");
                 sb.AppendLine($"    rumConfig.telemetrySampleRate = {options.TelemetrySampleRate}");
                 sb.AppendLine("    RUM.enable(with: rumConfig)");
             }
 
-            sb.AppendLine();
-            sb.AppendLine("    CrashReporting.enable()");
-            sb.AppendLine("}");
-            sb.AppendLine();
+            if (options.CrashReportingEnabled)
+            {
+                sb.AppendLine();
+                sb.AppendLine("    CrashReporting.enable()");
+                sb.AppendLine("}");
+                sb.AppendLine();
+            }
 
             File.WriteAllText(path, sb.ToString());
         }
@@ -297,6 +306,18 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
                 UploadFrequency.Rare => ".rare",
                 UploadFrequency.Frequent => ".frequent",
                 _ => ".average",
+            };
+        }
+
+        private static string GetSwiftVitalsUpdateFrequency(VitalsUpdateFrequency uploadFrequency)
+        {
+            return uploadFrequency switch
+            {
+                VitalsUpdateFrequency.None => "nil",
+                VitalsUpdateFrequency.Average => ".average",
+                VitalsUpdateFrequency.Rare => ".rare",
+                VitalsUpdateFrequency.Frequent => ".frequent",
+                _ => "nil",
             };
         }
     }

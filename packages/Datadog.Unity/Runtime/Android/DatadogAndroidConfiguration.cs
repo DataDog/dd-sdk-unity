@@ -52,6 +52,20 @@ namespace Datadog.Unity.Android
             return uploadFrequencyClass.GetStatic<AndroidJavaObject>(sizeName);
         }
 
+        internal static AndroidJavaObject GetVitalsUpdateFrequency(VitalsUpdateFrequency updateFrequency)
+        {
+            string frequencyName = updateFrequency switch
+            {
+                VitalsUpdateFrequency.None => "NEVER",
+                VitalsUpdateFrequency.Frequent => "FREQUENT",
+                VitalsUpdateFrequency.Average => "AVERAGE",
+                VitalsUpdateFrequency.Rare => "RARE",
+                _ => "NEVER"
+            };
+            using var updateFrequencyClass = new AndroidJavaClass("com.datadog.android.rum.configuration.VitalsUpdateFrequency");
+            return updateFrequencyClass.GetStatic<AndroidJavaObject>(frequencyName);
+        }
+
         internal static AndroidJavaObject GetTrackingConsent(TrackingConsent consent)
         {
             string consentName = consent switch

@@ -105,6 +105,32 @@ namespace Datadog.Unity
         Pending,
     }
 
+    /// <summary>
+    /// The frequency at which Datadog samples mobile vitals (FPS, CPU Usage, Memory Usage).
+    /// </summary>
+    public enum VitalsUpdateFrequency
+    {
+        /// <summary>
+        /// Disable mobile vitals collection.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Collect mobile vitals every ~100ms.
+        /// </summary>
+        Frequent,
+
+        /// <summary>
+        /// Collect mobile vitals every ~500ms.
+        /// </summary>
+        Average,
+
+        /// <summary>
+        /// Collect mobile vitals every ~1000ms.
+        /// </summary>
+        Rare,
+    }
+
     [Serializable]
     public class FirstPartyHostOption
     {
@@ -131,22 +157,32 @@ namespace Datadog.Unity
         // Field should be private
 #pragma warning disable SA1401
 
+        // Base Config
         public bool Enabled;
         public bool OutputSymbols;
         public string ClientToken;
         public DatadogSite Site;
         public string Env;
         public string CustomEndpoint;
-        public LogType DefaultLoggingLevel;
         public BatchSize BatchSize;
         public UploadFrequency UploadFrequency;
+        public bool CrashReportingEnabled = true;
+
+        // Logging
         public bool ForwardUnityLogs;
+        public LogType RemoteLogThreshold;
+
+        // RUM
         public bool RumEnabled;
         public string RumApplicationId;
         public bool AutomaticSceneTracking;
-        public float TelemetrySampleRate;
+        public VitalsUpdateFrequency VitalsUpdateFrequency = VitalsUpdateFrequency.Average;
+        public float SessionSampleRate = 100.0f;
         public float TraceSampleRate = 20.0f;
         public List<FirstPartyHostOption> FirstPartyHosts = new ();
+
+        // Advanced RUM
+        public float TelemetrySampleRate;
 
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";
 
