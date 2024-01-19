@@ -32,7 +32,7 @@ namespace Datadog.Unity.Editor
 
         public void CopyFile(string sourcePath, string destinationPath)
         {
-            File.Copy(sourcePath, destinationPath);
+            File.Copy(sourcePath, destinationPath, true);
         }
 
         public void CreateDirectory(string path)

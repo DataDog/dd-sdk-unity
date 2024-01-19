@@ -146,6 +146,7 @@ namespace Datadog.Unity.Editor.iOS
             Assert.AreEqual($"rumConfig.sessionSampleRate = {sampleRate}", sessionRateLines.First().Trim());
         }
 
+        [Test]
         public void GenerateOptionsFileRemovesVitalsUpdateFrequencyWhenNone()
         {
             var options = new DatadogConfigurationOptions()
@@ -225,10 +226,29 @@ namespace Datadog.Unity.Editor.iOS
             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, uuid);
 
 			var lines = File.ReadAllLines(_initializationFilePath);
-            var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id\":"));
-            Assert.AreEqual(1, buildIdLines.Count());
-            Assert.AreEqual($"\"_dd.build_id\": \"{uuid}\"", buildIdLines.First().Trim());
+            var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id\":")).ToArray();
+            Assert.AreEqual(1, buildIdLines.Length);
+            Assert.IsTrue(buildIdLines.First().Trim().StartsWith($"\"_dd.build_id\": \"{uuid}\""));
 		}
+
+        [Test]
+        public void ConfigWritesSdkVersion()
+        {
+            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
+            Assert.IsNotNull(sdkVersion);
+
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true
+            };
+
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var sdkVersionLines = lines.Where(l => l.Contains("\"_dd.sdk_version\":")).ToArray();
+            Assert.AreEqual(1, sdkVersionLines.Length);
+            Assert.IsTrue(sdkVersionLines.First().Trim().StartsWith($"\"_dd.sdk_version\": \"{sdkVersion}\""));
+        }
 
 		[Test]
         public void GenerateOptionsFileWritesDefaultEnv()

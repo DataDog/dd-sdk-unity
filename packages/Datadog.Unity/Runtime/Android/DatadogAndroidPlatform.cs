@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -61,6 +62,17 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
+
+            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
+
+            var additionalConfig = new Dictionary<string, object>();
+            if (sdkVersion != null)
+            {
+                additionalConfig.Add(DatadogSdk.ConfigKeys.SdkVersion, sdkVersion);
+            }
+
+            configBuilder.Call<AndroidJavaObject>("setAdditionalConfiguration", DatadogAndroidHelpers.DictionaryToJavaMap(additionalConfig));
+
 
             if (options.CustomEndpoint != string.Empty && options.CustomEndpoint.StartsWith("http://"))
             {
