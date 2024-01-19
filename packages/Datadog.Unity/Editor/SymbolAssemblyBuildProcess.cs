@@ -132,6 +132,10 @@ namespace Datadog.Unity.Editor
             if (_fileSystemProxy.FileExists(mappingsSrcPath))
             {
                 Debug.Log("Copying IL2CPP mappings file...");
+                if (_fileSystemProxy.FileExists(mappingsDestPath))
+                {
+                    _fileSystemProxy.DeleteFile(mappingsDestPath);
+                }
                 _fileSystemProxy.CopyFile(mappingsSrcPath, mappingsDestPath);
             }
             else
