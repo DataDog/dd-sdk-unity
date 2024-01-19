@@ -180,6 +180,11 @@ namespace Datadog.Unity.Android
             telemetry.Call("error", message, stack, kind);
         }
 
+        public void ClearAllData()
+        {
+            _datadogClass.CallStatic("clearAllData");
+        }
+
         private AndroidJavaObject GetApplicationContext()
         {
             using AndroidJavaClass unityPlayer = new("com.unity3d.player.UnityPlayer");

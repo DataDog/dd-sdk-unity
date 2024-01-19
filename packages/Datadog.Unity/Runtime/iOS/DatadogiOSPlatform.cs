@@ -60,6 +60,11 @@ namespace Datadog.Unity.iOS
             Datadog_SendErrorTelemetry(message, stack, kind);
         }
 
+        public void ClearAllData()
+        {
+            Datadog_ClearAllData();
+        }
+
         [DllImport("__Internal")]
         private static extern void Datadog_SetTrackingConsent(int trackingConsent);
 
@@ -68,5 +73,8 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_SendErrorTelemetry(string message, string stack, string kind);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_ClearAllData();
     }
 }

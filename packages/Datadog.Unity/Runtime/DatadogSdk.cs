@@ -70,6 +70,14 @@ namespace Datadog.Unity
             }
         }
 
+        public void ClearAllData()
+        {
+            InternalHelpers.Wrap("ClearAllData", () =>
+            {
+                _platform.ClearAllData();
+            });
+        }
+
         internal static void InitWithPlatform(IDatadogPlatform platform, DatadogConfigurationOptions options)
         {
             Instance.Init(platform, options);

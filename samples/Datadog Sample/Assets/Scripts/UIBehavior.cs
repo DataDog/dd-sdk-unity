@@ -5,6 +5,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Datadog.Unity;
 using Datadog.Unity.Rum;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -54,6 +55,11 @@ public class UIBehavior : MonoBehaviour
     public void BadWebRequest()
     {
         StartCoroutine(DoBadWebRequest());
+    }
+
+    public void ClearAllData()
+    {
+        DatadogSdk.Instance.ClearAllData();
     }
 
     private IEnumerator DoWebRequest()

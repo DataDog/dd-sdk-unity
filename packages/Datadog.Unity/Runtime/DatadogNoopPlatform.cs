@@ -37,5 +37,9 @@ namespace Datadog.Unity
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
         }
+
+        public void ClearAllData()
+        {
+        }
     }
 }
