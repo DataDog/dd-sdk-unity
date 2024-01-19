@@ -121,6 +121,8 @@ namespace Datadog.Unity.Editor.iOS
                 env = "prod";
             }
 
+            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
+
             var sb = new StringBuilder($@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
 import Foundation
@@ -139,16 +141,26 @@ func initializeDatadog() {{
         uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)}
     )
 ");
+            var additionalConfigurationItems = new List<string>();
             if (buildId != null)
             {
-                sb.Append($@"
+                additionalConfigurationItems.Add($"            \"{DatadogSdk.ConfigKeys.BuildId}\": \"{buildId}\"");
+            }
+
+            if (sdkVersion != null)
+            {
+                additionalConfigurationItems.Add($"            \"{DatadogSdk.ConfigKeys.SdkVersion}\": \"{sdkVersion}\"");
+            }
+
+            var additionalConfiguration = string.Join(",\n", additionalConfigurationItems);
+
+            sb.Append($@"
     config._internal_mutation {{
         $0.additionalConfiguration = [
-            ""_dd.build_id"": ""{buildId}""
+{additionalConfiguration}
         ]
     }}
 ");
-            }
 
             sb.Append($@"
     Datadog.initialize(with: config, trackingConsent: .pending)

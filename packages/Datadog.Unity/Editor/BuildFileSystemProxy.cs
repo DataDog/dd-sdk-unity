@@ -11,6 +11,7 @@ namespace Datadog.Unity.Editor
     public interface IBuildFileSystemProxy
     {
         bool FileExists(string path);
+        void DeleteFile(string path);
         void CopyFile(string sourcePath, string destinationPath);
         void CreateDirectory(string path);
         bool DirectoryExists(string path);
@@ -24,9 +25,14 @@ namespace Datadog.Unity.Editor
             return File.Exists(path);
         }
 
+        public void DeleteFile(string path)
+        {
+            File.Delete(path);
+        }
+
         public void CopyFile(string sourcePath, string destinationPath)
         {
-            File.Copy(sourcePath, destinationPath);
+            File.Copy(sourcePath, destinationPath, true);
         }
 
         public void CreateDirectory(string path)
