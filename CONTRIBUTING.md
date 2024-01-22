@@ -37,9 +37,19 @@ Some of these steps will be automated in the near future, but are currently manu
 gem install xcpretty
 ```
 
-### Build the xcframeworks
+### Update xcframeworks
 
-Build all of the iOS xcframeworks using Carhage:
+You can update and build a specific version of the iOS libraries by using the script in `tools/scripts`:
+
+```bash
+python3 update_versions.py --platform ios --version 2.6.0
+```
+
+This will automatically check out the release tag, build the required `.xcframework` files and copy them to the correct locations.
+
+### Manually building xcframeworks
+
+If you want to update to a specific commit for dd-sdk-ios, you can update the git submodule held in `modules/dd-sdk-ios`.  Then, you can build all of the iOS xcframeworks:
 
 ```bash
 # From modules/dd-sdk-ios
