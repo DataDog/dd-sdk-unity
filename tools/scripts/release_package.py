@@ -76,7 +76,7 @@ def _modify_package_version(dest: str, version: str):
 
 def _update_android_versions(version: str, github_token: str):
     if version is None:
-        # Need to get the latest verison from Github
+        # Need to get the latest version from Github
         gh_auth = gh.Auth.Token(github_token)
         github = gh.Github(auth=gh_auth)
 
