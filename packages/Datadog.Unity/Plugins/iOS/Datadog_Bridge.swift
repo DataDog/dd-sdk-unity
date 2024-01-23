@@ -54,3 +54,9 @@ func Datadog_SendErrorTelemetry(
         Datadog._internal.telemetry.error(id: "datadog_unity:\(messageString)", message: messageString, kind: errorKind, stack: errorStack)
     }
 }
+
+@_cdecl("Datadog_ClearAllData")
+func Datadog_ClearAllData() {
+    Datadog.clearAllData()
+}
+
