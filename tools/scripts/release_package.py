@@ -19,19 +19,10 @@ import update_versions as uv
 REPO_ROOT = "../../"
 PACKAGE_LOCATION = f"{REPO_ROOT}packages/Datadog.Unity"
 
-def _verify_source_git_repo(version: str) -> bool:
-    repo = git.Repo(".")
-
-    if repo.is_dirty():
-        print("Source repo is dirty -- please commit or stash any changes.")
-
-    # Check if the repo has this version tag already
-    if version in repo.tags:
-        print(f"Package already has version ${version}")
-        return False
-
-def _verify_dest_git_repo(dest: str, version: str) -> bool:
+def _verify_git_repo(dest: str, version: str) -> bool:
     repo = git.Repo(dest)
+    for remote in repo.remotes:
+        remote.fetch()
 
     if repo.is_dirty():
         print("Destination repo is dirty -- please commit or stash any changes.")
@@ -116,22 +107,25 @@ def main():
 
     arg_parser.add_argument("--dest", required=True, help="The destination directory to deploy to. This should the publishing git repo.")
     arg_parser.add_argument("--no-commit", help="Don't commit or tag either repo", action="store_true")
+    arg_parser.add_argument("--skip-git-checks", help="Don't check for clean git repos", action="store_true")
     args = arg_parser.parse_args()
 
     github_token = os.environ["GITHUB_TOKEN"]
     if github_token is None:
         print(f"GITHUB_TOKEN not set.")
+        return False
 
     if not os.path.isdir(PACKAGE_LOCATION):
         print(f"Could not find package at {PACKAGE_LOCATION}. Are you running from the script's directory?")
-        return
+        return False
 
     version = args.version
-    # if not _verify_source_git_repo(version):
-    #    return
+    if not args.skip_git_checks:
+        if not _verify_git_repo(REPO_ROOT, version):
+            return False
 
-    if not _verify_dest_git_repo(args.dest, version):
-        return
+        if not _verify_git_repo(args.dest, version):
+            return False
 
     branch_name = f"release/{version}"
     print(f"Creating release branch '{branch_name}'")
@@ -151,6 +145,8 @@ def main():
     if not args.no_commit:
         print(f"Committing and tagging version {args.version}")
         _commit_and_tag(args.dest, args.version)
+
+    return True
 
 
 if __name__ == "__main__":
