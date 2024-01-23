@@ -58,13 +58,13 @@ def _update_ios_version(version: str):
 
     # Build carthage
     print("Running carthage build...")
-    process = subprocess.Popen(["carthage", "build", "--no-skip-current", "--use-xcframeworks"],
+    process = subprocess.Popen(["./tools/distribution/build-xcframework.sh"],
                                stdout=subprocess.PIPE, universal_newlines=True, cwd=IOS_MODULE_PATH)
     for line in process.stdout:
         print(f"{line}")
 
     # Copy frameworks
-    frameworks = [ "CrashReporter", "Datadog", "DatadogCrashReporting", "DatadogObjc" ]
+    frameworks = [ "CrashReporter", "DatadogCore", "DatadogCrashReporting", "DatadogInternal", "DatadogLogs", "DatadogRUM" ]
     for framework in frameworks:
         src = os.path.join(IOS_MODULE_PATH, "Carthage", "Build", f'{framework}.xcframework')
         dest = os.path.join(UNITY_PLUGIN_PATH, "iOS", f"{framework}.xcframework~")
