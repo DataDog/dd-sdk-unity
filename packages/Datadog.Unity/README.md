@@ -4,30 +4,36 @@
 
 The Datadog Unity SDK supports logging and crash reporting for Android and iOS apps built on Unity.
 
+[//]: # (Repo Note)
+
 ## Installing
 
-To install the Datadog Unity SDK:
+1. Install [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). This can be done using [Open UPM](https://openupm.com/packages/com.google.external-dependency-manager/)
 
-1. Install the [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver) using the Unity Package Manager per their instructions. This is required for resolving Android dependencies.
-2. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both
-`Custom Main Template` and `Custom Gradle Properties Template`. You may also need to add the following block between your `dependencies` and `android`
-blocks in your `mainTemplate.gradle`:
+2. Add the Datadog SDK Unity package from its Git URL at [htts://github.com/DataDog/unity-package](htts://github.com/DataDog/unity-package).
+
+> [!NOTE]
+> Datadog plans on adding support for Open UPM after Closed Beta.
+
+3. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both `Custom Main Template` and `Custom Gradle Properties Template`.
+
+4. If you build and recieve `Duplicate class` errors (common in Unity 2022.x) add the following block in the `dependencies` block in your `mainTemplate.gradle`:
 
    ```groovy
-   buildscript {
-       dependencies {
-           classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21"
-       }
+   constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+        }
    }
    ```
 
-3. You can now add the Datadog Unity package.
-
 ## Setup
 
-1. After adding the Datadog Unity SDK, you can configure Datadog from your Project Settings.
+1. In Datadog, navigate to [UX Monitoring > Setup & Configuration > New Application](https://app.datadoghq.com/rum/application/create)
 
-2. Add your client token and application ID here, and configure your Datadog site.
+2. Choose `Unity` as the application type. If you do not see `Unity` as an application type, please reach out to your CSM to be added to the Unity beta.
+
+3. After adding the Datadog Unity SDK, configure Datadog from your Project Settings.  Enable Datadog and RUM and copy your `Client Token` and `Application Id` into the fields in the settings window. Also verify that your `Site` is correct.
 
 # Using Datadog
 
@@ -87,3 +93,43 @@ logger.Debug("Hello with attributes", new()
     },
 });
 ```
+
+## Real User Monitoring (RUM)
+
+### Manual Scene (View) Tracking
+
+To manually track new Scenes (`Views` id Datadog), use the `StartVeiw` and `StopView` methods:
+
+```cs
+public void Start()
+{
+    DatadogSdk.Instance.Rum.StartView("My View", new()
+    {
+        { "view_attribute": "active" }
+    });
+}
+```
+
+Starting a new view automatically ends the previous view.
+
+### Automatic Scene Tracking
+
+You can also set `Enable Automatic Scene Tracking` in your Project Settings to enable automatically tracking active scenes. This uses Unity's `SceneManager.activeSceneChanged` event to automatically start new scenes.
+
+### Web Requests / Resource Tracking
+
+Datadog offers `DatadogTrackedWebRequest`, which is a `UnityWebRequest` wrapper intended to be a drop in replacement for `UnityWebRequest`. `DatadogTrackedWebRequest` enables [Datadog Distributed Tracing](https://docs.datadoghq.com/serverless/distributed_tracing).
+
+In order to enable Datadog Distributed Tracing, you must set the `First Party Hosts` in your project settings to a domain that supports distributed tracing. You can also modify the sampling rate for distributed tracing by setting the `Tracing Sampling Rate`.
+
+`First Party Hosts`` does not allow wildcards, but matches any subdomains for a given domain. For example, api.example.com matches staging.api.example.com and prod.api.example.com, not news.example.com.
+
+## Contributing
+
+Pull requests are welcome. First, open an issue to discuss what you would like to change.
+
+For more information, read the [Contributing guidelines](https://github.com/DataDog/dd-sdk-unity/blob/main/CONTRIBUTING.md).
+
+## License
+
+For more information, see [Apache License, v2.0](https://github.com/DataDog/dd-sdk-unity/blob/main/LICENSE).
