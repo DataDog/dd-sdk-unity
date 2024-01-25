@@ -39,8 +39,8 @@ namespace Datadog.Unity.Rum.Tests
         }
 
         [Test]
-        [TestCase(0ul, 0x2fee4ul, "2FEE4")]
-        [TestCase(0xf1aul, 0x14e255ul, "F1A000000000014E255")]
+        [TestCase(0ul, 0x2fee4ul, "2fee4")]
+        [TestCase(0xf1aul, 0x14e255ul, "f1a000000000014e255")]
         public void TracingUuidHexRepresentationsAreCorrect(ulong high, ulong low, string expected)
         {
             // Given
@@ -54,8 +54,8 @@ namespace Datadog.Unity.Rum.Tests
         }
 
         [Test]
-        [TestCase(0ul, 0x2fee4ul, "000000000002FEE4")]
-        [TestCase(0xf1aul, 0x14e255ul, "000000000014E255")]
+        [TestCase(0ul, 0x2fee4ul, "000000000002fee4")]
+        [TestCase(0xf1aul, 0x14e255ul, "000000000014e255")]
         public void TracingUuidHex16RepresentationsAreCorrect(ulong high, ulong low, string expected)
         {
             // Given
@@ -69,8 +69,8 @@ namespace Datadog.Unity.Rum.Tests
         }
 
         [Test]
-        [TestCase(0ul, 0x2fee4ul, "0000000000000000000000000002FEE4")]
-        [TestCase(0xf1aul, 0x14e255ul, "0000000000000F1A000000000014E255")]
+        [TestCase(0ul, 0x2fee4ul, "0000000000000000000000000002fee4")]
+        [TestCase(0xf1aul, 0x14e255ul, "0000000000000f1a000000000014e255")]
         public void TracingUuidHex32RepresentationsAreCorrect(ulong high, ulong low, string expected)
         {
             // Given
