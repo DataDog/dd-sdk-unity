@@ -8,7 +8,7 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 
 ## Installing
 
-1. Install [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). This can be done using [Open UPM](https://openupm.com/packages/com.google.external-dependency-manager/)
+1. Install [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). This can be done using [Open UPM](https://openupm.com/packages/com.google.external-dependency-manager/).
 
 2. Add the Datadog SDK Unity package from its Git URL at [htts://github.com/DataDog/unity-package](htts://github.com/DataDog/unity-package).
 
@@ -33,7 +33,10 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 
 2. Choose `Unity` as the application type. If you do not see `Unity` as an application type, please reach out to your CSM to be added to the Unity beta.
 
-3. After adding the Datadog Unity SDK, configure Datadog from your Project Settings.  Enable Datadog and RUM and copy your `Client Token` and `Application Id` into the fields in the settings window. Also verify that your `Site` is correct.
+3. After adding the Datadog Unity SDK, configure Datadog from your Project Settings:
+    a. Enable Datadog and RUM
+    b. Copy your `Client Token` and `Application Id` into the fields in the settings window.
+    c. Verify that your `Site` is correct.
 
 # Using Datadog
 
@@ -118,11 +121,11 @@ You can also set `Enable Automatic Scene Tracking` in your Project Settings to e
 
 ### Web Requests / Resource Tracking
 
-Datadog offers `DatadogTrackedWebRequest`, which is a `UnityWebRequest` wrapper intended to be a drop in replacement for `UnityWebRequest`. `DatadogTrackedWebRequest` enables [Datadog Distributed Tracing](https://docs.datadoghq.com/serverless/distributed_tracing).
+Datadog offers `DatadogTrackedWebRequest`, which is a `UnityWebRequest` wrapper intended to be a drop-in replacement for `UnityWebRequest`. `DatadogTrackedWebRequest` enables [Datadog Distributed Tracing](https://docs.datadoghq.com/serverless/distributed_tracing).
 
-In order to enable Datadog Distributed Tracing, you must set the `First Party Hosts` in your project settings to a domain that supports distributed tracing. You can also modify the sampling rate for distributed tracing by setting the `Tracing Sampling Rate`.
+To enable Datadog Distributed Tracing, you must set the `First Party Hosts` in your project settings to a domain that supports distributed tracing. You can also modify the sampling rate for distributed tracing by setting the `Tracing Sampling Rate`.
 
-`First Party Hosts`` does not allow wildcards, but matches any subdomains for a given domain. For example, api.example.com matches staging.api.example.com and prod.api.example.com, not news.example.com.
+`First Party Hosts` does not allow wildcards, but matches any subdomains for a given domain. For example, api.example.com matches staging.api.example.com and prod.api.example.com, but not news.example.com.
 
 ## Contributing
 
