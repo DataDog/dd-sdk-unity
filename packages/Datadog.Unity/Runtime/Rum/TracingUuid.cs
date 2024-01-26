@@ -50,11 +50,11 @@ namespace Datadog.Unity.Rum
                     string hexString;
                     if (_high > 0 && representation != TraceIdRepresentation.hex16Chars)
                     {
-                        hexString = $"{_high:X}{_low:X16}";
+                        hexString = $"{_high:x}{_low:x16}";
                     }
                     else
                     {
-                        hexString = $"{_low:X}";
+                        hexString = $"{_low:x}";
                     }
 
                     if (representation == TraceIdRepresentation.hex16Chars)
