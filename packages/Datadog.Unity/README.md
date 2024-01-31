@@ -121,7 +121,7 @@ You can also set `Enable Automatic Scene Tracking` in your Project Settings to e
 
 ### Web Requests / Resource Tracking
 
-Datadog offers `DatadogTrackedWebRequest`, which is a `UnityWebRequest` wrapper intended to be a drop-in replacement for `UnityWebRequest`. `DatadogTrackedWebRequest` enables [Datadog Distributed Tracing](https://docs.datadoghq.com/serverless/distributed_tracing).
+Datadog offers `DatadogTrackedWebRequest`, which is a `UnityWebRequest` wrapper intended to be a drop-in replacement for `UnityWebRequest`. `DatadogTrackedWebRequest` enables [Datadog Distributed Tracing](https://docs.datadoghq.com/real_user_monitoring/connect_rum_and_traces/?tab=browserrum).
 
 To enable Datadog Distributed Tracing, you must set the `First Party Hosts` in your project settings to a domain that supports distributed tracing. You can also modify the sampling rate for distributed tracing by setting the `Tracing Sampling Rate`.
 
