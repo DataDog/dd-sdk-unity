@@ -46,8 +46,8 @@ namespace Datadog.Unity.Rum
             attributes[DatadogAttributeKeys.RulePsr] = _options.TraceSampleRate / 100.0f;
             if (traceContext.sampled)
             {
-                attributes[DatadogAttributeKeys.TraceId] = traceContext.traceId.ToString(TraceIdRepresentation.dec);
-                attributes[DatadogAttributeKeys.SpanId] = traceContext.spanId.ToString(TraceIdRepresentation.dec);
+                attributes[DatadogAttributeKeys.TraceId] = traceContext.traceId.ToString(TraceIdRepresentation.Dec);
+                attributes[DatadogAttributeKeys.SpanId] = traceContext.spanId.ToString(TraceIdRepresentation.Dec);
             }
         }
 
@@ -73,9 +73,9 @@ namespace Datadog.Unity.Rum
                 if (traceContext.sampled)
                 {
                     headers[DatadogHttpTracingHeaders.TraceId] =
-                        traceContext.traceId.ToString(TraceIdRepresentation.dec);
+                        traceContext.traceId.ToString(TraceIdRepresentation.Dec);
                     headers[DatadogHttpTracingHeaders.ParentId] =
-                        traceContext.spanId.ToString(TraceIdRepresentation.dec);
+                        traceContext.spanId.ToString(TraceIdRepresentation.Dec);
                 }
 
                 headers[DatadogHttpTracingHeaders.Origin] = "rum";
@@ -86,13 +86,13 @@ namespace Datadog.Unity.Rum
             {
                 if (traceContext.sampled)
                 {
-                    var traceString = traceContext.traceId.ToString(TraceIdRepresentation.hex32Chars);
-                    var spanString = traceContext.spanId.ToString(TraceIdRepresentation.hex16Chars);
+                    var traceString = traceContext.traceId.ToString(TraceIdRepresentation.Hex32Chars);
+                    var spanString = traceContext.spanId.ToString(TraceIdRepresentation.Hex16Chars);
                     var headerValue = $"{traceString}-{spanString}-{sampledString}";
                     if (traceContext.parentSpanId != null)
                     {
                         headerValue +=
-                            $"-{traceContext.parentSpanId.Value.ToString(TraceIdRepresentation.hex16Chars)}";
+                            $"-{traceContext.parentSpanId.Value.ToString(TraceIdRepresentation.Hex16Chars)}";
                     }
 
                     headers[OTelHttpTracingHeaders.SingleB3] = headerValue;
@@ -109,21 +109,21 @@ namespace Datadog.Unity.Rum
                 if (traceContext.sampled)
                 {
                     headers[OTelHttpTracingHeaders.MultipleTraceId] =
-                        traceContext.traceId.ToString(TraceIdRepresentation.hex32Chars);
+                        traceContext.traceId.ToString(TraceIdRepresentation.Hex32Chars);
                     headers[OTelHttpTracingHeaders.MultipleSpanId] =
-                        traceContext.spanId.ToString(TraceIdRepresentation.hex16Chars);
+                        traceContext.spanId.ToString(TraceIdRepresentation.Hex16Chars);
                     if (traceContext.parentSpanId != null)
                     {
                         headers[OTelHttpTracingHeaders.MultipleParentId] =
-                            traceContext.parentSpanId.Value.ToString(TraceIdRepresentation.hex16Chars);
+                            traceContext.parentSpanId.Value.ToString(TraceIdRepresentation.Hex16Chars);
                     }
                 }
             }
 
             if((tracingHeaderType & TracingHeaderType.TraceContext) != 0)
             {
-                var spanString = traceContext.spanId.ToString(TraceIdRepresentation.hex16Chars);
-                var traceString = traceContext.traceId.ToString(TraceIdRepresentation.hex32Chars);
+                var spanString = traceContext.spanId.ToString(TraceIdRepresentation.Hex16Chars);
+                var traceString = traceContext.traceId.ToString(TraceIdRepresentation.Hex32Chars);
                 var tcSampledString = traceContext.sampled ? "01" : "00";
                 headers[W3CTracingHeaders.TraceParent] = $"00-{traceString}-{spanString}-{tcSampledString}";
                 headers[W3CTracingHeaders.TraceState] = $"dd=s:{sampledString};o:rum;p:{spanString}";

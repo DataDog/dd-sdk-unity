@@ -57,6 +57,23 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsTrue(fileContents.Contains("THIS FILE IS AUTO GENERATED"));
         }
 
+        [Test]
+        public void GenerateOptionsFileWritesCustomSource()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                CrashReportingEnabled = false
+            };
+
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var sourceLines = lines.Where(l => l.Contains("_dd.source")).ToArray();
+            Assert.AreEqual(1, sourceLines.Length);
+            Assert.IsTrue(sourceLines.First().Trim().StartsWith("\"_dd.source\": \"unity\""));
+        }
+
         [TestCase(BatchSize.Small, ".small")]
         [TestCase(BatchSize.Medium, ".medium")]
         [TestCase(BatchSize.Large, ".large")]
@@ -226,8 +243,9 @@ namespace Datadog.Unity.Editor.iOS
             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, uuid);
 
 			var lines = File.ReadAllLines(_initializationFilePath);
-            var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id\":")).ToArray();
-            Assert.AreEqual(1, buildIdLines.Length);
+            var buildIdLines = lines.Where(l => l.Contains("\"_dd.build_id\":"));
+            Assert.AreEqual(1, buildIdLines.Count());
+            // Use "StartsWith" to avoid issues with the line ending in a comma
             Assert.IsTrue(buildIdLines.First().Trim().StartsWith($"\"_dd.build_id\": \"{uuid}\""));
 		}
 
