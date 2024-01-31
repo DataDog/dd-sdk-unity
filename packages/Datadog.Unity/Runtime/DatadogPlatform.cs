@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System.Collections.Generic;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -18,6 +19,10 @@ namespace Datadog.Unity
         void SetTrackingConsent(TrackingConsent trackingConsent);
 
         DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
+
+        void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo);
+
+        void AddUserExtraInfo(Dictionary<string, object> extraInfo);
 
         IDdRum InitRum(DatadogConfigurationOptions options);
 

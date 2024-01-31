@@ -8,6 +8,7 @@ using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -20,6 +21,7 @@ namespace Datadog.Unity
         internal const string SourceConfigKey = "_dd.source";
 
         private IDatadogPlatform _platform = new DatadogNoOpPlatform();
+
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
         private InternalLogger _internalLogger;
@@ -51,6 +53,43 @@ namespace Datadog.Unity
             InternalHelpers.Wrap("SetTrackingConsent", () =>
             {
                 _platform.SetTrackingConsent(trackingConsent);
+            });
+        }
+
+        /// <summary>
+        /// Sets information about the current user. User information will be added to logs, traces, and RUM events
+        /// automatically.
+        /// </summary>
+        /// <param name="id">The ID for the user.</param>
+        /// <param name="name">The name for the user.</param>
+        /// <param name="email">The user's email.</param>
+        /// <param name="extraInfo">A map of any extra information about the user.</param>
+        public void SetUserInfo(
+            string id = null,
+            string name = null,
+            string email = null,
+            Dictionary<string, object> extraInfo = null)
+        {
+            InternalHelpers.Wrap("SetUserInfo", () =>
+            {
+                _worker.AddMessage(new DdSdkProcessor.SetUserInfoMessage(id, name, email, extraInfo));
+            });
+        }
+
+        /// <summary>
+        /// Add custom attributes to the current user information
+        ///
+        /// This extra info will be added to already existing extra info that is added to logs, traces, and RUM events
+        /// automatically.
+        ///
+        /// Setting an existing attribute to `null` will remove that attribute from the user's extra info.
+        /// </summary>
+        /// <param name="extraInfo">Any additional extra info about a user.</param>
+        public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
+        {
+            InternalHelpers.Wrap("AddUserExtraInfo", () =>
+            {
+                _worker.AddMessage(new DdSdkProcessor.AddUserExtraInfoMessage(extraInfo));
             });
         }
 
@@ -93,6 +132,8 @@ namespace Datadog.Unity
 
                 // Create our worker thread
                 _worker = new ();
+                _worker.AddProcessor(DdSdkProcessor.SdkTargetName, new DdSdkProcessor(_platform));
+
                 _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
                 _internalLogger = new InternalLogger(_worker, _platform);
                 _resourceTrackingHelper = new ResourceTrackingHelper(options);
