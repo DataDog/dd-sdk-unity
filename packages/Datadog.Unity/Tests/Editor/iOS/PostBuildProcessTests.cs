@@ -108,7 +108,26 @@ namespace Datadog.Unity.Editor.iOS
             var lines = File.ReadAllLines(_initializationFilePath);
             var uploadFrequencyLines = lines.Where(l => l.Contains("uploadFrequency:")).ToArray();
             Assert.AreEqual(1, uploadFrequencyLines.Length);
-            Assert.AreEqual($"uploadFrequency: {expectedUploadFrequency}", uploadFrequencyLines.First().Trim());
+            Assert.IsTrue(uploadFrequencyLines.First().Trim().StartsWith($"uploadFrequency: {expectedUploadFrequency}"));
+        }
+
+        [TestCase(BatchProcessingLevel.Low, ".low")]
+        [TestCase(BatchProcessingLevel.Medium, ".medium")]
+        [TestCase(BatchProcessingLevel.High, ".high")]
+        public void GenerationOptionsFileWritesBatchProcessingLevel(
+            BatchProcessingLevel processingLevel, string expectedProcessingLevel)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                BatchProcessingLevel = processingLevel,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var processingLevelLines = lines.Where(l => l.Contains("batchProcessingLevel:")).ToArray();
+            Assert.AreEqual(1, processingLevelLines.Length);
+            Assert.IsTrue(processingLevelLines.First().Trim().StartsWith($"batchProcessingLevel: {expectedProcessingLevel}"));
         }
 
         [Test]

@@ -53,6 +53,7 @@ namespace Datadog.Unity.Editor
             _options.CustomEndpoint = EditorGUILayout.TextField("Custom Endpoint", _options.CustomEndpoint);
             _options.BatchSize = (BatchSize)EditorGUILayout.EnumPopup("Batch Size", _options.BatchSize);
             _options.UploadFrequency = (UploadFrequency)EditorGUILayout.EnumPopup("Upload Frequency", _options.UploadFrequency);
+            _options.BatchProcessingLevel = (BatchProcessingLevel)EditorGUILayout.EnumPopup("Batch Processing Level", _options.BatchProcessingLevel);
             _options.CrashReportingEnabled = EditorGUILayout.ToggleLeft(
                 new GUIContent("Enable Crash Reporting", "Whether to report native crashes to Datadog."),
                 _options.CrashReportingEnabled);

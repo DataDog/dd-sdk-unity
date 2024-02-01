@@ -79,6 +79,20 @@ namespace Datadog.Unity
     }
 
     /// <summary>
+    /// Defines the maximum amount of batches processed sequentially without a delay within one reading/uploading cycle.
+    /// High level will mean that more data will be sent in a single upload cycle but more CPU and memory
+    /// will be used to process the data.
+    /// Low level will mean that less data will be sent in a single upload cycle but less CPU and memory
+    /// will be used to process the data.
+    /// </summary>
+    public enum BatchProcessingLevel
+    {
+        Low,
+        Medium,
+        High,
+    }
+
+    /// <summary>
     /// The Consent enum class providing the possible values for the Data Tracking Consent flag.
     /// </summary>
     public enum TrackingConsent
@@ -166,6 +180,7 @@ namespace Datadog.Unity
         public string CustomEndpoint;
         public BatchSize BatchSize;
         public UploadFrequency UploadFrequency;
+        public BatchProcessingLevel BatchProcessingLevel = BatchProcessingLevel.Medium;
         public bool CrashReportingEnabled = true;
 
         // Logging
