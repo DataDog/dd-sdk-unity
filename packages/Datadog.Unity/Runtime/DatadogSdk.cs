@@ -30,22 +30,39 @@ namespace Datadog.Unity
             DefaultLogger = new DdNoOpLogger();
         }
 
+        /// <summary>
+        /// The default logger. This logger is used when intercepting Unity logs.
+        /// </summary>
         public DdLogger DefaultLogger
         {
             get; private set;
         }
 
+        /// <summary>
+        /// The instance of the RUM feature of the Datadog SDK. If RUM is not enabled,
+        /// this property returns a NoOp implementation of the RUM interface, and will never return null.
+        /// </summary>
         public IDdRum Rum { get; private set; } = new DdNoOpRum();
 
         internal InternalLogger InternalLogger => _internalLogger;
 
         internal ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;
 
+        /// <summary>
+        /// Shutdown the Datadog SDK. Note, this method is primarily for internal use.
+        /// </summary>
         public static void Shutdown()
         {
             Instance.ShutdownInstance();
         }
 
+        /// <summary>
+        /// Sets the tracking consent regarding the data collection for this instance of the Datadog SDK.
+        ///
+        /// Datadog always defaults to TrackingConsent.Pending, and it is expected that you call this method after
+        /// asking the end user for their consent to track data.
+        /// </summary>
+        /// <param name="trackingConsent">The current value for tracking consent.</param>
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
             InternalHelpers.Wrap("SetTrackingConsent", () =>
@@ -54,6 +71,13 @@ namespace Datadog.Unity
             });
         }
 
+        /// <summary>
+        /// Create a logger with the given logging options.
+        ///
+        /// Even if this function fails, it wil not return null, and instead will return a NoOp logger.
+        /// </summary>
+        /// <param name="options">The options for the logger.</param>
+        /// <returns>The requested logger.</returns>
         public DdLogger CreateLogger(DatadogLoggingOptions options)
         {
             try
@@ -72,6 +96,9 @@ namespace Datadog.Unity
             }
         }
 
+        /// <summary>
+        /// Clear all data currently stored by the Datadog SDK.
+        /// </summary>
         public void ClearAllData()
         {
             InternalHelpers.Wrap("ClearAllData", () =>
