@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Net.NetworkInformation;
-using System.Security.Cryptography;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json.Linq;
@@ -104,6 +103,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var finalSecondVisitView = secondVisit.ViewEvents.Last();
             Assert.AreEqual("True", finalSecondVisitView.FeatureFlags["mock_flag_a"].Value<string>());
             Assert.AreEqual("mock_value", finalSecondVisitView.FeatureFlags["mock_flag_b"].Value<string>());
+            Assert.AreEqual("user-id", finalSecondVisitView.UserId);
+            Assert.AreEqual("user-name", finalSecondVisitView.UserName);
+            Assert.IsNull(finalSecondVisitView.UserEmail);
+            Assert.AreEqual("property", finalSecondVisitView.UserAttributes["extra"].ToString());
 
             var automaticVisit = visits[2];
             var visitView = automaticVisit.ViewEvents.Last();
@@ -152,6 +155,11 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             yield return new WaitForSeconds(0.03f);
             rum?.StopResource(resourceKey2, new NetworkInformationException());
+
+            DatadogSdk.Instance.SetUserInfo("user-id", "user-name", extraInfo: new()
+            {
+                { "extra", "property" },
+            });
 
             rum?.StartView("ErrorScreen", name: "Error Screen");
             rum?.AddFeatureFlagEvaluation("mock_flag_a", true);

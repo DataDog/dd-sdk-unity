@@ -139,6 +139,24 @@ namespace Datadog.Unity.Android
             _datadogClass.CallStatic("setTrackingConsent", DatadogConfigurationHelpers.GetTrackingConsent(trackingConsent));
         }
 
+        public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
+        {
+            var javaExtraInfo = DatadogAndroidHelpers.DictionaryToJavaMap(extraInfo);
+            _datadogClass.CallStatic("setUserInfo", id, name, email, javaExtraInfo);
+        }
+
+        public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
+        {
+            if (extraInfo == null)
+            {
+                // Don't bother calling to platform
+                return;
+            }
+
+            var javaExtraInfo = DatadogAndroidHelpers.DictionaryToJavaMap(extraInfo);
+            _datadogClass.CallStatic("addUserExtraInfo", javaExtraInfo);
+        }
+
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             using var loggerBuilder = new AndroidJavaObject("com.datadog.android.log.Logger$Builder");

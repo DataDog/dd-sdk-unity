@@ -33,6 +33,14 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
         public JObject FeatureFlags => rumEvent["feature_flags"] as JObject;
 
+        public string UserName => jsonGetProp<string>(rumEvent, "usr.name");
+
+        public string UserId => jsonGetProp<string>(rumEvent, "usr.id");
+
+        public string UserEmail => jsonGetProp<string>(rumEvent, "usr.email");
+
+        public JObject UserAttributes => rumEvent["usr"] as JObject;
+
         protected RumEventDecoder(JObject rawJson)
         {
             rumEvent = rawJson;

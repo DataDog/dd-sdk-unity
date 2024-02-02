@@ -91,6 +91,11 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
             Assert.AreEqual("value", (string)errorLog.RawJson["attribute"]);
+            Assert.AreEqual("user-id", errorLog.UserId);
+            Assert.AreEqual("user-name", errorLog.UserName);
+            Assert.IsNull(errorLog.UserEmail);
+            Assert.AreEqual("property", errorLog.UserExtraInfo["extra"].ToString());
+
 
             var exceptionLog = logs[4];
             Assert.AreEqual("warn", exceptionLog.Status);
@@ -154,6 +159,11 @@ namespace Datadog.Unity.Tests.Integration.Logging
 
                 logger.RemoveAttribute("logger-attribute1");
                 logger.RemoveTagsWithKey("tag1");
+
+                DatadogSdk.Instance.SetUserInfo("user-id", "user-name", extraInfo: new()
+                {
+                    { "extra", "property" },
+                });
 
                 logger.Error("error message", new() { { "attribute", "value" } });
 
