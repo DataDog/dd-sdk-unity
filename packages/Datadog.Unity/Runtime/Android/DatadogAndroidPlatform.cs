@@ -62,6 +62,7 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
+            configBuilder.Call<AndroidJavaObject>("setBatchProcessing", DatadogConfigurationHelpers.GetBatchProcessingLevel(options.BatchProcessingLevel));
 
             var additionalConfig = new Dictionary<string, object>()
             {

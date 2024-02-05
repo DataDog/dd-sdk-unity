@@ -138,7 +138,8 @@ func initializeDatadog() {{
         clientToken: ""{options.ClientToken}"",
         env: ""{env}"",
         batchSize: {GetSwiftBatchSize(options.BatchSize)},
-        uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)}
+        uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)},
+        batchProcessingLevel: {GetSwiftBatchProcessingLevel(options.BatchProcessingLevel)}
     )
 ");
             var additionalConfigurationItems = new List<string>()
@@ -322,6 +323,16 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
                 UploadFrequency.Rare => ".rare",
                 UploadFrequency.Frequent => ".frequent",
                 _ => ".average",
+            };
+        }
+
+        private static string GetSwiftBatchProcessingLevel(BatchProcessingLevel batchProcessingLevel)
+        {
+            return batchProcessingLevel switch
+            {
+                BatchProcessingLevel.Low => ".low",
+                BatchProcessingLevel.High => ".high",
+                _ => ".medium",
             };
         }
 
