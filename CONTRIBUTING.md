@@ -68,20 +68,6 @@ cp -r build/xcframeworks/DatadogLogs.xcframework ../../packages/Datadog.Unity/Pl
 cp -r build/xcframeworks/DatadogRUM.xcframework ../../packages/Datadog.Unity/Plugins/iOS/DatadogRUM.xcframework~
 ```
 
-After creating the XCode project, disable Bitcode for all Unity targets.
-
 ### Tools Prerequisites
 
 If you need to use any of python scripts in tools, you will need Python 3 and `GitPython` package
-
-
-## Building for Android
-
-```
-NOTE: These steps are temporary until we can find a better way to include the dd-android-sdk.aar. We may still want to depend on the External Dependency Manager,
-but we hope we won't need to have end users install it manually.
-```
-
-Install the [External Dependency Manager for Unity](https://github.com/googlesamples/unity-jar-resolver) by downloadng the tar.gz release and adding it as a Unity package in the Unity Package Manager.
-
-Under `Project Setting` → `Player` → `Android` → `Publishing Settings` check both `Custom Main Gradle Template` and `Custom Gradle Properties Template`.

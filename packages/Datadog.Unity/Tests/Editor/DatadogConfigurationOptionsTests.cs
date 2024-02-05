@@ -52,6 +52,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.IsEmpty(options.CustomEndpoint);
             Assert.AreEqual(BatchSize.Medium, options.BatchSize);
             Assert.AreEqual(UploadFrequency.Average, options.UploadFrequency);
+            Assert.AreEqual(BatchProcessingLevel.Medium, options.BatchProcessingLevel);
             Assert.IsTrue(options.CrashReportingEnabled);
 
             // Logging

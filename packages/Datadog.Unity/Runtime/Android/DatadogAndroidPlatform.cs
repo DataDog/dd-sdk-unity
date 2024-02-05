@@ -62,6 +62,7 @@ namespace Datadog.Unity.Android
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
+            configBuilder.Call<AndroidJavaObject>("setBatchProcessing", DatadogConfigurationHelpers.GetBatchProcessingLevel(options.BatchProcessingLevel));
 
             var additionalConfig = new Dictionary<string, object>()
             {
@@ -137,6 +138,24 @@ namespace Datadog.Unity.Android
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
             _datadogClass.CallStatic("setTrackingConsent", DatadogConfigurationHelpers.GetTrackingConsent(trackingConsent));
+        }
+
+        public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
+        {
+            var javaExtraInfo = DatadogAndroidHelpers.DictionaryToJavaMap(extraInfo);
+            _datadogClass.CallStatic("setUserInfo", id, name, email, javaExtraInfo);
+        }
+
+        public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
+        {
+            if (extraInfo == null)
+            {
+                // Don't bother calling to platform
+                return;
+            }
+
+            var javaExtraInfo = DatadogAndroidHelpers.DictionaryToJavaMap(extraInfo);
+            _datadogClass.CallStatic("addUserExtraInfo", javaExtraInfo);
         }
 
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)

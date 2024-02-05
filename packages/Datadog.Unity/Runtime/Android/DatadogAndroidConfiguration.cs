@@ -52,6 +52,19 @@ namespace Datadog.Unity.Android
             return uploadFrequencyClass.GetStatic<AndroidJavaObject>(sizeName);
         }
 
+        internal static AndroidJavaObject GetBatchProcessingLevel(BatchProcessingLevel processingLevel)
+        {
+            string processingLevelName = processingLevel switch
+            {
+                BatchProcessingLevel.Low => "LOW",
+                BatchProcessingLevel.Medium => "MEDIUM",
+                BatchProcessingLevel.High => "HIGH",
+                _ => "MEDIUM"
+            };
+            using var processingLevelClass = new AndroidJavaClass("com.datadog.android.core.configuration.BatchProcessingLevel");
+            return processingLevelClass.GetStatic<AndroidJavaObject>(processingLevelName);
+        }
+
         internal static AndroidJavaObject GetVitalsUpdateFrequency(VitalsUpdateFrequency updateFrequency)
         {
             string frequencyName = updateFrequency switch

@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System.Collections.Generic;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -15,6 +16,14 @@ namespace Datadog.Unity
             return new DdNoOpLogger();
         }
 
+        public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
+        {
+        }
+
+        public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
+        {
+        }
+
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
             return new DdNoOpRum();
@@ -22,7 +31,6 @@ namespace Datadog.Unity
 
         public void SendDebugTelemetry(string message)
         {
-
         }
 
         public void SendErrorTelemetry(string message, string stack, string kind)

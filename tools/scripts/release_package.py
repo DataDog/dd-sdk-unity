@@ -7,6 +7,7 @@
 # -----------------------------------------------------------
 
 import argparse
+import fileinput
 import json
 import os
 import shutil
@@ -95,6 +96,20 @@ def _commit_and_tag(dest: str, version: str):
 
     # TODO: Push
 
+def _add_repo_note(dest: str):
+    repo_snippet = ''
+    with open("../snippets/deployment_repo.md") as f:
+        repo_snippet = f.read()
+
+    readme_path = os.path.join(dest, "README.md")
+
+    with fileinput.input(readme_path, inplace=True) as f:
+        for line in f:
+            if line.startswith('[//]: # (Repo Note)'):
+                print(repo_snippet)
+            else:
+                print(line, end='')
+
 def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--version", required=True, help="The version we're publishing")
@@ -142,6 +157,7 @@ def main():
 
     print(f"Copying package files...")
     _copy_package_files(args.dest)
+    _add_repo_note(args.dest)
     if not args.no_commit:
         print(f"Committing and tagging version {args.version}")
         _commit_and_tag(args.dest, args.version)

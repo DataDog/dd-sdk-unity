@@ -69,6 +69,35 @@ namespace Datadog.Unity.Tests.Integration.Logging
             get { return GetNestedProperty<string>("error.stack"); }
         }
 
+        public string UserId
+        {
+            get { return GetNestedProperty<string>("usr.id"); }
+        }
+
+        public string UserName
+        {
+            get { return GetNestedProperty<string>("usr.name"); }
+        }
+
+        public string UserEmail
+        {
+            get { return GetNestedProperty<string>("usr.email"); }
+        }
+
+        public Dictionary<string, object> UserExtraInfo
+        {
+            get
+            {
+                if (_rawJson.TryGetValue("usr", out var value))
+                {
+                    return ((JObject)value).ToObject<Dictionary<string, object>>();
+                }
+
+                return _rawJson.Where(e => e.Key.StartsWith("usr."))
+                    .ToDictionary(e => e.Key.Substring(4), e => e.Value);
+            }
+        }
+
         public static List<LogDecoder> LogsFromMockServer(List<MockServerLog> mockServerLogs)
         {
             var logs = new List<LogDecoder>();
@@ -104,9 +133,19 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
             }
 
-            return (T)lookupMap[parts.Last()];
+            if (lookupMap.TryGetValue(parts.Last(), out var value))
+            {
+                return (T)value;
+            }
+
+            return default(T);
 #else
-            return (T)_rawJson[key];
+            if (_rawJson.TryGetValue(key, out var value))
+            {
+                return (T)value;
+            }
+
+            return default(T);
 #endif
         }
     }

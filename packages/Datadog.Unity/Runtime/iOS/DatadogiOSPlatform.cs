@@ -1,11 +1,13 @@
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Datadog.Unity;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -32,6 +34,24 @@ namespace Datadog.Unity.iOS
     {
         public void Init(DatadogConfigurationOptions options)
         {
+        }
+
+        public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
+        {
+            var jsonAttributes = extraInfo != null ? JsonConvert.SerializeObject(extraInfo) : null;
+            Datadog_SetUserInfo(id, name, email, jsonAttributes);
+        }
+
+        public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
+        {
+            if (extraInfo == null)
+            {
+                // Don't bother calling to platform
+                return;
+            }
+
+            var jsonAttributes = JsonConvert.SerializeObject(extraInfo);
+            Datadog_AddUserExtraInfo(jsonAttributes);
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
@@ -67,6 +87,12 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_SetTrackingConsent(int trackingConsent);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_SetUserInfo(string id, string name, string email, string extraInfo);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_AddUserExtraInfo(string extraInfo);
 
         [DllImport("__Internal")]
         private static extern void Datadog_SendDebugTelemetry(string message);

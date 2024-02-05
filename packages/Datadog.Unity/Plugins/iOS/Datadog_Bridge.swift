@@ -20,6 +20,28 @@ func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
     }
 }
 
+@_cdecl("Datadog_SetUserInfo")
+func Datadog_SetUserInfo(
+    id: CString?,
+    name: CString?,
+    email: CString?,
+    extraInfo: CString?
+) {
+    let idString = decodeCString(cString: id)
+    let nameString = decodeCString(cString: name)
+    let emailString = decodeCString(cString: email)
+    let decodedExtraInfo = decodeJsonAttributes(fromCString: extraInfo)
+
+    Datadog.setUserInfo(id: idString, name: nameString, email: emailString, extraInfo: decodedExtraInfo)
+}
+
+@_cdecl("Datadog_AddUserExtraInfo")
+func Datadog_AddUserExtraInfo(extraInfo: CString) {
+    let decodedExtraInfo = decodeJsonAttributes(fromCString: extraInfo)
+
+    Datadog.addUserExtraInfo(decodedExtraInfo)
+}
+
 @_cdecl("Datadog_SendDebugTelemetry")
 func Datadog_SendDebugTelemetry(message: UnsafeMutablePointer<CChar>?) {
     guard let message = message else {
@@ -35,7 +57,8 @@ func Datadog_SendDebugTelemetry(message: UnsafeMutablePointer<CChar>?) {
 func Datadog_SendErrorTelemetry(
     message: UnsafeMutablePointer<CChar>?,
     stack: UnsafeMutablePointer<CChar>?,
-    kind: UnsafeMutablePointer<CChar>?) {
+    kind: UnsafeMutablePointer<CChar>?
+) {
     guard let message = message else {
         return
     }
