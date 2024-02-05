@@ -7,15 +7,30 @@ using System.Collections.Generic;
 
 namespace Datadog.Unity.Rum
 {
+    /// <summary>
+    /// Describe the source of a RUM Error.
+    /// </summary>
     public enum RumErrorSource
     {
+        /// <summary>Error originated in the source code.</summary>
         Source,
+
+        /// <summary>Error originated in the network layer.</summary>
         Network,
+
+        /// <summary>Error originated in a webview.</summary>
         WebView,
+
+        /// <summary>Error originated in a web console (used by bridges).</summary>
         Console,
+
+        /// <summary>Custom error source.</summary>
         Custom,
     }
 
+    /// <summary>
+    /// The HTTP method used to request a resource.
+    /// </summary>
     public enum RumHttpMethod
     {
         Post,
@@ -26,6 +41,9 @@ namespace Datadog.Unity.Rum
         Patch,
     }
 
+    /// <summary>
+    /// Describe the type of resource loaded.
+    /// </summary>
     public enum RumResourceType
     {
         Document,
@@ -41,11 +59,21 @@ namespace Datadog.Unity.Rum
         Native,
     }
 
+    /// <summary>
+    /// Describes the type of a RUM Action.
+    /// </summary>
     public enum RumUserActionType
     {
+        /// <summary>The user tapped (or clicked) the screen.</summary>
         Tap,
+
+        /// <summary>The user scrolled the screen.</summary>
         Scroll,
+
+        /// <summary>The user performed a swipe or drag action.</summary>
         Swipe,
+
+        /// <summary>A custom user action.</summary>
         Custom,
     }
 
