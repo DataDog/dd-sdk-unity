@@ -31,11 +31,6 @@ namespace Datadog.Unity.Logs
             _worker.AddMessage(DdLogsProcessor.AddTagMessage.Create(_logger, tag, value));
         }
 
-        public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
-        {
-            _worker.AddMessage(DdLogsProcessor.LogMessage.Create(_logger, level, message, attributes, error));
-        }
-
         public override void RemoveAttribute(string key)
         {
             _worker.AddMessage(DdLogsProcessor.RemoveAttributeMessage.Create(_logger, key));
@@ -49,6 +44,11 @@ namespace Datadog.Unity.Logs
         public override void RemoveTagsWithKey(string key)
         {
             _worker.AddMessage(DdLogsProcessor.RemoveTagsWithKeyMessage.Create(_logger, key));
+        }
+
+        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        {
+            _worker.AddMessage(DdLogsProcessor.LogMessage.Create(_logger, level, message, attributes, error));
         }
     }
 }
