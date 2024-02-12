@@ -10,7 +10,7 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 
 1. Install [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). This can be done using [Open UPM](https://openupm.com/packages/com.google.external-dependency-manager/).
 
-2. Add the Datadog SDK Unity package from its Git URL at [htts://github.com/DataDog/unity-package](htts://github.com/DataDog/unity-package).
+2. Add the Datadog SDK Unity package from its Git URL at [https://github.com/DataDog/unity-package](https://github.com/DataDog/unity-package).
 
 > [!NOTE]
 > Datadog plans on adding support for Open UPM after Closed Beta.
