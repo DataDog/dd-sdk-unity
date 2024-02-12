@@ -87,11 +87,12 @@ def _branch(dest: str, branch_name: str):
     branch = repo.create_head(branch_name)
     branch.checkout()
 
-def _commit_and_tag(dest: str, version: str):
-    repo = git.Repo(dest)
-
+def _commit(repo: git.Repo, message: str):
     repo.git.add('--all')
-    repo.index.commit(f'Publish version {version}')
+    repo.index.commit(message)
+
+def _commit_and_tag(repo: git.Repo, version: str):
+    _commit(repo, f'Publish version {version}')
     repo.create_tag(version)
 
     # TODO: Push
@@ -109,6 +110,21 @@ def _add_repo_note(dest: str):
                 print(repo_snippet)
             else:
                 print(line, end='')
+
+def _add_version_to_changelog(package_location: str, version: str):
+    readme_path = os.path.join(package_location, "CHANGELOG.md")
+
+    found_unreleased = False
+    with fileinput.input(readme_path, inplace=True) as f:
+        for line in f:
+            if line.startswith('## Unreleased'):
+                print(f'## {version}')
+                found_unreleased = True
+            else:
+                print(line, end='')
+
+    return found_unreleased
+
 
 def main():
     arg_parser = argparse.ArgumentParser()
@@ -142,6 +158,18 @@ def main():
         if not _verify_git_repo(args.dest, version):
             return False
 
+    chore_branch = f"chore/release-{version}"
+    print(f"Creating prep btanch '{chore_branch}'")
+    _branch(REPO_ROOT, chore_branch)
+    print("Modifying CHANGELOG")
+    if not _add_version_to_changelog(PACKAGE_LOCATION, version):
+        print ("🔥 Failed to modify changelog. Are you missing '## Unreleased' changes?")
+        return False
+    if not args.no_commit:
+        print("Committing changes...")
+        source_repo = git.Repo(REPO_ROOT)
+        _commit(REPO_ROOT, f"chore: Update CHANGELOG for release of {version}.")
+
     branch_name = f"release/{version}"
     print(f"Creating release branch '{branch_name}'")
     _branch(REPO_ROOT, branch_name)
@@ -153,14 +181,15 @@ def main():
 
     if not args.no_commit:
         print(f"Tagging source repo with {version}")
-        _commit_and_tag(REPO_ROOT, args.version)
+        _commit_and_tag(source_repo, args.version)
 
     print(f"Copying package files...")
     _copy_package_files(args.dest)
     _add_repo_note(args.dest)
     if not args.no_commit:
         print(f"Committing and tagging version {args.version}")
-        _commit_and_tag(args.dest, args.version)
+        dest_repo = git.Repo(args.dest)
+        _commit_and_tag(dest_repo, args.version)
 
     return True
 

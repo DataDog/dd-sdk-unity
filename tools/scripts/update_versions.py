@@ -66,7 +66,7 @@ def _update_ios_version(version: str):
     # Copy frameworks
     frameworks = [ "CrashReporter", "DatadogCore", "DatadogCrashReporting", "DatadogInternal", "DatadogLogs", "DatadogRUM" ]
     for framework in frameworks:
-        src = os.path.join(IOS_MODULE_PATH, "Carthage", "Build", f'{framework}.xcframework')
+        src = os.path.join(IOS_MODULE_PATH, "build", "xcframeworks", f'{framework}.xcframework')
         dest = os.path.join(UNITY_PLUGIN_PATH, "iOS", f"{framework}.xcframework~")
         if os.path.exists(dest):
             shutil.rmtree(dest)
