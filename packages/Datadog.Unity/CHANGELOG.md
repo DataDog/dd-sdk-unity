@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.0.1
 
 * Update iOS to 2.7.1
 
