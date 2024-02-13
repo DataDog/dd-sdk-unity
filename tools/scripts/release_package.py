@@ -168,7 +168,7 @@ def main():
     if not args.no_commit:
         print("Committing changes...")
         source_repo = git.Repo(REPO_ROOT)
-        _commit(REPO_ROOT, f"chore: Update CHANGELOG for release of {version}.")
+        _commit(source_repo, f"chore: Update CHANGELOG for release of {version}.")
 
     branch_name = f"release/{version}"
     print(f"Creating release branch '{branch_name}'")
