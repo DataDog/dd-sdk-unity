@@ -1,6 +1,6 @@
 {
   "name": "com.datadoghq.unity",
-  "version": "0.8.0",
+  "version": "1.0.1",
   "displayName": "Datadog Unity",
   "description": "Datadog Plugin for Unity",
   "unity": "2022.3",
