@@ -89,7 +89,9 @@ def _branch(dest: str, branch_name: str):
 
 def _commit(repo: git.Repo, message: str):
     repo.git.add('--all')
-    repo.index.commit(message)
+    repo.index.write()
+    repo.git.commit('-m', message)
+
 
 def _commit_and_tag(repo: git.Repo, version: str):
     _commit(repo, f'Publish version {version}')
