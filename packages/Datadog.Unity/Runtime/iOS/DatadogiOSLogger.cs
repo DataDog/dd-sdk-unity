@@ -33,7 +33,7 @@ namespace Datadog.Unity.iOS
             return null;
         }
 
-        public override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
             // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports
             // Dictionaries, where JsonUtility does not.
