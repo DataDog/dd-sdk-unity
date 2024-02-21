@@ -1,5 +1,12 @@
 # Change Log
 
+## Unreleased
+
+
+## 1.0.2
+
+* Update Android to 2.6.0
+
 ## 1.0.1
 
 * Update iOS to 2.7.1
