@@ -66,14 +66,9 @@ namespace Datadog.Unity.Android
 
             var additionalConfig = new Dictionary<string, object>()
             {
-                { DatadogSdk.SourceConfigKey, "unity" },
+                { DatadogSdk.ConfigKeys.Source, "unity" },
+                { DatadogSdk.ConfigKeys.SdkVersion, DatadogSdk.SdkVersion }
             };
-
-            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
-            if (sdkVersion != null)
-            {
-                additionalConfig.Add(DatadogSdk.ConfigKeys.SdkVersion, sdkVersion);
-            }
 
             configBuilder.Call<AndroidJavaObject>("setAdditionalConfiguration", DatadogAndroidHelpers.DictionaryToJavaMap(additionalConfig));
 

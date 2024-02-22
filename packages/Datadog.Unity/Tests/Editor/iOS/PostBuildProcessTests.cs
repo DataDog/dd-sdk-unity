@@ -271,8 +271,9 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void ConfigWritesSdkVersion()
         {
-            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
+            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version;
             Assert.IsNotNull(sdkVersion);
+            var expectedVersion = $"{sdkVersion.Major}.{sdkVersion.Minor}.{sdkVersion.Build}";
 
             var options = new DatadogConfigurationOptions()
             {
@@ -284,7 +285,7 @@ namespace Datadog.Unity.Editor.iOS
             var lines = File.ReadAllLines(_initializationFilePath);
             var sdkVersionLines = lines.Where(l => l.Contains("\"_dd.sdk_version\":")).ToArray();
             Assert.AreEqual(1, sdkVersionLines.Length);
-            Assert.IsTrue(sdkVersionLines.First().Trim().StartsWith($"\"_dd.sdk_version\": \"{sdkVersion}\""));
+            Assert.IsTrue(sdkVersionLines.First().Trim().StartsWith($"\"_dd.sdk_version\": \"{expectedVersion}\""));
         }
 
 		[Test]

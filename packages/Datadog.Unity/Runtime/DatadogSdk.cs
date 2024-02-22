@@ -18,14 +18,25 @@ namespace Datadog.Unity
     {
         public static readonly DatadogSdk Instance = new();
 
-        internal const string SourceConfigKey = "_dd.source";
-
         private IDatadogPlatform _platform = new DatadogNoOpPlatform();
 
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
         private InternalLogger _internalLogger;
         private ResourceTrackingHelper _resourceTrackingHelper;
+
+        /// <summary>
+        /// Gets the version of the SDK reported to Datadog. This strips the final (revision) part of the version.
+        /// to be more compliant with "SemVer" standards.
+        /// </summary>
+        public static string SdkVersion
+        {
+            get
+            {
+                var version = typeof(DatadogSdk).Assembly.GetName().Version;
+                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
+            }
+        }
 
         private DatadogSdk()
         {
@@ -109,7 +120,7 @@ namespace Datadog.Unity
                 _worker.AddMessage(new DdSdkProcessor.AddUserExtraInfoMessage(extraInfo));
             });
         }
-      
+
         /// <summary>
         /// Create a logger with the given logging options.
         ///
