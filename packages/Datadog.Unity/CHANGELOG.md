@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* Fix SDK version reporting to Datadog.
+
+
 
 ## 1.0.2
 
