@@ -121,7 +121,7 @@ namespace Datadog.Unity.Editor.iOS
                 env = "prod";
             }
 
-            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version?.ToString();
+            var sdkVersion = DatadogSdk.SdkVersion;
 
             var sb = new StringBuilder($@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!

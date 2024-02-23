@@ -66,6 +66,16 @@ def _modify_package_version(dest: str, version: str):
     with open(package_path, "w") as json_file:
         json.dump(package_json, json_file, indent=2)
 
+def _modify_assembly_info_version(dest: str, version: str):
+    assembly_info_path = os.path.join(dest, "Runtime/AssemblyInfo.cs")
+
+    with fileinput.input(assembly_info_path, inplace=True) as f:
+        for line in f:
+            if line.startswith("[assembly: AssemblyVersion"):
+                print(f"[assembly: AssemblyVersion(\"{version}\")]")
+            else:
+                print(line, end='')
+
 def _update_android_versions(version: str, github_token: str):
     if version is None:
         # Need to get the latest version from Github
@@ -176,6 +186,7 @@ def main():
     print(f"Creating release branch '{branch_name}'")
     _branch(REPO_ROOT, branch_name)
     _modify_package_version(PACKAGE_LOCATION, version)
+    _modify_assembly_info_version(PACKAGE_LOCATION, version)
     if args.ios_version:
         print(f'Updating iOS to version {args.ios_version} and rebuilding.')
         uv._update_ios_version(args.ios_version)

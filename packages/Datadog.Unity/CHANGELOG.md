@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Fix SDK version reporting to Datadog.
+
 ## 1.0.3
 
 * Update Android to 2.6.1
