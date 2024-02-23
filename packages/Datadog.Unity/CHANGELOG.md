@@ -1,8 +1,10 @@
 # Change Log
 
-## Unreleased
+## 1.0.4
 
 * Fix SDK version reporting to Datadog.
+* Update Android SDK to 2.6.2
+  * Fix a crash when trying to get the frame rate vitals
 
 ## 1.0.3
 
