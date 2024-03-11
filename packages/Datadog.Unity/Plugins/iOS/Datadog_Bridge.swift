@@ -4,9 +4,19 @@
 
 import Foundation
 import DatadogCore
+import DatadogInternal
+
+// Hold the core, allowing it to be replacable
+public class DatadogUnityCore {
+    public static var shared: DatadogCoreProtocol?
+}
 
 @_cdecl("Datadog_SetTrackingConsent")
 func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
+    guard let core = DatadogUnityCore.shared else {
+        return
+    }
+
     let trackingConsent: TrackingConsent?
     switch trackingConsentInt {
     case 0: trackingConsent = .granted
@@ -16,7 +26,7 @@ func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
     }
 
     if let trackingConsent = trackingConsent {
-        Datadog.set(trackingConsent: trackingConsent)
+        Datadog.set(trackingConsent: trackingConsent, in: core)
     }
 }
 
@@ -27,19 +37,27 @@ func Datadog_SetUserInfo(
     email: CString?,
     extraInfo: CString?
 ) {
+    guard let core = DatadogUnityCore.shared else {
+        return
+    }
+
     let idString = decodeCString(cString: id)
     let nameString = decodeCString(cString: name)
     let emailString = decodeCString(cString: email)
     let decodedExtraInfo = decodeJsonAttributes(fromCString: extraInfo)
 
-    Datadog.setUserInfo(id: idString, name: nameString, email: emailString, extraInfo: decodedExtraInfo)
+    Datadog.setUserInfo(id: idString, name: nameString, email: emailString, extraInfo: decodedExtraInfo, in: core)
 }
 
 @_cdecl("Datadog_AddUserExtraInfo")
 func Datadog_AddUserExtraInfo(extraInfo: CString) {
+    guard let core = DatadogUnityCore.shared else {
+        return
+    }
+
     let decodedExtraInfo = decodeJsonAttributes(fromCString: extraInfo)
 
-    Datadog.addUserExtraInfo(decodedExtraInfo)
+    Datadog.addUserExtraInfo(decodedExtraInfo, in: core)
 }
 
 @_cdecl("Datadog_SendDebugTelemetry")
@@ -80,6 +98,48 @@ func Datadog_SendErrorTelemetry(
 
 @_cdecl("Datadog_ClearAllData")
 func Datadog_ClearAllData() {
-    Datadog.clearAllData()
+    guard let core = DatadogUnityCore.shared else {
+        return
+    }
+
+    Datadog.clearAllData(in: core)
 }
 
+// MARK: - Functionss for integration testing
+
+// Function used in testing to install a proxy in front of the main core
+public func proxyDatadogCore() -> DatadogCoreProtocol? {
+    guard let core = DatadogUnityCore.shared else {
+        return nil
+    }
+
+    let proxyCore = DatadogCoreProxy(core: core)
+    DatadogUnityCore.shared = proxyCore;
+
+    return proxyCore
+}
+
+@_cdecl("Datadog_GetAllEvents")
+func Datadog_GetAllEvents(feature: CString) -> UnsafeMutablePointer<UInt8>? {
+    guard let coreProxy = DatadogUnityCore.shared as? DatadogCoreProxy,
+          let feature = String(cString: feature, encoding: .utf8) else {
+        return nil
+    }
+
+    do {
+        let events = coreProxy.waitAndReturnEventsData(ofFeature: feature)
+        let data = try JSONSerialization.data(withJSONObject: events)
+        let retPtr = UnsafeMutablePointer<UInt8>.allocate(capacity: data.count)
+        data.copyBytes(to: retPtr, count: data.count)
+
+        return retPtr
+    } catch {
+        consolePrint("\(error)", .error)
+    }
+    return nil
+}
+
+@_cdecl("Datadog_FreePointer")
+func Datadog_GetAllEvents(ptr: UnsafeMutablePointer<UInt8>?) {
+    ptr?.deallocate()
+}

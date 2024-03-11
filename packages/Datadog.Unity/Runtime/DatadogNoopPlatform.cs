@@ -49,5 +49,10 @@ namespace Datadog.Unity
         public void ClearAllData()
         {
         }
+
+        public List<Dictionary<string, object>> GetAllEvents(string type)
+        {
+            return new List<Dictionary<string, object>>();
+        }
     }
 }

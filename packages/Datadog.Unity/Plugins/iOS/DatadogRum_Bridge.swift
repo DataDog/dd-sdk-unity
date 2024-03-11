@@ -9,140 +9,172 @@ import DatadogInternal
 
 @_cdecl("DatadogRum_StartView")
 func DatadogRum_StartView(key: CString?, name: CString?, attributes: CString?) {
-    if let key = decodeCString(cString: key) {
-
-        let name = decodeCString(cString: name)
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().startView(key: key, name: name, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key) else {
+        return
     }
+
+    let name = decodeCString(cString: name)
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).startView(key: key, name: name, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_StopView")
 func DatadogRum_StopView(key: CString?, attributes: CString?) {
-    if let key = decodeCString(cString: key) {
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().stopView(key: key, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key) else {
+        return
     }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).stopView(key: key, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_AddAction")
 func DatadogRum_AddAction(type: CString?, name: CString?, attributes: CString?) {
-    if let type = decodeUserActionType(fromCStirng: type),
-       let name = decodeCString(cString: name) {
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().addAction(type: type, name: name, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let type = decodeUserActionType(fromCStirng: type),
+          let name = decodeCString(cString: name) else {
+        return
     }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).addAction(type: type, name: name, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_StartAction")
 func DatadogRum_StartAction(type: CString?, name: CString?, attributes: CString?) {
-    if let type = decodeUserActionType(fromCStirng: type),
-       let name = decodeCString(cString: name) {
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().startAction(type: type, name: name, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let type = decodeUserActionType(fromCStirng: type),
+          let name = decodeCString(cString: name) else {
+        return
     }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).startAction(type: type, name: name, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_StopAction")
 func DatadogRum_StopAction(type: CString?, name: CString?, attributes: CString?) {
-    if let type = decodeUserActionType(fromCStirng: type),
-       let name = decodeCString(cString: name) {
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().stopAction(type: type, name: name, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let type = decodeUserActionType(fromCStirng: type),
+          let name = decodeCString(cString: name) else {
+        return
     }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).stopAction(type: type, name: name, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_AddError")
 func DatadogRum_AddError(message: CString?, source: CString?, type: CString?, stack: CString?, attributes: CString?) {
-    if let message = decodeCString(cString: message),
-       let source = decodeErrorSource(fromCString: source) {
-
-        let type = decodeCString(cString: type)
-        let stack = decodeCString(cString: stack)
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().addError(message: message, type: type, stack: stack, source: source, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let message = decodeCString(cString: message),
+          let source = decodeErrorSource(fromCString: source) else {
+              return
     }
+
+    let type = decodeCString(cString: type)
+    let stack = decodeCString(cString: stack)
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).addError(message: message, type: type, stack: stack, source: source, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_StartResource")
 func DatadogRum_StartResource(key: CString?, httpMethod: CString?, url: CString, attributes: CString?) {
-    if let key = decodeCString(cString: key),
-       let httpMethod = decodeHttpMethod(fromCString: httpMethod),
-       let url = decodeCString(cString: url) {
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().startResource(resourceKey: key, httpMethod: httpMethod, urlString: url, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key),
+          let httpMethod = decodeHttpMethod(fromCString: httpMethod),
+          let url = decodeCString(cString: url) else {
+        return
     }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).startResource(resourceKey: key, httpMethod: httpMethod, urlString: url, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_StopResource")
 func DatadogRum_StopResource(key: CString?, resourceType: CString?, statusCode: Int,
                                     size: Int64, attributes: CString?) {
-    if let key = decodeCString(cString: key),
-       let resourceType = decodeResourceType(fromCString: resourceType) {
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        // Using -1 as a special value to mean nil, as passing optional ints in C# is difficult.
-        let statusCode = statusCode == -1 ? nil : statusCode
-        let size = size == -1 ? nil : size;
-
-        RUMMonitor.shared().stopResource(resourceKey: key, statusCode: statusCode, kind: resourceType, size: size, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key),
+          let resourceType = decodeResourceType(fromCString: resourceType) else {
+        return
     }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    // Using -1 as a special value to mean nil, as passing optional ints in C# is difficult.
+    let statusCode = statusCode == -1 ? nil : statusCode
+    let size = size == -1 ? nil : size;
+
+    RUMMonitor.shared(in: core).stopResource(resourceKey: key, statusCode: statusCode, kind: resourceType, size: size, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_StopResourceWithError")
 func DatadogRum_StopResourceWithError(key: CString?, errorType: CString?, errorMessage: CString?, attributes: CString?) {
-    if let key = decodeCString(cString: key),
-       let errorMessage = decodeCString(cString: errorMessage) {
-
-        let errorType = decodeCString(cString: errorType)
-
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
-
-        RUMMonitor.shared().stopResourceWithError(resourceKey: key, message: errorMessage, type: errorType, response: nil, attributes: decodedAttributes)
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key),
+          let errorMessage = decodeCString(cString: errorMessage) else {
+        return
     }
+
+    let errorType = decodeCString(cString: errorType)
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+    RUMMonitor.shared(in: core).stopResourceWithError(resourceKey: key, message: errorMessage, type: errorType, response: nil, attributes: decodedAttributes)
 }
 
 @_cdecl("DatadogRum_AddAttribute")
 func DatadogRum_AddAttribute(key: CString?, value: CString?) {
-    if let key = decodeCString(cString: key) {
-        let value = decodeJsonAttributes(fromCString: value)
-        if let attrValue = value["value"] {
-            RUMMonitor.shared().addAttribute(forKey: key, value: attrValue)
-        }
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key) else {
+        return
+    }
+
+    let value = decodeJsonAttributes(fromCString: value)
+    if let attrValue = value["value"] {
+        RUMMonitor.shared(in: core).addAttribute(forKey: key, value: attrValue)
     }
 }
 
 @_cdecl("DatadogRum_RemoveAttribute")
 func DatadogRum_RemoveAttribute(key: CString?) {
-    if let key = decodeCString(cString: key) {
-        RUMMonitor.shared().removeAttribute(forKey: key)
-    }
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key) else {
+      return
+
+  }
+
+    RUMMonitor.shared(in: core).removeAttribute(forKey: key)
 }
 
 @_cdecl("DatadogRum_AddFeatureFlagEvaluation")
 func DatadogRum_AddFeatureFlagEvaluation(key: CString?, value: CString?) {
-    if let key = decodeCString(cString: key),
-       let value = decodeCString(cString: value) {
-        RUMMonitor.shared().addFeatureFlagEvaluation(name: key, value: value)
+    guard let core = DatadogUnityCore.shared,
+          let key = decodeCString(cString: key),
+          let value = decodeCString(cString: value) else {
+        return
     }
+
+    RUMMonitor.shared(in: core).addFeatureFlagEvaluation(name: key, value: value)
 }
 
 @_cdecl("DatadogRum_StopSession")
 func DatadogRum_StopSession() {
-    RUMMonitor.shared().stopSession()
+    guard let core = DatadogUnityCore.shared else {
+        return
+    }
+
+    RUMMonitor.shared(in: core).stopSession()
 }
 
 func decodeUserActionType(fromCStirng cStirng: CString?) -> RUMActionType? {

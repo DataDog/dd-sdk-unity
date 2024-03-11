@@ -1,6 +1,7 @@
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Datadog.Unity;
@@ -85,6 +86,17 @@ namespace Datadog.Unity.iOS
             Datadog_ClearAllData();
         }
 
+        public List<Dictionary<string, object>> GetAllEvents(string type)
+        {
+            var ptr = Datadog_GetAllEvents(type);
+            var json = Marshal.PtrToStringAuto(ptr);
+            Datadog_FreePointer(ptr);
+
+            // This is actually a JSON list of strings so two steps to get it to a list of dictionaries
+            return JsonConvert.DeserializeObject<List<string>>(json)
+                .ConvertAll(x => JsonConvert.DeserializeObject<Dictionary<string, object>>(x));
+        }
+
         [DllImport("__Internal")]
         private static extern void Datadog_SetTrackingConsent(int trackingConsent);
 
@@ -102,5 +114,11 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_ClearAllData();
+
+        [DllImport("__Internal")]
+        private static extern IntPtr Datadog_GetAllEvents(string type);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_FreePointer(IntPtr ptr);
     }
 }

@@ -5,7 +5,9 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "com.datadog.unity",
-        "com.datadoghq.unity.android"
+        "com.datadoghq.unity.android",
+        "com.datadoghq.unity.Rditor",
+        "com.datadoghq.unity.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

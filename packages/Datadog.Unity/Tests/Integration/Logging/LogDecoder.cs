@@ -123,6 +123,11 @@ namespace Datadog.Unity.Tests.Integration.Logging
             return logs;
         }
 
+        public static List<LogDecoder> FromProxyCore(List<Dictionary<string, object>> proxyCoreLogs)
+        {
+            return proxyCoreLogs.Select(log => new LogDecoder(log)).ToList();
+        }
+
         private T GetNestedProperty<T>(string key)
         {
 #if UNITY_ANDROID

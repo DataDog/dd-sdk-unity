@@ -11,37 +11,67 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
+#if UNITY_EDITOR
+using Datadog.Unity.Editor;
+using UnityEditor;
+#endif
+
+
 namespace Datadog.Unity.Tests.Integration.Logging
 {
-    public class LoggingIntegrationTests
+    public class LoggingIntegrationTests : IPrebuildSetup, IPostBuildCleanup
     {
+        public void Setup()
+        {
+#if UNITY_EDITOR
+            var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
+            options.IsInIntegrationTest = true;
+
+            EditorUtility.SetDirty(options);
+            AssetDatabase.SaveAssets();
+#endif
+        }
+
+        public void Cleanup()
+        {
+#if UNITY_EDITOR
+            var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
+            options.IsInIntegrationTest = false;
+
+            EditorUtility.SetDirty(options);
+            AssetDatabase.SaveAssets();
+#endif
+        }
+
         [UnityTest]
         [Category("integration")]
         public IEnumerator LoggingIntegrationScenario()
         {
-            var mockServerHelper = new MockServerHelper();
-            var resetTask = mockServerHelper.Clear();
-            yield return new WaitUntil(() => resetTask.IsCompleted);
+            // var mockServerHelper = new MockServerHelper();
+            // var resetTask = mockServerHelper.Clear();
+            // yield return new WaitUntil(() => resetTask.IsCompleted);
 
             yield return new MonoBehaviourTest<TestLoggingMonoBehavior>();
 
-            var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
-            {
-                var logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 5;
-            });
+            // var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
+            // {
+            //     var logs = LogDecoder.LogsFromMockServer(serverLog);
+            //     return logs.Count >= 5;
+            // });
+            //
+            // yield return new WaitUntil(() => task.IsCompleted);
+            // var serverLog = task.Result;
 
-            yield return new WaitUntil(() => task.IsCompleted);
-            var serverLog = task.Result;
-            var logs = LogDecoder.LogsFromMockServer(serverLog);
+            var logEvents = DatadogSdk.Instance.GetAllEvents("logging");
+            var logs = LogDecoder.FromProxyCore(logEvents);
 
-            foreach (var log in serverLog)
-            {
-                foreach (var request in log.Requests)
-                {
-                    Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
-                }
-            }
+            // foreach (var log in logs)
+            // {
+            //     foreach (var request in log.Requests)
+            //     {
+            //         Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
+            //     }
+            // }
 
             Assert.AreEqual(5, logs.Count);
 

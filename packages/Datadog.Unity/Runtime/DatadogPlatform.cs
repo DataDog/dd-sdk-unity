@@ -31,5 +31,7 @@ namespace Datadog.Unity
         void SendErrorTelemetry(string message, string stack, string kind);
 
         void ClearAllData();
+
+        List<Dictionary<string, object>> GetAllEvents(string type);
     }
 }

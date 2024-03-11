@@ -157,6 +157,11 @@ namespace Datadog.Unity
             });
         }
 
+        internal List<Dictionary<string, object>> GetAllEvents(string feature)
+        {
+            return _platform.GetAllEvents(feature);
+        }
+
         internal static void InitWithPlatform(IDatadogPlatform platform, DatadogConfigurationOptions options)
         {
             Instance.Init(platform, options);

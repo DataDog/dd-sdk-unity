@@ -13,7 +13,11 @@ private class LogRegistry {
     var logs: [String: LoggerProtocol] = [:]
 
     func createLogger(options: Logger.Configuration) -> String {
-        let logger = Logger.create(with: options)
+        guard let core = DatadogUnityCore.shared else {
+            return ""
+        }
+
+        let logger = Logger.create(with: options, in: core)
 
         let id = UUID()
         let idString = id.uuidString
@@ -60,10 +64,11 @@ extension Logger.Configuration: Decodable {
 
 @_cdecl("DatadogLogginer_Enable")
 func DatadogLogging_Enable(jsonLoggingOptions: UnsafeMutablePointer<CChar>?) {
-    if let stringLoggingOptions = decodeCString(cString: jsonLoggingOptions),
+    if let core = DatadogUnityCore.shared,
+       let stringLoggingOptions = decodeCString(cString: jsonLoggingOptions),
        let data = stringLoggingOptions.data(using: .utf8),
        let options = try? JSONDecoder().decode(Logs.Configuration.self, from: data) {
-        Logs.enable(with: options)
+        Logs.enable(with: options, in: core)
     }
 }
 

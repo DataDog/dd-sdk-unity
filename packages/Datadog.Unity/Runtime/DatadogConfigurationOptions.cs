@@ -199,6 +199,9 @@ namespace Datadog.Unity
         // Advanced RUM
         public float TelemetrySampleRate;
 
+        // Integration Testing
+        public bool IsInIntegrationTest = false;
+
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";
 
         public static DatadogConfigurationOptions Load()

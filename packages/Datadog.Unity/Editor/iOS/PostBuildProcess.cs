@@ -130,6 +130,7 @@ import DatadogCore
 import DatadogLogs
 import DatadogRUM
 import DatadogCrashReporting
+import UnityFramework
 
 @_cdecl(""initializeDatadog"")
 func initializeDatadog() {{
@@ -168,8 +169,15 @@ func initializeDatadog() {{
 ");
 
             sb.Append($@"
-    Datadog.initialize(with: config, trackingConsent: .pending)
+    var core = Datadog.initialize(with: config, trackingConsent: .pending)
+    DatadogUnityCore.shared = core
+");
+            if (options.IsInIntegrationTest)
+            {
+                sb.AppendLine("    core = proxyDatadogCore()!");
+            }
 
+            sb.Append($@"
     var logsConfig = Logs.Configuration()
 ");
             if (options.CustomEndpoint != string.Empty)
@@ -177,7 +185,7 @@ func initializeDatadog() {{
                 sb.AppendLine($@"    logsConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/logs"")");
             }
 
-            sb.AppendLine("    Logs.enable(with: logsConfig)");
+            sb.AppendLine("    Logs.enable(with: logsConfig, in: core)");
 
             if (options.RumEnabled)
             {
@@ -198,16 +206,17 @@ func initializeDatadog() {{
 
                 sb.AppendLine($"    rumConfig.sessionSampleRate = {options.SessionSampleRate}");
                 sb.AppendLine($"    rumConfig.telemetrySampleRate = {options.TelemetrySampleRate}");
-                sb.AppendLine("    RUM.enable(with: rumConfig)");
+                sb.AppendLine("    RUM.enable(with: rumConfig, in: core)");
             }
 
             if (options.CrashReportingEnabled)
             {
                 sb.AppendLine();
-                sb.AppendLine("    CrashReporting.enable()");
-                sb.AppendLine("}");
-                sb.AppendLine();
+                sb.AppendLine("    CrashReporting.enable(in: core)");
             }
+
+            sb.AppendLine("}");
+            sb.AppendLine();
 
             File.WriteAllText(path, sb.ToString());
         }
