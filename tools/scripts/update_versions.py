@@ -47,14 +47,20 @@ def _update_ios_version(version: str):
     for origin in ios_submodule.module().remotes:
         origin.fetch()
 
-    if version not in ios_submodule.module().tags:
-        print(f"Could not find tag `{version}` in iOS submodule.")
-        return
+    if version != "develop":
+        if version not in ios_submodule.module().tags:
+            print(f"Could not find tag `{version}` in iOS submodule.")
+            return
 
-    version_tag = ios_submodule.module().tags[version]
-    ios_submodule.module().head.reference = version_tag
-    print(f"Resetting dd-sdk-ios to tag {version}")
-    ios_submodule.module().head.reset(index=True, working_tree=True)
+        version_tag = ios_submodule.module().tags[version]
+        ios_submodule.module().head.reference = version_tag
+        print(f"Resetting dd-sdk-ios to tag {version}")
+        ios_submodule.module().head.reset(index=True, working_tree=True)
+    else:
+        develop = ios_submodule.module().branches["develop"]
+        ios_submodule.module().head.reference = develop
+        print(f"Resetting dd-sdk-ios to develop")
+        ios_submodule.module().head.reset(index=True, working_tree=True)
 
     # Build carthage
     print("Running carthage build...")
