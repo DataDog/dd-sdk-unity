@@ -118,6 +118,19 @@ namespace Datadog.Unity.Android
                     rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
                 }
 
+                using var internalBuilder = new AndroidJavaClass("com.datadog.android.rum._RumInternalProxy");
+                using var internalBuilderCompanion = internalBuilder.GetStatic<AndroidJavaObject>("Companion");
+                internalBuilderCompanion.Call<AndroidJavaObject>("setTelemetryConfigurationEventMapper", rumConfigBuilder, new TelemetryCallback());
+
+                // Uncomment to always send Configuraiton telemetry
+                // var rumAdditionalConfig = new Dictionary<string, object>()
+                // {
+                //     { "_dd.telemetry.configuration_sample_rate", 100.0f },
+                // };
+                // internalBuilderCompanion.Call<AndroidJavaObject>("setAdditionalConfiguration",
+                //     rumConfigBuilder,
+                //     DatadogAndroidHelpers.DictionaryToJavaMap(rumAdditionalConfig));
+
                 using var rumConfig = rumConfigBuilder.Call<AndroidJavaObject>("build");
                 using var rumClass = new AndroidJavaClass("com.datadog.android.rum.Rum");
                 rumClass.CallStatic("enable", rumConfig);

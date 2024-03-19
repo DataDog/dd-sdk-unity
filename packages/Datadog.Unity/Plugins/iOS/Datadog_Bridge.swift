@@ -4,6 +4,7 @@
 
 import Foundation
 import DatadogCore
+import DatadogInternal
 
 @_cdecl("Datadog_SetTrackingConsent")
 func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
@@ -83,3 +84,12 @@ func Datadog_ClearAllData() {
     Datadog.clearAllData()
 }
 
+@_cdecl("Datadog_UpdateTelemetryConfiguration")
+func Datadog_UpdateTelemetryConfiguration(unityVersion: CString) {
+    guard let unityVersion = decodeCString(cString: unityVersion) else {
+        return
+    }
+
+    let core = CoreRegistry.default
+    core.telemetry.configuration(unityVersion: unityVersion)
+}
