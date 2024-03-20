@@ -25,7 +25,9 @@ namespace Datadog.Unity.iOS
             var options = DatadogConfigurationOptions.Load();
             if (options.Enabled)
             {
-                DatadogSdk.InitWithPlatform(new DatadogiOSPlatform(), options);
+                var platform = new DatadogiOSPlatform();
+                platform.Init(options);
+                DatadogSdk.InitWithPlatform(platform, options);
             }
         }
     }
@@ -34,6 +36,7 @@ namespace Datadog.Unity.iOS
     {
         public void Init(DatadogConfigurationOptions options)
         {
+            Datadog_UpdateTelemetryConfiguration(Application.unityVersion);
         }
 
         public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
@@ -102,5 +105,8 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_ClearAllData();
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_UpdateTelemetryConfiguration(string unityVersion);
     }
 }
