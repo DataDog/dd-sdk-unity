@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -20,6 +21,18 @@ public class UIBehavior : MonoBehaviour
     public void OnThrowButtonPressed()
     {
         PerformNativeThrow();
+    }
+
+    public void OnCSThrowButtonPressed()
+    {
+        try
+        {
+            throw new Exception("C# exception thrown!");
+        }
+        catch (Exception e)
+        {
+            DatadogSdk.Instance.Rum.AddError(e, RumErrorSource.Source);
+        }
     }
 
     public void OnCCrash()

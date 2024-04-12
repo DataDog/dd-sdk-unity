@@ -12,6 +12,12 @@ namespace Datadog.Unity.iOS
 {
     internal class DatadogiOSRum : IDdRum
     {
+        private IDatadogPlatform _platform;
+        public DatadogiOSRum(IDatadogPlatform platform)
+        {
+            _platform = platform;
+        }
+
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {
             attributes ??= new Dictionary<string, object>();
@@ -54,12 +60,29 @@ namespace Datadog.Unity.iOS
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
+            string stackTrace = null;
+            if (error != null)
+            {
+                var errorProcessor = new Il2CppErrorProcessor(_platform);
+                var nativeStackTrace = errorProcessor.GetNativeStackTrace(error);
+                if (nativeStackTrace != null)
+                {
+                    attributes = attributes == null ? new () : new (attributes);
+                    attributes["_dd.error.include_binary_images"] = true;
+                    stackTrace = nativeStackTrace;
+                }
+                else
+                {
+                    stackTrace = error?.StackTrace ?? string.Empty;
+                }
+            }
+
             attributes ??= new Dictionary<string, object>();
+
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
             var errorType = error?.GetType()?.ToString();
             var errorMessage = error?.Message;
-            var stackTrace = error?.StackTrace;
 
             DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
         }

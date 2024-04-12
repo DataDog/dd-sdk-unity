@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System.Diagnostics.CodeAnalysis;
+using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Logs
 {
@@ -10,16 +11,22 @@ namespace Datadog.Unity.Logs
 
     public class DatadogLoggingOptions
     {
+        [Preserve]
         public string Service = null;
 
+        [Preserve]
         public string Name = null;
 
+        [Preserve]
         public bool NetworkInfoEnabled = false;
 
+        [Preserve]
         public bool BundleWithRumEnabled = true;
 
+        [Preserve]
         public float RemoteSampleRate = 100.0f;
 
+        [Preserve]
         public DdLogLevel RemoteLogThreshold = DdLogLevel.Debug;
     }
 }

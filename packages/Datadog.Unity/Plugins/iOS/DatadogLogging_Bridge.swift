@@ -38,7 +38,7 @@ extension Logs.Configuration: Decodable {
 extension Logger.Configuration: Decodable {
     public init(from decoder:Decoder) throws {
         self.init()
-        
+
         let values = try decoder.container(keyedBy: CodingKeys.self)
         service = try values.decode(String?.self, forKey: CodingKeys.service)
         name = try values.decode(String?.self, forKey: CodingKeys.name)
@@ -89,39 +89,39 @@ func DatadogLogging_Log(
     attributes: UnsafeMutablePointer<CChar>?,
     error: UnsafeMutablePointer<CChar>?) {
 
-    guard let logId = logId, let message = message else {
-        return
-    }
-
-    if let idString = String(cString: logId, encoding: .utf8),
-       let logger = LogRegistry.shared.logs[idString],
-       let swiftMessage = String(cString: message, encoding: .utf8) {
-
-        var decodedAttributes: [String: Encodable]?
-        if let jsonAttributes = decodeJsonCString(cString: attributes) {
-            decodedAttributes = castJsonAttributesToSwift(jsonAttributes)
+        guard let logId = logId, let message = message else {
+            return
         }
 
-        var errorKind: String?
-        var errorMessage: String?
-        var stackTrace: String?
-        if let jsonError = decodeJsonCString(cString: error) {
-            errorKind = jsonError["type"] as? String
-            errorMessage = jsonError["message"] as? String
-            stackTrace = jsonError["stackTrace"] as? String
-        }
+        if let idString = String(cString: logId, encoding: .utf8),
+           let logger = LogRegistry.shared.logs[idString],
+           let swiftMessage = String(cString: message, encoding: .utf8) {
 
-        let logLevel = LogLevel(rawValue: logLevel) ?? .info
-        logger._internal.log(
-            level: logLevel,
-            message: swiftMessage,
-            errorKind: errorKind,
-            errorMessage: errorMessage,
-            stackTrace: stackTrace,
-            attributes: decodedAttributes
-        )
+            var decodedAttributes: [String: Encodable]?
+            if let jsonAttributes = decodeJsonCString(cString: attributes) {
+                decodedAttributes = castJsonAttributesToSwift(jsonAttributes)
+            }
+
+            var errorKind: String?
+            var errorMessage: String?
+            var stackTrace: String?
+            if let jsonError = decodeJsonCString(cString: error) {
+                errorKind = jsonError["type"] as? String
+                errorMessage = jsonError["message"] as? String
+                stackTrace = jsonError["stackTrace"] as? String
+            }
+
+            let logLevel = LogLevel(rawValue: logLevel) ?? .info
+            logger._internal.log(
+                level: logLevel,
+                message: swiftMessage,
+                errorKind: errorKind,
+                errorMessage: errorMessage,
+                stackTrace: stackTrace,
+                attributes: decodedAttributes
+            )
+        }
     }
-}
 
 @_cdecl("DatadogLogging_AddTag")
 func DatadogLogging_AddTag(logId: UnsafeMutablePointer<CChar>?, tag: UnsafeMutablePointer<CChar>?, value: UnsafeMutablePointer<CChar>?) {
