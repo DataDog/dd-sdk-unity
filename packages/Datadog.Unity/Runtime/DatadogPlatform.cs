@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -37,6 +38,8 @@ namespace Datadog.Unity
         void SendErrorTelemetry(string message, string stack, string kind);
 
         void ClearAllData();
+
+        string GetNativeStack(IntPtr[] frames, string imageUuid, string imageName);
     }
 
     /// <summary>

@@ -178,9 +178,9 @@ func initializeDatadog() {{
                 sb.AppendLine($"    rumConfig.telemetrySampleRate = {options.TelemetrySampleRate}");
 
                 // Uncomment to enable RUM Configuration Telemetry
-    //             sb.AppendLine(@"    rumConfig._internal_mutation {
-    //     $0.configurationTelemetrySampleRate = 100.0
-    // }");
+                // sb.AppendLine(@"    rumConfig._internal_mutation {
+                //     $0.configurationTelemetrySampleRate = 100.0
+                // }");
                 sb.AppendLine("    RUM.enable(with: rumConfig)");
             }
 

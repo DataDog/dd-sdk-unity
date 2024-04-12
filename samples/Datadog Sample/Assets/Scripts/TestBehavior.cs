@@ -26,6 +26,7 @@ public class TestBehavior : MonoBehaviour
 
         var logger = DatadogSdk.Instance.CreateLogger(new DatadogLoggingOptions()
         {
+            Name = "TestBehavior Logger",
             NetworkInfoEnabled = true,
             RemoteLogThreshold = DdLogLevel.Debug,
         });
