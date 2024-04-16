@@ -55,7 +55,7 @@ namespace Datadog.Unity.Tests
                 logType,
                 null,
                 "{0}: {1}",
-                InternalLogger.DatadogTag,
+                IInternalLogger.DatadogTag,
                 "Fake Message");
         }
 

@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Worker;
 using NSubstitute;
+using NSubstitute.ReceivedExtensions;
 using NUnit.Framework;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -17,10 +19,14 @@ namespace Datadog.Unity.Tests
     {
         private ILogHandler _originalLogHandler = null;
         private ILogHandler _mockLogger = null;
+        private IInternalLogger _mockInternalLogger = null;
 
         [SetUp]
         public void SetUp()
         {
+            _mockInternalLogger = Substitute.For<IInternalLogger>();
+            DatadogSdk.Instance.InternalLogger = _mockInternalLogger;
+
             // Replace the default Unity logger with our
             _originalLogHandler = Debug.unityLogger.logHandler;
             _mockLogger = Substitute.For<ILogHandler>();
@@ -31,6 +37,7 @@ namespace Datadog.Unity.Tests
         public void TearDown()
         {
             Debug.unityLogger.logHandler = _originalLogHandler;
+            DatadogSdk.Instance.InternalLogger = null;
         }
 
         [Test]
@@ -136,6 +143,32 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
+        public void LogExceptionSendsToTelemetry_WhenDatadogLoggerFails()
+        {
+            // Given
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
+            var handler = new DdUnityLogHandler(datadogLogger);
+            handler.Attach();
+            var expectedException = new Exception();
+            datadogLogger.When(logger =>
+            {
+                logger.PlatformLog(
+                    DdLogLevel.Critical,
+                    Arg.Any<string>(),
+                    Arg.Any<Dictionary<string, object>>(),
+                    Arg.Any<Exception>());
+            }).Do(_ => throw expectedException);
+
+            // When
+            var exception = new InvalidCastException("Fake Message");
+            var context = new UnityEngine.Object();
+            handler.LogException(exception, context);
+
+            // Then
+            _mockInternalLogger.Received().TelemetryError(Arg.Any<string>(), expectedException);
+        }
+
+        [Test]
         [TestCase(LogType.Error)]
         [TestCase(LogType.Assert)]
         [TestCase(LogType.Warning)]
@@ -184,6 +217,32 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
+        public void LogFormatSendsToTelemetry_WhenDatadogLoggerFails()
+        {
+            // Given
+            var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
+            var handler = new DdUnityLogHandler(datadogLogger);
+            handler.Attach();
+            var expectedException = new Exception();
+            datadogLogger.When(logger =>
+            {
+                logger.PlatformLog(
+                    DdLogLevel.Critical,
+                    Arg.Any<string>(),
+                    Arg.Any<Dictionary<string, object>>(),
+                    Arg.Any<Exception>());
+            }).Do(_ => throw expectedException);
+
+            // When
+            var context = new UnityEngine.Object();
+            var args = new object[] { };
+            handler.LogFormat(LogType.Assert, context, "format", args);
+
+            // Then
+            _mockInternalLogger.Received().TelemetryError(Arg.Any<string>(), expectedException);
+        }
+
+        [Test]
         [TestCase(LogType.Error)]
         [TestCase(LogType.Assert)]
         [TestCase(LogType.Warning)]
@@ -198,7 +257,7 @@ namespace Datadog.Unity.Tests
 
             // When
             var context = new UnityEngine.Object();
-            var args = new object[] { InternalLogger.DatadogTag };
+            var args = new object[] { IInternalLogger.DatadogTag };
             handler.LogFormat(logType, context, "{0} format", args);
 
             // Then
@@ -224,7 +283,7 @@ namespace Datadog.Unity.Tests
 
             // When
             var context = new UnityEngine.Object();
-            var args = new object[] { InternalLogger.DatadogTag };
+            var args = new object[] { IInternalLogger.DatadogTag };
             handler.LogFormat(logType, context, "{0} format", args);
 
             // Then
