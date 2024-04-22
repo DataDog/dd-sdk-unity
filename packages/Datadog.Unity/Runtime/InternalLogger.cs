@@ -11,15 +11,22 @@ using UnityEngine.Pool;
 
 namespace Datadog.Unity.Core
 {
+    public interface IInternalLogger
+    {
+        public const string DatadogTag = "Datadog";
+
+        public void Log(DdLogLevel level, string message);
+        public void TelemetryError(string message, Exception exception);
+        public void TelemetryDebug(string message);
+    }
+
     /// <summary>
     /// InternalLogger is used to log messages to users of the DatadogSdk, bypassing sending logs
     /// to Datadog. It is also used for sending telemetry to Datadog about the performance of
     /// the SDK.
     /// </summary>
-    internal class InternalLogger
+    internal class InternalLogger : IInternalLogger
     {
-        public const string DatadogTag = "Datadog";
-
         private DatadogWorker _worker;
 
         public InternalLogger(DatadogWorker worker, IDatadogPlatform platform)
@@ -33,7 +40,7 @@ namespace Datadog.Unity.Core
         public void Log(DdLogLevel level, string message)
         {
             var unityLogLevel = DdLogHelpers.DdLogLevelToLogType(level);
-            Debug.unityLogger.Log(unityLogLevel, DatadogTag, message);
+            Debug.unityLogger.Log(unityLogLevel, IInternalLogger.DatadogTag, message);
         }
 
         public void TelemetryError(string message, Exception exception)

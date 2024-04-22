@@ -22,7 +22,7 @@ namespace Datadog.Unity
 
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
-        private InternalLogger _internalLogger;
+        private IInternalLogger _internalLogger;
         private ResourceTrackingHelper _resourceTrackingHelper;
 
         /// <summary>
@@ -57,7 +57,11 @@ namespace Datadog.Unity
         /// </summary>
         public IDdRum Rum { get; private set; } = new DdNoOpRum();
 
-        internal InternalLogger InternalLogger => _internalLogger;
+        internal IInternalLogger InternalLogger
+        {
+            get { return _internalLogger;  }
+            set { _internalLogger = value; }
+        }
 
         internal ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;
 
