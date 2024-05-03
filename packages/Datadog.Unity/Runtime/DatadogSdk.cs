@@ -321,6 +321,7 @@ namespace Datadog.Unity
             internal const string Source = "_dd.source";
             internal const string BuildId = "_dd.build_id";
             internal const string SdkVersion = "_dd.sdk_version";
+            internal const string NativeSourceType = "_dd.native_source_type";
         }
     }
 }

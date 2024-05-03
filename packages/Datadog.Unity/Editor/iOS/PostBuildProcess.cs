@@ -124,6 +124,7 @@ func initializeDatadog() {{
             var additionalConfigurationItems = new List<string>()
             {
                 $"           \"{DatadogSdk.ConfigKeys.Source}\": \"unity\"",
+                $"           \"{DatadogSdk.ConfigKeys.NativeSourceType}\": \"ios+il2cpp\"",
             };
 
             if (buildId != null)
