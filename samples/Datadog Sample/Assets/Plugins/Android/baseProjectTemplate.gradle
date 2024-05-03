@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.datadoghq:dd-sdk-android-gradle-plugin:1.13.0")
+    }
+}
+
 plugins {
     // If you are changing the Android Gradle Plugin version, make sure it is compatible with the Gradle version preinstalled with Unity
     // See which Gradle version is preinstalled with Unity here https://docs.unity3d.com/Manual/android-gradle-overview.html
