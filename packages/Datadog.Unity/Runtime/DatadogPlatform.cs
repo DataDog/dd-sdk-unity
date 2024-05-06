@@ -39,7 +39,7 @@ namespace Datadog.Unity
 
         void ClearAllData();
 
-        string GetNativeStack(IntPtr[] frames, string imageUuid, string imageName);
+        string GetNativeStack(Exception error);
     }
 
     /// <summary>

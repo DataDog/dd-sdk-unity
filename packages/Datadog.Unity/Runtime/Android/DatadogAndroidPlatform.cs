@@ -64,6 +64,7 @@ namespace Datadog.Unity.Android
                 string.Empty, // Variant Name
                 serviceName // Service Name
             );
+
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
             configBuilder.Call<AndroidJavaObject>("setUploadFrequency", DatadogConfigurationHelpers.GetUploadFrequency(options.UploadFrequency));
@@ -254,33 +255,57 @@ namespace Datadog.Unity.Android
             _datadogClass.CallStatic("clearAllData");
         }
 
-        public string GetNativeStack(IntPtr[] frames, string imageUuid, string imageName)
+        public string GetNativeStack(Exception error)
         {
-            if (String.IsNullOrEmpty(imageName))
+            if (error is null)
             {
-                // TODO: RUM-4403 Add support for getting image name from UUID
-                imageName = "il2cpp.so";
+                return string.Empty;
             }
 
-            // imageName comes back with an extra letter at the end, so we need to remove it (bug in Unity?)
-            if (!imageName.EndsWith(".so"))
+            var resultStack = string.Empty;
+            try
             {
-                imageName = imageName.Substring(0, imageName.Length - 1);
+                if (Il2CppErrorHelper.GetNativeStackFrames(
+                        error,
+                        out IntPtr[] frames,
+                        out string imageUuid,
+                        out string imageName))
+                {
+                    if (string.IsNullOrEmpty(imageName))
+                    {
+                        // Sometimes, Unity returns nothing in the imageName, sometimes it returns the name with
+                        // an extra letter. We'll need to replace this with an actual name / address lookup at some point.
+                        // TODO: RUM-4403 Add support for getting image name from UUID
+                        imageName = "il2cpp.so";
+                    }
+
+                    // imageName comes back with an extra letter at the end, so we need to remove it (bug in Unity?)
+                    if (!imageName.EndsWith(".so"))
+                    {
+                        imageName = imageName.Substring(0, imageName.Length - 1);
+                    }
+
+                    // Format of Android Native (NDK) stack trace is:
+                    // #<frame number>  <pc> <address_offset>  <library_name>
+                    // It can optionally include <symbol_name>+<symbol_offset> at the end but we won't include those.
+                    var stackBuilder = new StringBuilder();
+                    for (int i = 0; i < frames.Length; ++i)
+                    {
+                        var frame = frames[i].ToInt64();
+
+                        // Currently assuming the frames are all relative. This should also be fixed by RUM-4403
+                        stackBuilder.AppendLine($"#{i:D2}  pc {frame:x8}  {imageName}");
+                    }
+
+                    resultStack = stackBuilder.ToString();
+                }
+            }
+            catch(Exception e)
+            {
+                SendErrorTelemetry("Failed to get native stack", e.StackTrace, e.GetType().ToString());
             }
 
-            // Format of Android Native (NDK) stack trace is:
-            // #<frame number>  <pc> <address_offset>  <library_name>
-            // It can optionally include <symbol_name>+<symbol_offset> at the end but we won't include those.
-            var stackBuilder = new StringBuilder();
-            for (int i = 0; i < frames.Length; ++i)
-            {
-                var frame = frames[i].ToInt64();
-
-                // Currently assuming the frames are all relative. This should also be fixed by RUM-4403
-                stackBuilder.AppendLine($"#{i:D2}  pc {frame:x8}  {imageName}");
-            }
-
-            return stackBuilder.ToString();
+            return resultStack;
         }
 
         private AndroidJavaObject GetApplicationContext()

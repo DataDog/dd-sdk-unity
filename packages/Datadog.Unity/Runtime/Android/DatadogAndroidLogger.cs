@@ -13,15 +13,15 @@ namespace Datadog.Unity.Android
     internal class DatadogAndroidLogger : DdLogger
     {
         private readonly AndroidJavaObject _androidLogger;
-        private readonly Il2CppErrorProcessor _errorProcessor;
+        private readonly DatadogAndroidPlatform _androidPlatform;
 
         private readonly jvalue[] _nativeErrorSourceAttributeArgs;
 
-        public DatadogAndroidLogger(DdLogLevel logLevel, float sampleRate, IDatadogPlatform platform, AndroidJavaObject androidLogger)
+        public DatadogAndroidLogger(DdLogLevel logLevel, float sampleRate, DatadogAndroidPlatform platform, AndroidJavaObject androidLogger)
             : base(logLevel, sampleRate)
         {
             _androidLogger = androidLogger;
-            _errorProcessor = new Il2CppErrorProcessor(platform);
+            _androidPlatform = platform;
 
             // Cache the argument added to the attribute map to indicate that the source of the error is native
             _nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
@@ -64,7 +64,7 @@ namespace Datadog.Unity.Android
             {
                 errorKind = error.GetType()?.ToString();
                 errorMessage = error.Message;
-                var nativeStackTrace = _errorProcessor.GetNativeStackTrace(error);
+                var nativeStackTrace = _androidPlatform.GetNativeStack(error);
                 if (nativeStackTrace != null)
                 {
                     AndroidJNI.CallObjectMethod(

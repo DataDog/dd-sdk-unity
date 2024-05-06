@@ -15,17 +15,15 @@ namespace Datadog.Unity.iOS
     {
         private readonly string _loggerId;
         private readonly IDatadogPlatform _platform;
-        private readonly Il2CppErrorProcessor _errorProcessor;
 
-        private DatadogiOSLogger(IDatadogPlatform platform, DdLogLevel logLevel, float sampleRate, string loggerId)
+        private DatadogiOSLogger(DatadogiOSPlatform platform, DdLogLevel logLevel, float sampleRate, string loggerId)
             : base(logLevel, sampleRate)
         {
             _loggerId = loggerId;
             _platform = platform;
-            _errorProcessor = new Il2CppErrorProcessor(_platform);
         }
 
-        internal static DatadogiOSLogger Create(IDatadogPlatform platform, DatadogLoggingOptions options)
+        internal static DatadogiOSLogger Create(DatadogiOSPlatform platform, DatadogLoggingOptions options)
         {
             var jsonOptions = JsonConvert.SerializeObject(options);
             var loggerId = DatadogLoggingBridge.DatadogLogging_CreateLogger(jsonOptions);
@@ -40,11 +38,9 @@ namespace Datadog.Unity.iOS
         internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
             string jsonError = null;
-            bool needsBinaryImages = false;
             if (error != null)
             {
-                var nativeStackTrace = _errorProcessor.GetNativeStackTrace(error);
-                needsBinaryImages = nativeStackTrace != null;
+                var nativeStackTrace = _platform.GetNativeStack(error);
                 var errorInfo = new Dictionary<string, string>()
                 {
                     { "type", error.GetType()?.ToString() ?? string.Empty },
@@ -52,14 +48,14 @@ namespace Datadog.Unity.iOS
                     { "stackTrace", nativeStackTrace ?? error.StackTrace ?? string.Empty },
                 };
 
-                jsonError = JsonConvert.SerializeObject(errorInfo);
-            }
+                if (nativeStackTrace != null)
+                {
+                    attributes = attributes != null ? new (attributes) : new();
+                    attributes["_dd.error.include_binary_images"] = true;
+                    attributes[DatadogSdk.ConfigKeys.ErrorSourceType] = "ios+il2cpp";
+                }
 
-            if (needsBinaryImages)
-            {
-                attributes = attributes != null ? new (attributes) : new();
-                attributes["_dd.error.include_binary_images"] = true;
-                attributes[DatadogSdk.ConfigKeys.ErrorSourceType] = "ios+il2cpp";
+                jsonError = JsonConvert.SerializeObject(errorInfo);
             }
 
             // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports

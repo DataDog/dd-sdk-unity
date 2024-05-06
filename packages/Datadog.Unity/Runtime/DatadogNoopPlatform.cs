@@ -71,7 +71,7 @@ namespace Datadog.Unity
         {
         }
 
-        public string GetNativeStack(IntPtr[] frames, string imageUuid, string imageName)
+        public string GetNativeStack(Exception error)
         {
             return string.Empty;
         }
