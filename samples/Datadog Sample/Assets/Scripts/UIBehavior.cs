@@ -25,14 +25,7 @@ public class UIBehavior : MonoBehaviour
 
     public void OnCSThrowButtonPressed()
     {
-        try
-        {
-            throw new Exception("C# exception thrown!");
-        }
-        catch (Exception e)
-        {
-            DatadogSdk.Instance.Rum.AddError(e, RumErrorSource.Source);
-        }
+        throw new Exception("C# exception thrown!");
     }
 
     public void OnCCrash()

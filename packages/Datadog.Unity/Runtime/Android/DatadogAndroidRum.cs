@@ -10,13 +10,25 @@ using UnityEngine;
 
 namespace Datadog.Unity.Android
 {
-    public class DatadogAndroidRum : IDdRum
+    internal class DatadogAndroidRum : IDdRum
     {
         private readonly AndroidJavaObject _rum;
+        private readonly Il2CppErrorProcessor _errorProcessor;
 
-        public DatadogAndroidRum(AndroidJavaObject rum)
+        private readonly jvalue[] _nativeErrorSourceAttributeArgs;
+
+        public DatadogAndroidRum(IDatadogPlatform platform, AndroidJavaObject rum)
         {
             _rum = rum;
+            _errorProcessor = new Il2CppErrorProcessor(platform);
+
+            // Cache the argument added to the attribute map to indicate that the source of the error is native
+            _nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
+                new object[]
+                {
+                    new AndroidJavaObject("java.lang.String", DatadogSdk.ConfigKeys.NativeSourceType),
+                    new AndroidJavaObject("java.lang.String", "ndk+il2cpp"),
+                });
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
@@ -58,11 +70,25 @@ namespace Datadog.Unity.Android
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            var message = error.Message;
-            var stack = error.StackTrace;
-            var javaErrorSource = GetErrorSource(source);
-            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+            var message = error?.Message;
+            var stack = error?.StackTrace;
+            var hasNativeStackTrace = false;
 
+            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+            if (error != null)
+            {
+                var nativeStackTrace = _errorProcessor.GetNativeStackTrace(error);
+                if (nativeStackTrace != null)
+                {
+                    stack = nativeStackTrace;
+                    AndroidJNI.CallObjectMethod(
+                        javaAttributes.GetRawObject(),
+                        DatadogAndroidHelpers.hashMapPutMethodId,
+                        _nativeErrorSourceAttributeArgs);
+                }
+            }
+
+            var javaErrorSource = GetErrorSource(source);
             _rum.Call("addErrorWithStacktrace", message, javaErrorSource, stack, javaAttributes);
         }
 

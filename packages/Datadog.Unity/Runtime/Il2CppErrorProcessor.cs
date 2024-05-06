@@ -7,16 +7,10 @@ namespace Datadog.Unity
     class Il2CppErrorProcessor
     {
         private IDatadogPlatform _platform;
-        private DdLogger _logger;
 
         public Il2CppErrorProcessor(IDatadogPlatform platform)
         {
             _platform = platform;
-            _logger = DatadogSdk.Instance.CreateLogger(new ()
-            {
-                RemoteLogThreshold = DdLogLevel.Debug,
-                Name = "IL2CPPLogger"
-            });
         }
 
         /// <summary>
@@ -52,7 +46,7 @@ namespace Datadog.Unity
             }
             catch (Exception e)
             {
-                _logger.Error($"Error getting native stack trace: {e}");
+                // TODO: Internal logger
             }
             finally
             {
