@@ -12,10 +12,13 @@ namespace Datadog.Unity.iOS
 {
     internal class DatadogiOSRum : IDdRum
     {
-        private IDatadogPlatform _platform;
+        private readonly IDatadogPlatform _platform;
+        private readonly Il2CppErrorProcessor _errorProcessor;
+
         public DatadogiOSRum(IDatadogPlatform platform)
         {
             _platform = platform;
+            _errorProcessor = new Il2CppErrorProcessor(_platform);
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
@@ -63,12 +66,12 @@ namespace Datadog.Unity.iOS
             string stackTrace = null;
             if (error != null)
             {
-                var errorProcessor = new Il2CppErrorProcessor(_platform);
-                var nativeStackTrace = errorProcessor.GetNativeStackTrace(error);
+                var nativeStackTrace = _errorProcessor.GetNativeStackTrace(error);
                 if (nativeStackTrace != null)
                 {
                     attributes = attributes == null ? new () : new (attributes);
                     attributes["_dd.error.include_binary_images"] = true;
+                    attributes[DatadogSdk.ConfigKeys.ErrorSourceType] = "ios+il2cpp";
                     stackTrace = nativeStackTrace;
                 }
                 else

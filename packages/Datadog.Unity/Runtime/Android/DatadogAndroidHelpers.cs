@@ -10,13 +10,28 @@ namespace Datadog.Unity.Android
 {
     public static class DatadogAndroidHelpers
     {
+        private static IntPtr _hashMapPutMethodId;
+
+        public static IntPtr hashMapPutMethodId
+        {
+            get
+            {
+                if (_hashMapPutMethodId == IntPtr.Zero)
+                {
+                    _hashMapPutMethodId = AndroidJNIHelper.GetMethodID(
+                        new AndroidJavaObject("java.util.HashMap").GetRawClass(),
+                        "put",
+                        "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+                }
+
+                return _hashMapPutMethodId;
+            }
+        }
+
         public static AndroidJavaObject DictionaryToJavaMap(IDictionary<string, object> attributes)
         {
             var javaMap = new AndroidJavaObject("java.util.HashMap");
-            IntPtr putMethod = AndroidJNIHelper.GetMethodID(
-                javaMap.GetRawClass(),
-                "put",
-                "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+            IntPtr putMethod = hashMapPutMethodId;
 
             if (attributes != null)
             {

@@ -15,12 +15,14 @@ namespace Datadog.Unity.iOS
     {
         private readonly string _loggerId;
         private readonly IDatadogPlatform _platform;
+        private readonly Il2CppErrorProcessor _errorProcessor;
 
         private DatadogiOSLogger(IDatadogPlatform platform, DdLogLevel logLevel, float sampleRate, string loggerId)
             : base(logLevel, sampleRate)
         {
             _loggerId = loggerId;
             _platform = platform;
+            _errorProcessor = new Il2CppErrorProcessor(_platform);
         }
 
         internal static DatadogiOSLogger Create(IDatadogPlatform platform, DatadogLoggingOptions options)
@@ -41,8 +43,7 @@ namespace Datadog.Unity.iOS
             bool needsBinaryImages = false;
             if (error != null)
             {
-                var errorProcessor = new Il2CppErrorProcessor(_platform);
-                var nativeStackTrace = errorProcessor.GetNativeStackTrace(error);
+                var nativeStackTrace = _errorProcessor.GetNativeStackTrace(error);
                 needsBinaryImages = nativeStackTrace != null;
                 var errorInfo = new Dictionary<string, string>()
                 {
@@ -50,6 +51,7 @@ namespace Datadog.Unity.iOS
                     { "message", error.Message ?? string.Empty },
                     { "stackTrace", nativeStackTrace ?? error.StackTrace ?? string.Empty },
                 };
+
                 jsonError = JsonConvert.SerializeObject(errorInfo);
             }
 
@@ -57,6 +59,7 @@ namespace Datadog.Unity.iOS
             {
                 attributes = attributes != null ? new (attributes) : new();
                 attributes["_dd.error.include_binary_images"] = true;
+                attributes[DatadogSdk.ConfigKeys.ErrorSourceType] = "ios+il2cpp";
             }
 
             // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports

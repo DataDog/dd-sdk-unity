@@ -2,8 +2,10 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -35,6 +37,7 @@ namespace Datadog.Unity.Android
     internal class DatadogAndroidPlatform : IDatadogPlatform
     {
         private AndroidJavaClass _datadogClass;
+        private Dictionary<string, long> _moduleLoadAddresses = new Dictionary<string, long>();
 
         public DatadogAndroidPlatform()
         {
@@ -191,7 +194,7 @@ namespace Datadog.Unity.Android
             loggerBuilder.Call<AndroidJavaObject>("setBundleWithRumEnabled", options.BundleWithRumEnabled);
             var androidLogger = loggerBuilder.Call<AndroidJavaObject>("build");
 
-            var innerLogger = new DatadogAndroidLogger(options.RemoteLogThreshold, options.RemoteSampleRate, androidLogger);
+            var innerLogger = new DatadogAndroidLogger(options.RemoteLogThreshold, options.RemoteSampleRate, this, androidLogger);
             return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
@@ -216,7 +219,7 @@ namespace Datadog.Unity.Android
             using var globalRumMonitorClass = new AndroidJavaClass("com.datadog.android.rum.GlobalRumMonitor");
             var rum = globalRumMonitorClass.CallStatic<AndroidJavaObject>("get");
 
-            return new DatadogAndroidRum(rum);
+            return new DatadogAndroidRum(this, rum);
         }
 
         public void SendDebugTelemetry(string message)
@@ -236,6 +239,35 @@ namespace Datadog.Unity.Android
         public void ClearAllData()
         {
             _datadogClass.CallStatic("clearAllData");
+        }
+
+        public string GetNativeStack(IntPtr[] frames, string imageUuid, string imageName)
+        {
+            if (String.IsNullOrEmpty(imageName))
+            {
+                // TODO: RUM-4403 Add support for getting image name from UUID
+                imageName = "il2cpp.so";
+            }
+
+            // imageName comes back with an extra letter at the end, so we need to remove it (bug in Unity?)
+            if (!imageName.EndsWith(".so"))
+            {
+                imageName = imageName.Substring(0, imageName.Length - 1);
+            }
+
+            // Format of Android Native (NDK) stack trace is:
+            // #<frame number>  <pc> <address_offset>  <library_name>
+            // It can optionally include <symbol_name>+<symbol_offset> at the end but we won't include those.
+            var stackBuilder = new StringBuilder();
+            for (int i = 0; i < frames.Length; ++i)
+            {
+                var frame = frames[i].ToInt64();
+
+                // Currently assuming the frames are all relative. This should also be fixed by RUM-4403
+                stackBuilder.AppendLine($"#{i:D2}  pc {frame:x8}  {imageName}");
+            }
+
+            return stackBuilder.ToString();
         }
 
         private AndroidJavaObject GetApplicationContext()
