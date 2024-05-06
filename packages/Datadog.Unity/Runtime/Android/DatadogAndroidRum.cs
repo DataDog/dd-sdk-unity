@@ -13,14 +13,13 @@ namespace Datadog.Unity.Android
     internal class DatadogAndroidRum : IDdRum
     {
         private readonly AndroidJavaObject _rum;
-        private readonly Il2CppErrorProcessor _errorProcessor;
+        private DatadogAndroidPlatform _androidPlatform;
 
         private readonly jvalue[] _nativeErrorSourceAttributeArgs;
 
         public DatadogAndroidRum(IDatadogPlatform platform, AndroidJavaObject rum)
         {
             _rum = rum;
-            _errorProcessor = new Il2CppErrorProcessor(platform);
 
             // Cache the argument added to the attribute map to indicate that the source of the error is native
             _nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
@@ -72,12 +71,11 @@ namespace Datadog.Unity.Android
         {
             var message = error?.Message;
             var stack = error?.StackTrace;
-            var hasNativeStackTrace = false;
 
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             if (error != null)
             {
-                var nativeStackTrace = _errorProcessor.GetNativeStackTrace(error);
+                var nativeStackTrace = _androidPlatform.GetNativeStack(error);
                 if (nativeStackTrace != null)
                 {
                     stack = nativeStackTrace;

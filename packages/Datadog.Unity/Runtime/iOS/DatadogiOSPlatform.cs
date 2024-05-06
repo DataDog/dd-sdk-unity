@@ -121,49 +121,71 @@ namespace Datadog.Unity.iOS
             Datadog_ClearAllData();
         }
 
-        public string GetNativeStack(IntPtr[] frames, string imageUuid, string imageName)
+        public string GetNativeStack(Exception error)
         {
-            var imageLoadAddress = 0L;
-            if (_moduleLoadAddresses.ContainsKey(imageUuid))
+            if (error is null)
             {
-                imageLoadAddress = _moduleLoadAddresses[imageUuid];
+                return string.Empty;
             }
-            else
+
+            var resultStack = string.Empty;
+            try
             {
-                // Reformat image UUID so it can be parsed by the native code
-                var standardImageUuid = ReformatUuid(imageUuid);
-                imageLoadAddress = Datadog_FindImageLoadAddress(standardImageUuid);
-                if (imageLoadAddress > 0)
+                if (Il2CppErrorHelper.GetNativeStackFrames(
+                        error,
+                        out IntPtr[] frames,
+                        out string imageUuid,
+                        out string imageName))
                 {
-                    _moduleLoadAddresses[imageUuid] = imageLoadAddress;
+                    var imageLoadAddress = 0L;
+                    if (_moduleLoadAddresses.ContainsKey(imageUuid))
+                    {
+                        imageLoadAddress = _moduleLoadAddresses[imageUuid];
+                    }
+                    else
+                    {
+                        // Reformat image UUID so it can be parsed by the native code
+                        var standardImageUuid = ReformatUuid(imageUuid);
+                        imageLoadAddress = Datadog_FindImageLoadAddress(standardImageUuid);
+                        if (imageLoadAddress > 0)
+                        {
+                            _moduleLoadAddresses[imageUuid] = imageLoadAddress;
+                        }
+                    }
+
+                    if (imageLoadAddress <= 0)
+                    {
+                        // Couldn't find the image load address, so we can't supply the stack trace
+                        return null;
+                    }
+
+                    var moduleName = Path.GetFileNameWithoutExtension(imageName);
+
+                    // Format of iOS Native stack trace is:
+                    // <frame number> <module name> <absolute address> <relative address> + <offset>
+                    // Addresses are in hex, but offset is in decimal.
+                    StringBuilder stackBuilder = new StringBuilder();
+                    for (int i = 0; i < frames.Length; i++)
+                    {
+                        var frame = frames[i].ToInt64();
+                        var isAbsolute = frame > imageLoadAddress;
+
+                        // TODO: Check to see if we get absolute addresses outside of the supplied image
+                        var absoluteAddress = isAbsolute ? frame : frame + imageLoadAddress;
+                        var offset = absoluteAddress - imageLoadAddress;
+                        stackBuilder.Append(
+                            $"{i,-3} {moduleName,-32} 0x{absoluteAddress:x16} 0x{imageLoadAddress:x8} + {offset}\n");
+                    }
+
+                    resultStack = stackBuilder.ToString();
                 }
             }
-
-            if (imageLoadAddress <= 0)
+            catch (Exception e)
             {
-                // Couldn't find the image load address, so we can't supply the stack trace
-                return null;
+                SendErrorTelemetry("Failed to get native stack", e.StackTrace, e.GetType().ToString());
             }
 
-            var moduleName = Path.GetFileNameWithoutExtension(imageName);
-
-            // Format of iOS Native stack trace is:
-            // <frame number> <module name> <absolute address> <relative address> + <offset>
-            // Addresses are in hex, but offset is in decimal.
-            StringBuilder stackBuilder = new StringBuilder();
-            for (int i = 0; i < frames.Length; i++)
-            {
-                var frame = frames[i].ToInt64();
-                var isAbsolute = frame > imageLoadAddress;
-
-                // TODO: Check to see if we get absolute addresses outside of the supplied image
-                var absoluteAddress = isAbsolute ? frame : frame + imageLoadAddress;
-                var offset = absoluteAddress - imageLoadAddress;
-                stackBuilder.Append(
-                    $"{i,-3} {moduleName,-32} 0x{absoluteAddress:x16} 0x{imageLoadAddress:x8} + {offset}\n");
-            }
-
-            return stackBuilder.ToString();
+            return resultStack;
         }
 
         private static string ReformatUuid(string imageUuid)

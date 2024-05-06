@@ -4,49 +4,45 @@ using Datadog.Unity.Logs;
 
 namespace Datadog.Unity
 {
-    class Il2CppErrorProcessor
+    internal class Il2CppErrorHelper
     {
-        private IDatadogPlatform _platform;
-
-        public Il2CppErrorProcessor(IDatadogPlatform platform)
-        {
-            _platform = platform;
-        }
-
         /// <summary>
         /// Convert an exception to a native stack trace. If the stack trace cannot be converted,
         /// this returns exception.StackTrace.ToString().
         /// </summary>
         /// <param name="exception">The C# exception.</param>
-        /// <returns>A string representation of the stack trace.</returns>
-        public string GetNativeStackTrace(Exception exception)
+        /// <param name="frames">Out parameter containing the stack frames, or null if frames failed to fetch.</param>
+        /// <param name="imageUuid">Out parameter containing the image UUID, or null if frames failed to fetch.</param>
+        /// <param name="imageName">Out parameter containing the image name. May be null or empty.</param>
+        public static bool GetNativeStackFrames(Exception exception, out IntPtr[] frames, out string imageUuid, out string imageName)
         {
             var gchandle = GCHandle.Alloc(exception);
             var addresses = IntPtr.Zero;
 
-            string resultStack = null;
             try
             {
                 var handlePtr = GCHandle.ToIntPtr(gchandle);
                 var targetAddress = GcHandleGetTarget(handlePtr);
 
                 var numFrames = 0;
-                string imageUuid = null;
-                string imageName = null;
+                imageUuid = null;
+                imageName = null;
                 GetStackFrames(targetAddress, out addresses, out numFrames, out imageUuid, out imageName);
-                var frames = new IntPtr[numFrames];
+                frames = new IntPtr[numFrames];
                 Marshal.Copy(addresses, frames, 0, numFrames);
                 if (frames[0] == IntPtr.Zero)
                 {
                     // First frame is null, this is likely a development build
-                    return null;
+                    return false;
                 }
-
-                resultStack = _platform.GetNativeStack(frames, imageUuid, imageName);
             }
             catch (Exception e)
             {
                 // TODO: Internal logger
+                imageUuid = null;
+                imageName = null;
+                frames = null;
+                return false;
             }
             finally
             {
@@ -57,10 +53,10 @@ namespace Datadog.Unity
                 }
             }
 
-            return resultStack;
+            return true;
         }
 
-        private void GetStackFrames(IntPtr exc, out IntPtr addresses, out int numFrames, out string imageUuid,
+        private static void GetStackFrames(IntPtr exc, out IntPtr addresses, out int numFrames, out string imageUuid,
             out string imageName)
         {
             var imageUuidPtr = IntPtr.Zero;
@@ -87,7 +83,7 @@ namespace Datadog.Unity
 
         #region Unity C Interface
 
-        private IntPtr GcHandleGetTarget(IntPtr gchandle)
+        private static IntPtr GcHandleGetTarget(IntPtr gchandle)
         {
             #if UNITY_2023
             return il2cpp_gchandle_get_target(gchandle);
