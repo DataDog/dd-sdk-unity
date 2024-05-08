@@ -10,14 +10,16 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 
 1. Install [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). This can be done using [Open UPM](https://openupm.com/packages/com.google.external-dependency-manager/).
 
-2. Add the Datadog SDK Unity package from its Git URL at [https://github.com/DataDog/unity-package](https://github.com/DataDog/unity-package).  The package url is `https://github.com/DataDog/unity-package.git`.
+2. Disable static linking for iOS in EDM4U. This can be found in Assets -> External Dependency Manager -> iOS Resolver -> Settings -> Link frameworks statically. If this option is left enabled, you will see errors that Datadog was not initialized when attempting to create loggers or start views.
+
+3. Add the Datadog SDK Unity package from its Git URL at [https://github.com/DataDog/unity-package](https://github.com/DataDog/unity-package).  The package url is `https://github.com/DataDog/unity-package.git`.
 
 > [!NOTE]
 > Datadog plans on adding support for Open UPM after Closed Beta.
 
-3. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both `Custom Main Template` and `Custom Gradle Properties Template`.
+4.. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both `Custom Main Template` and `Custom Gradle Properties Template`.
 
-4. If you build and recieve `Duplicate class` errors (common in Unity 2022.x) add the following block in the `dependencies` block in your `mainTemplate.gradle`:
+5. If you build and recieve `Duplicate class` errors (common in Unity 2022.x) add the following block in the `dependencies` block in your `mainTemplate.gradle`:
 
    ```groovy
    constraints {
