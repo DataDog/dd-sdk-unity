@@ -1,5 +1,12 @@
 # Change Log
 
+## Unreleased
+
+* Remove precompiled frameworks in favor of Cocoapod resolution with EDM4U
+* Update iOS SDK to 2.9.0
+  * Track App Hangs as RUM errors.
+* Update Android SDK to 2.9.0
+
 ## 1.0.4
 
 * Fix SDK version reporting to Datadog.

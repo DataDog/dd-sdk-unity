@@ -11,4 +11,10 @@
     <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2+">
     </androidPackage>
   </androidPackages>
+  <iosPods>
+    <iosPod name="DatadogCore" bitcodeEnabled="false" minTargetSdk="12.0" version="2.9.0" addToAllTargets="true" />
+    <iosPod name="DatadogLogs" bitcodeEnabled="false" minTargetSdk="12.0" version="2.9.0" addToAllTargets="true" />
+    <iosPod name="DatadogRUM" bitcodeEnabled="false" minTargetSdk="12.0" version="2.9.0" addToAllTargets="true" />
+    <iosPod name="DatadogCrashReporting" bitcodeEnabled="false" minTargetSdk="12.0" version="2.9.0" addToAllTargets="true" />
+  </iosPods>
 </dependencies>

@@ -44,13 +44,6 @@ namespace Datadog.Unity.Editor.iOS
 
                 var mainTarget = pbxProject.GetUnityMainTargetGuid();
 
-                CopyAndAddFramework("CrashReporter.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("DatadogCore.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("DatadogLogs.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("DatadogRUM.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("DatadogInternal.xcframework", pathToProject, pbxProject);
-                CopyAndAddFramework("DatadogCrashReporting.xcframework", pathToProject, pbxProject);
-
                 var initializationFile = Path.Combine("MainApp", "DatadogInitialization.swift");
                 var initializationPath = Path.Combine(pathToProject, initializationFile);
                 var datadogOptions = DatadogConfigurationOptionsExtensions.GetOrCreate();
@@ -70,6 +63,10 @@ namespace Datadog.Unity.Editor.iOS
                     AddSymbolGenAndCopyToProject(pbxProject, SymbolAssemblyBuildProcess.DatadogSymbolsDir);
                 }
 
+                // disable embed swift libs - prevents "UnityFramework.framework contains disallowed file 'Frameworks'."
+                var frameworkTarget = pbxProject.GetUnityFrameworkTargetGuid();
+                pbxProject.SetBuildProperty(frameworkTarget, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "NO");
+
                 var projectInString = pbxProject.WriteToString();
 
                 // Remove Bitcode. It's deprecated by Apple and Datadog doesn't support it.
@@ -81,36 +78,6 @@ namespace Datadog.Unity.Editor.iOS
             {
                 Debug.Log($"DatadogBuild: OnPostProcessBuild Failed: {e}");
             }
-        }
-
-        public static void CopyAndAddFramework(string frameworkName, string pathToProject, PBXProject pbxProject, bool embedAndSign = true)
-        {
-            var fullFrameworkPath = Path.GetFullPath(Path.Combine(FrameworkLocation, frameworkName + "~"));
-            if (!Directory.Exists(fullFrameworkPath))
-            {
-                throw new DirectoryNotFoundException($"Could not find {fullFrameworkPath}");
-            }
-
-            var targetPath = Path.Combine(pathToProject, "Frameworks", frameworkName);
-            if (Directory.Exists(targetPath))
-            {
-                Directory.Delete(targetPath, true);
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
-            Debug.Log($"Copying {fullFrameworkPath} to {targetPath}");
-            FileUtil.CopyFileOrDirectory(fullFrameworkPath, targetPath);
-
-            var relativeFrameworkPath = Path.Combine("Frameworks", frameworkName);
-            var frameworkGuid = pbxProject.AddFile(relativeFrameworkPath, relativeFrameworkPath);
-            var mainTarget = pbxProject.GetUnityMainTargetGuid();
-            if (embedAndSign)
-            {
-                pbxProject.AddFileToEmbedFrameworks(mainTarget, frameworkGuid);
-            }
-
-            var buildPhase = pbxProject.GetFrameworksBuildPhaseByTarget(mainTarget);
-            pbxProject.AddFileToBuildSection(mainTarget, buildPhase, frameworkGuid);
         }
 
         internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options, string buildId)
