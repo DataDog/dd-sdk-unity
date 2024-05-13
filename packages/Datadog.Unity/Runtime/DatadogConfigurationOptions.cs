@@ -173,6 +173,7 @@ namespace Datadog.Unity
 
         // Base Config
         public bool Enabled;
+        public CoreLoggerLevel SdkVerbosity = CoreLoggerLevel.Warn;
         public bool OutputSymbols;
         public string ClientToken;
         public DatadogSite Site;

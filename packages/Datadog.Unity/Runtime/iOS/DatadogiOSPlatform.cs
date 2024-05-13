@@ -39,6 +39,11 @@ namespace Datadog.Unity.iOS
             Datadog_UpdateTelemetryConfiguration(Application.unityVersion);
         }
 
+        public void SetSdkVerbosity(CoreLoggerLevel logLevel)
+        {
+            Datadog_SetSdkVerbosity((int)logLevel);
+        }
+
         public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
         {
             var jsonAttributes = extraInfo != null ? JsonConvert.SerializeObject(extraInfo) : null;
@@ -87,6 +92,9 @@ namespace Datadog.Unity.iOS
         {
             Datadog_ClearAllData();
         }
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_SetSdkVerbosity(int logLevel);
 
         [DllImport("__Internal")]
         private static extern void Datadog_SetTrackingConsent(int trackingConsent);

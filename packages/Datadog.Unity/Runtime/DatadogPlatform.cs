@@ -16,6 +16,8 @@ namespace Datadog.Unity
     {
         void Init(DatadogConfigurationOptions options);
 
+        void SetSdkVerbosity(CoreLoggerLevel logLevel);
+
         void SetTrackingConsent(TrackingConsent trackingConsent);
 
         DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
@@ -31,5 +33,16 @@ namespace Datadog.Unity
         void SendErrorTelemetry(string message, string stack, string kind);
 
         void ClearAllData();
+    }
+
+    /// <summary>
+    /// The logging level for the DatadogSdk Core.
+    /// </summary>
+    public enum CoreLoggerLevel
+    {
+        Debug = 0,
+        Warn = 2,
+        Error = 3,
+        Critical = 4,
     }
 }

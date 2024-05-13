@@ -44,7 +44,7 @@ namespace Datadog.Unity.Android
         public void Init(DatadogConfigurationOptions options)
         {
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
-            _datadogClass.CallStatic("setVerbosity", (int)AndroidLogLevel.Verbose);
+            SetSdkVerbosity(options.SdkVerbosity);
 
             var environment = options.Env;
             if (environment is null or "")
@@ -141,6 +141,11 @@ namespace Datadog.Unity.Android
                 using var crashReportClass = new AndroidJavaClass("com.datadog.android.ndk.NdkCrashReports");
                 crashReportClass.CallStatic("enable");
             }
+        }
+
+        public void SetSdkVerbosity(CoreLoggerLevel logLevel)
+        {
+            _datadogClass.CallStatic("setVerbosity", DatadogConfigurationHelpers.GetAndroidLogLevel(logLevel));
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)

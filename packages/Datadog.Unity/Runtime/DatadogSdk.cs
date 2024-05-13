@@ -74,6 +74,18 @@ namespace Datadog.Unity
         }
 
         /// <summary>
+        /// Sets the verbosity level of the SDK. This will affect the amount of logs that the SDK will output.
+        /// </summary>
+        /// <param name="logLevel">The level of SDK verbosity.</param>
+        public void SetSdkVerbosity(CoreLoggerLevel logLevel)
+        {
+            InternalHelpers.Wrap("SetSdkVerbosity", () =>
+            {
+                _platform.SetSdkVerbosity(logLevel);
+            });
+        }
+
+        /// <summary>
         /// Sets the tracking consent regarding the data collection for this instance of the Datadog SDK.
         ///
         /// Datadog always defaults to TrackingConsent.Pending, and it is expected that you call this method after

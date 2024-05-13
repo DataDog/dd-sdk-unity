@@ -21,6 +21,7 @@ namespace Datadog.Unity.Editor
                 options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
 
                 // Base Config
+                options.SdkVerbosity = CoreLoggerLevel.Warn;
                 options.ClientToken = string.Empty;
                 options.Enabled = true;
                 options.Env = string.Empty;

@@ -116,6 +116,7 @@ namespace Datadog.Unity.Editor
             _showAdvancedOptions = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvancedOptions, "Advanced RUM Options");
             if (_showAdvancedOptions)
             {
+                _options.SdkVerbosity = (CoreLoggerLevel)EditorGUILayout.EnumPopup("SDK Verbosity", _options.SdkVerbosity);
                 _options.TelemetrySampleRate =
                     EditorGUILayout.FloatField("Telemetry Sample Rate", _options.TelemetrySampleRate);
                 _options.TelemetrySampleRate = Math.Clamp(_options.TelemetrySampleRate, 0.0f, 100.0f);

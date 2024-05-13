@@ -89,6 +89,7 @@ namespace Datadog.Unity.Editor.iOS
             }
 
             var sdkVersion = DatadogSdk.SdkVersion;
+            var sdkLogLevel = GetSwiftCoreLoggerLevel(options.SdkVerbosity);
 
             var sb = new StringBuilder($@"// Datadog Options File -
 // THIS FILE IS AUTO GENERATED --- changes to this file will be lost!
@@ -100,7 +101,7 @@ import DatadogCrashReporting
 
 @_cdecl(""initializeDatadog"")
 func initializeDatadog() {{
-    Datadog.verbosityLevel = .debug
+    Datadog.verbosityLevel = {sdkLogLevel}
     var config = Datadog.Configuration(
         clientToken: ""{options.ClientToken}"",
         env: ""{env}"",
@@ -276,6 +277,18 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
             };
 
             lines.InsertRange(insertLine, newLines);
+        }
+
+        private static string GetSwiftCoreLoggerLevel(CoreLoggerLevel level)
+        {
+            return level switch
+            {
+                CoreLoggerLevel.Debug => ".debug",
+                CoreLoggerLevel.Warn => ".warn",
+                CoreLoggerLevel.Error => ".error",
+                CoreLoggerLevel.Critical => ".critical",
+                _ => ".warn",
+            };
         }
 
         private static string GetSwiftBatchSize(BatchSize batchSize)
