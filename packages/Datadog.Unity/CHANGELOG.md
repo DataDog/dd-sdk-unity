@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.1.0
 
 * Remove precompiled frameworks in favor of Cocoapod resolution with EDM4U
 * Update iOS SDK to 2.9.0
