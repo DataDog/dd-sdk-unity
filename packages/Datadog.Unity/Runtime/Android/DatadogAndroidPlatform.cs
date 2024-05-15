@@ -44,7 +44,7 @@ namespace Datadog.Unity.Android
         public void Init(DatadogConfigurationOptions options)
         {
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
-            SetSdkVerbosity(options.SdkVerbosity);
+            SetVerbosity(options.SdkVerbosity);
 
             var environment = options.Env;
             if (environment is null or "")
@@ -143,7 +143,7 @@ namespace Datadog.Unity.Android
             }
         }
 
-        public void SetSdkVerbosity(CoreLoggerLevel logLevel)
+        public void SetVerbosity(CoreLoggerLevel logLevel)
         {
             _datadogClass.CallStatic("setVerbosity", DatadogConfigurationHelpers.GetAndroidLogLevel(logLevel));
         }

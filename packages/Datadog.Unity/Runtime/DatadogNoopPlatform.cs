@@ -11,7 +11,7 @@ namespace Datadog.Unity
 {
     internal class DatadogNoOpPlatform : IDatadogPlatform
     {
-        public void SetSdkVerbosity(CoreLoggerLevel logLevel)
+        public void SetVerbosity(CoreLoggerLevel logLevel)
         {
         }
 

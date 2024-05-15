@@ -39,7 +39,7 @@ namespace Datadog.Unity.iOS
             Datadog_UpdateTelemetryConfiguration(Application.unityVersion);
         }
 
-        public void SetSdkVerbosity(CoreLoggerLevel logLevel)
+        public void SetVerbosity(CoreLoggerLevel logLevel)
         {
             Datadog_SetSdkVerbosity((int)logLevel);
         }

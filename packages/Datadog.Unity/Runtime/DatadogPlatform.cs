@@ -16,7 +16,7 @@ namespace Datadog.Unity
     {
         void Init(DatadogConfigurationOptions options);
 
-        void SetSdkVerbosity(CoreLoggerLevel logLevel);
+        void SetVerbosity(CoreLoggerLevel logLevel);
 
         void SetTrackingConsent(TrackingConsent trackingConsent);
 
@@ -41,8 +41,8 @@ namespace Datadog.Unity
     public enum CoreLoggerLevel
     {
         Debug = 0,
-        Warn = 2,
-        Error = 3,
-        Critical = 4,
+        Warn = 1,
+        Error = 2,
+        Critical = 3,
     }
 }

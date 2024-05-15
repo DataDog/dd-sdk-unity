@@ -81,7 +81,7 @@ namespace Datadog.Unity
         {
             InternalHelpers.Wrap("SetSdkVerbosity", () =>
             {
-                _platform.SetSdkVerbosity(logLevel);
+                _platform.SetVerbosity(logLevel);
             });
         }
 
