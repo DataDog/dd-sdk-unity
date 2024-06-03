@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Allow configuration of Datadog SDK verbosity.
+* Isolate Datadog SDKs to Unity framework to prevent certain build errors.
 
 ## 1.1.0
 
