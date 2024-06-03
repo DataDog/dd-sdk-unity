@@ -11,6 +11,10 @@ namespace Datadog.Unity
 {
     internal class DatadogNoOpPlatform : IDatadogPlatform
     {
+        public void SetVerbosity(CoreLoggerLevel logLevel)
+        {
+        }
+
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             return new DdNoOpLogger();

@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Allow configuration of Datadog SDK verbosity.
+
 ## 1.1.0
 
 * Remove precompiled frameworks in favor of Cocoapod resolution with EDM4U

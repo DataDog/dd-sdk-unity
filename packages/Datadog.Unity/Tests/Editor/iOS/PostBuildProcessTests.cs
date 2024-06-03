@@ -74,6 +74,25 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsTrue(sourceLines.First().Trim().StartsWith("\"_dd.source\": \"unity\""));
         }
 
+        [TestCase(CoreLoggerLevel.Debug, ".debug")]
+        [TestCase(CoreLoggerLevel.Warn, ".warn")]
+        [TestCase(CoreLoggerLevel.Error, ".error")]
+        [TestCase(CoreLoggerLevel.Critical, ".critical")]
+        public void GenerationOptionsFileWritesSdkVerbosity(CoreLoggerLevel loggerLevel, string expectedCoreLoggingLevel)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                SdkVerbosity = loggerLevel,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var verbosityLevelLines = lines.Where(l => l.Contains("Datadog.verbosityLevel")).ToArray();
+            Assert.AreEqual(1, verbosityLevelLines.Length);
+            Assert.AreEqual($"Datadog.verbosityLevel = {expectedCoreLoggingLevel}", verbosityLevelLines.First().Trim());
+        }
+
         [TestCase(BatchSize.Small, ".small")]
         [TestCase(BatchSize.Medium, ".medium")]
         [TestCase(BatchSize.Large, ".large")]

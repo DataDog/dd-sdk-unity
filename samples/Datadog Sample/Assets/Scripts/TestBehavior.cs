@@ -15,6 +15,8 @@ public class TestBehavior : MonoBehaviour
     {
         DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
 
+        DatadogSdk.Instance.SetSdkVerbosity(CoreLoggerLevel.Debug);
+
         DatadogSdk.Instance.Rum.StartView("Test View", attributes: new()
         {
             { "view_attribute", "active" },

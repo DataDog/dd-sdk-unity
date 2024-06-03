@@ -25,6 +25,18 @@ namespace Datadog.Unity.Android
             return siteClass.GetStatic<AndroidJavaObject>(siteName);
         }
 
+        internal static AndroidLogLevel GetAndroidLogLevel(CoreLoggerLevel logLevel)
+        {
+            return logLevel switch
+            {
+                CoreLoggerLevel.Debug => AndroidLogLevel.Debug,
+                CoreLoggerLevel.Warn => AndroidLogLevel.Warn,
+                CoreLoggerLevel.Error => AndroidLogLevel.Error,
+                CoreLoggerLevel.Critical => AndroidLogLevel.Assert,
+                _ => AndroidLogLevel.Debug,
+            };
+        }
+
         internal static AndroidJavaObject GetUploadFrequency(UploadFrequency frequency)
         {
             string frequencyName = frequency switch

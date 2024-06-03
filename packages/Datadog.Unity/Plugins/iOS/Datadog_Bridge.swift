@@ -6,6 +6,12 @@ import Foundation
 import DatadogCore
 import DatadogInternal
 
+@_cdecl("Datadog_SetSdkVerbosity")
+func Datadog_SetSdkVerbosity(sdkVerbosityInt: Int) {
+    let verbosity = CoreLoggerLevel(rawValue: sdkVerbosityInt)
+    Datadog.verbosityLevel = verbosity
+}
+
 @_cdecl("Datadog_SetTrackingConsent")
 func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
     let trackingConsent: TrackingConsent?
