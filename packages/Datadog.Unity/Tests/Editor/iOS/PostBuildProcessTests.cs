@@ -149,6 +149,27 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsTrue(processingLevelLines.First().Trim().StartsWith($"batchProcessingLevel: {expectedProcessingLevel}"));
         }
 
+        [TestCase(DatadogSite.Us1, ".us1")]
+        [TestCase(DatadogSite.Us3, ".us3")]
+        [TestCase(DatadogSite.Us5, ".us5")]
+        [TestCase(DatadogSite.Ap1, ".ap1")]
+        [TestCase(DatadogSite.Eu1, ".eu1")]
+        [TestCase(DatadogSite.Us1Fed, ".us1_fed")]
+        public void GenerationOptionsFileWritesSite(DatadogSite site, string expectedSite)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                Site = site,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var siteLines = lines.Where(l => l.Contains("site:")).ToArray();
+            Assert.AreEqual(1, siteLines.Length);
+            Assert.IsTrue(siteLines.First().Trim().StartsWith($"site: {expectedSite},"));
+        }
+
         [Test]
         public void GenerateOptionsFileDoesNotWriteCrashReportingIfDisabled()
         {
