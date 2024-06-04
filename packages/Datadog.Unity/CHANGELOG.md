@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.1.1
 
 * Allow configuration of Datadog SDK verbosity.
 * Isolate Datadog SDKs to Unity framework to prevent certain build errors.
