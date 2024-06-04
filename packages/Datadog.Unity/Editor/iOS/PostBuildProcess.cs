@@ -105,6 +105,7 @@ func initializeDatadog() {{
     var config = Datadog.Configuration(
         clientToken: ""{options.ClientToken}"",
         env: ""{env}"",
+        site: {GetSwiftSite(options.Site)},
         batchSize: {GetSwiftBatchSize(options.BatchSize)},
         uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)},
         batchProcessingLevel: {GetSwiftBatchProcessingLevel(options.BatchProcessingLevel)}
@@ -326,6 +327,20 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
                 VitalsUpdateFrequency.Rare => ".rare",
                 VitalsUpdateFrequency.Frequent => ".frequent",
                 _ => "nil",
+            };
+        }
+
+        private static string GetSwiftSite(DatadogSite site)
+        {
+            return site switch
+            {
+                DatadogSite.Us1 => ".us1",
+                DatadogSite.Us3 => ".us3",
+                DatadogSite.Us5 => ".us5",
+                DatadogSite.Eu1 => ".eu1",
+                DatadogSite.Us1Fed => ".us1_fed",
+                DatadogSite.Ap1 => ".ap1",
+                _ => ".us1"
             };
         }
     }
