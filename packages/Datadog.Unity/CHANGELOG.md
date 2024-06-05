@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.1.2
 
 * Fix Datadog Site support in iOS.
 
