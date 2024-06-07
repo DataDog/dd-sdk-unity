@@ -22,6 +22,8 @@ public class TestBehavior : MonoBehaviour
             { "view_attribute", "active" },
         });
 
+        DatadogSdk.Instance.SetUserInfo("1234", "John Fakename");
+
         var logger = DatadogSdk.Instance.CreateLogger(new DatadogLoggingOptions()
         {
             NetworkInfoEnabled = true,
