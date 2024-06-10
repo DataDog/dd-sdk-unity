@@ -33,9 +33,8 @@ namespace Datadog.Unity.Rum
 
         public TraceContext GenerateTraceContext()
         {
-            // For now, generate 63-bit trace ids and span ids.
             return new TraceContext(
-                TracingUuid.Create63Bit(),
+                TracingUuid.Create128Bit(),
                 TracingUuid.Create63Bit(),
                 null,
                 _traceSampler.Sample());
@@ -46,7 +45,7 @@ namespace Datadog.Unity.Rum
             attributes[DatadogAttributeKeys.RulePsr] = _options.TraceSampleRate / 100.0f;
             if (traceContext.sampled)
             {
-                attributes[DatadogAttributeKeys.TraceId] = traceContext.traceId.ToString(TraceIdRepresentation.Dec);
+                attributes[DatadogAttributeKeys.TraceId] = traceContext.traceId.ToString(TraceIdRepresentation.Hex32Chars);
                 attributes[DatadogAttributeKeys.SpanId] = traceContext.spanId.ToString(TraceIdRepresentation.Dec);
             }
         }
@@ -73,7 +72,9 @@ namespace Datadog.Unity.Rum
                 if (traceContext.sampled)
                 {
                     headers[DatadogHttpTracingHeaders.TraceId] =
-                        traceContext.traceId.ToString(TraceIdRepresentation.Dec);
+                        traceContext.traceId.ToString(TraceIdRepresentation.LowDec);
+                    headers[DatadogHttpTracingHeaders.Tags] =
+                        $"{DatadogHttpTracingHeaders.TraceIdTag}={traceContext.traceId.ToString(TraceIdRepresentation.HighHex16Chars)}";
                     headers[DatadogHttpTracingHeaders.ParentId] =
                         traceContext.spanId.ToString(TraceIdRepresentation.Dec);
                 }
@@ -143,6 +144,9 @@ namespace Datadog.Unity.Rum
             public const string ParentId = "x-datadog-parent-id";
             public const string SamplingPriority = "x-datadog-sampling-priority";
             public const string Origin = "x-datadog-origin";
+            public const string Tags = "x-datadog-tags";
+
+            public const string TraceIdTag = "_dd.p.tid";
         }
 
         private static class OTelHttpTracingHeaders

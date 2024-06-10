@@ -39,6 +39,21 @@ namespace Datadog.Unity.Rum.Tests
         }
 
         [Test]
+        [TestCase(0ul, 224ul, "224")]
+        [TestCase(13ul, 115257ul, "115257")]
+        public void TracingUuidLowDecRepresentationsAreCorrect(ulong high, ulong low, string expected)
+        {
+            // Given
+            var uuid = new TracingUuid(high, low);
+
+            // When
+            var str = uuid.ToString(TraceIdRepresentation.LowDec);
+
+            // Then
+            Assert.AreEqual(expected, str);
+        }
+
+        [Test]
         [TestCase(0ul, 0x2fee4ul, "2fee4")]
         [TestCase(0xf1aul, 0x14e255ul, "f1a000000000014e255")]
         public void TracingUuidHexRepresentationsAreCorrect(ulong high, ulong low, string expected)
@@ -84,6 +99,21 @@ namespace Datadog.Unity.Rum.Tests
         }
 
         [Test]
+        [TestCase(0ul, 0x2fee4ul, "0000000000000000")]
+        [TestCase(0xf1aul, 0x14e255ul, "0000000000000f1a")]
+        public void TracingUuidHexHighHexRepresentationsAreCorrect(ulong high, ulong low, string expected)
+        {
+            // Given
+            var uuid = new TracingUuid(high, low);
+
+            // When
+            var str = uuid.ToString(TraceIdRepresentation.HighHex16Chars);
+
+            // Then
+            Assert.AreEqual(expected, str);
+        }
+
+        [Test]
         [Repeat(25)]
         public void CreateTracingUuid63BitSucceeds()
         {
@@ -115,7 +145,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var str = uuid.ToString(TraceIdRepresentation.Hex);
-            Assert.Less(str.Length, 17);
+            Assert.LessOrEqual(str.Length, 16);
         }
 
         [Test]
@@ -126,11 +156,11 @@ namespace Datadog.Unity.Rum.Tests
             // appear flaky at any point, it is likely that we need to re-check the logic.
 
             // When
-            var uuid = TracingUuid.Create64Bit();
+            var uuid = TracingUuid.Create128Bit();
 
             // Then
             var str = uuid.ToString(TraceIdRepresentation.Hex);
-            Assert.Less(str.Length, 63);
+            Assert.LessOrEqual(str.Length, 32);
             Assert.Greater(str.Length, 0);
         }
     }
