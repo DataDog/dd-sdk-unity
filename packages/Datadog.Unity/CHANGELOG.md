@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.1.3
 
 * Fix `setVerbosity` on Android.
 
