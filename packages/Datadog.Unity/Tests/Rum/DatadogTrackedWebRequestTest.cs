@@ -151,7 +151,9 @@ namespace Datadog.Unity.Rum.Tests
 
                 GetIdsFromHeaders(headers, headerType, out var headerTraceId, out var headerSpanId);
                 Assert.AreEqual(headerTraceId, attributeTraceId);
+                Assert.AreEqual(context.traceId.ToString(TraceIdRepresentation.Hex), traceString);
                 Assert.AreEqual(headerSpanId, attributeSpanId);
+                Assert.AreEqual(context.spanId.ToString(TraceIdRepresentation.Dec), spanString);
             }
             else
             {
