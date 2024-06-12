@@ -97,7 +97,7 @@ namespace Datadog.Unity.Editor.Tests
             _process.WriteBuildId(options, BuildTargetGroup.Android, "fake-guid", "fake-output-path");
 
             // Then
-            var expectedPath = Path.Join("fake-output-path", "unityLibrary/src/main/assets", "datadog.buildId");
+            var expectedPath = Path.Join("fake-output-path", "src/main/assets", "datadog.buildId");
             _fileSystemProxy.Received(1).WriteAllText(expectedPath, "fake-guid");
         }
 

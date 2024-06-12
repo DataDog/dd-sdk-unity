@@ -10,6 +10,7 @@ using UnityEditor;
 using UnityEditor.Android;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEngine.Device;
 using Debug = UnityEngine.Debug;
 
 namespace Datadog.Unity.Editor
@@ -17,7 +18,7 @@ namespace Datadog.Unity.Editor
     public class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
     {
         internal const string IosDatadogSymbolsDir = "datadogSymbols";
-        internal const string AndroidSymbolsDir = "unityLibrary/symbols";
+        internal const string AndroidSymbolsDir = "symbols";
         internal const string AndroidLineNumberMappingsOutputPath = "symbols";
 
         // Relative to the output directory
@@ -46,13 +47,21 @@ namespace Datadog.Unity.Editor
         public void OnPostprocessBuild(BuildReport report)
         {
             var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
-            WriteBuildId(options, report.summary.platformGroup, report.summary.guid.ToString(), report.summary.outputPath);
-            CopySymbols(options, report.summary.platformGroup, report.summary.guid.ToString(), report.summary.outputPath);
+            if (report.summary.platformGroup == BuildTargetGroup.iOS)
+            {
+                WriteBuildId(options, report.summary.platformGroup, report.summary.guid.ToString(), report.summary.outputPath);
+            }
+
+            CopySymbols(options, report.summary.platformGroup, report.summary.guid.ToString(),
+                    report.summary.outputPath);
         }
 
         public void OnPostGenerateGradleAndroidProject(string path)
         {
             var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
+            // Since Unity doesn't give us a copy of a buildGUID at this stage, generate our own.
+            var buildGuid = Guid.NewGuid().ToString();
+            WriteBuildId(options, BuildTargetGroup.Android, buildGuid, path);
             AndroidCopyMappingFile(options, path);
         }
 
@@ -130,7 +139,7 @@ namespace Datadog.Unity.Editor
                 if (platformGroup == BuildTargetGroup.Android)
                 {
                     // Write the build id to the Android assets directory
-                    var androidAssetsDir = Path.Join(outputPath, "unityLibrary/src/main/assets");
+                    var androidAssetsDir = Path.Join(outputPath, "src/main/assets");
                     var androidBuildIdPath = Path.Join(androidAssetsDir, "datadog.buildId");
                     _fileSystemProxy.WriteAllText(androidBuildIdPath, buildGuid);
                 }
