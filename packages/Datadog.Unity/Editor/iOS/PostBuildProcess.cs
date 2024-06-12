@@ -61,7 +61,7 @@ namespace Datadog.Unity.Editor.iOS
 
                 if (datadogOptions.OutputSymbols)
                 {
-                    AddSymbolGenAndCopyToProject(pbxProject, SymbolAssemblyBuildProcess.DatadogSymbolsDir);
+                    AddSymbolGenAndCopyToProject(pbxProject, SymbolAssemblyBuildProcess.IosDatadogSymbolsDir);
                 }
 
                 // disable embed swift libs - prevents "UnityFramework.framework contains disallowed file 'Frameworks'."
@@ -204,7 +204,7 @@ func initializeDatadog() {{
 
             var copyDsymScript = new StringBuilder(@$"
 cd ""$BUILT_PRODUCTS_DIR""
-find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyBuildProcess.DatadogSymbolsDir}/"" ';'
+find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyBuildProcess.IosDatadogSymbolsDir}/"" ';'
 ");
 
             pbxProject.AddShellScriptBuildPhase(mainTarget, CopyPhaseName, "/bin/bash", copyDsymScript.ToString());

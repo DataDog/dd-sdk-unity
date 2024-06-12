@@ -4,19 +4,21 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Android;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
-using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace Datadog.Unity.Editor
 {
     public class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
     {
-        internal const string DatadogSymbolsDir = "datadogSymbols";
-        internal const string AndroidLineNumberMappingsOutputPath = "build/symbols";
+        internal const string IosDatadogSymbolsDir = "datadogSymbols";
+        internal const string AndroidSymbolsDir = "unityLibrary/symbols";
+        internal const string AndroidLineNumberMappingsOutputPath = "symbols";
 
         // Relative to the output directory
         internal const string IosLineNumberMappingsLocation =
@@ -44,6 +46,7 @@ namespace Datadog.Unity.Editor
         public void OnPostprocessBuild(BuildReport report)
         {
             var options = DatadogConfigurationOptionsExtensions.GetOrCreate();
+            WriteBuildId(options, report.summary.platformGroup, report.summary.guid.ToString(), report.summary.outputPath);
             CopySymbols(options, report.summary.platformGroup, report.summary.guid.ToString(), report.summary.outputPath);
         }
 
@@ -95,25 +98,55 @@ namespace Datadog.Unity.Editor
             }
         }
 
-        internal void CopySymbols(DatadogConfigurationOptions options, BuildTargetGroup platformGroup, string buildGuid, string outputPath)
+        internal void WriteBuildId(DatadogConfigurationOptions options,
+            BuildTargetGroup platformGroup,
+            string buildGuid,
+            string outputPath)
         {
+            if (platformGroup is not (BuildTargetGroup.Android or BuildTargetGroup.iOS))
+            {
+                // Only copy symbols for Android and iOS
+                return;
+            }
+
             if (options.Enabled && options.OutputSymbols)
             {
-                // Only iOS for now, but might change in the future
-                var shouldOutputBuildId = platformGroup == BuildTargetGroup.iOS;
-
-                if (shouldOutputBuildId)
+                var outputDir = platformGroup switch
                 {
-                    var symbolsDir = Path.Join(outputPath, DatadogSymbolsDir);
-                    if (!_fileSystemProxy.DirectoryExists(symbolsDir))
-                    {
-                        _fileSystemProxy.CreateDirectory(symbolsDir);
-                    }
+                    BuildTargetGroup.Android => AndroidSymbolsDir,
+                    BuildTargetGroup.iOS => IosDatadogSymbolsDir,
+                    _ => ""
+                };
 
-                    var buildIdPath = Path.Join(symbolsDir, "build_id");
-                    _fileSystemProxy.WriteAllText(buildIdPath, buildGuid);
+                var symbolsDir = Path.Join(outputPath, outputDir);
+                if (!_fileSystemProxy.DirectoryExists(symbolsDir))
+                {
+                    _fileSystemProxy.CreateDirectory(symbolsDir);
                 }
 
+                var buildIdPath = Path.Join(symbolsDir, "build_id");
+                _fileSystemProxy.WriteAllText(buildIdPath, buildGuid);
+
+                if (platformGroup == BuildTargetGroup.Android)
+                {
+                    // Write the build id to the Android assets directory
+                    var androidAssetsDir = Path.Join(outputPath, "unityLibrary/src/main/assets");
+                    var androidBuildIdPath = Path.Join(androidAssetsDir, "datadog.buildId");
+                    _fileSystemProxy.WriteAllText(androidBuildIdPath, buildGuid);
+                }
+            }
+        }
+
+        internal void CopySymbols(DatadogConfigurationOptions options, BuildTargetGroup platformGroup, string buildGuid, string outputPath)
+        {
+            if (platformGroup is not (BuildTargetGroup.Android or BuildTargetGroup.iOS))
+            {
+                // Only copy symbols for Android and iOS
+                return;
+            }
+
+            if (options.Enabled && options.OutputSymbols)
+            {
                 switch (platformGroup)
                 {
                     case BuildTargetGroup.iOS:
@@ -128,7 +161,7 @@ namespace Datadog.Unity.Editor
         private void CopyIosSymbolFiles(string outputPath)
         {
             var mappingsSrcPath = Path.Join(outputPath, IosLineNumberMappingsLocation);
-            var mappingsDestPath = Path.Join(outputPath, DatadogSymbolsDir, "LineNumberMappings.json");
+            var mappingsDestPath = Path.Join(outputPath, IosDatadogSymbolsDir, "LineNumberMappings.json");
             if (_fileSystemProxy.FileExists(mappingsSrcPath))
             {
                 Debug.Log("Copying IL2CPP mappings file...");
