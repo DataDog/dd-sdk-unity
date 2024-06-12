@@ -9,9 +9,22 @@ namespace Datadog.Unity.Rum
 {
     internal enum TraceIdRepresentation
     {
+        // Decimal string representation of the entire TraceId
         Dec,
+
+        // Decimal string representation of the low 64-bits of the TraceId
+        LowDec,
+
+        // Hexadecimal string representation of the entire TraceId, with no padding
         Hex,
+
+        // Hexadecimal string representation of the low 64-bits TraceId, padded to 16 characters
         Hex16Chars,
+
+        // Hexadecimal string representation of the high 64-bits TraceId, padded to 16 characters
+        HighHex16Chars,
+
+        // Hexadecimal string representation of the entire TraceId, padded to 32 characters
         Hex32Chars,
     }
 
@@ -41,8 +54,14 @@ namespace Datadog.Unity.Rum
             {
                 default:
                 case TraceIdRepresentation.Dec:
-                    var bigInteger = (BigInteger)_high << 64 | _low;
+                    var bigInteger = ((BigInteger)_high << 64) | _low;
                     return bigInteger.ToString();
+
+                case TraceIdRepresentation.LowDec:
+                    return $"{_low}";
+
+                case TraceIdRepresentation.HighHex16Chars:
+                    return $"{_high:x16}";
 
                 case TraceIdRepresentation.Hex:
                 case TraceIdRepresentation.Hex16Chars:
