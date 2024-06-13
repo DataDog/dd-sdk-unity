@@ -62,10 +62,42 @@ namespace Datadog.Unity.Editor.Tests
             options.OutputSymbols = true;
 
             // When
-            _process.CopySymbols(options, BuildTargetGroup.iOS, "fake-guid", "fake-output-path");
+            _process.WriteBuildId(options, BuildTargetGroup.iOS, "fake-guid", "fake-output-path");
 
             // Then
-            var expectedPath = Path.Join("fake-output-path", SymbolAssemblyBuildProcess.DatadogSymbolsDir, "build_id");
+            var expectedPath = Path.Join("fake-output-path", SymbolAssemblyBuildProcess.IosDatadogSymbolsDir, "build_id");
+            _fileSystemProxy.Received(1).WriteAllText(expectedPath, "fake-guid");
+        }
+
+        [Test]
+        public void WritesGuidToSymbolsPathWhenAndroid()
+        {
+            // Given
+            var options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
+            options.Enabled = true;
+            options.OutputSymbols = true;
+
+            // When
+            _process.WriteBuildId(options, BuildTargetGroup.Android, "fake-guid", "fake-output-path");
+
+            // Then
+            var expectedPath = Path.Join("fake-output-path", SymbolAssemblyBuildProcess.AndroidSymbolsDir, "build_id");
+            _fileSystemProxy.Received(1).WriteAllText(expectedPath, "fake-guid");
+        }
+
+        [Test]
+        public void WritesGuidToAndroidBuildWhenAndroid()
+        {
+            // Given
+            var options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
+            options.Enabled = true;
+            options.OutputSymbols = true;
+
+            // When
+            _process.WriteBuildId(options, BuildTargetGroup.Android, "fake-guid", "fake-output-path");
+
+            // Then
+            var expectedPath = Path.Join("fake-output-path", "src/main/assets", "datadog.buildId");
             _fileSystemProxy.Received(1).WriteAllText(expectedPath, "fake-guid");
         }
 
@@ -85,7 +117,7 @@ namespace Datadog.Unity.Editor.Tests
 
             // Then
             var expectedPath = Path.Join("fake-output-path",
-                SymbolAssemblyBuildProcess.DatadogSymbolsDir,
+                SymbolAssemblyBuildProcess.IosDatadogSymbolsDir,
                 "LineNumberMappings.json"
                 );
             _fileSystemProxy.Received(1).CopyFile(il2cppPath, expectedPath);
@@ -154,7 +186,7 @@ namespace Datadog.Unity.Editor.Tests
             _process.AndroidCopyMappingFile(options, "fake-output-path");
 
             // Then
-            var expectedPath = Path.Join("fake-output-path", "build/symbols");
+            var expectedPath = Path.Join("fake-output-path", "symbols");
             _fileSystemProxy.Received(1).CopyFile(testPath, expectedPath);
         }
     }
