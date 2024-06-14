@@ -22,7 +22,7 @@ namespace Datadog.Unity
 
         private DdUnityLogHandler _logHandler;
         private DatadogWorker _worker;
-        private IInternalLogger _internalLogger;
+        private IInternalLogger _internalLogger = new PassThroughInternalLogger();
         private ResourceTrackingHelper _resourceTrackingHelper;
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Datadog.Unity
         {
             InternalHelpers.Wrap("SetUserInfo", () =>
             {
-                _worker.AddMessage(new DdSdkProcessor.SetUserInfoMessage(id, name, email, extraInfo));
+                _worker?.AddMessage(new DdSdkProcessor.SetUserInfoMessage(id, name, email, extraInfo));
             });
         }
 
@@ -133,7 +133,7 @@ namespace Datadog.Unity
         {
             InternalHelpers.Wrap("AddUserExtraInfo", () =>
             {
-                _worker.AddMessage(new DdSdkProcessor.AddUserExtraInfoMessage(extraInfo));
+                _worker?.AddMessage(new DdSdkProcessor.AddUserExtraInfoMessage(extraInfo));
             });
         }
 
