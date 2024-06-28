@@ -17,7 +17,7 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 > [!NOTE]
 > Datadog plans on adding support for Open UPM after Closed Beta.
 
-4.. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both `Custom Main Template` and `Custom Gradle Properties Template`.
+4. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both `Custom Main Template` and `Custom Gradle Properties Template`.
 
 5. If you build and recieve `Duplicate class` errors (common in Unity 2022.x) add the following block in the `dependencies` block in your `mainTemplate.gradle`:
 
@@ -103,7 +103,7 @@ logger.Debug("Hello with attributes", new()
 
 ### Manual Scene (View) Tracking
 
-To manually track new Scenes (`Views` id Datadog), use the `StartVeiw` and `StopView` methods:
+To manually track new Scenes (`Views` in Datadog), use the `StartView` and `StopView` methods:
 
 ```cs
 public void Start()
