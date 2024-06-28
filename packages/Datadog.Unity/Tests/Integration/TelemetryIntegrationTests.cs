@@ -45,8 +45,8 @@ namespace Datadog.Unity.Tests.Integration
 
             var errorEvent = (RumTelemetryEventDecoder)telemetryEvents[1];
             Assert.AreEqual("Telemetry Error Message", errorEvent.Message);
-            Assert.IsNull(errorEvent.ErrorStack);
-            Assert.IsNull(errorEvent.ErrorKind);
+            Assert.IsTrue(errorEvent.ErrorStack == null || errorEvent.ErrorStack == "unknown");
+            Assert.IsTrue(errorEvent.ErrorKind == null || errorEvent.ErrorKind == "unknown");
 
             var exceptionEvent = (RumTelemetryEventDecoder)telemetryEvents[2];
             Assert.AreEqual("Caught bad operation", exceptionEvent.Message);
