@@ -163,6 +163,63 @@ namespace Datadog.Unity
         }
 
         /// <summary>
+        /// Add a custom attribute to all future logs sent by all loggers.
+        ///
+        /// Values can be nested up to 10 levels deep. Keys using more than 10 levels will be sanitized by SDK.
+        /// </summary>
+        /// <param name="key">The key of the attribute to add.</param>
+        /// <param name="value">The value of the attribute.</param>
+        public void AddLogsAttribute(string key, object value)
+        {
+            if (key == null)
+            {
+                _internalLogger.Log(DdLogLevel.Warn, "Attempting to add `null` key to logs attributes. Ignoring.");
+                return;
+            }
+
+            InternalHelpers.Wrap("AddLogsAttribute", () =>
+            {
+                _worker?.AddMessage(DdSdkProcessor.AddGlobalAttributesMessage.Create(new Dictionary<string, object> { { key, value } }));
+            });
+        }
+
+        /// <summary>
+        /// Add multiple custom attribute to all future logs sent by all loggers. This call will replace values
+        /// on previous attributes if they exit.
+        ///
+        /// Values can be nested up to 10 levels deep. Keys using more than 10 levels will be sanitized by SDK.
+        /// </summary>
+        /// <param name="attributes">A map of custom attributes.</param>
+        public void AddLogsAttributes(Dictionary<string, object> attributes)
+        {
+            InternalHelpers.Wrap("AddLogsAttributes", () =>
+            {
+                _worker?.AddMessage(DdSdkProcessor.AddGlobalAttributesMessage.Create(attributes));
+            });
+        }
+
+        /// <summary>
+        /// Remove a custom attribute from all future logs sent by all loggers.
+        ///
+        /// Previous logs won't lose the attribute value associated with this [key] if
+        /// they were created prior to this call.
+        /// </summary>
+        /// <param name="key">The key of the attribute to remove.</param>
+        public void RemoveLogsAttribute(string key)
+        {
+            if (key == null)
+            {
+                _internalLogger.Log(DdLogLevel.Warn, "Attempting to remove `null` key from logs attributes. Ignoring.");
+                return;
+            }
+
+            InternalHelpers.Wrap("AddLogsAttributes", () =>
+            {
+                _worker?.AddMessage(DdSdkProcessor.RemoveGlobalAttributeMessage.Create(key));
+            });
+        }
+
+        /// <summary>
         /// Clear all data currently stored by the Datadog SDK.
         /// </summary>
         public void ClearAllData()

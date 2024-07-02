@@ -4,6 +4,7 @@
 
 import Foundation
 import DatadogCore
+import DatadogLogs
 import DatadogInternal
 
 @_cdecl("Datadog_SetSdkVerbosity")
@@ -24,6 +25,29 @@ func Datadog_SetTrackingConsent(trackingConsentInt: Int) {
 
     if let trackingConsent = trackingConsent {
         Datadog.set(trackingConsent: trackingConsent)
+    }
+}
+
+@_cdecl("Datadog_AddLogsAttributes")
+func Datadog_AddLogsAttributes(jsonAttributes: CString?) {
+    guard let jsonAttributes = jsonAttributes else {
+        return
+    }
+
+    let decodedAttributes = decodeJsonAttributes(fromCString: jsonAttributes);
+    for attr in decodedAttributes {
+        Logs.addAttribute(forKey: attr.key, value: attr.value)
+    }
+}
+
+@_cdecl("Datadog_RemoveLogsAttributes")
+func Datadog_RemoveLogsAttributes(key: CString?) {
+    guard let key = key else {
+        return
+    }
+
+    if let swiftKey = String(cString: key, encoding: .utf8) {
+        Logs.removeAttribute(forKey: swiftKey)
     }
 }
 

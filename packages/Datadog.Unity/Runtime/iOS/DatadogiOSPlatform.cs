@@ -73,6 +73,29 @@ namespace Datadog.Unity.iOS
             return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
+        public void AddLogsAttributes(Dictionary<string, object> attributes)
+        {
+            if (attributes == null)
+            {
+                SendErrorTelemetry("Unexpected null passed to AddLogsAttributes", null, "DatadogUnityError");
+                return;
+            }
+
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+            Datadog_AddLogsAttributes(jsonAttributes);
+        }
+
+        public void RemoveLogsAttribute(string key)
+        {
+            if (key == null)
+            {
+                // Not an error, but don't bother calling to platform
+                return;
+            }
+
+            Datadog_RemoveLogsAttributes(key);
+        }
+
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
             return new DatadogiOSRum();
@@ -101,6 +124,12 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_SetUserInfo(string id, string name, string email, string extraInfo);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_AddLogsAttributes(string attributes);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_RemoveLogsAttributes(string key);
 
         [DllImport("__Internal")]
         private static extern void Datadog_AddUserExtraInfo(string extraInfo);

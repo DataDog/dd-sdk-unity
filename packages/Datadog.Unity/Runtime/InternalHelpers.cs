@@ -19,7 +19,7 @@ namespace Datadog.Unity
         Assert = 7,
     }
 
-    public static class InternalHelpers
+    internal static class InternalHelpers
     {
         public static void Wrap(string functionName, Action action)
         {
@@ -48,6 +48,17 @@ namespace Datadog.Unity
                 DdLogLevel.Critical => AndroidLogLevel.Assert,
                 _ => AndroidLogLevel.Debug,
             };
+        }
+    }
+
+    internal static class DictionaryHelpers
+    {
+        public static void Copy<K, V>(this Dictionary<K, V> self, Dictionary<K, V> other)
+        {
+            foreach (var kvp in other)
+            {
+                self[kvp.Key] = kvp.Value;
+            }
         }
     }
 }

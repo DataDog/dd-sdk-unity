@@ -3,6 +3,8 @@
 // Copyright 2024-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using Datadog.Unity.Logs;
+using UnityEngine.Pool;
 
 namespace Datadog.Unity.Worker
 {
@@ -26,6 +28,12 @@ namespace Datadog.Unity.Worker
                     break;
                 case AddUserExtraInfoMessage msg:
                     _platform.AddUserExtraInfo(msg.ExtraInfo);
+                    break;
+                case AddGlobalAttributesMessage msg:
+                    _platform.AddLogsAttributes(msg.Attributes);
+                    break;
+                case RemoveGlobalAttributeMessage msg:
+                    _platform.RemoveLogsAttribute(msg.Key);
                     break;
                 default:
                     break;
@@ -71,7 +79,69 @@ namespace Datadog.Unity.Worker
 
             public void Discard()
             {
-                throw new System.NotImplementedException();
+            }
+        }
+
+        // TODO: This should be moved from the core_sdk as it actually applies to Logs.
+        internal class AddGlobalAttributesMessage : IDatadogWorkerMessage
+        {
+            private static ObjectPool<AddGlobalAttributesMessage> _pool = new (
+                createFunc: () => new AddGlobalAttributesMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private AddGlobalAttributesMessage()
+            {
+            }
+
+            public string FeatureTarget => SdkTargetName;
+
+            public Dictionary<string, object> Attributes { get; private set; } = new Dictionary<string, object>();
+
+            public static AddGlobalAttributesMessage Create(Dictionary<string, object> attributes)
+            {
+                var obj = _pool.Get();
+                obj.Attributes.Copy(attributes);
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Attributes.Clear();
+            }
+        }
+
+        internal class RemoveGlobalAttributeMessage : IDatadogWorkerMessage
+        {
+            private static ObjectPool<RemoveGlobalAttributeMessage> _pool = new (
+                createFunc: () => new RemoveGlobalAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
+
+            private RemoveGlobalAttributeMessage()
+            {
+            }
+
+            public string FeatureTarget => SdkTargetName;
+
+            public string Key { get; private set; }
+
+            public static RemoveGlobalAttributeMessage Create(string key)
+            {
+                var obj = _pool.Get();
+                obj.Key = key;
+                return obj;
+            }
+
+            public void Discard()
+            {
+                _pool.Release(this);
+            }
+
+            private void Reset()
+            {
+                Key = null;
             }
         }
     }

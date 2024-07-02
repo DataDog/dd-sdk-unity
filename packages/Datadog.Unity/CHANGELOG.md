@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Add support for global log attributes, which adds attributes to logs sent from all loggers.
+
 ## 1.1.3
 
 * Fix `setVerbosity` on Android.
