@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
 using NSubstitute;
@@ -183,6 +184,104 @@ namespace Datadog.Unity.Tests
             // Then
             mockPlatform.Received().CreateLogger(options, Arg.Any<DatadogWorker>());
             Assert.AreEqual(logger, mockLogger);
+        }
+
+        [Test]
+        public void GlobalAttributeIsForwardedToPlatform()
+        {
+            // Given
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
+            Dictionary<string, object> callbackAttributes = null;
+            mockPlatform.AddLogsAttributes(Arg.Do<Dictionary<string, object>>(attributes =>
+            {
+                callbackAttributes = new Dictionary<string, object>();
+                callbackAttributes.Copy(attributes);
+            }));
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
+
+            // When
+            DatadogSdk.Instance.AddLogsAttribute("fake_key", "fake_value");
+            Thread.Sleep(10);
+
+            // Then
+            mockPlatform.Received().AddLogsAttributes(Arg.Any<Dictionary<string,object>>());
+            var expected = new Dictionary<string, object>()
+            {
+                { "fake_key", "fake_value" },
+            };
+            CollectionAssert.AreEquivalent(expected, callbackAttributes);
+        }
+
+        [Test]
+        public void GlobalAttributesAreForwardedToPlatform()
+        {
+            // Given
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
+            Dictionary<string, object> callbackAttributes = null;
+            mockPlatform.AddLogsAttributes(Arg.Do<Dictionary<string, object>>(attributes =>
+            {
+                callbackAttributes = new Dictionary<string, object>();
+                callbackAttributes.Copy(attributes);
+            }));
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
+
+            // When
+            var newAttributes = new Dictionary<string, object>()
+            {
+                { "key_1", "value_1" },
+                { "key_2", "value_2" },
+                { "number_key", 12555 },
+                { "other_key", 2.3333 },
+            };
+            DatadogSdk.Instance.AddLogsAttributes(newAttributes);
+            Thread.Sleep(10);
+
+            // Then
+            mockPlatform.Received().AddLogsAttributes(Arg.Any<Dictionary<string,object>>());
+            CollectionAssert.AreEquivalent(newAttributes, callbackAttributes);
+        }
+
+        [Test]
+        public void GlobalAttributesRejectsAddWithNullKey()
+        {
+            // Given
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
+
+            // When
+            DatadogSdk.Instance.AddLogsAttribute(null, "value");
+
+            // Then
+            mockPlatform.DidNotReceive().AddLogsAttributes(Arg.Any<Dictionary<string, object>>());
+        }
+
+        [Test]
+        public void GlobalAttributesRemoveIsForwardedToPlatform()
+        {
+            // Given
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
+
+            // When
+            DatadogSdk.Instance.RemoveLogsAttribute("fake_key");
+            Thread.Sleep(10);
+
+            // Then
+            mockPlatform.Received().RemoveLogsAttribute("fake_key");
+        }
+
+        [Test]
+        public void GlobalAttributesRejectsRemoveWithNullKey()
+        {
+            // Given
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
+            DatadogSdk.InitWithPlatform(mockPlatform, new());
+
+            // When
+            DatadogSdk.Instance.RemoveLogsAttribute(null);
+
+            // Then
+            mockPlatform.DidNotReceive().RemoveLogsAttribute(Arg.Any<string>());
         }
 
         [Test]

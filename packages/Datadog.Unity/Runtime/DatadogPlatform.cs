@@ -22,6 +22,10 @@ namespace Datadog.Unity
 
         DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker);
 
+        void AddLogsAttributes(Dictionary<string, object> attributes);
+
+        void RemoveLogsAttribute(string key);
+
         void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo);
 
         void AddUserExtraInfo(Dictionary<string, object> extraInfo);

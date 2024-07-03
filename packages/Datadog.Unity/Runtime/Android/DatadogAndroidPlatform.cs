@@ -192,6 +192,22 @@ namespace Datadog.Unity.Android
             return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
+        public void AddLogsAttributes(Dictionary<string, object> attributes)
+        {
+            using var logsClass = new AndroidJavaClass("com.datadog.android.log.Logs");
+            foreach (var attr in attributes)
+            {
+                AndroidJavaObject javaValue = DatadogAndroidHelpers.ObjectToJavaObject(attr.Value);
+                logsClass.CallStatic("addAttribute", attr.Key, javaValue);
+            }
+        }
+
+        public void RemoveLogsAttribute(string key)
+        {
+            using var logsClass = new AndroidJavaClass("com.datadog.android.log.Logs");
+            logsClass.CallStatic("removeAttribute", key);
+        }
+
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
             using var globalRumMonitorClass = new AndroidJavaClass("com.datadog.android.rum.GlobalRumMonitor");

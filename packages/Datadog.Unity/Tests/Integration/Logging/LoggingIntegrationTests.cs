@@ -51,6 +51,8 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("logging.service", debugLog.ServiceName);
             Assert.AreEqual("string value", (string)debugLog.RawJson["logger-attribute1"]);
             Assert.AreEqual(1000, (long)debugLog.RawJson["logger-attribute2"]);
+            Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-1"));
+            Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.Contains("tag1:tag-value", debugLog.Tags);
             Assert.Contains("tag1:second-value", debugLog.Tags);
             Assert.Contains("my-tag", debugLog.Tags);
@@ -65,6 +67,8 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.Contains("tag1:second-value", debugLog.Tags);
             CollectionAssert.DoesNotContain(infoLog.Tags, "my-tag");
             Assert.AreEqual("string value", (string)infoLog.RawJson["logger-attribute1"]);
+            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
+            Assert.AreEqual(1255, (long)infoLog.RawJson["global-attribute-2"]);
             Assert.AreEqual(1000, (long)infoLog.RawJson["logger-attribute2"]);
             var nestedAttribute = infoLog.RawJson["nestedAttribute"] as JObject;
             Assert.AreEqual("test", (string)nestedAttribute["internal"]);
@@ -78,6 +82,8 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.Contains("tag1:second-value", debugLog.Tags);
             CollectionAssert.DoesNotContain(warnLog.Tags, "my-tag");
             Assert.AreEqual("string value", (string)warnLog.RawJson["logger-attribute1"]);
+            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
+            Assert.AreEqual(1255, (long)infoLog.RawJson["global-attribute-2"]);
             Assert.AreEqual(1000, (long)warnLog.RawJson["logger-attribute2"]);
             Assert.AreEqual(10.34, (double)warnLog.RawJson["doubleAttribute"]);
 
@@ -90,6 +96,8 @@ namespace Datadog.Unity.Tests.Integration.Logging
             CollectionAssert.DoesNotContain(errorLog.Tags, "my-tag");
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
+            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
+            Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("value", (string)errorLog.RawJson["attribute"]);
             Assert.AreEqual("user-id", errorLog.UserId);
             Assert.AreEqual("user-name", errorLog.UserName);
@@ -106,6 +114,8 @@ namespace Datadog.Unity.Tests.Integration.Logging
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "my-tag");
             Assert.IsFalse(exceptionLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)exceptionLog.RawJson["logger-attribute2"]);
+            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
+            Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("System.InvalidOperationException", exceptionLog.ErrorKind);
             Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
             Assert.NotNull(exceptionLog.ErrorStack);
@@ -145,6 +155,11 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 logger.Debug("debug message", new() { { "stringAttribute", "string" } });
 
                 logger.RemoveTag("my-tag");
+                DatadogSdk.Instance.AddLogsAttributes(new Dictionary<string, object>()
+                {
+                    { "global-attribute-1", "value-1" },
+                    { "global-attribute-2", 1255 },
+                });
                 logger.Info("info message", new()
                 {
                     {
@@ -159,6 +174,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
 
                 logger.RemoveAttribute("logger-attribute1");
                 logger.RemoveTagsWithKey("tag1");
+                DatadogSdk.Instance.RemoveLogsAttribute("global-attribute-2");
 
                 DatadogSdk.Instance.SetUserInfo("user-id", "user-name", extraInfo: new()
                 {

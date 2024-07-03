@@ -29,6 +29,14 @@ namespace Datadog.Unity
             return new DdNoOpLogger();
         }
 
+        public void AddLogsAttributes(Dictionary<string, object> attributes)
+        {
+        }
+
+        public void RemoveLogsAttribute(string key)
+        {
+        }
+
         public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
         {
         }
