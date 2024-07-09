@@ -27,6 +27,23 @@ namespace Datadog.Unity
         Ap1,
     }
 
+    /// <summary>
+    /// Defines whether the trace context should be injected into all requests or
+    /// only into requests that are sampled in.
+    /// </summary>
+    public enum TraceContextInjection
+    {
+        /// <summary>
+        /// Injects trace context into all requests regardless of the sampling decision.
+        /// </summary>
+        All,
+
+        /// <summary>
+        /// Injects trace context only into sampled requests.
+        /// </summary>
+        Sampled,
+    }
+
     [Flags]
     public enum TracingHeaderType
     {
@@ -195,6 +212,7 @@ namespace Datadog.Unity
         public VitalsUpdateFrequency VitalsUpdateFrequency = VitalsUpdateFrequency.Average;
         public float SessionSampleRate = 100.0f;
         public float TraceSampleRate = 20.0f;
+        public TraceContextInjection TraceContextInjection = TraceContextInjection.All;
         public List<FirstPartyHostOption> FirstPartyHosts = new ();
 
         // Advanced RUM

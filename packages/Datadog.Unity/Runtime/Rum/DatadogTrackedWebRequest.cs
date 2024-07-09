@@ -173,7 +173,7 @@ namespace Datadog.Unity.Rum
                     var context = trackingHelper.GenerateTraceContext();
                     trackingHelper.GenerateDatadogAttributes(context, attributes);
                     var headers = new Dictionary<string, string>();
-                    trackingHelper.GenerateTracingHeaders(context, tracingHeaders, headers);
+                    trackingHelper.GenerateTracingHeaders(context, tracingHeaders, trackingHelper.TraceContextInjection, headers);
 
                     foreach (var header in headers)
                     {
