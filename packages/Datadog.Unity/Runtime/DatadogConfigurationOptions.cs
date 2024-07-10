@@ -36,11 +36,13 @@ namespace Datadog.Unity
         /// <summary>
         /// Injects trace context into all requests regardless of the sampling decision.
         /// </summary>
+        [InspectorName("All")]
         All,
 
         /// <summary>
         /// Injects trace context only into sampled requests.
         /// </summary>
+        [InspectorName("Only Sampled")]
         Sampled,
     }
 
