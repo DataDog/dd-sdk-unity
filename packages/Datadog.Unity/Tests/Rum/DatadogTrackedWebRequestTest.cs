@@ -11,16 +11,20 @@ using NUnit.Framework;
 
 namespace Datadog.Unity.Rum.Tests
 {
-    [TestFixture(true)]
-    [TestFixture(false)]
+    [TestFixture(true, TraceContextInjection.All)]
+    [TestFixture(true, TraceContextInjection.Sampled)]
+    [TestFixture(false, TraceContextInjection.All)]
+    [TestFixture(false, TraceContextInjection.Sampled)]
     public class DatadogTrackedWebRequestTest
     {
         private bool _sampled;
+        private TraceContextInjection _traceContextInjection;
         private ResourceTrackingHelper _trackingHelper;
 
-        public DatadogTrackedWebRequestTest(bool sampled)
+        public DatadogTrackedWebRequestTest(bool sampled, TraceContextInjection traceContextInjection)
         {
             _sampled = sampled;
+            _traceContextInjection = traceContextInjection;
         }
 
         [SetUp]
@@ -29,6 +33,7 @@ namespace Datadog.Unity.Rum.Tests
             var options = new DatadogConfigurationOptions()
             {
                 TraceSampleRate = _sampled ? 100 : 0.0f,
+                TraceContextInjection = _traceContextInjection,
             };
             _trackingHelper = new ResourceTrackingHelper(options);
         }
@@ -41,10 +46,10 @@ namespace Datadog.Unity.Rum.Tests
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.Datadog, headers);
+            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.Datadog, _traceContextInjection, headers);
 
             // Then
-            VerifyHeaders(headers, TracingHeaderType.Datadog, _sampled);
+            VerifyHeaders(headers, TracingHeaderType.Datadog, _traceContextInjection, _sampled);
         }
 
         [Test]
@@ -55,10 +60,10 @@ namespace Datadog.Unity.Rum.Tests
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3, headers);
+            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3, _traceContextInjection, headers);
 
             // Then
-            VerifyHeaders(headers, TracingHeaderType.B3, _sampled);
+            VerifyHeaders(headers, TracingHeaderType.B3, _traceContextInjection, _sampled);
         }
 
         [Test]
@@ -69,10 +74,10 @@ namespace Datadog.Unity.Rum.Tests
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3Multi, headers);
+            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3Multi, _traceContextInjection, headers);
 
             // Then
-            VerifyHeaders(headers, TracingHeaderType.B3Multi, _sampled);
+            VerifyHeaders(headers, TracingHeaderType.B3Multi, _traceContextInjection, _sampled);
         }
 
         [Test]
@@ -83,10 +88,10 @@ namespace Datadog.Unity.Rum.Tests
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.TraceContext, headers);
+            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.TraceContext, _traceContextInjection, headers);
 
             // Then
-            VerifyHeaders(headers, TracingHeaderType.TraceContext, _sampled);
+            VerifyHeaders(headers, TracingHeaderType.TraceContext, _traceContextInjection, _sampled);
         }
 
         [Test]
@@ -102,23 +107,15 @@ namespace Datadog.Unity.Rum.Tests
             // Then
             var traceString = attributes.GetValueOrDefault("_dd.trace_id")?.ToString();
             var spanString = attributes.GetValueOrDefault("_dd.span_id")?.ToString();
-            if (_sampled)
-            {
-                Assert.IsNotNull(traceString);
-                BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var traceId);
-                Assert.IsNotNull(traceId);
-                Assert.LessOrEqual(traceId.GetByteCount(), 128);
+            Assert.IsNotNull(traceString);
+            BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var traceId);
+            Assert.IsNotNull(traceId);
+            Assert.LessOrEqual(traceId.GetByteCount(), 128);
 
-                Assert.IsNotNull(spanString);
-                BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out var spanId);
-                Assert.IsNotNull(spanId);
-                Assert.LessOrEqual(spanId.GetByteCount(), 63);
-            }
-            else
-            {
-                Assert.IsNull(traceString);
-                Assert.IsNull(spanString);
-            }
+            Assert.IsNotNull(spanString);
+            BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out var spanId);
+            Assert.IsNotNull(spanId);
+            Assert.LessOrEqual(spanId.GetByteCount(), 63);
 
             Assert.AreEqual(_sampled ? 1.0f : 0.0f, attributes["_dd.rule_psr"]);
         }
@@ -129,6 +126,15 @@ namespace Datadog.Unity.Rum.Tests
         [TestCase(TracingHeaderType.TraceContext)]
         public void DatadogAttributesAndTracingHeadersHaveSameValue(TracingHeaderType headerType)
         {
+            if (!_sampled)
+            {
+                if (headerType == TracingHeaderType.B3 || headerType == TracingHeaderType.B3Multi)
+                {
+                    Assert.Pass("B3 and B3Multi headers don't contain ids when sampled.");
+                    return;
+                }
+            }
+
             // Given
             var headers = new Dictionary<string, string>();
             var attributes = new Dictionary<string, object>();
@@ -136,30 +142,22 @@ namespace Datadog.Unity.Rum.Tests
 
             // When
             _trackingHelper.GenerateDatadogAttributes(context, attributes);
-            _trackingHelper.GenerateTracingHeaders(context, headerType, headers);
+            _trackingHelper.GenerateTracingHeaders(context, headerType, TraceContextInjection.All, headers);
 
             // Then
             var traceString = attributes.GetValueOrDefault("_dd.trace_id")?.ToString();
             var spanString = attributes.GetValueOrDefault("_dd.span_id")?.ToString();
-            if (_sampled)
-            {
-                Assert.IsNotNull(traceString);
-                BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var attributeTraceId);
+            Assert.IsNotNull(traceString);
+            BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var attributeTraceId);
 
-                Assert.IsNotNull(spanString);
-                BigInteger.TryParse(spanString, out var attributeSpanId);
+            Assert.IsNotNull(spanString);
+            BigInteger.TryParse(spanString, out var attributeSpanId);
 
-                GetIdsFromHeaders(headers, headerType, out var headerTraceId, out var headerSpanId);
-                Assert.AreEqual(headerTraceId, attributeTraceId);
-                Assert.AreEqual(context.traceId.ToString(TraceIdRepresentation.Hex), traceString);
-                Assert.AreEqual(headerSpanId, attributeSpanId);
-                Assert.AreEqual(context.spanId.ToString(TraceIdRepresentation.Dec), spanString);
-            }
-            else
-            {
-                Assert.IsNull(traceString);
-                Assert.IsNull(spanString);
-            }
+            GetIdsFromHeaders(headers, headerType, out var headerTraceId, out var headerSpanId);
+            Assert.AreEqual(headerTraceId, attributeTraceId);
+            Assert.AreEqual(context.traceId.ToString(TraceIdRepresentation.Hex32Chars), traceString);
+            Assert.AreEqual(headerSpanId, attributeSpanId);
+            Assert.AreEqual(context.spanId.ToString(TraceIdRepresentation.Dec), spanString);
 
             Assert.AreEqual(_sampled ? 1.0f : 0.0f, attributes["_dd.rule_psr"]);
         }
@@ -210,118 +208,185 @@ namespace Datadog.Unity.Rum.Tests
             }
         }
 
-        private static void VerifyHeaders(Dictionary<string, string> headers, TracingHeaderType tracingHeaderType, bool sampled)
+        private static void VerifyHeaders(
+            Dictionary<string, string> headers,
+            TracingHeaderType tracingHeaderType,
+            TraceContextInjection traceContextInjection,
+            bool sampled)
         {
-            BigInteger traceInt;
-            BigInteger spanInt;
-            string sampleString = sampled ? "1" : "0";
+            bool shouldInjectHeaders = sampled || traceContextInjection == TraceContextInjection.All;
+
             switch (tracingHeaderType)
             {
                 case TracingHeaderType.Datadog:
                 {
-                    Assert.AreEqual(sampleString, headers["x-datadog-sampling-priority"]);
-                    Assert.AreEqual("rum", headers["x-datadog-origin"]);
-                    var traceString = headers.GetValueOrDefault("x-datadog-trace-id");
-                    var spanString = headers.GetValueOrDefault("x-datadog-parent-id");
-                    var tagsHeader = headers.GetValueOrDefault("x-datadog-tags");
-                    var tagParts = tagsHeader?.Split("=");
-                    if (sampled)
-                    {
-                        Assert.IsNotNull(tagParts);
-                        if (tagParts != null)
-                        {
-                            Assert.AreEqual(tagParts[0], "_dd.p.tid");
-                            BigInteger.TryParse(tagParts[1], NumberStyles.HexNumber, null, out var highTraceInt);
-                            Assert.NotNull(highTraceInt);
-                            Assert.LessOrEqual(highTraceInt.GetByteCount(), 64);
-                        }
-
-                        BigInteger.TryParse(traceString, out traceInt);
-                        BigInteger.TryParse(spanString, out spanInt);
-                    }
-                    else
-                    {
-                        Assert.IsNull(traceString);
-                        Assert.IsNull(spanString);
-                    }
-
+                    VerifyDatadogHeaders(headers, shouldInjectHeaders, sampled);
                     break;
                 }
 
                 case TracingHeaderType.B3:
                 {
-                    var header = headers["b3"];
-                    if (sampled)
-                    {
-                        var headerParts = header.Split("-");
-                        BigInteger.TryParse(headerParts[0], NumberStyles.HexNumber, null, out traceInt);
-                        BigInteger.TryParse(headerParts[1], NumberStyles.HexNumber, null, out spanInt);
-                        Assert.AreEqual(32, headerParts[0].Length);
-                        Assert.AreEqual(16, headerParts[1].Length);
-                        Assert.AreEqual(headerParts[2], sampleString);
-                    }
-                    else
-                    {
-                        Assert.AreEqual("0", header);
-                    }
-
+                    VerifyB3Headers(headers, sampled, shouldInjectHeaders);
                     break;
                 }
 
                 case TracingHeaderType.B3Multi:
                 {
-                    Assert.AreEqual(sampleString, headers["X-B3-Sampled"]);
-                    var traceString = headers.GetValueOrDefault("X-B3-TraceId");
-                    var spanString = headers.GetValueOrDefault("X-B3-SpanId");
-                    if (sampled)
-                    {
-                        BigInteger.TryParse(traceString, NumberStyles.HexNumber, null,
-                            out traceInt);
-                        Assert.AreEqual(32, traceString.Length);
-                        BigInteger.TryParse(spanString, NumberStyles.HexNumber, null,
-                            out traceInt);
-                        Assert.AreEqual(16, spanString.Length);
-                    }
-                    else
-                    {
-                        Assert.IsNull(traceString);
-                        Assert.IsNull(spanString);
-                    }
-
+                    VerifyB3MultiHeaders(headers, sampled, shouldInjectHeaders);
                     break;
                 }
 
                 case TracingHeaderType.TraceContext:
                 {
-                    var traceparent = headers["traceparent"];
-                    var headerParts = traceparent.Split("-");
-                    Assert.AreEqual("00", headerParts[0]);
-                    BigInteger.TryParse(headerParts[1], NumberStyles.HexNumber, null, out traceInt);
-                    BigInteger.TryParse(headerParts[2], NumberStyles.HexNumber, null, out spanInt);
-                    Assert.AreEqual(sampled ? "01" : "00", headerParts[3]);
-
-                    var tracestate = headers["tracestate"];
-                    var ddTraceState = tracestate.Split(",").FirstOrDefault(s => s.StartsWith("dd="))?.Substring(3);
-                    Assert.NotNull(ddTraceState);
-                    var traceStateMap = ddTraceState
-                        .Split(";")
-                        .Select(s => s.Split(":"))
-                        .ToDictionary(x => x[0], x => x[1]);
-                    Assert.AreEqual(sampleString, traceStateMap["s"]);
-                    Assert.AreEqual("rum", traceStateMap["o"]);
-                    Assert.AreEqual(headerParts[2], traceStateMap["p"]);
+                    VerifyTraceContextHeaders(headers, sampled, shouldInjectHeaders);
                     break;
                 }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(tracingHeaderType), tracingHeaderType, null);
             }
+        }
 
-            Assert.NotNull(traceInt);
-            Assert.LessOrEqual(traceInt.GetByteCount(), tracingHeaderType == TracingHeaderType.Datadog ? 64 : 128);
+        private static void VerifyDatadogHeaders(Dictionary<string, string> headers, bool shouldInjectHeaders, bool sampled)
+        {
+            if (shouldInjectHeaders)
+            {
+                string sampleString = sampled ? "1" : "0";
 
-            Assert.NotNull(spanInt);
-            Assert.LessOrEqual(spanInt.GetByteCount(), 63);
+                Assert.AreEqual(sampleString, headers["x-datadog-sampling-priority"]);
+                Assert.AreEqual("rum", headers["x-datadog-origin"]);
+                var traceString = headers.GetValueOrDefault("x-datadog-trace-id");
+                var spanString = headers.GetValueOrDefault("x-datadog-parent-id");
+                var tagsHeader = headers.GetValueOrDefault("x-datadog-tags");
+
+                var tagParts = tagsHeader?.Split("=");
+                Assert.IsNotNull(tagParts);
+                Assert.AreEqual(tagParts[0], "_dd.p.tid");
+                BigInteger.TryParse(tagParts[1], NumberStyles.HexNumber, null, out var highTraceInt);
+                Assert.NotNull(highTraceInt);
+                Assert.LessOrEqual(highTraceInt.GetByteCount(), 64);
+
+                BigInteger.TryParse(traceString, out BigInteger traceInt);
+                BigInteger.TryParse(spanString, out BigInteger spanInt);
+
+                Assert.NotNull(traceInt);
+                Assert.LessOrEqual(traceInt.GetByteCount(), 64);
+
+                Assert.NotNull(spanInt);
+                Assert.LessOrEqual(spanInt.GetByteCount(), 63);
+            }
+            else
+            {
+                Assert.IsFalse(headers.ContainsKey("x-datadog-sampling-priority"));
+                Assert.IsFalse(headers.ContainsKey("x-datadog-origin"));
+                Assert.IsFalse(headers.ContainsKey("x-datadog-trace-id"));
+                Assert.IsFalse(headers.ContainsKey("x-datadog-parent-id"));
+                Assert.IsFalse(headers.ContainsKey("x-datadog-tags"));
+            }
+        }
+
+        private static void VerifyB3Headers(Dictionary<string, string> headers, bool sampled, bool shouldInjectHeaders)
+        {
+            if (shouldInjectHeaders)
+            {
+                var header = headers["b3"];
+                if (sampled)
+                {
+                    var headerParts = header.Split("-");
+                    BigInteger.TryParse(headerParts[0], NumberStyles.HexNumber, null, out BigInteger traceInt);
+                    BigInteger.TryParse(headerParts[1], NumberStyles.HexNumber, null, out BigInteger spanInt);
+                    Assert.AreEqual(32, headerParts[0].Length);
+                    Assert.AreEqual(16, headerParts[1].Length);
+                    Assert.AreEqual(headerParts[2], "1");
+
+                    Assert.NotNull(traceInt);
+                    Assert.LessOrEqual(traceInt.GetByteCount(), 128);
+
+                    Assert.NotNull(spanInt);
+                    Assert.LessOrEqual(spanInt.GetByteCount(), 63);
+                }
+                else
+                {
+                    Assert.AreEqual("0", header);
+                }
+            }
+            else
+            {
+                Assert.IsFalse(headers.ContainsKey("b3"));
+            }
+        }
+
+        private static void VerifyB3MultiHeaders(Dictionary<string, string> headers, bool sampled, bool shouldInjectHeaders)
+        {
+            if (shouldInjectHeaders)
+            {
+                string sampleString = sampled ? "1" : "0";
+
+                Assert.AreEqual(sampleString, headers["X-B3-Sampled"]);
+                var traceString = headers.GetValueOrDefault("X-B3-TraceId");
+                var spanString = headers.GetValueOrDefault("X-B3-SpanId");
+                if (sampled)
+                {
+                    BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out BigInteger traceInt);
+                    Assert.AreEqual(32, traceString.Length);
+                    BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out BigInteger spanInt);
+                    Assert.AreEqual(16, spanString.Length);
+
+                    Assert.NotNull(traceInt);
+                    Assert.LessOrEqual(traceInt.GetByteCount(), 128);
+
+                    Assert.NotNull(spanInt);
+                    Assert.LessOrEqual(spanInt.GetByteCount(), 63);
+                }
+                else
+                {
+                    Assert.IsNull(traceString);
+                    Assert.IsNull(spanString);
+                }
+            }
+            else
+            {
+                Assert.IsFalse(headers.ContainsKey("X-B3-TraceId"));
+                Assert.IsFalse(headers.ContainsKey("X-B3-SpanId"));
+                Assert.IsFalse(headers.ContainsKey("X-B3-Sampled"));
+            }
+        }
+
+        private static void VerifyTraceContextHeaders(Dictionary<string, string> headers, bool sampled, bool shouldInjectHeaders)
+        {
+            if (shouldInjectHeaders)
+            {
+                var traceparent = headers["traceparent"];
+                var headerParts = traceparent.Split("-");
+                Assert.AreEqual("00", headerParts[0]);
+                BigInteger.TryParse(headerParts[1], NumberStyles.HexNumber, null, out BigInteger traceInt);
+                BigInteger.TryParse(headerParts[2], NumberStyles.HexNumber, null, out BigInteger spanInt);
+                Assert.AreEqual(sampled ? "01" : "00", headerParts[3]);
+
+                var tracestate = headers["tracestate"];
+                var ddTraceState = tracestate.Split(",").FirstOrDefault(s => s.StartsWith("dd="))?.Substring(3);
+                Assert.NotNull(ddTraceState);
+                var traceStateMap = ddTraceState
+                    .Split(";")
+                    .Select(s => s.Split(":"))
+                    .ToDictionary(x => x[0], x => x[1]);
+                Assert.AreEqual(sampled ? "1" : "0", traceStateMap["s"]);
+                Assert.AreEqual("rum", traceStateMap["o"]);
+                Assert.AreEqual(headerParts[2], traceStateMap["p"]);
+
+                Assert.NotNull(traceInt);
+                Assert.LessOrEqual(traceInt.GetByteCount(), 128);
+
+                Assert.NotNull(spanInt);
+                Assert.LessOrEqual(spanInt.GetByteCount(), 63);
+            }
+            else
+            {
+                Assert.IsFalse(headers.ContainsKey("tracepareht"));
+                Assert.IsFalse(headers.ContainsKey("tracestate"));
+            }
+
+            return;
         }
     }
 

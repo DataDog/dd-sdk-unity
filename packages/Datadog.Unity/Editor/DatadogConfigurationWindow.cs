@@ -80,6 +80,8 @@ namespace Datadog.Unity.Editor
             _options.SessionSampleRate = Math.Clamp(_options.SessionSampleRate, 0.0f, 100.0f);
             _options.TraceSampleRate =
                 EditorGUILayout.FloatField("Trace Sample Rate", _options.TraceSampleRate);
+            _options.TraceContextInjection =
+                (TraceContextInjection)EditorGUILayout.EnumPopup("Trace Context Injection", _options.TraceContextInjection);
             _options.TraceSampleRate = Math.Clamp(_options.TraceSampleRate, 0.0f, 100.0f);
 
             GUILayout.Space(12.0f);
