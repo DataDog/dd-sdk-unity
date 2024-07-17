@@ -5,12 +5,14 @@ using Datadog.Unity;
 using Datadog.Unity.Rum;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
 public class FirstSceneBehavior : MonoBehaviour
 {
     public TextMeshProUGUI statusText;
+    public SpriteRenderer[] categorySprites;
 
     // Start is called before the first frame update
     void Start()
@@ -38,10 +40,53 @@ public class FirstSceneBehavior : MonoBehaviour
 
     private IEnumerator PerformHomeActions()
     {
+        yield return FetchCategoryImages();
+
         yield return new WaitForSeconds(3.0f);
         var categoryList = DemoManager.Instance.CategoryList;
         var randomCategory =  categoryList[Random.Range(0, categoryList.Count)];
         TapCategory(randomCategory);
+    }
+
+    private IEnumerator FetchCategoryImages()
+    {
+        for (int i = 0; i < categorySprites.Length; ++i)
+        {
+            if (i >= DemoManager.Instance.CategoryList.Count)
+            {
+                break;
+            }
+
+            var category = DemoManager.Instance.CategoryList[i];
+            var sprite = categorySprites[i];
+            if (sprite == null)
+            {
+                break;
+            }
+
+            statusText.text = "Fetching Category image " + i;
+            var textureWebRequest = UnityWebRequestTexture.GetTexture(category.cover);
+            var tracked = new DatadogTrackedWebRequest(textureWebRequest);
+            yield return tracked.SendWebRequest();
+
+            if (textureWebRequest.result == UnityWebRequest.Result.Success)
+            {
+                var texture = DownloadHandlerTexture.GetContent(textureWebRequest);
+                // Don't change the size of the sprite from current world size... mostly
+                var spriteSize = sprite.gameObject.transform.localScale;
+                var ppu = texture.width / spriteSize.x;
+                sprite.sprite = Sprite.Create(
+                    texture,
+                    new Rect(0, 0, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f),
+                    pixelsPerUnit: ppu);
+            }
+            else
+            {
+                statusText.text = "Error fetching image: " + textureWebRequest.error;
+                Debug.LogError($"Error fetching image {textureWebRequest.url}: {textureWebRequest.error}");
+            }
+        }
     }
 
     private void TapCategory(Category category)
