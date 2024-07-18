@@ -16,7 +16,7 @@ def main():
         return
 
     datadog_client_token = os.environ["DATADOG_CLIENT_TOKEN"]
-    datadog_applicaiton_id = os.environ["DATADOG_APPLICATION_ID"]
+    datadog_application_id = os.environ["DATADOG_APPLICATION_ID"]
 
     print("Modifying `Assets/Resources/DatadogSettings.asset`...")
     settings_path = os.path.join(".", "Assets", "Resources", "DatadogSettings.asset")
@@ -26,7 +26,7 @@ def main():
             if line.startswith("  ClientToken:"):
                 print(f"  ClientToken: {datadog_client_token}")
             elif line.startswith("  RumApplicationId:"):
-                print(f"  RumApplicationId: {datadog_applicaiton_id}")
+                print(f"  RumApplicationId: {datadog_application_id}")
             else:
                 print(line, end='')
 
