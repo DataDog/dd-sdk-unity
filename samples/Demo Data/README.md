@@ -9,8 +9,6 @@ The Datadog configuration is already setup, but is lacking the client token and 
 can be populated by running `./add-keys.py`, which uses the `DATADOG_CLIENT_TOKEN` and
 `DATADOG_APPLICATION_ID` environment variables to populate the necessary keys in the settings file.
 
-To run the application and send demo data to the environment, run `./run-demo.py`.
-
 ## Notes
 
 To prevent committing changes to the `DatadogSettings.asset` file that might include a client token or
