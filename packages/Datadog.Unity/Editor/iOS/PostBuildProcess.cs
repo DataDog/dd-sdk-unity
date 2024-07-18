@@ -143,7 +143,7 @@ func initializeDatadog() {{
 ");
             if (options.CustomEndpoint != string.Empty)
             {
-                sb.AppendLine($@"    logsConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/logs"")");
+                sb.AppendLine($@"    logsConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/api/v2/logs"")");
             }
 
             sb.AppendLine("    Logs.enable(with: logsConfig)");
@@ -157,7 +157,7 @@ func initializeDatadog() {{
 ");
                 if (options.CustomEndpoint != string.Empty)
                 {
-                    sb.AppendLine($@"    rumConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/rum"")");
+                    sb.AppendLine($@"    rumConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/api/v2/rum"")");
                 }
 
                 if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
