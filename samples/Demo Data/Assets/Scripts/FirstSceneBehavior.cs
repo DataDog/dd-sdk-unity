@@ -1,6 +1,9 @@
-using System;
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2023-Present Datadog, Inc.
+
 using System.Collections;
-using System.Collections.Generic;
+using System.Linq;
 using Datadog.Unity;
 using Datadog.Unity.Rum;
 using TMPro;
@@ -19,7 +22,14 @@ public class FirstSceneBehavior : MonoBehaviour
     {
         Debug.Assert(statusText != null, "statusText is not set in the inspector!");
 
-        FetchCategories();
+        if (DemoManager.Instance.CategoryList == null || DemoManager.Instance.CategoryList.Count == 0)
+        {
+            FetchCategories();
+        }
+        else
+        {
+            StartCoroutine(PerformHomeActions());
+        }
     }
 
     private void FetchCategories()
@@ -40,12 +50,21 @@ public class FirstSceneBehavior : MonoBehaviour
 
     private IEnumerator PerformHomeActions()
     {
-        yield return FetchCategoryImages();
+        // Only fetch images on first visit
+        var demoManager = DemoManager.Instance;
+        if (demoManager.CurrentCategoryTaps == 0)
+        {
+            yield return FetchCategoryImages();
+            yield return new WaitForSeconds(3.0f);
+        }
 
-        yield return new WaitForSeconds(3.0f);
-        var categoryList = DemoManager.Instance.CategoryList;
-        var randomCategory =  categoryList[Random.Range(0, categoryList.Count)];
-        TapCategory(randomCategory);
+        if (!demoManager.DoneTappingCategories)
+        {
+            var categoryList = demoManager.CategoryList;
+            var categoryIndex = demoManager.IncludeRandomness ? Random.Range(0, categoryList.Count) : 0;
+            var category =  categoryList[categoryIndex];
+            TapCategory(category);
+        }
     }
 
     private IEnumerator FetchCategoryImages()
@@ -91,6 +110,7 @@ public class FirstSceneBehavior : MonoBehaviour
 
     private void TapCategory(Category category)
     {
+        DemoManager.Instance.CurrentCategoryTaps++;
         DemoManager.Instance.CurrentCategory = category;
         DatadogSdk.Instance.Rum.AddAction(RumUserActionType.Tap, category.title);
         SceneManager.LoadScene("Scenes/CategoryScene");
