@@ -341,6 +341,30 @@ namespace Datadog.Unity.Editor.iOS
         }
 
         [Test]
+        public void GenerateOptionsFileDoesNotWriteEmptyService()
+        {
+            var options = new DatadogConfigurationOptions();
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var serviceLines = lines.Where(l => l.Contains("service: ")).ToArray();
+            Assert.IsEmpty(serviceLines);
+        }
+
+        [Test]
+        public void GenerateOptionsFileAddsService()
+        {
+            var options = new DatadogConfigurationOptions();
+            options.ServiceName = "service-from-options";
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var serviceLines = lines.Where(l => l.Contains("service: ")).ToArray();
+            Assert.AreEqual(1, serviceLines.Length);
+            Assert.AreEqual($"service: \"service-from-options\",", serviceLines.First().Trim());
+        }
+
+        [Test]
         public void GenerateOptionsFileWritesEnvFromOptions()
         {
             var options = new DatadogConfigurationOptions()

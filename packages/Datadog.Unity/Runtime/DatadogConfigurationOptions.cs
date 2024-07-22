@@ -197,6 +197,7 @@ namespace Datadog.Unity
         public string ClientToken;
         public DatadogSite Site;
         public string Env;
+        public string ServiceName;
         public string CustomEndpoint;
         public BatchSize BatchSize;
         public UploadFrequency UploadFrequency;

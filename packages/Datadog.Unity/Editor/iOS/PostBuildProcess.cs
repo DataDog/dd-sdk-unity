@@ -88,6 +88,8 @@ namespace Datadog.Unity.Editor.iOS
                 env = "prod";
             }
 
+            var serviceName = options.ServiceName;
+
             var sdkVersion = DatadogSdk.SdkVersion;
             var sdkLogLevel = GetSwiftCoreLoggerLevel(options.SdkVerbosity);
 
@@ -106,7 +108,14 @@ func initializeDatadog() {{
         clientToken: ""{options.ClientToken}"",
         env: ""{env}"",
         site: {GetSwiftSite(options.Site)},
-        batchSize: {GetSwiftBatchSize(options.BatchSize)},
+");
+
+            if (!(serviceName is null or ""))
+            {
+                sb.AppendLine($"        service: \"{serviceName}\",");
+            }
+
+            sb.Append($@"        batchSize: {GetSwiftBatchSize(options.BatchSize)},
         uploadFrequency: {GetSwiftUploadFrequency(options.UploadFrequency)},
         batchProcessingLevel: {GetSwiftBatchProcessingLevel(options.BatchProcessingLevel)}
     )
