@@ -4,11 +4,11 @@
       <repository>https://repo.maven.apache.org/maven2</repository>
       <repository>https://oss.sonatype.org/content/repositories/snapshots</repository>
     </repositories>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2+">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2.11.0">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:2+">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:2.11.0">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2+">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2.11.0">
     </androidPackage>
   </androidPackages>
   <iosPods>
