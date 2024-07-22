@@ -5,6 +5,17 @@
 * Add and option to control when trace context headers are injected into web requests (Trace Context Injection).
 * Add support for global log attributes, which adds attributes to logs sent from all loggers.
 * Add the ability to customize your Service Name from the Datadog Options dialog.
+* Update iOS SDK to 2.14.1
+  * Add support for Watchdog Terminations tracking in RUM
+  * Use #fileID over #filePath as default argument in errors.
+  * Fix compilation error in Xcode 16.
+  * Update IPHONEOS_DEPLOYMENT_TARGET to 12.0
+  * Add support for Fatal App Hangs tracking in RUM
+* Update Android SDK to 2.11.0
+  * Optimise `BatchFileOrchestator` performance.
+  * Use custom naming for threads created inside SDK.
+  * Start sending batches immediately after feature is initialized.
+  * Add status code in user-facing message in case of UnknownError during batch upload.
 
 ## 1.1.3
 
