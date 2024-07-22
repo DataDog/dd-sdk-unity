@@ -52,12 +52,14 @@ namespace Datadog.Unity.Android
                 environment = "prod";
             }
 
+            var serviceName = options.ServiceName == string.Empty ? null : options.ServiceName;
+
             using var configBuilder = new AndroidJavaObject(
                 "com.datadog.android.core.configuration.Configuration$Builder",
                 options.ClientToken,
                 environment,
                 string.Empty, // Variant Name
-                null // Service Name
+                serviceName // Service Name
             );
             configBuilder.Call<AndroidJavaObject>("useSite", DatadogConfigurationHelpers.GetSite(options.Site));
             configBuilder.Call<AndroidJavaObject>("setBatchSize", DatadogConfigurationHelpers.GetBatchSize(options.BatchSize));
