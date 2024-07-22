@@ -20,13 +20,13 @@ import update_versions as uv
 REPO_ROOT = "../../"
 PACKAGE_LOCATION = f"{REPO_ROOT}packages/Datadog.Unity"
 
-def _verify_git_repo(dest: str, version: str) -> bool:
+def _verify_git_repo(dest: str, version: str, repo_name: str) -> bool:
     repo = git.Repo(dest)
     for remote in repo.remotes:
         remote.fetch()
 
     if repo.is_dirty():
-        print("Destination repo is dirty -- please commit or stash any changes.")
+        print(f"{repo_name} repo is dirty -- please commit or stash any changes.")
         return False
 
     # Check if the repo has this version tag already
@@ -107,7 +107,9 @@ def _commit_and_tag(repo: git.Repo, version: str):
     _commit(repo, f'Publish version {version}')
     repo.create_tag(version)
 
-    # TODO: Push
+def _push(repo: git.Repo):
+    origin = repo.remote()
+    origin.push()
 
 def _add_repo_note(dest: str):
     repo_snippet = ''
@@ -137,6 +139,29 @@ def _add_version_to_changelog(package_location: str, version: str):
 
     return found_unreleased
 
+def _create_gh_release(version: str, changelog_path: str, github_token: str):
+    release_notes = ''
+
+    found_version = False
+    with open(changelog_path) as f:
+        for line in f:
+            if found_version:
+                if line.startswith("##"):
+                    # Done
+                    break
+                else:
+                    stripped = line.strip()
+                    if len(stripped) > 0:
+                        release_notes += stripped + '\n'
+            elif line.startswith(f"## {version}"):
+                found_version = True
+
+    gh_auth = gh.Auth.Token(github_token)
+    github = gh.Github(auth=gh_auth)
+
+    repo = github.get_repo("Datadog/unity-package")
+    repo.create_git_release(version, draft=True)
+
 
 def main():
     arg_parser = argparse.ArgumentParser()
@@ -151,6 +176,7 @@ def main():
     arg_parser.add_argument("--dest", required=True, help="The destination directory to deploy to. This should the publishing git repo.")
     arg_parser.add_argument("--no-commit", help="Don't commit or tag either repo", action="store_true")
     arg_parser.add_argument("--skip-git-checks", help="Don't check for clean git repos", action="store_true")
+    arg_parser.add_argument("--skip-manual-verify", help="Don't pause to allow verification of repos. ONLY FOR USE IN CI", action="store_true")
     args = arg_parser.parse_args()
 
     github_token = os.environ["GITHUB_TOKEN"]
@@ -164,10 +190,10 @@ def main():
 
     version = args.version
     if not args.skip_git_checks:
-        if not _verify_git_repo(REPO_ROOT, version):
+        if not _verify_git_repo(REPO_ROOT, version, 'Source'):
             return False
 
-        if not _verify_git_repo(args.dest, version):
+        if not _verify_git_repo(args.dest, version, 'Destination'):
             return False
 
     chore_branch = f"chore/release-{version}"
@@ -203,6 +229,25 @@ def main():
         print(f"Committing and tagging version {args.version}")
         dest_repo = git.Repo(args.dest)
         _commit_and_tag(dest_repo, args.version)
+
+    if not args.skip_manual_verify:
+        print("Release is ready. Please verify both repos.")
+        print("Ready to proceed with release? Type 'yes' to continue.")
+        value = str(input())
+        if value != 'yes':
+            print("Value not 'yes', aborting.")
+            return False
+    else:
+        print("Skipping manual verification because of --skip-manual-verify")
+
+    print("Pushing source repo...")
+    _push(source_repo)
+    print("Pushing destination repo...")
+    _push(dest_repo)
+
+    print("Creating github release in destination repo...")
+    dest_changelog = os.path.join(args.dest, 'CHANGELOG.md')
+    _create_gh_release(version, dest_changelog, github_token)
 
     return True
 

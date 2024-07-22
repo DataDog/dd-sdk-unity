@@ -4,6 +4,7 @@
 
 * Add and option to control when trace context headers are injected into web requests (Trace Context Injection).
 * Add support for global log attributes, which adds attributes to logs sent from all loggers.
+* Add the ability to customize your Service Name from the Datadog Options dialog.
 * Update iOS SDK to 2.14.1
   * Add support for Watchdog Terminations tracking in RUM
   * Use #fileID over #filePath as default argument in errors.

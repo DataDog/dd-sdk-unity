@@ -49,6 +49,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.IsFalse(options.OutputSymbols);
             Assert.IsEmpty(options.ClientToken);
             Assert.IsEmpty(options.Env);
+            Assert.IsEmpty(options.ServiceName);
             Assert.AreEqual(DatadogSite.Us1, options.Site);
             Assert.IsEmpty(options.CustomEndpoint);
             Assert.AreEqual(BatchSize.Medium, options.BatchSize);

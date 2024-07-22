@@ -49,8 +49,8 @@ namespace Datadog.Unity.Editor
 
             _options.ClientToken = EditorGUILayout.TextField("Client Token", _options.ClientToken);
             _options.Env = EditorGUILayout.TextField("Env", _options.Env);
+            _options.ServiceName = EditorGUILayout.TextField("Service Name", _options.ServiceName);
             _options.Site = (DatadogSite)EditorGUILayout.EnumPopup("Datadog Site", _options.Site);
-            _options.CustomEndpoint = EditorGUILayout.TextField("Custom Endpoint", _options.CustomEndpoint);
             _options.BatchSize = (BatchSize)EditorGUILayout.EnumPopup("Batch Size", _options.BatchSize);
             _options.UploadFrequency = (UploadFrequency)EditorGUILayout.EnumPopup("Upload Frequency", _options.UploadFrequency);
             _options.BatchProcessingLevel = (BatchProcessingLevel)EditorGUILayout.EnumPopup("Batch Processing Level", _options.BatchProcessingLevel);
@@ -118,6 +118,7 @@ namespace Datadog.Unity.Editor
             _showAdvancedOptions = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvancedOptions, "Advanced RUM Options");
             if (_showAdvancedOptions)
             {
+                _options.CustomEndpoint = EditorGUILayout.TextField("Custom Endpoint", _options.CustomEndpoint);
                 _options.SdkVerbosity = (CoreLoggerLevel)EditorGUILayout.EnumPopup("SDK Verbosity", _options.SdkVerbosity);
                 _options.TelemetrySampleRate =
                     EditorGUILayout.FloatField("Telemetry Sample Rate", _options.TelemetrySampleRate);
