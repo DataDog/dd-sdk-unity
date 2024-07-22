@@ -156,13 +156,11 @@ def _create_gh_release(version: str, changelog_path: str, github_token: str):
             elif line.startswith(f"## {version}"):
                 found_version = True
 
-    print(f"Release Notes:\n{release_notes}")
+    gh_auth = gh.Auth.Token(github_token)
+    github = gh.Github(auth=gh_auth)
 
-    # gh_auth = gh.Auth.Token(github_token)
-    # github = gh.Github(auth=gh_auth)
-
-    # repo = github.get_repo("Datadog/unity-package")
-    # repo.create_git_release(version, draft=True)
+    repo = github.get_repo("Datadog/unity-package")
+    repo.create_git_release(version, draft=True)
 
 
 def main():
