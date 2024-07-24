@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.2.0
 
 * Add and option to control when trace context headers are injected into web requests (Trace Context Injection).
 * Add support for global log attributes, which adds attributes to logs sent from all loggers.
