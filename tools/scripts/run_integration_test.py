@@ -11,6 +11,7 @@ import subprocess
 import os
 import threading
 
+import ios_helpers
 from unity_helpers import run_unity_command
 
 integration_project_path = "../../samples/Datadog Sample"
@@ -45,12 +46,22 @@ def modify_datadog_settings(local_server_address):
 
 def main():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("--platform")
+    arg_parser.add_argument("--platform", choices=['ios', 'android'], help="The platform to run integration tests on.")
+    arg_parser.add_argument("--launch-simulator", action='store_true', help="Whether to launch a simulator or emulator before running tests.")
+    arg_parser.add_argument("--retry", default=0, help="The number of times to retry if a Unity License cannot be obtained")
+    arg_parser.add_argument("--retry-wait", default=100, help="The amount of time to wait before retrying after a license failure")
     args = arg_parser.parse_args()
 
     if args.platform is None:
         print('--platform is required')
         return
+
+    if args.launch_simulator:
+        if args.platform == 'ios':
+            project_settings_path = os.path.join(integration_project_path, 'ProjectSettings', 'ProjectSettings.asset')
+            ios_helpers.switch_to_simulator_target(project_settings_path)
+            ios_helpers.launch_ios_simulator('iOS-17-4', 'iPhone 15')
+
 
     mock_server = run_mock_server()
 
@@ -72,7 +83,10 @@ def main():
 
     modify_datadog_settings(local_server_address)
 
-    run_unity_command(
+    license_retry_count = args.retry
+    license_retry_wait = args.retry_wait
+
+    run_unity_command(license_retry_count, license_retry_wait,
         "-runTests", "-batchMode", "-projectPath", integration_project_path,
         "-buildTarget", args.platform,
         "-testCategory", "integration", "-testPlatform", args.platform,
