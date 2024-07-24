@@ -19,8 +19,8 @@ MonoBehaviour:
   Site: 0
   Env: 
   CustomEndpoint: 
-  BatchSize: 1
-  UploadFrequency: 1
+  BatchSize: 0
+  UploadFrequency: 0
   BatchProcessingLevel: 1
   CrashReportingEnabled: 1
   ForwardUnityLogs: 1
