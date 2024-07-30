@@ -17,7 +17,7 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 
 4. Configure your project to use [Gradle templates](https://docs.unity3d.com/Manual/gradle-templates.html), and enable both `Custom Main Template` and `Custom Gradle Properties Template`.
 
-5. If you build and receive `Duplicate class` errors (common in Unity 2022.x) add the following block in the `dependencies` block in your `mainTemplate.gradle`:
+5. If you build and receive `Duplicate class` errors (common in Unity 2022.x), add the following block in the `dependencies` block in your `mainTemplate.gradle`:
 
    ```groovy
    constraints {
@@ -29,7 +29,7 @@ The Datadog Unity SDK supports logging and crash reporting for Android and iOS a
 
 ## Additional Setup and Documentation
 
-For additional documentation on how to setup the Datadog SDK, refer to [Datadog official documentation](https://docs.datadoghq.com/real_user_monitoring/mobile_and_tv_monitoring/setup/unity/)
+For further instructions on how to set up the Datadog SDK, refer to the [RUM Unity Monitoring Setup documentation](https://docs.datadoghq.com/real_user_monitoring/mobile_and_tv_monitoring/setup/unity/).
 
 ## Contributing
 
