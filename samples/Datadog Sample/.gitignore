@@ -70,7 +70,6 @@ crashlytics-build.properties
 # Temporary auto-generated assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
-/[Aa]ssets/[Pp]ackages/*
 /[Pp]ackages
 
 /[Aa]ssets/initTestScene*

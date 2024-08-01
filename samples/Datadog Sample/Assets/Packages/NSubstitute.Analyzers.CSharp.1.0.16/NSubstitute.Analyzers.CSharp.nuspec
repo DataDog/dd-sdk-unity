@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>NSubstitute.Analyzers.CSharp</id>
+    <version>1.0.16</version>
+    <authors>Tomasz Podolak, NSubstitute.Analyzers contributors</authors>
+    <developmentDependency>true</developmentDependency>
+    <license type="file">LICENSE.md</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <projectUrl>https://github.com/nsubstitute/NSubstitute.Analyzers</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/nsubstitute/NSubstitute.Analyzers/master/images/nsubstitute-analyser@0,25x.png</iconUrl>
+    <description>Provides diagnostic analyzers to warn about incorrect usage of NSubstitute in C#.</description>
+    <releaseNotes>https://github.com/nsubstitute/NSubstitute.Analyzers/blob/master/ReleaseNotes.md</releaseNotes>
+    <tags>nsubstitute,nsubstitute.analyzers,analyzers,roslyn,csharp c#</tags>
+    <repository url="https://github.com/nsubstitute/NSubstitute.Analyzers" />
+    <dependencies>
+      <group targetFramework=".NETStandard1.3" />
+    </dependencies>
+  </metadata>
+</package>
