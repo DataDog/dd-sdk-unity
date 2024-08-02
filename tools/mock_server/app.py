@@ -157,7 +157,7 @@ def generic_post(rest):
                 schemas=gr.schemas
             )
         )
-        # write_to_file(endpoint=endpoints[len(endpoints)-1])
+        # write_to_file(endpoint=endpoints[len(endpoints)-1])5
         return f'OK - request recorded to new endpoint\n', 202
 
 @app.route('/inspect_requests/')
@@ -168,9 +168,13 @@ def inspect_json():
     Browse recorded requests serialized as JSON
     """
     global endpoints
-    requests = [ { "endpoint": e.path, "requests": e.requests } for e in endpoints ]
+    endpoint_requests = [ { "endpoint": e.path, "requests": e.requests } for e in endpoints ]
+    # Remove non-raw schemas
+    for endpoint_request in endpoint_requests:
+        for request in endpoint_request["requests"]:
+            request.schemas = [s for s in request.schemas if isinstance(s, RAWSchema)]
 
-    resp = flask.Response(json.dumps(requests, cls=DataClassJsonEncoder))
+    resp = flask.Response(json.dumps(endpoint_requests, cls=DataClassJsonEncoder))
     resp.headers['Content-Type'] = 'application/json'
     return resp
 

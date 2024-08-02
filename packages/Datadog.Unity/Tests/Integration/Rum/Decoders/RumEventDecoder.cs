@@ -56,6 +56,7 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                 case "error": return new RumErrorEventDecoder(eventJson);
                 case "resource": return new RumResourceEventDecoder(eventJson);
                 case "telemetry": return new RumTelemetryEventDecoder(eventJson);
+                case "long_task": return new RumLongTaskEventDecoder(eventJson);
                 default:
                     Debug.Log($"Unknown RUM event type: {type}");
                     break;

@@ -24,7 +24,14 @@ def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds
     while True:
         should_retry = False
         did_see_license_error = False
-        process = subprocess.Popen([get_unity_path(), *args], stdout=subprocess.PIPE, universal_newlines=True)
+        # Modify environment variables to ensure cocoapods works
+        env = os.environ.copy()
+        env['GEM_HOME'] = f"{env['HOME']}/.gem"
+        env['PATH'] = f"{env['HOME']}/.gem/ruby/2.6.0/bin:{env['PATH']}"
+        process = subprocess.Popen([get_unity_path(), *args],
+                                   env=env,
+                                   stdout=subprocess.PIPE,
+                                   universal_newlines=True)
         for line in process.stdout:
             if UNITY_LICENSE_ERROR in line:
                 did_see_license_error = True

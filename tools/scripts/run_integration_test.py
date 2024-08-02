@@ -12,6 +12,7 @@ import os
 import threading
 
 import ios_helpers
+import android_helpers
 from unity_helpers import run_unity_command
 
 integration_project_path = "../../samples/Datadog Sample"
@@ -61,6 +62,8 @@ def main():
             project_settings_path = os.path.join(integration_project_path, 'ProjectSettings', 'ProjectSettings.asset')
             ios_helpers.switch_to_simulator_target(project_settings_path)
             ios_helpers.launch_ios_simulator('iOS-17-4', 'iPhone 15')
+        elif args.platform == 'android':
+            android_helpers.launch_android_emulator("33", None)
 
 
     mock_server = run_mock_server()
