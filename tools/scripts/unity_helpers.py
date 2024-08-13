@@ -15,7 +15,10 @@ UNITY_LICENSE_ERROR = "No valid Unity Editor license found. Please activate your
 def start_android_emulator():
     pass
 
-def get_unity_path(version: str = "2022.3.29f1"):
+def get_unity_path(version: str = "2022.3.41f1"):
+    unity_home = os.environ['UNITY_PATH']
+    if unity_home is not None:
+        return os.path.join(unity_home, 'Unity')
     # REVISIT: Only get the Mac version for now
     return f"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity"
 
