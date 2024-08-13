@@ -2,6 +2,9 @@ include:
   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v1/template.yml'
 
 variables:
+  # TODO: Detect unity location in script.
+  UNITY_HOME: "/Applications/Unity/Unity.app/Contents/"
+  UNITY_PATH: "$UNITY_HOME/MacOS/Unity"
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
 stages:
@@ -12,7 +15,7 @@ stages:
     - vault login -method=aws -no-print
     - export UNITY_SERVER_CONFIG=$(vault kv get -field=config kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/server-config)
     - mkdir -p "$UNITY_SUPPORT_PATH"
-    - printf "%s\n" "$UNITY_SERVER_CONFIG" > "$UNITY_SUPPORT_PATH/server-config.json"
+    - printf "%s\n" "$UNITY_SERVER_CONFIG" > "$UNITY_SUPPORT_PATH/services-config.json"
 
 unit-test:
   stage: unit-test
@@ -21,4 +24,6 @@ unit-test:
     - specific:true
   script:
     - !reference [.shared, create-server-config]
+    - $UNITY_HOME/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client --acquire-floating
     - cd tools/scripts && ./run_unit_test.py
+    - $UNITY_HOME/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client --return-floating $TOKEN
