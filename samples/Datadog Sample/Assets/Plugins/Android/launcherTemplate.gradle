@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.datadoghq.dd-sdk-android-gradle-plugin'
 
 dependencies {
     implementation project(':unityLibrary')
     }
 
 android {
+	namespace "**NAMESPACE**"
     ndkPath "**NDKPATH**"
 
     compileSdkVersion **APIVERSION**

@@ -37,7 +37,7 @@ namespace Datadog.Unity.Android
     internal class DatadogAndroidPlatform : IDatadogPlatform
     {
         private AndroidJavaClass _datadogClass;
-        private Dictionary<string, long> _moduleLoadAddresses = new Dictionary<string, long>();
+        private bool _shouldTranslateCsStacks = false;
 
         public DatadogAndroidPlatform()
         {
@@ -48,6 +48,10 @@ namespace Datadog.Unity.Android
         {
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
             SetVerbosity(options.SdkVerbosity);
+
+            // Debug builds have full file / line info and should be translated, and if you're not outputting symbols
+            // there will be no way to perform the translation, so avoid it.
+            _shouldTranslateCsStacks = options.OutputSymbols && !Debug.isDebugBuild;
 
             var environment = options.Env;
             if (environment is null or "")
@@ -257,12 +261,13 @@ namespace Datadog.Unity.Android
 
         public string GetNativeStack(Exception error)
         {
-            if (error is null)
+            // Don't perform this action if Datadog wasn't instructed to output symbols
+            if (!_shouldTranslateCsStacks || error is null)
             {
-                return string.Empty;
+                return null;
             }
 
-            var resultStack = string.Empty;
+            string resultStack = null;
             try
             {
                 if (Il2CppErrorHelper.GetNativeStackFrames(

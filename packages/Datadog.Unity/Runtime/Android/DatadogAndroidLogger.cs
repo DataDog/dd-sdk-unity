@@ -15,22 +15,11 @@ namespace Datadog.Unity.Android
         private readonly AndroidJavaObject _androidLogger;
         private readonly DatadogAndroidPlatform _androidPlatform;
 
-        private readonly jvalue[] _nativeErrorSourceAttributeArgs;
-
         public DatadogAndroidLogger(DdLogLevel logLevel, float sampleRate, DatadogAndroidPlatform platform, AndroidJavaObject androidLogger)
             : base(logLevel, sampleRate)
         {
             _androidLogger = androidLogger;
             _androidPlatform = platform;
-
-            // Cache the argument added to the attribute map to indicate that the source of the error is native
-            _nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
-                new object[]
-                {
-                    new AndroidJavaObject("java.lang.String", DatadogSdk.ConfigKeys.NativeSourceType),
-                    new AndroidJavaObject("java.lang.String", "ndk+il2cpp"),
-                }
-            );
         }
 
         public override void AddAttribute(string key, object value)
@@ -56,7 +45,7 @@ namespace Datadog.Unity.Android
         {
             var androidLevel = InternalHelpers.DdLogLevelToAndroidLogLevel(level);
 
-            using var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             string errorKind = null;
             string errorMessage = null;
             string errorStack = null;
@@ -67,10 +56,16 @@ namespace Datadog.Unity.Android
                 var nativeStackTrace = _androidPlatform.GetNativeStack(error);
                 if (nativeStackTrace != null)
                 {
+                     var nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
+                        new object[]
+                        {
+                            new AndroidJavaObject("java.lang.String", DatadogSdk.ConfigKeys.ErrorSourceType),
+                            new AndroidJavaObject("java.lang.String", "ndk+il2cpp"),
+                        });
                     AndroidJNI.CallObjectMethod(
                         javaAttributes.GetRawObject(),
                         DatadogAndroidHelpers.hashMapPutMethodId,
-                        _nativeErrorSourceAttributeArgs);
+                        nativeErrorSourceAttributeArgs);
                 }
 
                 errorStack = nativeStackTrace ?? error.StackTrace ?? string.Empty;

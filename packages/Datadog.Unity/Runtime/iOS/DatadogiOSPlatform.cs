@@ -38,10 +38,15 @@ namespace Datadog.Unity.iOS
     internal class DatadogiOSPlatform : IDatadogPlatform
     {
         private Dictionary<string, long> _moduleLoadAddresses = new Dictionary<string, long>();
+        private bool _shouldTranslateCsStacks = false;
 
         public void Init(DatadogConfigurationOptions options)
         {
             Datadog_UpdateTelemetryConfiguration(Application.unityVersion);
+
+            // Debug builds have full file / line info and should be translated, and if you're not outputting symbols
+            // there will be no way to perform the translation, so avoid it.
+            _shouldTranslateCsStacks = options.OutputSymbols && !Debug.isDebugBuild;
         }
 
         public void SetVerbosity(CoreLoggerLevel logLevel)
@@ -123,12 +128,13 @@ namespace Datadog.Unity.iOS
 
         public string GetNativeStack(Exception error)
         {
-            if (error is null)
+            // Don't perform this action if Datadog wasn't instructed to output symbols
+            if (!_shouldTranslateCsStacks || error is null)
             {
-                return string.Empty;
+                return null;
             }
 
-            var resultStack = string.Empty;
+            string resultStack = null;
             try
             {
                 if (Il2CppErrorHelper.GetNativeStackFrames(
@@ -176,6 +182,7 @@ namespace Datadog.Unity.iOS
                         stackBuilder.Append(
                             $"{i,-3} {moduleName,-32} 0x{absoluteAddress:x16} 0x{imageLoadAddress:x8} + {offset}\n");
                     }
+
 
                     resultStack = stackBuilder.ToString();
                 }

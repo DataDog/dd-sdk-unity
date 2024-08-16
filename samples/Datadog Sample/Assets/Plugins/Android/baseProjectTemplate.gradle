@@ -3,9 +3,6 @@ buildscript {
         mavenLocal()
         mavenCentral()
     }
-    dependencies {
-        classpath("com.datadoghq:dd-sdk-android-gradle-plugin:1.13.1")
-    }
 }
 
 plugins {

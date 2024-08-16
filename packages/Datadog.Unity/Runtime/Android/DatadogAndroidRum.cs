@@ -15,19 +15,9 @@ namespace Datadog.Unity.Android
         private readonly AndroidJavaObject _rum;
         private DatadogAndroidPlatform _androidPlatform;
 
-        private readonly jvalue[] _nativeErrorSourceAttributeArgs;
-
         public DatadogAndroidRum(IDatadogPlatform platform, AndroidJavaObject rum)
         {
             _rum = rum;
-
-            // Cache the argument added to the attribute map to indicate that the source of the error is native
-            _nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
-                new object[]
-                {
-                    new AndroidJavaObject("java.lang.String", DatadogSdk.ConfigKeys.NativeSourceType),
-                    new AndroidJavaObject("java.lang.String", "ndk+il2cpp"),
-                });
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
@@ -79,10 +69,16 @@ namespace Datadog.Unity.Android
                 if (nativeStackTrace != null)
                 {
                     stack = nativeStackTrace;
+                    var nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
+                        new object[]
+                        {
+                            new AndroidJavaObject("java.lang.String", DatadogSdk.ConfigKeys.ErrorSourceType),
+                            new AndroidJavaObject("java.lang.String", "ndk+il2cpp"),
+                        });
                     AndroidJNI.CallObjectMethod(
                         javaAttributes.GetRawObject(),
                         DatadogAndroidHelpers.hashMapPutMethodId,
-                        _nativeErrorSourceAttributeArgs);
+                        nativeErrorSourceAttributeArgs);
                 }
             }
 

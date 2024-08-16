@@ -6,6 +6,7 @@ import Foundation
 import DatadogCore
 import DatadogLogs
 import DatadogInternal
+import MachO
 
 @_cdecl("Datadog_SetSdkVerbosity")
 func Datadog_SetSdkVerbosity(sdkVerbosityInt: Int) {
