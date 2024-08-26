@@ -7,6 +7,7 @@ variables:
   UNITY_PATH: "$UNITY_HOME/MacOS/Unity"
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
+
 stages:
   - unit-test
 
@@ -24,6 +25,9 @@ unit-test:
     - specific:true
   script:
     - !reference [.shared, create-server-config]
-    - $UNITY_HOME/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client --acquire-floating
     - cd tools/scripts && ./run_unit_test.py
-    - $UNITY_HOME/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client --return-floating $TOKEN
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/*.xml

@@ -8,7 +8,8 @@
 
 import argparse
 import asyncio
-from unity_helpers import run_unity_command
+import os
+from unity_helpers import get_unity_license, return_unity_license, run_unity_command
 
 integration_project_path = "../../samples/Datadog Sample"
 
@@ -21,12 +22,25 @@ async def main():
     license_retry_count = args.retry
     license_retry_wait = args.retry_wait
 
+    is_ci = "IS_ON_CI" in os.environ
+    token = None
+    if is_ci:
+        token = await get_unity_license()
+        if token is None:
+            print("Failed to get floatling license on CI")
+            return 1
+
+
     await run_unity_command(license_retry_count, license_retry_wait,
         "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
         "-testCategory", "!integration",
         "-testResults", "tmp/results.xml", "-logFile", "-",
     )
 
+    if token is not None:
+        await return_unity_license(token)
+
 if __name__ == "__main__":
     task = main()
     res = asyncio.get_event_loop().run_until_complete(task)
+    exit(res)
