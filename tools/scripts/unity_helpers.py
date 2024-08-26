@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import time
+from saxonche import PySaxonProcessor
 from typing import Optional
 
 UNITY_LICENSE_ERROR = "No valid Unity Editor license found. Please activate your license."
@@ -64,13 +65,18 @@ async def get_unity_license() -> Optional[str]:
     return token
 
 async def return_unity_license(token: str):
-    env = os.environ.copy()
     cmd = f'{get_license_server_path()} --return-floating {token}'
     process = await asyncio.create_subprocess_shell (cmd, env=env, stdout=asyncio.subprocess.STDOUT)
 
     return_code = await process.wait()
 
     return return_code
+
+def transform_nunit_to_junit(nunit_file: str, junit_file: str):
+    with PySaxonProcessor(license=False) as proc:
+        xsltproc = proc.new_xslt30_processor()
+        xsltproc.transform_to_file(source_file=nunit_file, stylesheet_file="nunit3-junit.xslt", output_file=junit_file)
+
 
 async def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds: float, *args):
     current_run_attempt = 0

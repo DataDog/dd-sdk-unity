@@ -9,7 +9,7 @@
 import argparse
 import asyncio
 import os
-from unity_helpers import get_unity_license, return_unity_license, run_unity_command
+from unity_helpers import *
 
 integration_project_path = "../../samples/Datadog Sample"
 
@@ -31,7 +31,7 @@ async def main():
             return 1
 
 
-    await run_unity_command(license_retry_count, license_retry_wait,
+    return_code = await run_unity_command(license_retry_count, license_retry_wait,
         "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
         "-testCategory", "!integration",
         "-testResults", "tmp/results.xml", "-logFile", "-",
@@ -39,6 +39,10 @@ async def main():
 
     if token is not None:
         await return_unity_license(token)
+
+    transform_nunit_to_junit("../../samples/Datadog Sample/tmp/results.xml", "../../samples/Datadog Sample/tmp/junit-results.xml")
+
+    return return_code
 
 if __name__ == "__main__":
     task = main()
