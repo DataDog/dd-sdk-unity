@@ -6,6 +6,7 @@
 # Copyright 2023-Present Datadog, Inc.
 # -----------------------------------------------------------
 
+import asyncio
 import os
 import subprocess
 import time
@@ -15,14 +16,21 @@ UNITY_LICENSE_ERROR = "No valid Unity Editor license found. Please activate your
 def start_android_emulator():
     pass
 
-def get_unity_path(version: str = "2022.3.41f1"):
-    unity_path = os.environ['UNITY_PATH']
-    if unity_path is not None:
-        return unity_path
+def get_unity_path(version: str = "2022.3.42f1"):
+    if "UNITY_PATH" in os.environ and os.environ['UNITY_PATH'] is not None:
+        return os.environ['UNITY_PATH']
     # REVISIT: Only get the Mac version for now
     return f"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity"
 
-def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds: float, *args,):
+async def _read_stream(stream, callback):
+    while True:
+        line = await stream.readline()
+        if line:
+            callback(line.decode('utf8'))
+        else:
+            break
+
+async def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds: float, *args):
     current_run_attempt = 0
     while True:
         should_retry = False
@@ -31,16 +39,25 @@ def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds
         env = os.environ.copy()
         env['GEM_HOME'] = f"{env['HOME']}/.gem"
         env['PATH'] = f"{env['HOME']}/.gem/ruby/2.6.0/bin:{env['PATH']}"
-        process = subprocess.Popen([get_unity_path(), *args],
+        cmd = " ".join([get_unity_path(), *args])
+        print(f'Running: {cmd}')
+        process = await asyncio.create_subprocess_shell (cmd,
                                    env=env,
-                                   stdout=subprocess.PIPE,
-                                   universal_newlines=True)
-        for line in process.stdout:
+                                   stdout=asyncio.subprocess.PIPE,
+                                   )
+
+        def process_stdout(line):
             if UNITY_LICENSE_ERROR in line:
                 did_see_license_error = True
             print(f"[unity] {line}", end='')
 
-        if process.returncode != 0 and did_see_license_error:
+        await asyncio.wait([
+            _read_stream(process.stdout, process_stdout)
+        ])
+
+        return_code = await process.wait()
+
+        if return_code != 0 and did_see_license_error:
             if current_run_attempt < license_retry_attempts:
                 should_retry = True
                 current_run_attempt += 1
@@ -48,4 +65,5 @@ def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds
                 time.sleep(license_retry_timeout_seconds)
 
         if not should_retry:
-            return process.returncode
+            print(f"Unity returned {return_code}")
+            return return_code
