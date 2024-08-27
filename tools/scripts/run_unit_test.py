@@ -7,11 +7,13 @@
 # -----------------------------------------------------------
 
 import argparse
-from unity_helpers import run_unity_command
+import asyncio
+import os
+from unity_helpers import *
 
 integration_project_path = "../../samples/Datadog Sample"
 
-def main():
+async def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--retry", default=0, help="The number of times to retry if a Unity License cannot be obtained")
     arg_parser.add_argument("--retry-wait", default=100, help="The amount of time to wait before retrying after a license failure")
@@ -20,11 +22,29 @@ def main():
     license_retry_count = args.retry
     license_retry_wait = args.retry_wait
 
-    run_unity_command(license_retry_count, license_retry_wait,
-        "-runTests", "-batchMode", "-projectPath", integration_project_path,
+    is_ci = "IS_ON_CI" in os.environ
+    token = None
+    if is_ci:
+        token = await get_unity_license()
+        if token is None:
+            print("Failed to get floatling license on CI")
+            return 1
+
+
+    return_code = await run_unity_command(license_retry_count, license_retry_wait,
+        "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
         "-testCategory", "!integration",
         "-testResults", "tmp/results.xml", "-logFile", "-",
     )
 
+    if token is not None:
+        await return_unity_license(token)
+
+    transform_nunit_to_junit("../../samples/Datadog Sample/tmp/results.xml", "../../samples/Datadog Sample/tmp/junit-results.xml")
+
+    return return_code
+
 if __name__ == "__main__":
-    main()
+    task = main()
+    res = asyncio.get_event_loop().run_until_complete(task)
+    exit(res)
