@@ -376,7 +376,41 @@ namespace Datadog.Unity.Editor.iOS
             var lines = File.ReadAllLines(_initializationFilePath);
             var envLines = lines.Where(l => l.Contains("env: ")).ToArray();
             Assert.AreEqual(1, envLines.Length);
-            Assert.AreEqual($"env: \"env-from-options\",", envLines.First().Trim());
+            Assert.AreEqual("env: \"env-from-options\",", envLines.First().Trim());
+        }
+
+        [Test]
+        public void GenerateOptionsFileWritesNilThresholdWhenNotTrackAppHangs()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                RumEnabled = true,
+                TrackNonFatalAppHangs = false,
+                NonFatalAppHangThreshold = 1.2f,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var thresholdLines = lines.Where(l => l.Contains("appHangThreshold = ")).ToArray();
+            Assert.AreEqual(1, thresholdLines.Length);
+            Assert.AreEqual("rumConfig.appHangThreshold = nil", thresholdLines.First().Trim());
+        }
+
+        [Test]
+        public void GenerateOptionsFileWritesThresholdWhenTrackAppHangs()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                RumEnabled = true,
+                TrackNonFatalAppHangs = true,
+                NonFatalAppHangThreshold = 1.2f,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var thresholdLines = lines.Where(l => l.Contains("appHangThreshold = ")).ToArray();
+            Assert.AreEqual(1, thresholdLines.Length);
+            Assert.AreEqual("rumConfig.appHangThreshold = 1.2", thresholdLines.First().Trim());
         }
 
         [Test]

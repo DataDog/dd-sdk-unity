@@ -79,18 +79,31 @@ namespace Datadog.Unity.Editor
             _options.AutomaticSceneTracking = EditorGUILayout.ToggleLeft(
                 new GUIContent("Enable Automatic Scene Tracking", DatadogHelpStrings.EnableSceneTrackingTooltip),
                 _options.AutomaticSceneTracking);
-            _options.SessionSampleRate =
-                EditorGUILayout.FloatField(
-                    new GUIContent("Session Sample Rate", DatadogHelpStrings.SessionSampleRateTooltip),
-                    _options.SessionSampleRate);
+            _options.SessionSampleRate = EditorGUILayout.FloatField(
+                new GUIContent("Session Sample Rate", DatadogHelpStrings.SessionSampleRateTooltip),
+                _options.SessionSampleRate);
             _options.SessionSampleRate = Math.Clamp(_options.SessionSampleRate, 0.0f, 100.0f);
-            _options.TraceSampleRate =
-                EditorGUILayout.FloatField(
-                    new GUIContent("Trace Sample Rate", DatadogHelpStrings.TraceSampleRateTooltip), _options.TraceSampleRate);
-            _options.TraceContextInjection =
-                (TraceContextInjection)EditorGUILayout.EnumPopup(
-                    new GUIContent("Trace Context Injection", DatadogHelpStrings.TraceContextInjectionTooltip), _options.TraceContextInjection);
+            _options.TraceSampleRate = EditorGUILayout.FloatField(
+                new GUIContent("Trace Sample Rate", DatadogHelpStrings.TraceSampleRateTooltip),
+                _options.TraceSampleRate);
+            _options.TraceContextInjection = (TraceContextInjection)EditorGUILayout.EnumPopup(
+                new GUIContent("Trace Context Injection", DatadogHelpStrings.TraceContextInjectionTooltip),
+                _options.TraceContextInjection);
             _options.TraceSampleRate = Math.Clamp(_options.TraceSampleRate, 0.0f, 100.0f);
+            _options.TrackNonFatalAnrs = (NonFatalAnrDetectionOption)EditorGUILayout.EnumPopup(
+                new GUIContent("Track Non-Fatal ANRs", DatadogHelpStrings.TrackNonFatalAnrsTooltip),
+                _options.TrackNonFatalAnrs);
+            EditorGUILayout.BeginHorizontal();
+            _options.TrackNonFatalAppHangs = EditorGUILayout.ToggleLeft(
+                new GUIContent("Track Non-Fatal App Hangs", DatadogHelpStrings.TrackNonFatalAppHangsTooltip),
+                _options.TrackNonFatalAppHangs);
+            EditorGUI.BeginDisabledGroup(!_options.TrackNonFatalAppHangs);
+            _options.NonFatalAppHangThreshold = EditorGUILayout.FloatField(
+                new GUIContent("Threshold", DatadogHelpStrings.NonFatalAppHangThresholdTooltip),
+                _options.NonFatalAppHangThreshold);
+            EditorGUI.EndDisabledGroup();
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
 
             GUILayout.Space(12.0f);
 

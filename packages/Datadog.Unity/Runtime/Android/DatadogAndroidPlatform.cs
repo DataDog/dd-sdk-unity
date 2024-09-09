@@ -120,6 +120,19 @@ namespace Datadog.Unity.Android
                     rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
                 }
 
+                switch (options.TrackNonFatalAnrs)
+                {
+                    case NonFatalAnrDetectionOption.Disabled:
+                        rumConfigBuilder.Call<AndroidJavaObject>("trackNonFatalAnrs", false);
+                        break;
+                    case NonFatalAnrDetectionOption.Enabled:
+                        rumConfigBuilder.Call<AndroidJavaObject>("trackNonFatalAnrs", true);
+                        break;
+                    case NonFatalAnrDetectionOption.SdkDefault:
+                        // Don't do anything. SDK will take care of it.
+                        break;
+                }
+
                 using var internalBuilder = new AndroidJavaClass("com.datadog.android.rum._RumInternalProxy");
                 using var internalBuilderCompanion = internalBuilder.GetStatic<AndroidJavaObject>("Companion");
                 internalBuilderCompanion.Call<AndroidJavaObject>("setTelemetryConfigurationEventMapper", rumConfigBuilder, new TelemetryCallback());

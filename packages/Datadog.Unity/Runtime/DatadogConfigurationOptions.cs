@@ -149,6 +149,7 @@ namespace Datadog.Unity
         /// because it would create too much noise over fatal ANRs. On Android 29 and below, however, the
         /// reporting of non-fatal ANRs is enabled by default, as fatal ANRs cannot be reported on those versions.
         /// </summary>
+        [InspectorName("SDK Default")]
         SdkDefault,
 
         /// <summary>
