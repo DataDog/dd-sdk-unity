@@ -139,6 +139,30 @@ namespace Datadog.Unity
     }
 
     /// <summary>
+    /// Options for detecting non-fatal ANRs on Android. Android can make a decision about whether to track non-fatal
+    /// ANRs based on the version of Android.
+    /// </summary>
+    public enum NonFatalAnrDetectionOption
+    {
+        /// <summary>
+        /// Use the default behavior for the version of Android. On Android 30+, the default is disabled
+        /// because it would create too much noise over fatal ANRs. On Android 29 and below, however, the
+        /// reporting of non-fatal ANRs is enabled by default, as fatal ANRs cannot be reported on those versions.
+        /// </summary>
+        SdkDefault,
+
+        /// <summary>
+        /// Always enable non-fatal ANR tracking, regardless of Android version.
+        /// </summary>
+        Enabled,
+
+        /// <summary>
+        /// Always disable non-fatal ANR tracking, regardless of Android version. (This is the Unity default)
+        /// </summary>
+        Disabled,
+    }
+
+    /// <summary>
     /// The frequency at which Datadog samples mobile vitals (FPS, CPU Usage, Memory Usage).
     /// </summary>
     public enum VitalsUpdateFrequency
@@ -217,6 +241,9 @@ namespace Datadog.Unity
         public float TraceSampleRate = 20.0f;
         public TraceContextInjection TraceContextInjection = TraceContextInjection.All;
         public List<FirstPartyHostOption> FirstPartyHosts = new ();
+        public NonFatalAnrDetectionOption TrackNonFatalAnrs = NonFatalAnrDetectionOption.Disabled;
+        public bool TrackNonFatalAppHangs = false;
+        public float NonFatalAppHangThreshold = 0.25f;
 
         // Advanced RUM
         public float TelemetrySampleRate;

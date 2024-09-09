@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Added documentation tooltips to the Datadog Options window (on Labels).
+
 ## 1.2.0
 
 * Add and option to control when trace context headers are injected into web requests (Trace Context Injection).
