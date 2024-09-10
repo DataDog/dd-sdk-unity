@@ -139,13 +139,13 @@ namespace Datadog.Unity
     }
 
     /// <summary>
-    /// Options for detecting non-fatal ANRs on Android. Android can make a decision about whether to track non-fatal
+    /// Options for detecting non-fatal ANRs on Android. The Android SDK can make a decision about whether to track non-fatal
     /// ANRs based on the version of Android.
     /// </summary>
     public enum NonFatalAnrDetectionOption
     {
         /// <summary>
-        /// Use the default behavior for the version of Android. On Android 30+, the default is disabled
+        /// Use the default behavior for the version of Android. On Android 30+, the default is set to disabled
         /// because it would create too much noise over fatal ANRs. On Android 29 and below, however, the
         /// reporting of non-fatal ANRs is enabled by default, as fatal ANRs cannot be reported on those versions.
         /// </summary>

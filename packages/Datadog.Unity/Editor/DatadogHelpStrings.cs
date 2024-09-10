@@ -24,8 +24,8 @@ namespace Datadog.Unity.Editor
             + "different environments (e.g. \"staging\" vs. \"production\").";
 
         public const string ServiceNameTooltip =
-            "The service name for your application. If this is not set it will  be set to your application's package " +
-            "name pr bundle name (e.g.: com.example.android)";
+            "The service name for your application. If this is not set it will be set to your application's package " +
+            "name or bundle name (e.g.: com.example.android)";
 
         public const string SiteTooltip = "The Datadog site to send data to.";
 
