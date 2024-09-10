@@ -107,15 +107,23 @@ namespace Datadog.Unity.Rum.Tests
             // Then
             var traceString = attributes.GetValueOrDefault("_dd.trace_id")?.ToString();
             var spanString = attributes.GetValueOrDefault("_dd.span_id")?.ToString();
-            Assert.IsNotNull(traceString);
-            BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var traceId);
-            Assert.IsNotNull(traceId);
-            Assert.LessOrEqual(traceId.GetByteCount(), 128);
+            if (_sampled)
+            {
+                Assert.IsNotNull(traceString);
+                BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var traceId);
+                Assert.IsNotNull(traceId);
+                Assert.LessOrEqual(traceId.GetByteCount(), 128);
 
-            Assert.IsNotNull(spanString);
-            BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out var spanId);
-            Assert.IsNotNull(spanId);
-            Assert.LessOrEqual(spanId.GetByteCount(), 63);
+                Assert.IsNotNull(spanString);
+                BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out var spanId);
+                Assert.IsNotNull(spanId);
+                Assert.LessOrEqual(spanId.GetByteCount(), 63);
+            }
+            else
+            {
+                Assert.IsNull(traceString);
+                Assert.IsNull(spanString);
+            }
 
             Assert.AreEqual(_sampled ? 1.0f : 0.0f, attributes["_dd.rule_psr"]);
         }
@@ -128,11 +136,7 @@ namespace Datadog.Unity.Rum.Tests
         {
             if (!_sampled)
             {
-                if (headerType == TracingHeaderType.B3 || headerType == TracingHeaderType.B3Multi)
-                {
-                    Assert.Pass("B3 and B3Multi headers don't contain ids when sampled.");
-                    return;
-                }
+                Assert.Pass("DatadogAttributes only filled in sampled requests, so test only applies to sampled requests");
             }
 
             // Given

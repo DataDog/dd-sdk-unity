@@ -37,10 +37,17 @@ async def main():
         "-testResults", "tmp/results.xml", "-logFile", "-",
     )
 
+    return_code = await run_unity_command(license_retry_count, license_retry_wait,
+        "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
+        "-testCategory", "!integration", '-testPlatform', 'PlayMode',
+        "-testResults", "tmp/results-play-mode.xml", "-logFile", "-",
+    )
+
     if token is not None:
         await return_unity_license(token)
 
     transform_nunit_to_junit("../../samples/Datadog Sample/tmp/results.xml", "../../samples/Datadog Sample/tmp/junit-results.xml")
+    transform_nunit_to_junit("../../samples/Datadog Sample/tmp/results-play-mode.xml", "../../samples/Datadog Sample/tmp/junit-results-play-mode.xml")
 
     return return_code
 
