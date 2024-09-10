@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* Added an option for detection of non-fatal ANRs on Android.
+* Added an option for detecting non-fatal ANRs on Android.
 * Added an option for detecting non-fatal within a given threshold on iOS.
 * Added documentation tooltips to the Datadog Options window (on Labels).
 

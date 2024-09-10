@@ -17,7 +17,7 @@ namespace Datadog.Unity.Editor
             "Whether to output symbol files as part of the build. Uploading these files to Datadog enables symbolication "
             + "and file/line mapping features in Datadog Error Tracking.";
 
-        public const string ClientTokenTooltip = "This is your API key from Datadog.";
+        public const string ClientTokenTooltip = "This is your Client Token created for your application on Datadog’s website.";
 
         public const string EnvTooltip =
             "The environment name that will be sent with each event. This can be used to filter your events on "
