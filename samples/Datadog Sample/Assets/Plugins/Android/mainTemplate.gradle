@@ -28,6 +28,7 @@ android {
 }
 // Android Resolver Exclusions End
 android {
+    namespace "com.datadoghq.unity.example"
     ndkPath "**NDKPATH**"
 
     compileSdkVersion **APIVERSION**

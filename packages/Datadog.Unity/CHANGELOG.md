@@ -1,5 +1,11 @@
 # Change Log
 
+## Unreleased
+
+* Added an option for detecting non-fatal ANRs on Android.
+* Added an option for detecting non-fatal within a given threshold on iOS.
+* Added documentation tooltips to the Datadog Options window (on Labels).
+
 ## 1.2.0
 
 * Add and option to control when trace context headers are injected into web requests (Trace Context Injection).
