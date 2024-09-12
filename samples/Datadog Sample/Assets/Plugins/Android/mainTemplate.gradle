@@ -18,7 +18,7 @@ dependencies {
 
 // Android Resolver Exclusions Start
 android {
-	namespace "com.unity3d.player"
+  namespace "com.datadoghq.unity.example"
   packagingOptions {
       exclude ('/lib/armeabi/*' + '*')
       exclude ('/lib/mips/*' + '*')

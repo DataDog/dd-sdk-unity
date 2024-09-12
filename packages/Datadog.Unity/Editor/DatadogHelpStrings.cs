@@ -15,7 +15,11 @@ namespace Datadog.Unity.Editor
 
         public const string OutputSymbolsTooltip =
             "Whether to output symbol files as part of the build. Uploading these files to Datadog enables symbolication "
-            + "and file/line mapping features in Datadog Error Tracking.";
+            + "of native stack traces.";
+
+        public const string PerformNativeStackMappingTooltip =
+            "Converts C# stacks traces to native stack traces in non-development builds. This allows for file and line " +
+            "mapping to C# code if symbol files are uploaded to Datadog. This is not supported if Output Symbols is disabled.";
 
         public const string ClientTokenTooltip = "This is your Client Token created for your application on Datadog’s website.";
 

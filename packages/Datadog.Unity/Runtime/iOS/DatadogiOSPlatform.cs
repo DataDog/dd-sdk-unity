@@ -44,9 +44,9 @@ namespace Datadog.Unity.iOS
         {
             Datadog_UpdateTelemetryConfiguration(Application.unityVersion);
 
-            // Debug builds have full file / line info and should be translated, and if you're not outputting symbols
+            // Debug builds have full file / line info and should not be translated, and if you're not outputting symbols
             // there will be no way to perform the translation, so avoid it.
-            _shouldTranslateCsStacks = options.OutputSymbols && !Debug.isDebugBuild;
+            _shouldTranslateCsStacks = options.OutputSymbols && options.PerformNativeStackMapping && !Debug.isDebugBuild;
         }
 
         public void SetVerbosity(CoreLoggerLevel logLevel)
@@ -166,6 +166,8 @@ namespace Datadog.Unity.iOS
                     }
 
                     var moduleName = Path.GetFileNameWithoutExtension(imageName);
+                    // Strip off weird \u0001 character that appears at the end of module names
+                    moduleName = moduleName.Substring(0, moduleName.Length - 1);
 
                     // Format of iOS Native stack trace is:
                     // <frame number> <module name> <absolute address> <relative address> + <offset>

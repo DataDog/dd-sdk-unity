@@ -219,6 +219,7 @@ namespace Datadog.Unity
         public bool Enabled;
         public CoreLoggerLevel SdkVerbosity = CoreLoggerLevel.Warn;
         public bool OutputSymbols;
+        public bool PerformNativeStackMapping = true;
         public string ClientToken;
         public DatadogSite Site;
         public string Env;

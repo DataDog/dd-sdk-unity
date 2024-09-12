@@ -49,9 +49,9 @@ namespace Datadog.Unity.Android
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;
             SetVerbosity(options.SdkVerbosity);
 
-            // Debug builds have full file / line info and should be translated, and if you're not outputting symbols
+            // Debug builds have full file / line info and should not be translated, and if you're not outputting symbols
             // there will be no way to perform the translation, so avoid it.
-            _shouldTranslateCsStacks = options.OutputSymbols && !Debug.isDebugBuild;
+            _shouldTranslateCsStacks = options.OutputSymbols && options.PerformNativeStackMapping && !Debug.isDebugBuild;
 
             var environment = options.Env;
             if (environment is null or "")
