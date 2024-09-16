@@ -14,20 +14,22 @@ namespace Datadog.Unity.iOS
     public class DatadogiOSLogger : DdLogger
     {
         private readonly string _loggerId;
+        private readonly IDatadogPlatform _platform;
 
-        private DatadogiOSLogger(DdLogLevel logLevel, float sampleRate, string loggerId)
+        private DatadogiOSLogger(DatadogiOSPlatform platform, DdLogLevel logLevel, float sampleRate, string loggerId)
             : base(logLevel, sampleRate)
         {
             _loggerId = loggerId;
+            _platform = platform;
         }
 
-        public static DatadogiOSLogger Create(DatadogLoggingOptions options)
+        internal static DatadogiOSLogger Create(DatadogiOSPlatform platform, DatadogLoggingOptions options)
         {
             var jsonOptions = JsonConvert.SerializeObject(options);
             var loggerId = DatadogLoggingBridge.DatadogLogging_CreateLogger(jsonOptions);
             if (loggerId != null)
             {
-                return new DatadogiOSLogger(options.RemoteLogThreshold, options.RemoteSampleRate, loggerId);
+                return new DatadogiOSLogger(platform, options.RemoteLogThreshold, options.RemoteSampleRate, loggerId);
             }
 
             return null;
@@ -35,20 +37,30 @@ namespace Datadog.Unity.iOS
 
         internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
         {
-            // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports
-            // Dictionaries, where JsonUtility does not.
-            var jsonAttributes = JsonConvert.SerializeObject(attributes);
             string jsonError = null;
             if (error != null)
             {
+                var nativeStackTrace = _platform.GetNativeStack(error);
                 var errorInfo = new Dictionary<string, string>()
                 {
                     { "type", error.GetType()?.ToString() ?? string.Empty },
                     { "message", error.Message ?? string.Empty },
-                    { "stackTrace", error.StackTrace?.ToString() ?? string.Empty },
+                    { "stackTrace", nativeStackTrace ?? error.StackTrace ?? string.Empty },
                 };
+
+                if (nativeStackTrace != null)
+                {
+                    attributes = attributes != null ? new (attributes) : new();
+                    attributes["_dd.error.include_binary_images"] = true;
+                    attributes[DatadogSdk.ConfigKeys.ErrorSourceType] = "ios+il2cpp";
+                }
+
                 jsonError = JsonConvert.SerializeObject(errorInfo);
             }
+
+            // To serialize a non-object, we need to use JsonConvert, which isn't as optimized but supports
+            // Dictionaries, where JsonUtility does not.
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
             DatadogLoggingBridge.DatadogLogging_Log(_loggerId, (int)level, message, jsonAttributes, jsonError);
         }

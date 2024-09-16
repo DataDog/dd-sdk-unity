@@ -10,11 +10,12 @@ using UnityEngine;
 
 namespace Datadog.Unity.Android
 {
-    public class DatadogAndroidRum : IDdRum
+    internal class DatadogAndroidRum : IDdRum
     {
         private readonly AndroidJavaObject _rum;
+        private DatadogAndroidPlatform _androidPlatform;
 
-        public DatadogAndroidRum(AndroidJavaObject rum)
+        public DatadogAndroidRum(IDatadogPlatform platform, AndroidJavaObject rum)
         {
             _rum = rum;
         }
@@ -58,11 +59,30 @@ namespace Datadog.Unity.Android
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            var message = error.Message;
-            var stack = error.StackTrace;
-            var javaErrorSource = GetErrorSource(source);
-            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+            var message = error?.Message;
+            var stack = error?.StackTrace;
 
+            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+            if (error != null)
+            {
+                var nativeStackTrace = _androidPlatform.GetNativeStack(error);
+                if (nativeStackTrace != null)
+                {
+                    stack = nativeStackTrace;
+                    var nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(
+                        new object[]
+                        {
+                            new AndroidJavaObject("java.lang.String", DatadogSdk.ConfigKeys.ErrorSourceType),
+                            new AndroidJavaObject("java.lang.String", "ndk+il2cpp"),
+                        });
+                    AndroidJNI.CallObjectMethod(
+                        javaAttributes.GetRawObject(),
+                        DatadogAndroidHelpers.hashMapPutMethodId,
+                        nativeErrorSourceAttributeArgs);
+                }
+            }
+
+            var javaErrorSource = GetErrorSource(source);
             _rum.Call("addErrorWithStacktrace", message, javaErrorSource, stack, javaAttributes);
         }
 

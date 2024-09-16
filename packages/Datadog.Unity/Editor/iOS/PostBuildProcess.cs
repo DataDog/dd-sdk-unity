@@ -124,6 +124,7 @@ func initializeDatadog() {{
             var additionalConfigurationItems = new List<string>()
             {
                 $"           \"{DatadogSdk.ConfigKeys.Source}\": \"unity\"",
+                $"           \"{DatadogSdk.ConfigKeys.NativeSourceType}\": \"ios+il2cpp\"",
             };
 
             if (buildId != null)
@@ -183,7 +184,7 @@ func initializeDatadog() {{
                     $"    rumConfig.appHangThreshold = {appHangThreshold}");
 
                 // Uncomment to enable RUM Configuration Telemetry
-                //             sb.AppendLine(@"    rumConfig._internal_mutation {
+                // sb.AppendLine(@"    rumConfig._internal_mutation {
                 //     $0.configurationTelemetrySampleRate = 100.0
                 // }");
                 sb.AppendLine("    RUM.enable(with: rumConfig)");

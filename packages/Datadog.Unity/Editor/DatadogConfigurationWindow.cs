@@ -46,6 +46,11 @@ namespace Datadog.Unity.Editor
                     "Output Symbol Files",
                     DatadogHelpStrings.OutputSymbolsTooltip),
                 _options.OutputSymbols);
+            EditorGUI.BeginDisabledGroup(!_options.OutputSymbols);
+            _options.PerformNativeStackMapping = EditorGUILayout.ToggleLeft(
+                new GUIContent("Perform Native Stack Mapping", DatadogHelpStrings.PerformNativeStackMappingTooltip),
+                _options.PerformNativeStackMapping);
+            EditorGUI.EndDisabledGroup();
 
             _options.ClientToken = EditorGUILayout.TextField(new GUIContent("Client Token", DatadogHelpStrings.ClientTokenTooltip), _options.ClientToken);
             _options.Env = EditorGUILayout.TextField(new GUIContent("Env", DatadogHelpStrings.EnvTooltip), _options.Env);

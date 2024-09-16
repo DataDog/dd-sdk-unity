@@ -319,8 +319,10 @@ namespace Datadog.Unity
         internal class ConfigKeys
         {
             internal const string Source = "_dd.source";
+            internal const string ErrorSourceType = "_dd.error.source_type";
             internal const string BuildId = "_dd.build_id";
             internal const string SdkVersion = "_dd.sdk_version";
+            internal const string NativeSourceType = "_dd.native_source_type";
         }
     }
 }

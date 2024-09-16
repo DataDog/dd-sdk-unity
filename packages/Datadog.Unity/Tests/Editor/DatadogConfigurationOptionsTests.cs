@@ -47,6 +47,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.IsTrue(options.Enabled);
             Assert.AreEqual(options.SdkVerbosity, CoreLoggerLevel.Warn);
             Assert.IsFalse(options.OutputSymbols);
+            Assert.IsTrue(options.PerformNativeStackMapping);
             Assert.IsEmpty(options.ClientToken);
             Assert.IsEmpty(options.Env);
             Assert.IsEmpty(options.ServiceName);

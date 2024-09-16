@@ -1,9 +1,12 @@
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
+
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
-using Datadog.Unity;
+using System.Text;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -34,9 +37,16 @@ namespace Datadog.Unity.iOS
 
     internal class DatadogiOSPlatform : IDatadogPlatform
     {
+        private Dictionary<string, long> _moduleLoadAddresses = new Dictionary<string, long>();
+        private bool _shouldTranslateCsStacks = false;
+
         public void Init(DatadogConfigurationOptions options)
         {
             Datadog_UpdateTelemetryConfiguration(Application.unityVersion);
+
+            // Debug builds have full file / line info and should not be translated, and if you're not outputting symbols
+            // there will be no way to perform the translation, so avoid it.
+            _shouldTranslateCsStacks = options.OutputSymbols && options.PerformNativeStackMapping && !Debug.isDebugBuild;
         }
 
         public void SetVerbosity(CoreLoggerLevel logLevel)
@@ -69,7 +79,7 @@ namespace Datadog.Unity.iOS
 
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
-            var innerLogger = DatadogiOSLogger.Create(options);
+            var innerLogger = DatadogiOSLogger.Create(this, options);
             return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
@@ -98,7 +108,7 @@ namespace Datadog.Unity.iOS
 
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
-            return new DatadogiOSRum();
+            return new DatadogiOSRum(this);
         }
 
         public void SendDebugTelemetry(string message)
@@ -114,6 +124,87 @@ namespace Datadog.Unity.iOS
         public void ClearAllData()
         {
             Datadog_ClearAllData();
+        }
+
+        public string GetNativeStack(Exception error)
+        {
+            // Don't perform this action if Datadog wasn't instructed to output symbols
+            if (!_shouldTranslateCsStacks || error is null)
+            {
+                return null;
+            }
+
+            string resultStack = null;
+            try
+            {
+                if (Il2CppErrorHelper.GetNativeStackFrames(
+                        error,
+                        out IntPtr[] frames,
+                        out string imageUuid,
+                        out string imageName))
+                {
+                    var imageLoadAddress = 0L;
+                    if (_moduleLoadAddresses.ContainsKey(imageUuid))
+                    {
+                        imageLoadAddress = _moduleLoadAddresses[imageUuid];
+                    }
+                    else
+                    {
+                        // Reformat image UUID so it can be parsed by the native code
+                        var standardImageUuid = ReformatUuid(imageUuid);
+                        imageLoadAddress = Datadog_FindImageLoadAddress(standardImageUuid);
+                        if (imageLoadAddress > 0)
+                        {
+                            _moduleLoadAddresses[imageUuid] = imageLoadAddress;
+                        }
+                    }
+
+                    if (imageLoadAddress <= 0)
+                    {
+                        // Couldn't find the image load address, so we can't supply the stack trace
+                        return null;
+                    }
+
+                    var moduleName = Path.GetFileNameWithoutExtension(imageName);
+                    // Strip off weird \u0001 character that appears at the end of module names
+                    moduleName = moduleName.Substring(0, moduleName.Length - 1);
+
+                    // Format of iOS Native stack trace is:
+                    // <frame number> <module name> <absolute address> <relative address> + <offset>
+                    // Addresses are in hex, but offset is in decimal.
+                    StringBuilder stackBuilder = new StringBuilder();
+                    for (int i = 0; i < frames.Length; i++)
+                    {
+                        var frame = frames[i].ToInt64();
+                        var isAbsolute = frame > imageLoadAddress;
+
+                        // TODO: Check to see if we get absolute addresses outside of the supplied image
+                        var absoluteAddress = isAbsolute ? frame : frame + imageLoadAddress;
+                        var offset = absoluteAddress - imageLoadAddress;
+                        stackBuilder.Append(
+                            $"{i,-3} {moduleName,-32} 0x{absoluteAddress:x16} 0x{imageLoadAddress:x8} + {offset}\n");
+                    }
+
+
+                    resultStack = stackBuilder.ToString();
+                }
+            }
+            catch (Exception e)
+            {
+                SendErrorTelemetry("Failed to get native stack", e.StackTrace, e.GetType().ToString());
+            }
+
+            return resultStack;
+        }
+
+        private static string ReformatUuid(string imageUuid)
+        {
+            var sb = new StringBuilder(imageUuid);
+            sb.Insert(8, '-');
+            sb.Insert(13, '-');
+            sb.Insert(18, '-');
+            sb.Insert(23, '-');
+            return sb.ToString();
         }
 
         [DllImport("__Internal")]
@@ -145,5 +236,8 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_UpdateTelemetryConfiguration(string unityVersion);
+
+        [DllImport("__Internal")]
+        private static extern long Datadog_FindImageLoadAddress(string uuid);
     }
 }

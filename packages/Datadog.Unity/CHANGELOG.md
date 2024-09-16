@@ -5,6 +5,10 @@
 * Added an option for detecting non-fatal ANRs on Android.
 * Added an option for detecting non-fatal within a given threshold on iOS.
 * Added documentation tooltips to the Datadog Options window (on Labels).
+* Added support for file / line mappings in C# exceptions through C# Native Stack Mapping
+* Updated iOS SDK to 2.17.0
+  * Memory warnings are now tracked as RUM errors
+  * Fix refresh rate vital for variable refresh rate displays
 
 ## 1.2.0
 

@@ -6,6 +6,7 @@ import Foundation
 import DatadogCore
 import DatadogLogs
 import DatadogInternal
+import MachO
 
 @_cdecl("Datadog_SetSdkVerbosity")
 func Datadog_SetSdkVerbosity(sdkVerbosityInt: Int) {
@@ -122,4 +123,60 @@ func Datadog_UpdateTelemetryConfiguration(unityVersion: CString) {
 
     let core = CoreRegistry.default
     core.telemetry.configuration(unityVersion: unityVersion)
+}
+
+@_cdecl("Datadog_FindImageLoadAddress")
+func Datadog_FindImageLoadAddress(imageUuid: CString) -> Int {
+    guard let imageUuid = decodeCString(cString: imageUuid),
+          let imageUuid = UUID(uuidString: imageUuid) else {
+        return 0
+    }
+
+    let numImages = _dyld_image_count()
+    var loadAddress: Int?
+    for i in 0..<numImages {
+        if let header = _dyld_get_image_header(i) {
+            var loadCommand: UnsafePointer<load_command>?
+            let dlInfo = UnsafeMutablePointer<Dl_info>.allocate(capacity: 1)
+            if (dladdr(header, dlInfo) == 0) {
+                continue
+            }
+
+            if header.pointee.magic == MH_MAGIC_64 || header.pointee.magic == MH_CIGAM_64 {
+                header.withMemoryRebound(to: mach_header_64.self, capacity: 1) {
+                    $0.successor().withMemoryRebound(to: load_command.self, capacity: 1, { lc in
+                        loadCommand = lc
+                    })
+                }
+            } else {
+                header.successor().withMemoryRebound(to: load_command.self, capacity: 1, { lc in
+                    loadCommand = lc
+                })
+            }
+
+            for i in 0...header.pointee.ncmds {
+                guard let currentCommand = loadCommand else {
+                    return 0
+                }
+
+                if currentCommand.pointee.cmd == LC_UUID {
+                    currentCommand.withMemoryRebound(to: uuid_command.self, capacity: 1) { pointer in
+                        let commandUuid = UUID(uuid: pointer.pointee.uuid)
+                        if commandUuid == imageUuid {
+                            loadAddress = Int(bitPattern: dlInfo.pointee.dli_fbase)
+                        }
+                    }
+
+                    if let loadAddress = loadAddress {
+                        return loadAddress
+                    }
+                }
+
+                let nextCommand = UnsafeRawPointer(currentCommand)?.advanced(by: Int(currentCommand.pointee.cmdsize))
+                loadCommand = nextCommand?.assumingMemoryBound(to: load_command.self)
+            }
+        }
+    }
+
+    return loadAddress ?? 0
 }
