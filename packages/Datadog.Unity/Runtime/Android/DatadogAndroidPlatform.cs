@@ -281,17 +281,22 @@ namespace Datadog.Unity.Android
                         // Sometimes, Unity returns nothing in the imageName, sometimes it returns the name with
                         // an extra letter. We'll need to replace this with an actual name / address lookup at some point.
                         // TODO: RUM-4403 Add support for getting image name from UUID
-                        imageName = "il2cpp.so";
+                        imageName = "libil2cpp.so";
                     }
 
-                    // imageName comes back with an extra letter at the end, so we need to remove it (bug in Unity?)
+                    // imageName sometimes comes back with an extra letter or symbol at the end, so we need to remove it (bug in Unity?)
                     if (!imageName.EndsWith(".so"))
                     {
-                        imageName = imageName.Substring(0, imageName.Length - 1);
+                        // Strip off everything after .so.
+                        var soIndex = imageName.IndexOf(".so", StringComparison.Ordinal);
+                        if (soIndex > 0)
+                        {
+                            imageName = imageName.Substring(0, soIndex + 3);
+                        }
                     }
 
                     // Format of Android Native (NDK) stack trace is:
-                    // #<frame number>  <pc> <address_offset>  <library_name>
+                    // <frame number>  <pc> <address_offset>  <library_name>
                     // It can optionally include <symbol_name>+<symbol_offset> at the end but we won't include those.
                     var stackBuilder = new StringBuilder();
                     for (int i = 0; i < frames.Length; ++i)
@@ -299,7 +304,7 @@ namespace Datadog.Unity.Android
                         var frame = frames[i].ToInt64();
 
                         // Currently assuming the frames are all relative. This should also be fixed by RUM-4403
-                        stackBuilder.AppendLine($"#{i:D2}  pc {frame:x8}  {imageName}");
+                        stackBuilder.AppendLine($"{i}  pc {frame:x8}  {imageName}");
                     }
 
                     resultStack = stackBuilder.ToString();

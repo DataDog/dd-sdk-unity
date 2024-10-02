@@ -167,7 +167,8 @@ namespace Datadog.Unity.iOS
 
                     var moduleName = Path.GetFileNameWithoutExtension(imageName);
                     // Strip off weird \u0001 character that appears at the end of module names
-                    moduleName = moduleName.Substring(0, moduleName.Length - 1);
+                    moduleName = moduleName.Replace("\u0001", string.Empty);
+
 
                     // Format of iOS Native stack trace is:
                     // <frame number> <module name> <absolute address> <relative address> + <offset>
