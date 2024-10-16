@@ -12,7 +12,7 @@ import shutil
 from tempfile import TemporaryDirectory
 
 schemas_path = ".schemas"
-schema_repo = "git@github.com:DataDog/rum-events-format.git"
+schema_repo = "https://github.com/DataDog/rum-events-format.git"
 
 def schemas_path_exists():
     """
