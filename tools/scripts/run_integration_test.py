@@ -7,6 +7,7 @@
 # -----------------------------------------------------------
 
 import argparse
+import asyncio
 import subprocess
 import os
 import threading
@@ -45,7 +46,7 @@ def modify_datadog_settings(local_server_address):
         settings_file.writelines(data)
 
 
-def main():
+async def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--platform", choices=['ios', 'android'], help="The platform to run integration tests on.")
     arg_parser.add_argument("--launch-simulator", action='store_true', help="Whether to launch a simulator or emulator before running tests.")
@@ -89,8 +90,8 @@ def main():
     license_retry_count = args.retry
     license_retry_wait = args.retry_wait
 
-    run_unity_command(license_retry_count, license_retry_wait,
-        "-runTests", "-batchMode", "-projectPath", integration_project_path,
+    await run_unity_command(license_retry_count, license_retry_wait,
+        "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
         "-buildTarget", args.platform,
         "-testCategory", "integration", "-testPlatform", args.platform,
         "-testResults", "tmp/results.xml", "-logFile", "-",
@@ -102,4 +103,6 @@ def main():
     pass
 
 if __name__ == "__main__":
-    main()
+    task = main()
+    res = asyncio.get_event_loop().run_until_complete(task)
+    exit(res)

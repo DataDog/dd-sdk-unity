@@ -60,7 +60,10 @@ namespace Datadog.Unity
         internal IInternalLogger InternalLogger
         {
             get { return _internalLogger;  }
-            set { _internalLogger = value; }
+            set
+            {
+                _internalLogger = value ?? new PassThroughInternalLogger();
+            }
         }
 
         internal ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;

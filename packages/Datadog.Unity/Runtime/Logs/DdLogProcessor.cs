@@ -43,7 +43,7 @@ namespace Datadog.Unity.Logs
 
         internal class LogMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<LogMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<LogMessage> _pool = new (
                 createFunc: () => new LogMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private LogMessage()
@@ -89,7 +89,7 @@ namespace Datadog.Unity.Logs
 
         internal class AddTagMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<AddTagMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddTagMessage> _pool = new (
                 createFunc: () => new AddTagMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddTagMessage()
@@ -128,7 +128,7 @@ namespace Datadog.Unity.Logs
 
         internal class RemoveTagMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<RemoveTagMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<RemoveTagMessage> _pool = new (
                 createFunc: () => new RemoveTagMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private RemoveTagMessage()
@@ -163,7 +163,7 @@ namespace Datadog.Unity.Logs
 
         internal class RemoveTagsWithKeyMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<RemoveTagsWithKeyMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<RemoveTagsWithKeyMessage> _pool = new (
                 createFunc: () => new RemoveTagsWithKeyMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private RemoveTagsWithKeyMessage()
@@ -198,7 +198,7 @@ namespace Datadog.Unity.Logs
 
         internal class AddAttributeMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<AddAttributeMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddAttributeMessage> _pool = new (
                 createFunc: () => new AddAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddAttributeMessage()
@@ -237,7 +237,7 @@ namespace Datadog.Unity.Logs
 
         internal class RemoveAttributeMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<RemoveAttributeMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<RemoveAttributeMessage> _pool = new (
                 createFunc: () => new RemoveAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private RemoveAttributeMessage()

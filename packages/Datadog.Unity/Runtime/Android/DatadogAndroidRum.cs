@@ -13,11 +13,12 @@ namespace Datadog.Unity.Android
     internal class DatadogAndroidRum : IDdRum
     {
         private readonly AndroidJavaObject _rum;
-        private DatadogAndroidPlatform _androidPlatform;
+        private readonly DatadogAndroidPlatform _androidPlatform;
 
         public DatadogAndroidRum(IDatadogPlatform platform, AndroidJavaObject rum)
         {
             _rum = rum;
+            _androidPlatform = platform as DatadogAndroidPlatform;
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)

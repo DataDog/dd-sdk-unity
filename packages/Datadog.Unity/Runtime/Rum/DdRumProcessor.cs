@@ -101,7 +101,7 @@ namespace Datadog.Unity.Rum
 
         internal class StartViewMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StartViewMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StartViewMessage> _pool = new (
                 createFunc: () => new StartViewMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StartViewMessage()
@@ -141,7 +141,7 @@ namespace Datadog.Unity.Rum
 
         internal class StopViewMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StopViewMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StopViewMessage> _pool = new (
                 createFunc: () => new StopViewMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StopViewMessage()
@@ -177,7 +177,7 @@ namespace Datadog.Unity.Rum
 
         internal class AddUserActionMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<AddUserActionMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddUserActionMessage> _pool = new (
                 createFunc: () => new AddUserActionMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddUserActionMessage()
@@ -216,7 +216,7 @@ namespace Datadog.Unity.Rum
 
         internal class StartUserActionMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StartUserActionMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StartUserActionMessage> _pool = new (
                 createFunc: () => new StartUserActionMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StartUserActionMessage()
@@ -255,7 +255,7 @@ namespace Datadog.Unity.Rum
 
         internal class StopUserActionMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StopUserActionMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StopUserActionMessage> _pool = new (
                 createFunc: () => new StopUserActionMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StopUserActionMessage()
@@ -294,7 +294,7 @@ namespace Datadog.Unity.Rum
 
         internal class AddErrorMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<AddErrorMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddErrorMessage> _pool = new (
                 createFunc: () => new AddErrorMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddErrorMessage()
@@ -334,7 +334,7 @@ namespace Datadog.Unity.Rum
 
         internal class AddAttributeMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<AddAttributeMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddAttributeMessage> _pool = new (
                 createFunc: () => new AddAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddAttributeMessage()
@@ -368,7 +368,7 @@ namespace Datadog.Unity.Rum
 
         internal class RemoveAttributeMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<RemoveAttributeMessage> _pool = new (createFunc: () => new RemoveAttributeMessage());
+            private static readonly ThreadSafeObjectPool<RemoveAttributeMessage> _pool = new (createFunc: () => new RemoveAttributeMessage());
 
             private RemoveAttributeMessage()
             {
@@ -392,7 +392,7 @@ namespace Datadog.Unity.Rum
 
         internal class StartResourceLoadingMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StartResourceLoadingMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StartResourceLoadingMessage> _pool = new (
                 createFunc: () => new StartResourceLoadingMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StartResourceLoadingMessage()
@@ -435,7 +435,7 @@ namespace Datadog.Unity.Rum
 
         internal class StopResourceLoadingMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StopResourceLoadingMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StopResourceLoadingMessage> _pool = new (
                 createFunc: () => new StopResourceLoadingMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StopResourceLoadingMessage()
@@ -482,7 +482,7 @@ namespace Datadog.Unity.Rum
 
         internal class StopResourceLoadingWithErrorMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<StopResourceLoadingWithErrorMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<StopResourceLoadingWithErrorMessage> _pool = new (
                 createFunc: () => new StopResourceLoadingWithErrorMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private StopResourceLoadingWithErrorMessage()
@@ -529,7 +529,7 @@ namespace Datadog.Unity.Rum
 
         internal class AddFeatureFlagEvaluationMessage : DdRumWorkerMessage
         {
-            private static ObjectPool<AddFeatureFlagEvaluationMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddFeatureFlagEvaluationMessage> _pool = new (
                 createFunc: () => new AddFeatureFlagEvaluationMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddFeatureFlagEvaluationMessage()

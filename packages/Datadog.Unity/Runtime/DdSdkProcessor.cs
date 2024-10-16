@@ -85,7 +85,7 @@ namespace Datadog.Unity.Worker
         // TODO: This should be moved from the core_sdk as it actually applies to Logs.
         internal class AddGlobalAttributesMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<AddGlobalAttributesMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<AddGlobalAttributesMessage> _pool = new (
                 createFunc: () => new AddGlobalAttributesMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private AddGlobalAttributesMessage()
@@ -116,7 +116,7 @@ namespace Datadog.Unity.Worker
 
         internal class RemoveGlobalAttributeMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<RemoveGlobalAttributeMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<RemoveGlobalAttributeMessage> _pool = new (
                 createFunc: () => new RemoveGlobalAttributeMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private RemoveGlobalAttributeMessage()
