@@ -10,6 +10,7 @@ variables:
 
 stages:
   - unit-test
+  - integration-test
 
 .shared:
   install-dependencies:
@@ -34,3 +35,22 @@ unit-test:
     expire_in: "30 days"
     reports:
       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/junit-results*.xml
+
+integration-test:
+  stage: integration-test
+  tags:
+    - macos:sonoma
+    - specific:true
+  script:
+    - !reference [.shared, install-dependencies]
+    - !reference [.shared, create-server-config]
+    - cd $CI_PROJECT_DIR/tools/mock_server
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - ./venv/bin/python3 app.py --update-schemas
+    - cd $CI_PROJECT_DIR/tools/scripts && python ./run_integration_test.py --platform ios --launch-simulator
+    - cd $CI_PROJECT_DIR/tools/scripts && python ./run_integration_test.py --platform android --launch-simulator
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/*_results.xml

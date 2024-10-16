@@ -94,7 +94,7 @@ async def main():
         "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
         "-buildTarget", args.platform,
         "-testCategory", "integration", "-testPlatform", args.platform,
-        "-testResults", "tmp/results.xml", "-logFile", "-",
+        "-testResults", f"tmp/{args.platform}_results.xml", "-logFile", "-",
     )
 
     mock_server.terminate()
