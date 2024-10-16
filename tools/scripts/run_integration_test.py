@@ -41,6 +41,12 @@ def modify_datadog_settings(local_server_address):
     for i, line in enumerate(data):
         if line.startswith("  CustomEndpoint:"):
             data[i] = f"  CustomEndpoint: {local_server_address}\n"
+        if line == ("  ClientToken:"):
+            # if there's not client token, add one
+            data[i] = f"  ClientToken: faketoken"
+        if line == ("  RumApplicationId:"):
+            # if there's not an application id, add one
+            data[i] = f"  RumApplicationId: fake-application-id"
 
     with open(os.path.join(settings_file_dir, settings_file_name), 'w') as settings_file:
         settings_file.writelines(data)
@@ -103,6 +109,10 @@ async def main():
     pass
 
 if __name__ == "__main__":
-    task = main()
-    res = asyncio.get_event_loop().run_until_complete(task)
-    exit(res)
+    try:
+        task = main()
+        res = asyncio.get_event_loop().run_until_complete(task)
+        exit(res)
+    except Exception as e:
+        print(e)
+        exit(-1)
