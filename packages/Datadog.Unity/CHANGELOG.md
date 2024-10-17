@@ -14,7 +14,7 @@
 * Updated Android SDK to 2.14.0
   * Increase retry delay on DNS error.
   * Stop upload worker on upload failure
-  * Ensure UploadWorker uses the SDK instance name.
+  * Ensure `UploadWorker` uses the SDK instance name.
 
 ## 1.2.0
 
