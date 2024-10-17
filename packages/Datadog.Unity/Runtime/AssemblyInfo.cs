@@ -5,7 +5,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyVersion("1.0.0")]
+[assembly: AssemblyVersion("1.3.0")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.android")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.ios")]
