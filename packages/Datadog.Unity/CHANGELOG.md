@@ -6,9 +6,15 @@
 * Added an option for detecting non-fatal app hangs within a given threshold on iOS.
 * Added documentation tooltips to the Datadog Options window (on Labels).
 * Added support for file / line mappings in C# exceptions through C# Native Stack Mapping
+* Make DatadogWorker's message pools thread safe.
+* Stop Resources in DatadogTrackedWebRequest if the underlying UnityWebRequest is Disposed.
 * Updated iOS SDK to 2.17.0
   * Memory warnings are now tracked as RUM errors
   * Fix refresh rate vital for variable refresh rate displays
+* Updated Android SDK to 2.14.0
+  * Increase retry delay on DNS error.
+  * Stop upload worker on upload failure
+  * Ensure `UploadWorker` uses the SDK instance name.
 
 ## 1.2.0
 
