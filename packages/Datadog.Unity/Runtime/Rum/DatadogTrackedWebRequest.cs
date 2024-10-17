@@ -228,6 +228,12 @@ namespace Datadog.Unity.Rum
                                 break;
                         }
                     }
+                    catch (NullReferenceException e)
+                    {
+                        // This webrequest was disposed before the operation completed. This is not a telemetry
+                        // error, but we should stop the resource.
+                        DatadogSdk.Instance.Rum.StopResourceWithError(rumKey, "RequestDisposed", error);
+                    }
                     catch (Exception e)
                     {
                         DatadogSdk.Instance.InternalLogger?.TelemetryError("Error stopping RUM resource.", e);

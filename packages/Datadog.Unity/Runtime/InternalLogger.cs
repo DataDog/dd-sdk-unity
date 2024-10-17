@@ -105,7 +105,7 @@ namespace Datadog.Unity.Core
 
         internal class TelemetryDebugMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<TelemetryDebugMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<TelemetryDebugMessage> _pool = new (
                 createFunc: () => new TelemetryDebugMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private TelemetryDebugMessage()
@@ -138,7 +138,7 @@ namespace Datadog.Unity.Core
 
         internal class TelemetryErrorMessage : IDatadogWorkerMessage
         {
-            private static ObjectPool<TelemetryErrorMessage> _pool = new (
+            private static readonly ThreadSafeObjectPool<TelemetryErrorMessage> _pool = new (
                 createFunc: () => new TelemetryErrorMessage(), actionOnRelease: (obj) => obj.Reset());
 
             private TelemetryErrorMessage()
