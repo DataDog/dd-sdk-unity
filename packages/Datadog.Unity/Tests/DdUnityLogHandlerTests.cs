@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
 using NSubstitute;
 using NSubstitute.ReceivedExtensions;
@@ -45,7 +46,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
 
             // When
             handler.Attach();
@@ -59,7 +60,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -74,7 +75,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
 
             // When
             handler.Detach();
@@ -84,11 +85,12 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
-        public void LogExceptionSendsToDatadog()
+        public void LogExceptionSendsToRum_WhenRumIsNotNull()
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var rum = Substitute.For<IDdRum>();
+            var handler = new DdUnityLogHandler(datadogLogger, rum);
             handler.Attach();
 
             // When
@@ -97,7 +99,7 @@ namespace Datadog.Unity.Tests
             handler.LogException(exception, context);
 
             // Then
-            datadogLogger.Received().PlatformLog(DdLogLevel.Critical, exception.Message, error: exception);
+            rum.Received().AddError(exception, RumErrorSource.Source);
         }
 
         [Test]
@@ -105,7 +107,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -122,7 +124,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
             datadogLogger.When(logger =>
             {
@@ -143,20 +145,20 @@ namespace Datadog.Unity.Tests
         }
 
         [Test]
-        public void LogExceptionSendsToTelemetry_WhenDatadogLoggerFails()
+        public void LogExceptionSendsToTelemetry_WhenDatadogRumFails()
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Critical, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var rum = Substitute.For<IDdRum>();
+            var handler = new DdUnityLogHandler(datadogLogger, rum);
             handler.Attach();
             var expectedException = new Exception();
-            datadogLogger.When(logger =>
+            rum.When(rum =>
             {
-                logger.PlatformLog(
-                    DdLogLevel.Critical,
-                    Arg.Any<string>(),
-                    Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                rum.AddError(
+                    Arg.Any<Exception>(),
+                    RumErrorSource.Source,
+                    Arg.Any<Dictionary<string, object>>());
             }).Do(_ => throw expectedException);
 
             // When
@@ -178,7 +180,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -196,7 +198,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
             datadogLogger.When(logger =>
             {
@@ -221,7 +223,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
             var expectedException = new Exception();
             datadogLogger.When(logger =>
@@ -252,7 +254,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When
@@ -278,7 +280,7 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var datadogLogger = Substitute.ForPartsOf<DdLogger>(DdLogLevel.Debug, 100.0f);
-            var handler = new DdUnityLogHandler(datadogLogger);
+            var handler = new DdUnityLogHandler(datadogLogger, null);
             handler.Attach();
 
             // When

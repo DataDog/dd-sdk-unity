@@ -30,14 +30,14 @@ namespace Datadog.Unity.Tests.Integration.Logging
             var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
             {
                 var logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 4;
+                return logs.Count >= 3;
             });
 
             yield return new WaitUntil(() => task.IsCompleted);
             var serverLog = task.Result;
             var logs = LogDecoder.LogsFromMockServer(serverLog);
 
-            Assert.AreEqual(4, logs.Count);
+            Assert.AreEqual(3, logs.Count);
 
             // The first log is from Unity about `ignoreFailingMessages` being set and can be ignored
             // All other logs have the attribute set
@@ -54,13 +54,6 @@ namespace Datadog.Unity.Tests.Integration.Logging
             var warnLog = logs[2];
             Assert.AreEqual("warn", warnLog.Status);
             Assert.AreEqual("Test warning", warnLog.Message);
-
-            var exceptionLog = logs[3];
-            Assert.AreEqual("critical", exceptionLog.Status);
-            Assert.AreEqual("Error Message", exceptionLog.Message);
-            Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
-            Assert.AreEqual("System.InvalidOperationException", exceptionLog.ErrorKind);
-            Assert.NotNull(exceptionLog.ErrorStack);
         }
 
         public class TestAutoLoggingMonoBehavior : MonoBehaviour, IMonoBehaviourTest

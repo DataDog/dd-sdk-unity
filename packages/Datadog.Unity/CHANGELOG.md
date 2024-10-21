@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* BREAKING: Send automatically captured errors to RUM instead of Logs.
+
 ## 1.3.0
 
 * Added an option for detecting non-fatal ANRs on Android.
