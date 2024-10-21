@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.3.0
 
 * Added an option for detecting non-fatal ANRs on Android.
 * Added an option for detecting non-fatal app hangs within a given threshold on iOS.
