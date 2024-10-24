@@ -5,18 +5,21 @@
 using System;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using Datadog.Unity.Rum;
 using UnityEngine;
 
 namespace Datadog.Unity
 {
     internal class DdUnityLogHandler : ILogHandler
     {
-        private readonly DdLogger _ddLogger;
+        private readonly DdLogger _logger;
+        private readonly IDdRum _rum;
         private ILogHandler _defaultLogHandler = null;
 
-        public DdUnityLogHandler(DdLogger datadogLogger)
+        public DdUnityLogHandler(DdLogger logger, IDdRum rum)
         {
-            _ddLogger = datadogLogger;
+            _logger = logger;
+            _rum = rum;
         }
 
         public void Attach()
@@ -44,7 +47,12 @@ namespace Datadog.Unity
         {
             try
             {
-                _ddLogger.Critical(exception.Message, error: exception);
+                _rum?.AddError(exception, RumErrorSource.Source);
+            }
+            catch(Exception e)
+            {
+                // RUM may not wrap calls for telemetry, so catch here and send to telemetry just in case
+                DatadogSdk.Instance.InternalLogger?.TelemetryError("RUM.AddError failed in LogHandler", e);
             }
             finally
             {
@@ -65,7 +73,7 @@ namespace Datadog.Unity
 
                 var logLevel = DdLogHelpers.LogTypeToDdLogLevel(logType);
                 var message = args.Length == 0 ? format : string.Format(format, args);
-                _ddLogger.Log(logLevel, message);
+                _logger.Log(logLevel, message);
             }
             finally
             {

@@ -257,15 +257,16 @@ namespace Datadog.Unity
                     RemoteLogThreshold = DdLogHelpers.LogTypeToDdLogLevel(options.RemoteLogThreshold),
                 };
                 DefaultLogger = CreateLogger(loggingOptions);
-                if (options.ForwardUnityLogs)
-                {
-                    _logHandler = new (DefaultLogger);
-                    _logHandler.Attach();
-                }
 
                 if (options.RumEnabled)
                 {
                     EnableRum(options);
+                }
+
+                if (options.ForwardUnityLogs)
+                {
+                    _logHandler = new (DefaultLogger, options.RumEnabled ? Rum : null);
+                    _logHandler.Attach();
                 }
 
                 _worker.Start();
