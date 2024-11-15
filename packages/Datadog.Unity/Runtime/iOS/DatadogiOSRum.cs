@@ -64,7 +64,7 @@ namespace Datadog.Unity.iOS
             string stackTrace = null;
             if (error != null)
             {
-                var nativeStackTrace = _platform.GetNativeStack(error);
+                var nativeStackTrace = string.IsNullOrEmpty(error.StackTrace) ? _platform.GetNativeStack(error) : null;
                 if (nativeStackTrace != null)
                 {
                     attributes = attributes == null ? new () : new (attributes);

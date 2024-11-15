@@ -66,7 +66,7 @@ namespace Datadog.Unity.Android
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             if (error != null)
             {
-                var nativeStackTrace = _androidPlatform.GetNativeStack(error);
+                var nativeStackTrace = string.IsNullOrEmpty(error.StackTrace) ? _androidPlatform.GetNativeStack(error) : null;
                 if (nativeStackTrace != null)
                 {
                     stack = nativeStackTrace;
