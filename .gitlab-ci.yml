@@ -3,10 +3,8 @@ include:
 
 variables:
   # TODO: Detect unity location in script.
-  UNITY_HOME: "/Applications/Unity/Unity.app/Contents/"
-  UNITY_PATH: "$UNITY_HOME/MacOS/Unity"
+  UNITY_VERSION: "2022.3.54f1"
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
-
 
 stages:
   - unit-test
@@ -15,6 +13,11 @@ stages:
 .shared:
   install-dependencies:
     - pip install saxonche
+    - echo 'Installing Unity Hub...'
+    - brew install --cask unity-hub
+    - echo 'Installing Unity Editor and Modules...'
+    # This can fail if Unity is already installed, so || true
+    - /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install --version "$UNITY_VERSION" --module ios android --architecture arm64 --childModules || true
   create-server-config:
     - vault login -method=aws -no-print
     - export UNITY_SERVER_CONFIG=$(vault kv get -field=config kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/server-config)
