@@ -1,2 +1,3 @@
 flask == 2.3.2
 jsonschema == 4.17.3
+aiofiles == 24.1.0

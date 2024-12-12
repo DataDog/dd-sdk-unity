@@ -5,6 +5,7 @@ variables:
   # TODO: Detect unity location in script.
   UNITY_VERSION: "2022.3.54f1"
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
+  IS_ON_CI: "1"
 
 stages:
   - unit-test
@@ -12,7 +13,7 @@ stages:
 
 .shared:
   install-dependencies:
-    - pip install saxonche
+    - pip install saxonche aiofiles
     - echo 'Installing Unity Hub...'
     - brew install --cask unity-hub
     - echo 'Installing Unity Editor and Modules...'
@@ -21,8 +22,9 @@ stages:
   create-server-config:
     - vault login -method=aws -no-print
     - export UNITY_SERVER_CONFIG=$(vault kv get -field=config kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/server-config)
-    - mkdir -p "$UNITY_SUPPORT_PATH"
-    - printf "%s\n" "$UNITY_SERVER_CONFIG" > "$UNITY_SUPPORT_PATH/services-config.json"
+    - sudo mkdir -p "$UNITY_SUPPORT_PATH"
+    - sudo chmod +r "$UNITY_SUPPORT_PATH"
+    - printf "%s\n" "$UNITY_SERVER_CONFIG" > sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
 
 unit-test:
   stage: unit-test
@@ -32,7 +34,7 @@ unit-test:
   script:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
-    - cd tools/scripts && python ./run_unit_test.py
+    - cd $CI_PROJECT_DIR/tools/scripts && python ./run_unit_test.py
   artifacts:
     when: always
     expire_in: "30 days"

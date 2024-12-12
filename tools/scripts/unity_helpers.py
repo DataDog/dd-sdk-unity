@@ -10,6 +10,8 @@ import asyncio
 import os
 import re
 import subprocess
+import sys
+import aiofiles
 import time
 from saxonche import PySaxonProcessor
 from typing import Optional
@@ -45,7 +47,7 @@ async def _read_stream(stream, callback):
     while True:
         line = await stream.readline()
         if line:
-            callback(line.decode('utf8'))
+            await callback(line.decode('utf8'))
         else:
             break
 
@@ -100,13 +102,19 @@ async def run_unity_command(license_retry_attempts: int, license_retry_timeout_s
         process = await asyncio.create_subprocess_shell (cmd,
                                    env=env,
                                    stdout=asyncio.subprocess.PIPE,
+                                   stderr=asyncio.subprocess.PIPE,
                                    )
 
-        def process_stdout(line):
+        async def process_stdout(line):
             nonlocal did_see_license_error
             if UNITY_LICENSE_ERROR in line:
                 did_see_license_error = True
-            print(f"[unity] {line}", end='')
+            try:
+                await aiofiles.stdout.write("[unity] ")
+                await aiofiles.stdout.write(line)
+            except BlockingIOError:
+                pass
+
 
         await asyncio.wait([
             _read_stream(process.stdout, process_stdout)

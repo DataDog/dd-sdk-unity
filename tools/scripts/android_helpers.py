@@ -34,10 +34,11 @@ def _get_sdk_manager() -> str:
 def _get_emulator_command() -> str:
     return os.path.join(_get_android_home(), 'emulator', 'emulator')
 
-def _run(args: list[str], write_std_out: bool = False) -> str:
+def _run(args: list[str], write_std_out: bool = False, std_in: Optional[str] = None) -> str:
     process = subprocess.Popen(args,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
+                               stdin= None if std_in is None else subprocess.PIPE,
                                start_new_session=True,
                                universal_newlines=True)
     output = io.StringIO()
@@ -46,7 +47,7 @@ def _run(args: list[str], write_std_out: bool = False) -> str:
             print(line)
         output.write(line)
 
-    process.communicate()
+    process.communicate(input=std_in)
     if process.returncode != 0:
         print(output.getvalue())
         raise Exception(f'{args[0]} exited with non-zero exit code: {process.returncode}')
@@ -135,7 +136,7 @@ def launch_android_emulator(api_level: Optional[str], emulator_name: Optional[st
         _run([_get_sdk_manager(), "--verbose", package], True)
 
         print("Creating device")
-        _run([_get_avd_manager(), "create", "avd", "-n", emulator_name, "--package", package], True)
+        _run([_get_avd_manager(), "create", "avd", "-n", emulator_name, "--package", package], True, "no\n")
 
     devices = _get_running_devices()
     if bool(devices):
