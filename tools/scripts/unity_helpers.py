@@ -79,8 +79,9 @@ async def get_unity_license() -> Optional[str]:
     return token
 
 async def return_unity_license(token: str):
+    env = os.environ.copy()
     cmd = f'{get_license_server_path()} --return-floating {token}'
-    process = await asyncio.create_subprocess_shell (cmd, env=env, stdout=asyncio.subprocess.STDOUT)
+    process = await asyncio.create_subprocess_shell (cmd, env=env)
 
     return_code = await process.wait()
 
