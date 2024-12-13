@@ -1,0 +1,6 @@
+aiofiles==24.1.0
+GitPython==3.1.31
+GitPython==3.1.43
+PyGithub==2.3.0
+PyGithub==2.5.0
+saxonche==12.5.0
