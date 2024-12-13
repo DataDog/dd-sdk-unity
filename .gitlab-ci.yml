@@ -25,6 +25,7 @@ stages:
     - sudo mkdir -p "$UNITY_SUPPORT_PATH"
     - printf "%s\n" "$UNITY_SERVER_CONFIG" > sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
     - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
+    - ls "$UNITY_SUPPORT_PATH"
 
 unit-test:
   stage: unit-test
