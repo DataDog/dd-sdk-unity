@@ -53,9 +53,13 @@ async def _read_stream(stream, callback):
 
 async def get_unity_license() -> Optional[str]:
     token = None
-    def process_stdout(line):
+    async def process_stdout(line):
         m = LICENSE_STATE_RE.match(line)
-        print(f'[uls]  {line}')
+        try:
+            await aiofiles.stdout.write("[uls] ")
+            await aiofiles.stdout.write(line)
+        except BlockingIOError:
+            pass
         nonlocal token
         if m is not None:
             token = m.group("token")
