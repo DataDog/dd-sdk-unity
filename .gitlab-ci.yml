@@ -13,7 +13,6 @@ stages:
 
 .shared:
   install-dependencies:
-    - pip install saxonche aiofiles
     - echo 'Installing Unity Hub...'
     - brew install --cask unity-hub
     - echo 'Installing Unity Editor and Modules...'
@@ -23,8 +22,8 @@ stages:
     - vault login -method=aws -no-print
     - export UNITY_SERVER_CONFIG=$(vault kv get -field=config kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/server-config)
     - sudo mkdir -p "$UNITY_SUPPORT_PATH"
-    - sudo chmod +r "$UNITY_SUPPORT_PATH"
     - printf "%s\n" "$UNITY_SERVER_CONFIG" > sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
+    - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
 
 unit-test:
   stage: unit-test
@@ -34,7 +33,9 @@ unit-test:
   script:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
-    - cd $CI_PROJECT_DIR/tools/scripts && python ./run_unit_test.py
+    - cd $CI_PROJECT_DIR/tools/scripts
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - ./venv/bin/python3 ./run_unit_test.py
   artifacts:
     when: always
     expire_in: "30 days"
@@ -52,8 +53,10 @@ integration-test:
     - cd $CI_PROJECT_DIR/tools/mock_server
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
     - ./venv/bin/python3 app.py --update-schemas
-    - cd $CI_PROJECT_DIR/tools/scripts && python ./run_integration_test.py --platform ios --launch-simulator
-    - cd $CI_PROJECT_DIR/tools/scripts && python ./run_integration_test.py --platform android --launch-simulator
+    - cd $CI_PROJECT_DIR/tools/scripts
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - ./venv/bin/python3 ./run_integration_test.py --platform ios --launch-simulator
+    - ./venv/bin/python3 ./run_integration_test.py --platform android --launch-simulator
   artifacts:
     when: always
     expire_in: "30 days"
