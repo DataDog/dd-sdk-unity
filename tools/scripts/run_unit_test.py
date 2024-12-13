@@ -6,6 +6,8 @@
 # Copyright 2023-Present Datadog, Inc.
 # -----------------------------------------------------------
 
+# another test
+
 import argparse
 import asyncio
 import os
