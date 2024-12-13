@@ -13,6 +13,7 @@ stages:
 
 .shared:
   install-dependencies:
+    - pip install saxonche
     - echo 'Installing Unity Hub...'
     - brew install --cask unity-hub
     - echo 'Installing Unity Editor and Modules...'
