@@ -23,7 +23,7 @@ class IosSimulator:
         self.device_type_identifier = json['deviceTypeIdentifier']
         self.state = json['state']
 
-def _xcrun(*args) -> str:
+def _xcrun(*args) -> bool:
     process = subprocess.Popen(['xcrun', *args],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
@@ -47,6 +47,12 @@ def _switch_sdk_target(settings_path: str, target: int):
                 print(f"  iPhoneSdkVersion: {target}")
             else:
                 print(line, end='')
+
+# Write out the currently running simulator uuid so that artifacts
+# can pick it up to upload the simulator log
+def _write_simulator_uuid(uuid: str):
+    with open('.ios_simulator_uuid', mode="w", encoding="utf-8") as f:
+        f.write(uuid)
 
 def switch_to_simulator_target(settings_path: str):
     _switch_sdk_target(settings_path, IOS_SIMULATOR_SDK)
@@ -81,15 +87,17 @@ def launch_ios_simulator(sdk: str, device_name: Optional[str]) -> bool:
         device = next(x for x in sdk_devices if device_name in x.name)
 
     if device is None:
-        print(f'Found no ddvices matching {device_name} for {sdk}')
+        print(f'Found no devices matching {device_name} for {sdk}')
         return False
 
     if device.state == 'Booted':
         print(f'Device {device.name} is already booted.')
+        _write_simulator_uuid(device.uuid)
         return True
 
     print(f'Launching {device.name}...')
     #subprocess.call(['xcrun', 'simctl', 'boot', device.uuid])
     output = _xcrun('simctl', 'boot', device.uuid)
+    _write_simulator_uuid(device.uuid)
 
     return True
