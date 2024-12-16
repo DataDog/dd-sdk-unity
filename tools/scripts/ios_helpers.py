@@ -91,13 +91,14 @@ def launch_ios_simulator(sdk: str, device_name: Optional[str]) -> bool:
         return False
 
     if device.state == 'Booted':
-        print(f'Device {device.name} is already booted.')
+        print(f'Device {device.name} is already booted.', flush=True)
         _write_simulator_uuid(device.uuid)
         return True
 
-    print(f'Launching {device.name}...')
+    print(f'Launching {device.name}...', flush=True)
     #subprocess.call(['xcrun', 'simctl', 'boot', device.uuid])
     output = _xcrun('simctl', 'boot', device.uuid)
+    print(output, flush=True)
     _write_simulator_uuid(device.uuid)
 
     return True

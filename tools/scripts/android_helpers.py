@@ -130,14 +130,13 @@ def launch_android_emulator(api_level: Optional[str], emulator_name: Optional[st
         package = f"system-images;android-{api_level};{AVD_TAG};{AVD_ABI}"
         if should_update:
             print("Updating emlators with sdkmanager", flush=True)
-            # TODO: pipe in "Yes"
-            _run([_get_sdk_manager(), "--verbose", "emulator"], True, "yes\n")
+            _run([_get_sdk_manager(), "--verbose", "emulator"], True, ("yes\n" * 100))
 
         print("Updating system-image packages", flush=True)
         _run([_get_sdk_manager(), "--verbose", package], True)
 
         print("Creating device", flush=True)
-        _run([_get_avd_manager(), "create", "avd", "-n", emulator_name, "--package", package], True, ("no\n") * 100)
+        _run([_get_avd_manager(), "create", "avd", "-n", emulator_name, "--package", package], True, ("no\n" * 100))
 
     devices = _get_running_devices()
     if bool(devices):
