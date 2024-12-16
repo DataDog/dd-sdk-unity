@@ -44,7 +44,7 @@ def _run(args: list[str], write_std_out: bool = False, std_in: Optional[str] = N
     output = io.StringIO()
     for line in process.stdout:
         if write_std_out:
-            print(line)
+            print(line, flush=True)
         output.write(line)
 
     process.communicate(input=std_in)
@@ -117,6 +117,7 @@ def launch_android_emulator(api_level: Optional[str], emulator_name: Optional[st
         print('Error in script -- must specify either Android API level or an emulator name')
         return False
 
+    print(f"Checking if emulator exists for api_level {api_level}...")
     need_emulator_create = True
     if emulator_name is not None:
         if _emulator_exists(emulator_name):
@@ -128,15 +129,15 @@ def launch_android_emulator(api_level: Optional[str], emulator_name: Optional[st
     if need_emulator_create:
         package = f"system-images;android-{api_level};{AVD_TAG};{AVD_ABI}"
         if should_update:
-            print("Updating emlators with sdkmanager")
+            print("Updating emlators with sdkmanager", flush=True)
             # TODO: pipe in "Yes"
-            _run([_get_sdk_manager(), "--verbose", "emulator"], True)
+            _run([_get_sdk_manager(), "--verbose", "emulator"], True, "yes\n")
 
-        print("Updating system-image packages")
+        print("Updating system-image packages", flush=True)
         _run([_get_sdk_manager(), "--verbose", package], True)
 
-        print("Creating device")
-        _run([_get_avd_manager(), "create", "avd", "-n", emulator_name, "--package", package], True, "no\n")
+        print("Creating device", flush=True)
+        _run([_get_avd_manager(), "create", "avd", "-n", emulator_name, "--package", package], True, ("no\n") * 100)
 
     devices = _get_running_devices()
     if bool(devices):

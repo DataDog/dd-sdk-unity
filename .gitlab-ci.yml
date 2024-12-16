@@ -63,6 +63,8 @@ integration-test-android:
     expire_in: "30 days"
     reports:
       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/*_results.xml
+    paths:
+      - $CI_PROJECT_DIR/tools/scripts/unity_log.log
 
 integration-test-ios:
   stage: integration-test
@@ -86,3 +88,4 @@ integration-test-ios:
       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/*_results.xml
     paths:
       - $HOME/Library/Logs/CoreSimulator/$IOS_SIMULATOR_UUID/system.log
+      - $CI_PROJECT_DIR/tools/scripts/unity_log.log

@@ -8,3 +8,5 @@ Build/
 samples/Datadog Sample/Assets/Resources/DatadogSettings.asset
 .vscode/settings.json
 *.keystore
+tools/scripts/unity_log.log
+tools/scripts/.ios_simulator_uuid
