@@ -95,37 +95,40 @@ def transform_nunit_to_junit(nunit_file: str, junit_file: str):
 
 async def run_unity_command(license_retry_attempts: int, license_retry_timeout_seconds: float, *args):
     current_run_attempt = 0
+    print(f"Running Unity Command {args}")
     while True:
-        should_retry = False
-        did_see_license_error = False
-        # Modify environment variables to ensure cocoapods works
-        env = os.environ.copy()
-        env['GEM_HOME'] = f"{env['HOME']}/.gem"
-        env['PATH'] = f"{env['HOME']}/.gem/ruby/2.6.0/bin:{env['PATH']}"
-        cmd = " ".join([get_unity_path(), *args])
-        print(f'Running: {cmd}')
-        process = await asyncio.create_subprocess_shell (cmd,
-                                   env=env,
-                                   stdout=asyncio.subprocess.PIPE,
-                                   stderr=asyncio.subprocess.PIPE,
-                                   )
+        return_code = 0
+        async with aiofiles.open('unity_log.log', mode='w') as f:
+            should_retry = False
+            did_see_license_error = False
+            # Modify environment variables to ensure cocoapods works
+            env = os.environ.copy()
+            env['GEM_HOME'] = f"{env['HOME']}/.gem"
+            env['PATH'] = f"{env['HOME']}/.gem/ruby/2.6.0/bin:{env['PATH']}"
+            cmd = " ".join([get_unity_path(), *args])
+            print(f'Running: {cmd}')
+            process = await asyncio.create_subprocess_shell (cmd,
+                                    env=env,
+                                    stdout=asyncio.subprocess.PIPE
+                                    )
 
-        async def process_stdout(line):
-            nonlocal did_see_license_error
-            if UNITY_LICENSE_ERROR in line:
-                did_see_license_error = True
-            try:
-                await aiofiles.stdout.write("[unity] ")
-                await aiofiles.stdout.write(line)
-            except BlockingIOError:
-                pass
+            async def process_stdout(line):
+                nonlocal did_see_license_error
+                if UNITY_LICENSE_ERROR in line:
+                    did_see_license_error = True
+                try:
+                    # await aiofiles.stdout.write("[unity] ")
+                    # await aiofiles.stdout.write(line)
+                    await f.write(line)
+                except BlockingIOError:
+                    pass
 
 
-        await asyncio.wait([
-            _read_stream(process.stdout, process_stdout)
-        ])
+            await asyncio.wait([
+                _read_stream(process.stdout, process_stdout)
+            ])
 
-        return_code = await process.wait()
+            return_code = await process.wait()
 
         if return_code != 0 and did_see_license_error:
             if current_run_attempt < license_retry_attempts:

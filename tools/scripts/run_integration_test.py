@@ -96,7 +96,7 @@ async def main():
     license_retry_count = args.retry
     license_retry_wait = args.retry_wait
 
-    await run_unity_command(license_retry_count, license_retry_wait,
+    return_code = await run_unity_command(license_retry_count, license_retry_wait,
         "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
         "-buildTarget", args.platform,
         "-testCategory", "integration", "-testPlatform", args.platform,
@@ -106,7 +106,7 @@ async def main():
     mock_server.terminate()
     t.join()
 
-    pass
+    return return_code
 
 if __name__ == "__main__":
     try:
