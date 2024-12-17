@@ -14,7 +14,7 @@ import threading
 
 import ios_helpers
 import android_helpers
-from unity_helpers import run_unity_command
+from unity_helpers import run_unity_command, transform_nunit_to_junit
 
 integration_project_path = "../../samples/Datadog Sample"
 
@@ -64,10 +64,13 @@ async def main():
         print('--platform is required')
         return
 
+    if args.platform == 'ios':
+        print("Switching iOS to simulator target")
+        project_settings_path = os.path.join(integration_project_path, 'ProjectSettings', 'ProjectSettings.asset')
+        ios_helpers.switch_to_simulator_target(project_settings_path)
+
     if args.launch_simulator:
         if args.platform == 'ios':
-            project_settings_path = os.path.join(integration_project_path, 'ProjectSettings', 'ProjectSettings.asset')
-            ios_helpers.switch_to_simulator_target(project_settings_path)
             ios_helpers.launch_ios_simulator('iOS-17-4', 'iPhone 15')
         elif args.platform == 'android':
             android_helpers.launch_android_emulator("33", None)
@@ -102,6 +105,8 @@ async def main():
         "-testCategory", "integration", "-testPlatform", args.platform,
         "-testResults", f"tmp/{args.platform}_results.xml", "-logFile", "-",
     )
+
+    transform_nunit_to_junit(f"../../samples/Datadog Sample/tmp/{args.platform}_results.xml", "../../samples/Datadog Sample/tmp/{args.platform}-junit-results.xml")
 
     mock_server.terminate()
     t.join()
