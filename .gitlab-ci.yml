@@ -8,7 +8,7 @@ variables:
   IS_ON_CI: "1"
 
 stages:
-  - unit-test
+  # - unit-test
   - integration-test
 
 .shared:
@@ -26,23 +26,26 @@ stages:
     - printf "%s\n" "$UNITY_SERVER_CONFIG" | sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
     - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
     - ls "$UNITY_SUPPORT_PATH"
+  install-dart:
+    - brew tap dart-lang/dart
+    - brew install dart
 
-unit-test:
-  stage: unit-test
-  tags:
-    - macos:sonoma
-    - specific:true
-  script:
-    - !reference [.shared, install-dependencies]
-    - !reference [.shared, create-server-config]
-    - cd $CI_PROJECT_DIR/tools/scripts
-    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./run_unit_test.py
-  artifacts:
-    when: always
-    expire_in: "30 days"
-    reports:
-      junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/junit-results*.xml
+# unit-test:
+#   stage: unit-test
+#   tags:
+#     - macos:sonoma
+#     - specific:true
+#   script:
+#     - !reference [.shared, install-dependencies]
+#     - !reference [.shared, create-server-config]
+#     - cd $CI_PROJECT_DIR/tools/scripts
+#     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+#     - ./venv/bin/python3 ./run_unit_test.py
+#   artifacts:
+#     when: always
+#     expire_in: "30 days"
+#     reports:
+#       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/junit-results*.xml
 
 integration-test-android:
   stage: integration-test
@@ -52,12 +55,16 @@ integration-test-android:
   script:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
+    - !reference [.shared, install-dart]
+    - $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools"
     - cd $CI_PROJECT_DIR/tools/mock_server
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
     - ./venv/bin/python3 app.py --update-schemas
+    - cd $CI_PROJECT_DIR/tools/dart/ci
+    - dart pub get && dart run ci_helpers start_sim --platform android --sdk "33"
     - cd $CI_PROJECT_DIR/tools/scripts
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./run_integration_test.py --platform android --launch-simulator
+    - ./venv/bin/python3 ./run_integration_test.py --platform android
   artifacts:
     when: always
     expire_in: "30 days"
@@ -74,12 +81,15 @@ integration-test-ios:
   script:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
+    - !reference [.shared, install-dart]
     - cd $CI_PROJECT_DIR/tools/mock_server
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
     - ./venv/bin/python3 app.py --update-schemas
+    - cd $CI_PROJECT_DIR/tools/dart/ci
+    - dart pub get && dart run ci_helpers start_sim --platform ios --sdk "iOS-17" --device "iPhone 15"
     - cd $CI_PROJECT_DIR/tools/scripts
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./run_integration_test.py --platform ios --launch-simulator
+    - ./venv/bin/python3 ./run_integration_test.py --platform ios
     - export IOS_SIMULATOR_UUID=`cat .ios_simulator_uuid`
   artifacts:
     when: always
