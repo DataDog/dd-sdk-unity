@@ -81,7 +81,7 @@ async def main():
     # Find the IP address we started on
     local_server_address = None
     for line in iter(mock_server.stdout.readline, ''):
-        print(f'[mock_server] {line}', end='')
+        print(f'[mock_server] {line}', end='', flush=True)
         if line.strip().startswith("* Running on"):
             local_server_address = line.strip().split(' ')[3]
             break
