@@ -41,12 +41,13 @@ def modify_datadog_settings(local_server_address):
     for i, line in enumerate(data):
         if line.startswith("  CustomEndpoint:"):
             data[i] = f"  CustomEndpoint: {local_server_address}\n"
-        if line == ("  ClientToken:"):
+        if line == "  ClientToken:\n":
             # if there's not client token, add one
-            data[i] = f"  ClientToken: faketoken"
-        if line == ("  RumApplicationId:"):
+            data[i] = f"  ClientToken: faketoken\n"
+        if line == "  RumApplicationId:\n":
+            print("Found Applicaiton Id")
             # if there's not an application id, add one
-            data[i] = f"  RumApplicationId: fake-application-id"
+            data[i] = f"  RumApplicationId: fake-application-id\n"
 
     with open(os.path.join(settings_file_dir, settings_file_name), 'w') as settings_file:
         settings_file.writelines(data)
