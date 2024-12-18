@@ -53,6 +53,7 @@ def _switch_sdk_target(settings_path: str, target: int):
 def _write_simulator_uuid(uuid: str):
     with open('.ios_simulator_uuid', mode="w", encoding="utf-8") as f:
         f.write(uuid)
+        f.close()
 
 def switch_to_simulator_target(settings_path: str):
     _switch_sdk_target(settings_path, IOS_SIMULATOR_SDK)
@@ -95,10 +96,11 @@ def launch_ios_simulator(sdk: str, device_name: Optional[str]) -> bool:
         _write_simulator_uuid(device.uuid)
         return True
 
-    print(f'Launching {device.name}...', flush=True)
+    print(f'Launching {device.name}... uuid={device.uuid}', flush=True)
+    _write_simulator_uuid(device.uuid)
     #subprocess.call(['xcrun', 'simctl', 'boot', device.uuid])
     output = _xcrun('simctl', 'boot', device.uuid)
     print(output, flush=True)
-    _write_simulator_uuid(device.uuid)
+
 
     return True

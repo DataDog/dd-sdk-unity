@@ -86,6 +86,7 @@ integration-test-ios:
     - !reference [.shared, create-server-config]
     - !reference [.shared, install-dart]
     - xcrun simctl shutdown all
+    - killall Xcode || true
     - cd $CI_PROJECT_DIR/tools/mock_server
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
     - ./venv/bin/python3 app.py --update-schemas
@@ -93,8 +94,15 @@ integration-test-ios:
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
     - ./venv/bin/python3 ./run_integration_test.py --platform ios --launch-simulator
   after_script:
+    - mkdir .artifacts
     - export LAST_XCODE_BUILD_DIR=`ls -Art $HOME/Library/Developer/Xcode/DerivedData | tail -n 1`
-    - export IOS_SIMULATOR_UUID=`cat .ios_simulator_uuid`
+    - export IOS_SIMULATOR_UUID=`cat $CI_PROJECT_DIR/tools/scripts/.ios_simulator_uuid`
+    - ls -la $HOME/Library/Developer/Xcode/DerivedData/
+    - ls -la $HOME/Library/Developer/Xcode/DerivedData/$LAST_XCODE_BUILD_DIR
+    - ls -la $HOME/Library/Developer/Xcode/DerivedData/$LAST_XCODE_BUILD_DIR/Logs
+    - ls -la $HOME/Library/Developer/Xcode/DerivedData/$LAST_XCODE_BUILD_DIR/Logs/Build
+    - cp $HOME/Library/Developer/Xcode/DerivedData/$LAST_XCODE_BUILD_DIR/Logs/Build/*.xcactivitylog .artifacts || true
+    - cp $HOME/Library/Logs/CoreSimulator/$IOS_SIMULATOR_UUID/system.log .artifacts || true
     - git --no-pager diff
   artifacts:
     when: always
@@ -102,6 +110,5 @@ integration-test-ios:
     reports:
       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/*-junit-results.xml
     paths:
-      - $HOME/Library/Developer/Xcode/DerivedData/$LAST_XCODE_BUILD_DIR/Logs/Build/*.xcactivitylog
-      - $HOME/Library/Logs/CoreSimulator/$IOS_SIMULATOR_UUID/system.log
+      - $CI_PROJECT_DIR/.artifacts/*
       - $CI_PROJECT_DIR/tools/scripts/unity_log.log
