@@ -107,10 +107,10 @@ async def main():
         "-testResults", f"tmp/{args.platform}_results.xml", "-logFile", "-",
     )
 
-    transform_nunit_to_junit(f"../../samples/Datadog Sample/tmp/{args.platform}_results.xml", "../../samples/Datadog Sample/tmp/{args.platform}-junit-results.xml")
-
     mock_server.terminate()
     t.join()
+
+    transform_nunit_to_junit(f"../../samples/Datadog Sample/tmp/{args.platform}_results.xml", f"../../samples/Datadog Sample/tmp/{args.platform}-junit-results.xml")
 
     return return_code
 

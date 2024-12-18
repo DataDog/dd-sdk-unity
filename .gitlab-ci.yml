@@ -27,6 +27,7 @@ stages:
     - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
     - ls "$UNITY_SUPPORT_PATH"
   install-dart:
+    - lsbom -f /Library/Apple/System/Library/Receipts/com.apple.pkg.RosettaUpdateAuto.bom
     - brew tap dart-lang/dart
     - brew install dart
 
@@ -88,12 +89,11 @@ integration-test-ios:
     - cd $CI_PROJECT_DIR/tools/mock_server
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
     - ./venv/bin/python3 app.py --update-schemas
-    - cd $CI_PROJECT_DIR/tools/dart/ci
-    - dart pub get && dart run ci_helpers start_sim --platform ios --sdk "iOS-17-4" --device "iPhone 15 Pro"
     - cd $CI_PROJECT_DIR/tools/scripts
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./run_integration_test.py --platform ios
+    - ./venv/bin/python3 ./run_integration_test.py --platform ios --launch-simulator
   after_script:
+    - export LAST_XCODE_BUILD_DIR=`ls -Art $HOME/Library/Developer/Xcode/DerivedData | tail -n 1`
     - export IOS_SIMULATOR_UUID=`cat .ios_simulator_uuid`
     - git --no-pager diff
   artifacts:
@@ -102,5 +102,6 @@ integration-test-ios:
     reports:
       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/*-junit-results.xml
     paths:
+      - $HOME/Library/Developer/Xcode/DerivedData/$LAST_XCODE_BUILD_DIR/Logs/Build/*.xcactivitylog
       - $HOME/Library/Logs/CoreSimulator/$IOS_SIMULATOR_UUID/system.log
       - $CI_PROJECT_DIR/tools/scripts/unity_log.log

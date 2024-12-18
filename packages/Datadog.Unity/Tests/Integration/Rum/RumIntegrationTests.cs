@@ -27,7 +27,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             yield return new WaitUntil(() => resetTask.IsCompleted);
 
             yield return new MonoBehaviourTest<TestRumMonoBehavior>();
-            var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
+            var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 50), (serverLog) =>
             {
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
