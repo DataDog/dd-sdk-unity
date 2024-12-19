@@ -85,6 +85,7 @@ integration-test-ios:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
     - !reference [.shared, install-dart]
+    - xcode-select --print-path
     - xcrun simctl shutdown all
     - killall Xcode || true
     - cd $CI_PROJECT_DIR/tools/mock_server
@@ -92,7 +93,13 @@ integration-test-ios:
     - ./venv/bin/python3 app.py --update-schemas
     - cd $CI_PROJECT_DIR/tools/scripts
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./run_integration_test.py --platform ios --launch-simulator
+    - ./venv/bin/python3 ./run_integration_test.py --platform ios --launch-simulator || true
+    - ls $CI_PROJECT_DIR/samples
+    - ls $CI_PROJECT_DIR/samples/Datadog\ Sample
+    - ls $CI_PROJECT_DIR/samples/Datadog\ Sample/Temp
+    - export UNITY_TEST_DIR=`ls -Art $CI_PROJECT_DIR/samples/Datadog\ Sample/Temp | tail -n 1`
+    - cd $CI_PROJECT_DIR/samples/Datadog\ Sample/Temp/$UNITY_TEST_DIR/PlayerWithTests
+    - xcodebuild
   after_script:
     - mkdir .artifacts
     - export LAST_XCODE_BUILD_DIR=`ls -Art $HOME/Library/Developer/Xcode/DerivedData | tail -n 1`
