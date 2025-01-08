@@ -3,22 +3,27 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using Datadog.Demo.Unity.Api;
 using Datadog.Unity;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class DemoManager : MonoBehaviour
 {
     private static DemoManager _instance;
-    public static DemoManager Instance {
+
+    public static DemoManager Instance
+    {
         get
         {
             if (_instance != null) return _instance;
 
-            _instance = (DemoManager) FindObjectOfType(typeof(DemoManager));
+            _instance = (DemoManager)FindObjectOfType(typeof(DemoManager));
             if (_instance == null)
             {
                 _instance = new GameObject("_DatadogManager").AddComponent<DemoManager>();
             }
+
             DontDestroyOnLoad(_instance.gameObject);
 
             return _instance;
@@ -37,12 +42,20 @@ public class DemoManager : MonoBehaviour
         }
     }
 
-    // The number of category taps the demo expects
-    public int DemoCategoryTaps
+    public bool IncludeErrors
     {
         get;
-        private set;
-    }
+        set;
+    } = true;
+
+    public bool IncludeCrashes
+    {
+        get;
+        set;
+    } = false;
+
+    // The number of category taps the demo expects
+    private int DemoCategoryTaps { get; set; }
 
     // Whether the demo is done tapping categories
     public bool DoneTappingCategories
@@ -54,11 +67,7 @@ public class DemoManager : MonoBehaviour
     public int CurrentCategoryTaps = 0;
 
     // The number of product taps the demo expects in each category
-    public int DemoProductTaps
-    {
-        get;
-        private set;
-    }
+    private int DemoProductTaps { get; set; }
 
     // The number of times we've tapped products
     public int CurrentProductTaps = 0;
@@ -74,13 +83,23 @@ public class DemoManager : MonoBehaviour
     public Dictionary<string, List<Product>> CategoryProducts = new Dictionary<string, List<Product>>();
     public Product CurrentProduct;
 
+    public bool IsDemoDone = false;
+    public Cart Cart = new Cart();
+    public ShopistApi Api;
+
     public void Awake()
     {
         if (_instance == null)
         {
             _instance = this;
             DontDestroyOnLoad(this);
+
+            Api = gameObject.AddComponent<ShopistApi>();
+            Api.IncludeRandomness = IncludeRandomness;
+            Api.IncludeErrors = IncludeErrors;
+            Api.IncludeCrashes = IncludeCrashes;
         }
+
         DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
         DatadogSdk.Instance.SetSdkVerbosity(CoreLoggerLevel.Debug);
 
