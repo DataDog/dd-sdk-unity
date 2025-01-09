@@ -152,8 +152,7 @@ public class CategotySceneBehavior : MonoBehaviour
     private void FetchProducts(string categoryId)
     {
         statusText.text = "Fetching products from Shopist API...";
-        var api = new ShopistApi();
-        api.FetchProducts(categoryId, onComplete: products =>
+        DemoManager.Instance.Api.FetchProducts(categoryId, onComplete: products =>
         {
             var demoManager = DemoManager.Instance;
             demoManager.CategoryProducts[categoryId] = products;

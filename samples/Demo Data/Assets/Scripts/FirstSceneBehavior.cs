@@ -36,8 +36,7 @@ public class FirstSceneBehavior : MonoBehaviour
     {
         statusText.text = "Fetching categories from Shopist API...";
 
-        var api = new ShopistApi();
-        api.FetchCategories(onComplete: list =>
+        DemoManager.Instance.Api.FetchCategories(onComplete: list =>
         {
             statusText.text = "Got categories: " + list.Count;
             DemoManager.Instance.CategoryList = list;
@@ -64,6 +63,11 @@ public class FirstSceneBehavior : MonoBehaviour
             var categoryIndex = demoManager.IncludeRandomness ? Random.Range(0, categoryList.Count) : 0;
             var category =  categoryList[categoryIndex];
             TapCategory(category);
+        }
+        else if (!demoManager.Cart.IsEmpty && !demoManager.IsDemoDone)
+        {
+            yield return new WaitForSeconds(2.0f);
+            SceneManager.LoadScene("Scenes/CheckoutScene");
         }
     }
 
