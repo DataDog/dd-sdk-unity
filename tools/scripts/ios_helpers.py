@@ -54,6 +54,18 @@ def switch_to_simulator_target(settings_path: str):
 def switch_to_device_target(settings_path: str):
     _switch_sdk_target(settings_path, IOS_DEVICE_SDK)
 
+def xcodebuild(cwd: str, args: list[str]):
+    print(args)
+    process = subprocess.Popen(' '.join(['xcodebuild', *args, '|', 'xcbeautify']),
+                               cwd=cwd,
+                               start_new_session=True,
+                               universal_newlines=True,
+                               shell=True)
+    process.communicate()
+    print(f'Return code: {process.returncode}')
+    if process.returncode != 0:
+        raise Exception(f'xcrun exited with non-zero exit code: {process.returncode}')
+
 def get_ios_simulators() -> dict[str, list[IosSimulator]]:
     output = _xcrun('simctl', 'list', '--json', 'devices', 'available')
     output_json = json.loads(output)

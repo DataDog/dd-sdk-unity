@@ -335,7 +335,7 @@ namespace Datadog.Unity.Rum
         {
             return new DatadogTrackedWebRequest(UnityWebRequest.Post(uri, form, boundary));
         }
-#elif UNITY_2022_OR_NEWER
+#elif UNITY_2022_1_OR_NEWER
         public static DatadogTrackedWebRequest Post(string url, string postData, string contentType)
         {
             return new DatadogTrackedWebRequest(UnityWebRequest.Post(url, postData, contentType));
