@@ -61,3 +61,22 @@ package-ios:
     expire_in: "30 days"
     paths:
       - samples/Demo Data/Build/iOS/export/*
+
+package-android:
+  stage: package
+  tags:
+    - macos:sonoma
+    - specific:true
+  script:
+    - !reference [.shared, install-dependencies]
+    - !reference [.shared, create-server-config]
+    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
+    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
+    - cd $CI_PROJECT_DIR/tools/scripts
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - ./venv/bin/python3 ./package_demo.py --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+  artifacts:
+    when: on_success
+    expire_in: "30 days"
+    paths:
+      - samples/Demo Data/Build/Android/datadog-demo.apk

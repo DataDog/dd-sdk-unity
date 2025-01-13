@@ -68,7 +68,11 @@ async def main():
         xcodebuild(build_path, ['-exportArchive', '-archivePath', './Unity-iPhone.xcarchive', '-exportPath', './export',
                     '-exportOptionsPlist', '../../exportOptions.plist'])
     elif args.platform == 'android':
-        pass
+        await run_unity_command(license_retry_count, license_retry_wait,
+            "-projectPath", f'"{demo_project_path}"', "-batchMode",
+            "-executeMethod", "BuildCommands.BuildAndroid",
+            "-quit", "-logFile", "-",
+        )
 
 if __name__ == "__main__":
     task = main()

@@ -17,10 +17,11 @@ public class BuildCommands
             "Assets/Scenes/ProductScene.unity"
         };
 
+    [MenuItem("Build/Build Android")]
     public static void BuildAndroid()
     {
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-        buildPlayerOptions.locationPathName = "Builds/Android.apk";
+        buildPlayerOptions.locationPathName = "Build/Android/datadog-demo.apk";
         buildPlayerOptions.scenes = Scenes;
         buildPlayerOptions.target = BuildTarget.Android;
         buildPlayerOptions.options = BuildOptions.None;
