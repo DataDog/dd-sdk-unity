@@ -55,8 +55,7 @@ def switch_to_device_target(settings_path: str):
     _switch_sdk_target(settings_path, IOS_DEVICE_SDK)
 
 def xcodebuild(cwd: str, args: list[str]):
-    print(args)
-    process = subprocess.Popen(' '.join(['xcodebuild', *args, '|', 'xcbeautify']),
+    process = subprocess.Popen(' '.join(['set -eo pipefail;', 'xcodebuild', *args, '|', 'xcbeautify']),
                                cwd=cwd,
                                start_new_session=True,
                                universal_newlines=True,

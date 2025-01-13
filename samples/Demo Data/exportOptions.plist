@@ -9,7 +9,7 @@
 		<key>provisioningProfiles</key>
 		<dict>
 			<key>com.datadoghq.unity.demo</key>
-			<string>Datadog Unity Demo</string>
+			<string>Unity Demo App</string>
 		</dict>
 		<key>signingCertificate</key>
 		<string>Apple Development: Jeff Ward (TL2P8NFDM4)</string>
