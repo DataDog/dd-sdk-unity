@@ -3,26 +3,29 @@ include:
 
 variables:
   # TODO: Detect unity location in script.
-  UNITY_VERSION: "2022.3.54f1"
+  UNITY_VERSION: "2022.3.55f1"
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
-
 
 stages:
   - unit-test
+  - package
 
 .shared:
   install-dependencies:
     - echo 'Installing Unity Hub...'
     - brew install --cask unity-hub
+    - brew install xcbeautify
     - echo 'Installing Unity Editor and Modules...'
     # This can fail if Unity is already installed, so || true
-    - /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install --version "$UNITY_VERSION" --module ios android --architecture arm64 --childModules || true
+    - /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install --version $UNITY_VERSION --module ios android --architecture arm64 --childModules || true
   create-server-config:
     - vault login -method=aws -no-print
     - export UNITY_SERVER_CONFIG=$(vault kv get -field=config kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/server-config)
-    - mkdir -p "$UNITY_SUPPORT_PATH"
-    - printf "%s\n" "$UNITY_SERVER_CONFIG" > sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
+    - echo $UNITY_SERVER_CONFIG
+    - sudo mkdir -p "$UNITY_SUPPORT_PATH"
+    - printf "%s\n" "$UNITY_SERVER_CONFIG" | sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
     - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
+    - ls -la "$UNITY_SUPPORT_PATH"
 
 unit-test:
   stage: unit-test
@@ -40,3 +43,42 @@ unit-test:
     expire_in: "30 days"
     reports:
       junit: $CI_PROJECT_DIR/samples/Datadog Sample/tmp/junit-results*.xml
+
+package-ios:
+  stage: package
+  tags:
+    - macos:sonoma
+    - specific:true
+  script:
+    - !reference [.shared, install-dependencies]
+    - !reference [.shared, create-server-config]
+    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
+    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
+    - cd $CI_PROJECT_DIR/tools/scripts
+    - ./setup_demo_signing.sh
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - ./venv/bin/python3 ./package_demo.py --platform ios --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+  artifacts:
+    when: on_success
+    expire_in: "30 days"
+    paths:
+      - samples/Demo Data/Build/iOS/export/*
+
+package-android:
+  stage: package
+  tags:
+    - macos:sonoma
+    - specific:true
+  script:
+    - !reference [.shared, install-dependencies]
+    - !reference [.shared, create-server-config]
+    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
+    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
+    - cd $CI_PROJECT_DIR/tools/scripts
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - ./venv/bin/python3 ./package_demo.py --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+  artifacts:
+    when: on_success
+    expire_in: "30 days"
+    paths:
+      - samples/Demo Data/Build/Android/datadog-demo.apk
