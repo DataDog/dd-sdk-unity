@@ -27,8 +27,13 @@ def _update_android_version(version: str):
             print(f"Updating {items[1]} to {version}")
             item.attrib["spec"] = str.join(":", items)
 
-    tree.write(UNITY_DEPENDENCIES_FILE)
+    repository_element = root.find("./androidPackages/repositories")
+    if repository_element is not None:
+        for repo in repository_element.findall("./repository"):
+            if repo.text is not None  and "snapshots" in repo.text:
+                repository_element.remove(repo)
 
+    tree.write(UNITY_DEPENDENCIES_FILE)
 
 def _update_ios_version(version: str):
     tree = et.parse(UNITY_DEPENDENCIES_FILE)

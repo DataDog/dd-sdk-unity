@@ -3,6 +3,7 @@
 ## Unreleased
 
 * BREAKING: Send automatically captured errors to RUM instead of Logs.
+* Removed snapshot repository in released Android dependencies file.
 
 ## 1.3.0
 
