@@ -4,6 +4,7 @@
 
 * BREAKING: Send automatically captured errors to RUM instead of Logs.
 * Removed snapshot repository in released Android dependencies file.
+* Add `null` checking and warning logs in worker proxies to surface potential issues closer to the call site.
 
 ## 1.3.0
 
