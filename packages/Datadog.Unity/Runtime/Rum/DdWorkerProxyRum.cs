@@ -21,6 +21,12 @@ namespace Datadog.Unity.Rum
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {
+            if (key == null)
+            {
+                LogNullWarning("StartView", "key");
+                return;
+            }
+
             InternalHelpers.Wrap("StartView",
                 () =>
                 {
@@ -30,12 +36,24 @@ namespace Datadog.Unity.Rum
 
         public void StopView(string key, Dictionary<string, object> attributes = null)
         {
+            if (key == null)
+            {
+                LogNullWarning("StopView", "key");
+                return;
+            }
+
             InternalHelpers.Wrap("StopView",
                 () => { _worker.AddMessage(DdRumProcessor.StopViewMessage.Create(_dateProvider.Now, key, attributes)); });
         }
 
         public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
+            if (name == null)
+            {
+                LogNullWarning("AddAction", "name");
+                return;
+            }
+
             InternalHelpers.Wrap("AddAction",
                 () =>
                 {
@@ -46,6 +64,12 @@ namespace Datadog.Unity.Rum
 
         public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
+            if (name == null)
+            {
+                LogNullWarning("StartAction", "name");
+                return;
+            }
+
             InternalHelpers.Wrap("StartAction",
                 () =>
                 {
@@ -56,6 +80,12 @@ namespace Datadog.Unity.Rum
 
         public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
+            if (name == null)
+            {
+                LogNullWarning("StopAction", "name");
+                return;
+            }
+
             InternalHelpers.Wrap("StopAction",
                 () =>
                 {
@@ -66,6 +96,12 @@ namespace Datadog.Unity.Rum
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
+            if (error == null)
+            {
+                LogNullWarning("AddError", "error");
+                return;
+            }
+
             InternalHelpers.Wrap("StopView",
                 () =>
                 {
@@ -77,6 +113,18 @@ namespace Datadog.Unity.Rum
         public void StartResource(string key, RumHttpMethod httpMethod, string url,
             Dictionary<string, object> attributes = null)
         {
+            if (key == null)
+            {
+                LogNullWarning("StartResource", "key");
+                return;
+            }
+
+            if (url == null)
+            {
+                LogNullWarning("StartResource", "url");
+                return;
+            }
+
             InternalHelpers.Wrap("StartResource",
                 () =>
                 {
@@ -89,6 +137,12 @@ namespace Datadog.Unity.Rum
         public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
+            if (key == null)
+            {
+                LogNullWarning("StopResource", "key");
+                return;
+            }
+
             InternalHelpers.Wrap("StopResource",
                 () =>
                 {
@@ -101,6 +155,16 @@ namespace Datadog.Unity.Rum
         public void StopResourceWithError(string key, string errorType, string errorMessage,
             Dictionary<string, object> attributes = null)
         {
+            if (key == null)
+            {
+                LogNullWarning("StopResourceWithError", "key");
+                return;
+            }
+
+            // Default error message and type
+            errorType ??= "(unknown error type)";
+            errorMessage ??= "(no error message)";
+
             InternalHelpers.Wrap("StopResourceWithError",
                 () =>
                 {
@@ -124,18 +188,36 @@ namespace Datadog.Unity.Rum
 
         public void AddAttribute(string key, object value)
         {
+            if (key == null)
+            {
+                LogNullWarning("AddAttribute", "key");
+                return;
+            }
+
             InternalHelpers.Wrap("AddAttribute",
                 () => { _worker.AddMessage(DdRumProcessor.AddAttributeMessage.Create(key, value)); });
         }
 
         public void RemoveAttribute(string key)
         {
+            if (key == null)
+            {
+                LogNullWarning("RemoveAttribute", "key");
+                return;
+            }
+
             InternalHelpers.Wrap("RemoveAttribute",
                 () => { _worker.AddMessage(DdRumProcessor.RemoveAttributeMessage.Create(key)); });
         }
 
         public void AddFeatureFlagEvaluation(string key, object value)
         {
+            if (key == null)
+            {
+                LogNullWarning("AddFeatureFlagEvaluation", "key");
+                return;
+            }
+
             InternalHelpers.Wrap("AddFeatureFlagEvaluation",
                 () => { _worker.AddMessage(DdRumProcessor.AddFeatureFlagEvaluationMessage.Create(key, value)); });
         }
@@ -144,6 +226,11 @@ namespace Datadog.Unity.Rum
         {
             InternalHelpers.Wrap("StopSession",
                 () => { _worker.AddMessage(new DdRumProcessor.StopSessionMessage()); });
+        }
+
+        private void LogNullWarning(string methodName, string parameter)
+        {
+            UnityEngine.Debug.LogWarning($"[Datadog] {methodName} called with null parameter: {parameter}.");
         }
     }
 }
