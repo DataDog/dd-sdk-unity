@@ -17,21 +17,29 @@ from typing import Optional
 UNITY_LICENSE_ERROR = "No valid Unity Editor license found. Please activate your license."
 LICENSE_STATE_RE = re.compile(r'License lease state: "\w+" with token: "(?P<token>.+)"')
 
+DEFAULT_UNITY_VERSION = "2022.3.55f1"
+
 def start_android_emulator():
     pass
+
+def get_unity_home():
+    unity_version = DEFAULT_UNITY_VERSION
+    if "UNITY_VERSION" in os.environ:
+        unity_version = os.environ["UNITY_VERSION"]
+    unity_home = f"/Applications/Unity/Hub/Editor/{unity_version}/Unity.app/Contents"
+    if "UNITY_HOME" in os.environ:
+        unity_home = os.environ["UNITY_HOME"]
+    return unity_home
 
 def get_unity_path(version: str = "2022.3.42f1"):
     if "UNITY_PATH" in os.environ and os.environ['UNITY_PATH'] is not None:
         return os.environ['UNITY_PATH']
     # REVISIT: Only get the Mac version for now
-    return f"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity"
+    return f"{get_unity_home()}/MacOS/Unity"
 
 def get_license_server_path():
     # REVISIT: Only get the Mac version for now
-    unity_home = "/Applications/Unity/Hub/Editor/2022.3.42f1/Unity.app/Contents"
-    if "UNITY_HOME" in os.environ:
-        unity_home = os.environ["UNITY_HOME"]
-    return f"{unity_home}/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client"
+    return f"{get_unity_home()}/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client"
 
 async def _read_stream(stream, callback):
     while True:
