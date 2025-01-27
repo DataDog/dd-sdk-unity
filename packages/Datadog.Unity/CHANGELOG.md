@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Conditionally compile portions of `TrackedWebRequest` for Unity 2021.x.
+
 ## 1.3.0
 
 * Added an option for detecting non-fatal ANRs on Android.
