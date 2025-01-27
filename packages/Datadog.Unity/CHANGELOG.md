@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* Conditionally compile portions of TrackedWebRequest for Unity 2021.x.
+* Conditionally compile portions of `TrackedWebRequest` for Unity 2021.x.
 
 ## 1.3.0
 
