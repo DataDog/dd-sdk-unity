@@ -3,7 +3,7 @@ include:
 
 variables:
   # TODO: Detect unity location in script.
-  UNITY_VERSION: "2022.3.54f1"
+  UNITY_VERSION: "2022.3.56f1"
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
 
