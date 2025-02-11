@@ -2,17 +2,17 @@
 
 The Datadog Unity SDK supports Real User Monitoring (RUM), logging, and crash reporting for Android and iOS apps built on Unity.
 
-Datadog does not support Desktop (Windows, Mac, or Linux), console, or web deployments from Unity. If you have a game or application and want to use Datadog RUM to monitor its performance, create a ticket with Datadog support.
+Datadog does not support desktop (Windows, Mac, or Linux), console, or web deployments from Unity. If you have a game or application and want to use Datadog RUM to monitor its performance, create a ticket with Datadog support.
 
 ## Setup
 
 ### Unity Setup
 
-To get started using the Datadog Unity SDK
+To get started using the Datadog Unity SDK:
 
-1. [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). Datadog utilizes EDM4U to manage dependencies on Android and iOS.
-2. Configure your project to use Gradle templates, and enable both Custom Main Template and Custom Gradle Properties Template.
-3. If you build and receive Duplicate class errors (common in Unity 2022.x), add the following block in the dependencies block in your mainTemplate.gradle:
+1. Install the [External Dependency Manager for Unity (EDM4U)](https://github.com/googlesamples/unity-jar-resolver). Datadog uses EDM4U to manage dependencies on Android and iOS.
+2. Configure your project to use Gradle templates, and enable both the Custom Main Template and Custom Gradle Properties Template.
+3. If you build and receive any duplicate class errors (common in Unity 2022.x), add the following block in the dependencies block of your `mainTemplate.gradle` file:
 
 ```groovy
 constraints {
@@ -38,7 +38,8 @@ After installing the Datadog Unity SDK, you need to set Datadog’s settings in 
 
 <img src="images/datadog-setup-ui.avif">
 
-The *Client Token* is required for any data to be sent to Datadog. The *RUM Application Id* is required to use any RUM features.
+- The *Client Token* is required for any data to be sent to Datadog.
+- The *RUM Application Id* is required to use any RUM features.
 
 ### Setting Tracking Consent
 
