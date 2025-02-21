@@ -1,0 +1,39 @@
+Datadog Unity SDK
+Copyright 2024-Present Datadog, Inc.
+
+This product includes software developed as part of:
+The Android Open Source Project (http://source.android.com).
+
+This product includes software developed as part of:
+Kotlin Language, Copyright 2010-2024 JetBrains s.r.o and respective authors and developers.
+
+This product includes software developed as part of:
+ External Dependency Manager for Unity, Copyright (C) 2014 Google Inc
+
+This product includes software developed as part of:
+ com.squareup.okhttp3, Copyright 2019 Square, Inc
+
+This product includes software developed as part of:
+ com.lyft.kronos, Copyright (C) 2018 Lyft Inc.
+
+This product includes software developed as part of:
+ com.squareup.okio, Copyright 2013 Square, Inc
+
+This product includes software developed as part of:
+ com.google.code.gson, Copyright 2008 Google Inc
+
+This product includes software developed as part of:
+ com.google.guava, Copyright 2009 The Guava Authors
+
+This product includes software developed as part of:
+ com.Lyft.Kronos, Copyright (C) 2016 Lyft Inc. and MobileNativeFoundation
+
+This product includes software developed as part of:
+ PLCrashReporter, Copyright Microsoft Corporation
+
+This product includes software developed as part of:
+ https://github.com/mattgallagher/CwlUtils, Copyright (c) Matt Gallagher
+
+This product includes software developed as part of:
+ AnyCodable, Copyright 2018 Read Evaluate Press LLC
+
