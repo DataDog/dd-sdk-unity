@@ -9,3 +9,41 @@ test,NSubstitute,BSD 3-Clause,Copyright (c) 2009 Anthony Egerton and David Tchep
 build,NSubstitute.Analyzers.CSharp,MIT,Copyright (c) 2018 Tomasz Podolak
 build,StyleCop.Analyzsers,MIT,"Copyright (c) Tunnel Vision Laboratories, LLC"
 test,nunit3-xunit,MIT,Copyright (c) 2016 Paul Hicks
+import,com.squareup.okhttp3,Apache-2.0,"Copyright 2019 Square, Inc"
+import,androidx.metrics,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.fragment,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.navigation,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.recyclerview,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.slidingpanelayout,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.work,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.activity,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.savedstate,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.lifecycle,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.loader,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.viewpager,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.customview,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.window,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.transition,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.core,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.collection,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.versionedparcelable,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.collection,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.room,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.sqlite,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.profileinstaller,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.arch.core,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.concurrent,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.startup,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.tracing,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,androidx.annotation,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,com.lyft.kronos,Apache-2.0,Copyright (C) 2018 Lyft Inc.
+import,com.squareup.okio,Apache-2.0,"Copyright 2013 Square, Inc"
+import,org.jetbrains.kotlin,Apache-2.0,Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors
+import,org.jetbrains.kotlinx,Apache-2.0,Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors
+import,com.google.code.gson,Apache-2.0,Copyright 2008 Google Inc
+import,androidx.multidex,Apache-2.0,Copyright 2018 The Android Open Source Project
+import,com.google.guava,Apache-2.0,Copyright 2009 The Guava Authors
+import,com.Lyft.Kronos,Apache-2.0,Copyright (C) 2016 Lyft Inc. and MobileNativeFoundation
+import,PLCrashReporter,MIT,Copyright Microsoft Corporation
+import,https://github.com/mattgallagher/CwlUtils,ISC,Copyright (c) Matt Gallagher
+import,AnyCodable,MIT,Copyright 2018 Read Evaluate Press LLC
