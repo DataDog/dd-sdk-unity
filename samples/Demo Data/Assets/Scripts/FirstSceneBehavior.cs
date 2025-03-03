@@ -54,6 +54,7 @@ public class FirstSceneBehavior : MonoBehaviour
         if (demoManager.CurrentCategoryTaps == 0)
         {
             yield return FetchCategoryImages();
+            demoManager.RandomlyCrash();
             yield return new WaitForSeconds(3.0f);
         }
 

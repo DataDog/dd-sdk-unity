@@ -2,11 +2,14 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Datadog.Demo.Unity.Api;
 using Datadog.Unity;
 using UnityEngine;
 using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class DemoManager : MonoBehaviour
 {
@@ -97,13 +100,59 @@ public class DemoManager : MonoBehaviour
             Api = gameObject.AddComponent<ShopistApi>();
             Api.IncludeRandomness = IncludeRandomness;
             Api.IncludeErrors = IncludeErrors;
-            Api.IncludeCrashes = IncludeCrashes;
         }
 
         DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
         DatadogSdk.Instance.SetSdkVerbosity(CoreLoggerLevel.Debug);
 
-        DemoCategoryTaps = IncludeRandomness ? Random.Range(1, 5) : 1;
-        DemoProductTaps = IncludeRandomness ? Random.Range(2, 9) : 3;
+        DemoCategoryTaps = IncludeRandomness ? Random.Range(1, 3) : 1;
+        DemoProductTaps = IncludeRandomness ? Random.Range(2, 4) : 3;
+
+        if (IncludeRandomness)
+        {
+            IncludeCrashes = Random.value < 0.2f;
+        }
     }
+
+    public void RandomlyCrash()
+    {
+        if (IncludeCrashes && Random.value < 0.4f)
+        {
+            var crashType = Random.Range(0, 2);
+            switch (crashType)
+            {
+                case 0:
+                    PerformNativeCCrash();
+                    break;
+                case 1:
+                    PerformCppThrow();
+                    break;
+            }
+        }
+    }
+
+    public void RandomlyHang()
+    {
+        if (IncludeRandomness && Random.value < 0.6f)
+        {
+            var hangTime = Random.Range(0.2f, 1.0f);
+            Debug.Log($"Hanging for {hangTime} seconds...");
+            var hangStartTime = DateTime.Now;
+            while (true)
+            {
+                if(hangTime < (DateTime.Now - hangStartTime).TotalSeconds)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    // C / CPP exceptions
+    [DllImport("__Internal", EntryPoint="perform_native_c_crash")]
+    private static extern void PerformNativeCCrash();
+
+    [DllImport("__Internal", EntryPoint="perform_cpp_throw")]
+    private static extern void PerformCppThrow();
+
 }

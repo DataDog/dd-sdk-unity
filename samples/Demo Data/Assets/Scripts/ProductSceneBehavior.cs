@@ -44,7 +44,8 @@ public class ProductSceneBehavior : MonoBehaviour
     private IEnumerator PerformSceneActions()
     {
         // Okay for this to be randomized even when we're using a deterministic e2e build.
-        var waitTime = Random.Range(2.0f, 8.0f);
+        DemoManager.Instance.RandomlyHang();
+        var waitTime = Random.Range(1.0f, 4.0f);
         yield return new WaitForSeconds(waitTime);
         if (product != null && !DemoManager.Instance.Cart.HasProduct(product))
         {
