@@ -21,7 +21,6 @@ public class ShopistApi : MonoBehaviour
 
     public bool IncludeRandomness { get; set; }
     public bool IncludeErrors { get; set; }
-    public bool IncludeCrashes { get; set; }
 
     public void FetchCategories(Action<List<Category>> onComplete, Action<string> onError)
     {
