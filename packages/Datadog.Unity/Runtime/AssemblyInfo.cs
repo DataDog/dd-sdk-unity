@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.android")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.ios")]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.webgl")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.Editor")]
 
 // This is the Moq library
