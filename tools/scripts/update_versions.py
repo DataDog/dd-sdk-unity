@@ -45,6 +45,38 @@ def _update_ios_version(version: str):
 
     tree.write(UNITY_DEPENDENCIES_FILE)
 
+
+def _get_current_android_version():
+    tree = et.parse(UNITY_DEPENDENCIES_FILE)
+    root = tree.getroot()
+    version = None
+
+    for item in root.findall("./androidPackages/androidPackage"):
+        if "spec" in item.attrib and item.attrib['spec'].startswith("com.datadoghq"):
+            spec = item.attrib["spec"]
+            items = spec.split(":")
+            if version == None: 
+                version = items[2]
+            elif version != items[2]:
+                print(f"Warning: Found mismatching Android versions: {version} =/= {items[2]}")
+
+    return version
+
+def _get_current_ios_version():
+    tree = et.parse(UNITY_DEPENDENCIES_FILE)
+    root = tree.getroot()
+    version = None
+
+    for item in root.findall("./iosPods/iosPod"):
+        if "name" in item.attrib and item.attrib['name'].startswith("Datadog"):
+            fileVersion = item.attrib["version"]
+            if version == None: 
+                version = fileVersion
+            elif version != fileVersion:
+                print(f"Warning: Found mismatching iOS versions: {version} =/= {fileVersion}")
+
+    return version
+
 def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--platform", required=True, choices=["android", "ios"])
