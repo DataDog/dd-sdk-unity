@@ -91,6 +91,36 @@ def _update_android_versions(version: str, github_token: str):
 
     uv._update_android_version(version)
 
+def _update_native_sdk_versions(version: str, arg_ios_version:str, arg_android_version: str, native_sdk_versions_path: str):
+    ios_version = arg_ios_version or _get_current_ios_version()
+    android_version = arg_android_version or _get_current_android_version()
+
+    if not ios_version or not android_version:
+        print(f"Error: Some native versions could not be retrieved, aborting creation of {dest_native_sdk_versions}")
+
+    if not os.path.exists(native_sdk_versions_path):
+        lines = [
+        "| Unity SDK | iOS SDK | Android SDK |\n",
+        "|-----------|---------|-------------|\n"
+    ]
+    else:
+        with open(native_sdk_versions_path, "r") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            cols = line.split("|")
+            if (len(cols) > 2 and cols[1].strip() == version):
+                print(f"Entry for version {version} already present in {native_sdk_versions_path}")        
+                return
+    
+    new_row = f"| {version} | {ios_version} | {android_version} |\n"
+    lines.insert(2, new_row)
+    
+    with open(native_sdk_versions_path, "w") as f:
+        f.writelines(lines)
+
+    print(f"Added entry for version {version} to {native_sdk_versions_path}")
+
 def _branch(dest: str, branch_name: str):
     repo = git.Repo(dest)
 
@@ -216,7 +246,13 @@ def main():
     if args.ios_version:
         print(f'Updating iOS to version {args.ios_version} and rebuilding.')
         uv._update_ios_version(args.ios_version)
-    _update_android_versions(args.android_version, github_token)
+    if args.android_version:
+        print(f'Updating Android to version {args.android_version} and rebuilding.')
+        _update_android_versions(args.android_version, github_token)
+
+    print(f"Updating NATIVE_SDK_VERSIONS.md...")
+    dest_native_sdk_versions = os.path.join(REPO_ROOT, 'NATIVE_SDK_VERSIONS.md')
+    _update_native_sdk_versions(version, arg.ios_version, args.android_version, dest_native_sdk_versions)
 
     if not args.no_commit:
         print(f"Tagging source repo with {version}")
