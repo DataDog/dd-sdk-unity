@@ -17,6 +17,8 @@ namespace Datadog.Unity
     {
         void Init(DatadogConfigurationOptions options);
 
+        DatadogWorker CreateWorker();
+
         void SetVerbosity(CoreLoggerLevel logLevel);
 
         void SetTrackingConsent(TrackingConsent trackingConsent);

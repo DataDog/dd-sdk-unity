@@ -4,27 +4,40 @@
 "use strict";
 
 let ddLogsLib = {
-    DDInitLogs: function (jsonConfiguration) {
+    DDLogs_InitLogs: function (jsonConfiguration) {
         let configStr = UTF8ToString(jsonConfiguration);
         let config = JSON.parse(configStr);
         this._activeLoggers = {}
         DD_LOGS.init(config)
     },
 
-    DDCreateLogger: function (loggerId, configuration) {
+    DDLogs_CreateLogger: function (loggerId, configuration) {
         let loggerIdStr = UTF8ToString(loggerId)
         let configStr = UTF8ToString(configuration);
         let jsConfig = JSON.parse(configStr);
 
         let logger = DD_LOGS.createLogger(
-            jsConfig.name ?? 'default',
+            jsConfig.name,
             {}
         );
         logger.setHandler(['http', 'console']);
         this._activeLoggers[loggerIdStr] = logger;
     },
 
-    DDLog: function (loggerId, message, level, errorMessage, errorKind, errorStackTrace, attributes) {
+    DDLogs_AddGlobalAttributes: function(attributes) {
+        let attributesStr = UTF8ToString(attributes);
+        let jsAttributes = JSON.parse(attributesStr) ?? {};
+        for (var key in jsAttributes) {
+            DD_LOGS.setGlobalContextProperty(key, jsAttributes[key])
+        }
+    },
+
+    DDLogs_RemoveGlobalAttribute: function(key) {
+        let keyStr = UTF8ToString(key);
+        DD_LOGS.removeGlobalContextProperty(keyStr)
+    },
+
+    DDLogs_Log: function (loggerId, message, level, errorKind, errorMessage, errorStackTrace, attributes) {
         let loggerIdStr = UTF8ToString(loggerId)
         let logger = this._activeLoggers[loggerIdStr];
         if (!logger) {
@@ -35,11 +48,9 @@ let ddLogsLib = {
         let jsAttributes = JSON.parse(attributesStr) ?? {};
         let jsError = null;
         if (errorMessage && errorKind && errorStackTrace) {
-            jsError = {
-                message: UTF8ToString(errorMessage),
-                kind: UTF8ToString(errorKind),
-                stack: UTF8ToString(errorStackTrace)
-            };
+            jsError = new Error(UTF8ToString(errorMessage));
+            jsError.name = UTF8ToString(errorKind);
+            jsError.stack = UTF8ToString(errorStackTrace);
 
             let fingerprint = jsAttributes['_dd.error.fingerprint'];
             if (fingerprint) {
@@ -51,7 +62,31 @@ let ddLogsLib = {
         logger.log(
             UTF8ToString(message), jsAttributes, UTF8ToString(level), jsError);
     },
+
+    DDLogs_AddAttribute: function (loggerId, jsonAttribute) {
+        let loggerIdStr = UTF8ToString(loggerId)
+        let logger = this._activeLoggers[loggerIdStr];
+        if (!logger) {
+            return;
+        }
+
+        let attributesStr = UTF8ToString(jsonAttribute)
+        let attributes = JSON.parse(attributesStr)
+        for (var key in attributes) {
+            logger.setContextProperty(key, attributes[key])
+        }
+    },
+
+    DDLogs_RemoveAttribute: function(loggerId, key) {
+        let loggerIdStr = UTF8ToString(loggerId)
+        let logger = this._activeLoggers[loggerIdStr];
+        if (!logger) {
+            return;
+        }
+
+        let attributeKey = UTF8ToString(key)
+        logger.removeContextProperty(attributeKey)
+    }
 };
 
-// autoAddDeps(ddLogsLib, '$activeLoggers');
 mergeInto(LibraryManager.library, ddLogsLib);

@@ -25,6 +25,11 @@ namespace Datadog.Unity
         {
         }
 
+        public DatadogWorker CreateWorker()
+        {
+            return new NoOpWorker();
+        }
+
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
             return new DdNoOpLogger();

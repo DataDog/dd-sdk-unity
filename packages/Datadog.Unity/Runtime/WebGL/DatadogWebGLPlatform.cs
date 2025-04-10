@@ -4,9 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -40,6 +43,11 @@ namespace Datadog.Unity.WebGL
             _logs.Init(options);
         }
 
+        public DatadogWorker CreateWorker()
+        {
+            return new PassthroughWorker();
+        }
+
         public void SetVerbosity(CoreLoggerLevel logLevel)
         {
 
@@ -53,27 +61,67 @@ namespace Datadog.Unity.WebGL
         {
             var innerLogger = _logs.CreateLogger(options);
             return innerLogger;
-            //return new DdWorkerProxyLogger(worker, innerLogger);
         }
 
         public void AddLogsAttributes(Dictionary<string, object> attributes)
         {
+            if (attributes == null)
+            {
+                return;
+            }
 
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+            DDLogs_AddGlobalAttributes(jsonAttributes);
         }
 
         public void RemoveLogsAttribute(string key)
         {
+            if (key == null)
+            {
+                // Not an error, but don't bother calling to platform
+                return;
+            }
 
+            DDLogs_RemoveGlobalAttribute(key);
         }
 
         public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
         {
+            var jsonUserInfo = new Dictionary<string, object>();
+            if (id != null)
+            {
+                jsonUserInfo["id"] = id;
+            }
 
+            if (name != null)
+            {
+                jsonUserInfo["name"] = name;
+            }
+
+            if (email != null)
+            {
+                jsonUserInfo["email"] = email;
+            }
+
+            foreach (var item in extraInfo)
+            {
+                jsonUserInfo[item.Key] = item.Value;
+            }
+
+            var jsonString = JsonConvert.SerializeObject(jsonUserInfo);
+            DDCore_SetUserInfo(jsonString);
         }
 
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
+            if (extraInfo == null)
+            {
+                // Don't bother calling to platform
+                return;
+            }
 
+            var jsonAttributes = JsonConvert.SerializeObject(extraInfo);
+            DDCore_SetUserProperties(jsonAttributes);
         }
 
         public IDdRum InitRum(DatadogConfigurationOptions options)
@@ -100,5 +148,17 @@ namespace Datadog.Unity.WebGL
         {
             return string.Empty;
         }
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_AddGlobalAttributes(string jsonAttributes);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_RemoveGlobalAttribute(string key);
+
+        [DllImport("__Internal")]
+        private static extern void DDCore_SetUserInfo(string jsonUserInfo);
+
+        [DllImport("__Internal")]
+        private static extern void DDCore_SetUserProperties(string jsonUserInfo);
     }
 }

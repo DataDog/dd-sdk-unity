@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Datadog.Unity.Logs;
 using Newtonsoft.Json;
@@ -14,7 +15,7 @@ namespace Datadog.Unity.WebGL
     {
         public void Init(DatadogConfigurationOptions options)
         {
-            var logConfig = new InitOptions()
+            var logConfig = new LoggingInitOptions()
             {
                 clientToken = options.ClientToken,
                 env = options.Env,
@@ -28,14 +29,23 @@ namespace Datadog.Unity.WebGL
             {
                 NullValueHandling = NullValueHandling.Ignore
             });
-            DDInitLogs(jsConfig);
+            DDLogs_InitLogs(jsConfig);
         }
 
         public DatadogWebGLLogger CreateLogger(DatadogLoggingOptions options)
         {
             var loggerId = Guid.NewGuid().ToString();
             var logger = new DatadogWebGLLogger(options.RemoteLogThreshold, options.RemoteSampleRate, loggerId);
-            DDCreateLogger(loggerId, "{}");
+            var webLoggerConfig = new LoggerConfiguration()
+            {
+                name = options.Name ?? "default",
+                service = options.Service,
+            };
+            var jsonConfig = JsonConvert.SerializeObject(webLoggerConfig, new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+            });
+            DDLogs_CreateLogger(loggerId, jsonConfig);
             return logger;
         }
 
@@ -53,7 +63,7 @@ namespace Datadog.Unity.WebGL
             };
         }
 
-        private class InitOptions
+        private class LoggingInitOptions
         {
             public string clientToken;
             public string env;
@@ -63,10 +73,16 @@ namespace Datadog.Unity.WebGL
             public string version;
         }
 
-        [DllImport("__Internal")]
-        private static extern void DDInitLogs(string jsonConfiguration);
+        private class LoggerConfiguration
+        {
+            public string name;
+            public string service;
+        }
 
         [DllImport("__Internal")]
-        private static extern void DDCreateLogger(string loggerId, string configuration);
+        private static extern void DDLogs_InitLogs(string jsonConfiguration);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_CreateLogger(string loggerId, string configuration);
     }
 }

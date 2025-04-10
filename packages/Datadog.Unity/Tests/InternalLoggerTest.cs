@@ -43,7 +43,7 @@ namespace Datadog.Unity.Tests
         public void LogForwardsToUnityLoggerWithDatadogTag(LogType logType, DdLogLevel ddLogLevel)
         {
             // Given
-            var worker = new DatadogWorker();
+            var worker = new ThreadedWorker();
             var fakePlatform = Substitute.For<IDatadogPlatform>();
             var internalLogger = new InternalLogger(worker, fakePlatform);
 
@@ -63,7 +63,7 @@ namespace Datadog.Unity.Tests
         public void TelemetryDebugForwardsLogToPlatformThroughWorker()
         {
             // Given
-            var worker = new DatadogWorker();
+            var worker = new ThreadedWorker();
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             var internalLogger = new InternalLogger(worker, mockPlatform);
 
@@ -86,7 +86,7 @@ namespace Datadog.Unity.Tests
         public void TelemetryErrorForwardsLogToPlatformThroughWorker()
         {
             // Given
-            var worker = new DatadogWorker();
+            var worker = new ThreadedWorker();
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             var internalLogger = new InternalLogger(worker, mockPlatform);
 
@@ -125,7 +125,7 @@ namespace Datadog.Unity.Tests
         public void TelemetryErrorForwardsLogToPlatformThroughWorker_WithNullException()
         {
             // Given
-            var worker = new DatadogWorker();
+            var worker = new ThreadedWorker();
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             var internalLogger = new InternalLogger(worker, mockPlatform);
 

@@ -24,7 +24,7 @@ namespace Datadog.Unity.Rum.Tests
             _mockRum = Substitute.For<IDdRum>();
             _mockDateProvider = Substitute.For<IDateProvider>();
 
-            _worker = new ();
+            _worker = new PassthroughWorker();
             _rumProcessor = new (_mockRum);
             _worker.AddProcessor(DdRumProcessor.RumTargetName, _rumProcessor);
             _worker.Start();

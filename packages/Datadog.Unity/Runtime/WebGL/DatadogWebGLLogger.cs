@@ -37,12 +37,17 @@ namespace Datadog.Unity.WebGL
 
         public override void AddAttribute(string key, object value)
         {
-            //throw new System.NotImplementedException();
+            var jsonArg = new Dictionary<string, object>()
+            {
+                { key, value },
+            };
+            var jsonString = JsonConvert.SerializeObject(jsonArg);
+            DDLogs_AddAttribute(_loggerId, jsonString);
         }
 
         public override void RemoveAttribute(string key)
         {
-            //throw new System.NotImplementedException();
+            DDLogs_RemoveAttribute(_loggerId, key);
         }
 
         internal override void PlatformLog(DdLogLevel level, string message,
@@ -56,7 +61,7 @@ namespace Datadog.Unity.WebGL
             }
 
             var webLogLevel = ToWebLogLevel(level);
-            DDLog(
+            DDLogs_Log(
                 _loggerId,
                 message,
                 webLogLevel,
@@ -83,8 +88,14 @@ namespace Datadog.Unity.WebGL
         #region External Javascript Methods
 
         [DllImport("__Internal")]
-        private static extern void DDLog(string loggerId, string message, string level, string errorKind,
+        private static extern void DDLogs_Log(string loggerId, string message, string level, string errorKind,
             string errorMessage, string errorStackTrace, string attributes);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_AddAttribute(string loggerId, string jsonAttribute);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_RemoveAttribute(string loggerId, string key);
 
         #endregion
     }
