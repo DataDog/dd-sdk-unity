@@ -108,8 +108,8 @@ def _update_native_sdk_versions(version: str, arg_ios_version:str, arg_android_v
             lines = f.readlines()
 
         for line in lines:
-            cols = line.replace(" ", "").split("|")
-            if (cols[1] == version):
+            cols = line.split("|")
+            if (len(cols) > 2 and cols[1].strip() == version):
                 print(f"Entry for version {version} already present in {native_sdk_versions_path}")        
                 return
     
