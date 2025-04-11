@@ -57,6 +57,9 @@ namespace Datadog.Unity.Tests
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
 
             // When
             DatadogSdk.InitWithPlatform(mockPlatform, new());
@@ -74,6 +77,9 @@ namespace Datadog.Unity.Tests
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new()
             {
@@ -96,6 +102,9 @@ namespace Datadog.Unity.Tests
             mockPlatform
                 .CreateLogger( Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new()
             {
@@ -119,6 +128,9 @@ namespace Datadog.Unity.Tests
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new()
             {
@@ -170,6 +182,10 @@ namespace Datadog.Unity.Tests
             mockPlatform
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
+
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When
@@ -197,6 +213,10 @@ namespace Datadog.Unity.Tests
                 callbackAttributes = new Dictionary<string, object>();
                 callbackAttributes.Copy(attributes);
             }));
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
+
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When
@@ -223,6 +243,10 @@ namespace Datadog.Unity.Tests
                 callbackAttributes = new Dictionary<string, object>();
                 callbackAttributes.Copy(attributes);
             }));
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
+
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When
@@ -246,6 +270,9 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var mockPlatform = Substitute.For<IDatadogPlatform>();
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When
@@ -260,6 +287,10 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var mockPlatform = Substitute.For<IDatadogPlatform>();
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
+
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When
@@ -275,6 +306,10 @@ namespace Datadog.Unity.Tests
         {
             // Given
             var mockPlatform = Substitute.For<IDatadogPlatform>();
+            var worker = new PassthroughWorker();
+            mockPlatform.CreateWorker()
+                .Returns(worker);
+
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
             // When

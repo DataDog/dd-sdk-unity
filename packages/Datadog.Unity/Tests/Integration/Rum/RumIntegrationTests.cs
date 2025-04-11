@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
 using Datadog.Unity.Rum;
@@ -23,20 +24,19 @@ namespace Datadog.Unity.Tests.Integration.Rum
         public IEnumerator RumIntegrationScenario()
         {
             var mockServerHelper = new MockServerHelper();
-            var resetTask = mockServerHelper.Clear();
-            yield return new WaitUntil(() => resetTask.IsCompleted);
+            yield return mockServerHelper.Clear();
 
             yield return new MonoBehaviourTest<TestRumMonoBehavior>();
-            var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
+            List<MockServerLog> serverLog = new();
+            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (logs) =>
             {
+                serverLog = logs;
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
                 // Second view makes sure the first one has been closed
                 return sessions.Count >= 1 && sessions[0].Visits.Count >= 5;
             });
 
-            yield return new WaitUntil(() => task.IsCompleted);
-            var serverLog = task.Result;
             foreach (var log in serverLog)
             {
                 VerifyCommonTags(log);

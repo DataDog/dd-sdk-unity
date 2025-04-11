@@ -245,7 +245,7 @@ namespace Datadog.Unity
                 _platform = platform;
 
                 // Create our worker thread
-                _worker = new ();
+                _worker = _platform.CreateWorker();
                 _worker.AddProcessor(DdSdkProcessor.SdkTargetName, new DdSdkProcessor(_platform));
 
                 _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());

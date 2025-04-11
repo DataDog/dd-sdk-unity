@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using NUnit.Framework;
@@ -19,12 +20,14 @@ namespace Datadog.Unity.Tests.Integration
         public IEnumerator TelemetryIntegrationScenario()
         {
             var mockServerHelper = new MockServerHelper();
-            var resetTask = mockServerHelper.Clear();
-            yield return new WaitUntil(() => resetTask.IsCompleted);
+            yield return mockServerHelper.Clear();
 
             yield return new MonoBehaviourTest<TestTelemetryMonoBehavior>();
-            var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
+
+            List<MockServerLog> serverLog = new();
+            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (log) =>
             {
+                serverLog = log;
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var telemetyEvents = events
                     .Where(x => x is RumTelemetryEventDecoder telem &&
@@ -32,8 +35,6 @@ namespace Datadog.Unity.Tests.Integration
                 return telemetyEvents.Count() >= 3;
             });
 
-            yield return new WaitUntil(() => task.IsCompleted);
-            var serverLog = task.Result;
             var telemetryEvents = RumDecoderHelpers.RumEventsFromMockServer(serverLog)
                 .Where(x => x is RumTelemetryEventDecoder telem && telem.TelemetryType != "configuration")
                 .ToList();

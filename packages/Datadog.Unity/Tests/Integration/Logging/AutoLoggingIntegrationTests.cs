@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Datadog.Unity.Tests.Integration;
 using NUnit.Framework;
 using UnityEngine;
@@ -15,27 +16,24 @@ namespace Datadog.Unity.Tests.Integration.Logging
     {
         [UnityTest]
         [Category("integration")]
-        public IEnumerator AutoLogginIntegrationScenario()
+        public IEnumerator AutoLoggingIntegrationScenario()
         {
             // Note -- For now the "Forward Unity Logs" flag needs to be set in the
             // projects settings for this to work (it is unset by default).
             LogAssert.ignoreFailingMessages = true;
 
             var mockServerHelper = new MockServerHelper();
-            var resetTask = mockServerHelper.Clear();
-            yield return new WaitUntil(() => resetTask.IsCompleted);
+            yield return mockServerHelper.Clear();
 
             yield return new MonoBehaviourTest<TestAutoLoggingMonoBehavior>();
 
-            var task = mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (serverLog) =>
+            var timeoutTime = new TimeSpan(0, 0, 45);
+            var logs = new List<LogDecoder>();
+            yield return mockServerHelper.PollRequests(timeoutTime, (serverLog) =>
             {
-                var logs = LogDecoder.LogsFromMockServer(serverLog);
+                logs = LogDecoder.LogsFromMockServer(serverLog);
                 return logs.Count >= 3;
             });
-
-            yield return new WaitUntil(() => task.IsCompleted);
-            var serverLog = task.Result;
-            var logs = LogDecoder.LogsFromMockServer(serverLog);
 
             Assert.AreEqual(3, logs.Count);
 

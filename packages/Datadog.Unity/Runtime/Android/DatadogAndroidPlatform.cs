@@ -44,6 +44,11 @@ namespace Datadog.Unity.Android
             _datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
         }
 
+        public DatadogWorker CreateWorker()
+        {
+            return new ThreadedWorker();
+        }
+
         public void Init(DatadogConfigurationOptions options)
         {
             var applicationId = options.RumApplicationId == string.Empty ? null : options.RumApplicationId;

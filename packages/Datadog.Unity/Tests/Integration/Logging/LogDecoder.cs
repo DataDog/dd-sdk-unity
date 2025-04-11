@@ -107,7 +107,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 {
                     mockLog.Requests.ForEach((e) => e.Schemas.ForEach((schema) =>
                     {
-                        var json = schema.ParseDecompressedJsonData<List<Dictionary<string, object>>>();
+                        var json = schema.ParseDecompressedJsonData<Dictionary<string, object>>();
                         foreach (var jsonLog in json)
                         {
                             var log = new LogDecoder(jsonLog)
@@ -125,7 +125,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
 
         private T GetNestedProperty<T>(string key)
         {
-#if UNITY_ANDROID
+#if UNITY_ANDROID || UNITY_WEBGL
             var parts = key.Split('.');
             var lookupMap = _rawJson;
             for (int i = 0; i < (parts.Length - 1); i++)

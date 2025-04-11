@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace Datadog.Unity.Worker.Tests
 {
-    public class DatadogWorkerTests
+    public class DatadogThreadedWorkerTests
     {
         private IDatadogWorkerProcessor _mockProcessor;
         private DatadogWorker _worker;
@@ -17,7 +17,7 @@ namespace Datadog.Unity.Worker.Tests
         public void SetUp()
         {
             _mockProcessor = Substitute.For<IDatadogWorkerProcessor>();
-            _worker = new();
+            _worker = new ThreadedWorker();
         }
 
         [TearDown]

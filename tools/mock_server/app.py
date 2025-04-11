@@ -24,6 +24,7 @@ from schemas.rum import RUMSchema
 from schemas.session_replay import SRSchema
 from server_address import get_best_server_address, get_localhost
 from templates.components.card import Card, CardTab
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
@@ -42,6 +43,12 @@ class GenericRequest:
         self.method = r.method
         self.path = r.path
         self.query_string = f'?{r.query_string.decode("utf-8")}' if r.query_string else ''
+        if 'ddforward' in r.args:
+            # The path and query string is actually what's here in ddforward
+            parsed_forward = urlparse(r.args['ddforward'])
+            self.path = parsed_forward.path
+            self.query_string = f'?{parsed_forward.query}' if parsed_forward.query else None
+
         self.date = datetime.datetime.now()
         self.content_type = r.content_type
         self.content_length = r.content_length
@@ -108,6 +115,10 @@ def schemas_for_request(r: Request) -> [Schema]:
 
     return schemas
 
+def add_cors_headers(r: flask.Response):
+    r.headers['access-control-allow-origin'] = '*'
+    r.headers['access-control-allow-headers'] = '*'
+    r.headers['access-control-allow-methods'] = 'GET, POST'
 
 endpoints: [GenericEndpoint] = []
 
@@ -132,9 +143,9 @@ def write_to_file(endpoint: GenericEndpoint):
         with open(f'fixtures/replay/{no}', 'wb') as f:
             f.write(request.get_data())
 
-
+@app.route('/', methods=['POST'])
 @app.route('/<path:rest>', methods=['POST'])
-def generic_post(rest):
+def generic_post(rest = ''):
     """
     POST /*
 
@@ -144,10 +155,11 @@ def generic_post(rest):
 
     gr = GenericRequest(r=request)
 
+    response_text = ''
     if existing := next((e for e in endpoints if e.hash() == gr.endpoint_hash()), None):
         existing.requests.append(gr)
         # write_to_file(endpoint=existing)
-        return f'OK - request recorded to known endpoint\n', 202
+        response_text = 'OK - request recorded to known endpoint\n'
     else:
         endpoints.append(
             GenericEndpoint(
@@ -157,8 +169,13 @@ def generic_post(rest):
                 schemas=gr.schemas
             )
         )
-        # write_to_file(endpoint=endpoints[len(endpoints)-1])5
-        return f'OK - request recorded to new endpoint\n', 202
+        response_text = flask.Response('OK - request recorded to new endpoint\n')
+
+    resp = flask.Response(response_text, status=202)
+    add_cors_headers(resp)
+    return resp
+
+
 
 @app.route('/inspect_requests/')
 def inspect_json():
@@ -176,6 +193,7 @@ def inspect_json():
 
     resp = flask.Response(json.dumps(endpoint_requests, cls=DataClassJsonEncoder))
     resp.headers['Content-Type'] = 'application/json'
+    add_cors_headers(resp)
     return resp
 
 @app.route('/inspect/')
@@ -198,8 +216,9 @@ def reset():
     global endpoints
     for e in endpoints:
         e.requests.clear()
-    return 'OK', 200
-
+    resp = flask.Response('OK', status=200)
+    add_cors_headers(resp)
+    return resp
 
 
 @app.route('/inspect/<schema_name>/<endpoint_hash>')

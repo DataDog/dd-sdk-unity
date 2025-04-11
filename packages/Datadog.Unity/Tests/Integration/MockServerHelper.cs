@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
@@ -10,9 +11,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Datadog.Unity.Tests.Integration
 {
@@ -29,24 +32,26 @@ namespace Datadog.Unity.Tests.Integration
             _endpoint = configuration.CustomEndpoint;
         }
 
-        public async Task Clear()
+        public IEnumerator Clear()
         {
-            await _client.GetAsync($"{_endpoint}/reset");
+            var request = UnityWebRequest.Get($"{_endpoint}/reset");
+            yield return request.SendWebRequest();
         }
 
-        public async Task<List<MockServerLog>> PollRequests(TimeSpan duration, Func<List<MockServerLog>, bool> parseRequests)
+        public IEnumerator PollRequests(TimeSpan duration, Func<List<MockServerLog>, bool> parseRequests)
         {
             var timeoutTime = DateTime.Now + duration;
-
             var stopPolling = false;
+
             do
             {
-                var inspect = await _client.GetAsync($"{_endpoint}/inspect_requests/");
-                if (inspect.StatusCode == HttpStatusCode.OK)
+                var request = UnityWebRequest.Get($"{_endpoint}/inspect_requests/");
+                yield return request.SendWebRequest();
+                if (request.result == UnityWebRequest.Result.Success && request.responseCode == (long)HttpStatusCode.OK)
                 {
                     try
                     {
-                        var content = await inspect.Content.ReadAsStringAsync();
+                        var content = request.downloadHandler.text;
                         var contractResolver = new DefaultContractResolver
                         {
                             NamingStrategy = new SnakeCaseNamingStrategy(),
@@ -55,11 +60,7 @@ namespace Datadog.Unity.Tests.Integration
                         {
                             ContractResolver = contractResolver,
                         });
-
-                        if (parseRequests(serverLog))
-                        {
-                            return serverLog;
-                        }
+                        stopPolling = parseRequests(serverLog);
                     }
                     catch (Exception e)
                     {
@@ -67,11 +68,12 @@ namespace Datadog.Unity.Tests.Integration
                     }
                 }
 
-                await Task.Delay(500);
+                if (!stopPolling)
+                {
+                    yield return new WaitForSeconds(2.0f);
+                }
             }
             while (!stopPolling && DateTime.Now < timeoutTime);
-
-            return new List<MockServerLog>();
         }
     }
 
@@ -140,11 +142,24 @@ namespace Datadog.Unity.Tests.Integration
             }
         }
 
-        public string DecompressedData { get; set; }
+        [CanBeNull] public string DecompressedData { get; set; }
 
-        public T ParseDecompressedJsonData<T>()
+        [CanBeNull] public string Data { get; set; }
+
+        public List<T> ParseDecompressedJsonData<T>()
         {
-            return JsonConvert.DeserializeObject<T>(DecompressedData);
+            var dataString = DecompressedData ?? Data;
+            try
+            {
+                return JsonConvert.DeserializeObject<List<T>>(dataString);
+            }
+            catch (JsonException e)
+            {
+                // Try to split the data first by newlines
+                return dataString.Split("\n")
+                    .Select(line => JsonConvert.DeserializeObject<T>(line))
+                    .ToList();
+            }
         }
     }
 }
