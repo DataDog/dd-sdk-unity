@@ -8,3 +8,4 @@ Build/
 samples/Datadog Sample/Assets/Resources/DatadogSettings.asset
 .vscode/settings.json
 *.keystore
+samples/Datadog Sample/.utmp
