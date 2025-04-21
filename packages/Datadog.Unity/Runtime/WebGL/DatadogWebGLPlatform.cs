@@ -126,7 +126,10 @@ namespace Datadog.Unity.WebGL
 
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
-            return new DdNoOpRum();
+            var rum = new DatadogWebGLRum();
+            rum.Init(options);
+
+            return rum;
         }
 
         public void SendDebugTelemetry(string message)

@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -20,7 +21,14 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                 {
                     mockLog.Requests.ForEach((e) => e.Schemas.ForEach((schema) =>
                     {
-                        var lines = schema.DecompressedData.Split("\n");
+                        var data = schema.DecompressedData ?? schema.Data;
+                        var lines = data?.Split("\n");
+                        if (lines == null || lines.Length == 0)
+                        {
+                            Debug.LogWarning("No lines found in MockServerLog");
+                            return;
+                        }
+
                         foreach (var line in lines)
                         {
                             var jsonRum = JObject.Parse(line);
