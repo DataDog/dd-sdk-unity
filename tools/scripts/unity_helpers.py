@@ -6,6 +6,7 @@
 # Copyright 2023-Present Datadog, Inc.
 # -----------------------------------------------------------
 
+import argparse
 import asyncio
 import os
 import re
@@ -14,19 +15,79 @@ import time
 from saxonche import PySaxonProcessor
 from typing import Optional
 
+UNITY_HUB_PATH = "/Applications/Unity\\ Hub.app/Contents/MacOS/Unity\\ Hub"
+UNITY_PATH = "/Applications/Unity/Hub/Editor/{unity_version}/Unity.app/Contents"
+
 UNITY_LICENSE_ERROR = "No valid Unity Editor license found. Please activate your license."
 LICENSE_STATE_RE = re.compile(r'License lease state: "\w+" with token: "(?P<token>.+)"')
 
-DEFAULT_UNITY_VERSION = "2022.3.55f1"
+DEFAULT_UNITY_VERSION = "2022.3"
+
+global unity_version
+unity_version = DEFAULT_UNITY_VERSION
 
 def start_android_emulator():
     pass
 
+async def _run_process(cmd: str) -> str:
+    result = ""
+    def process_stdout(line):
+        nonlocal result
+        result += line
+
+    env = os.environ.copy()
+    process = await asyncio.create_subprocess_shell (cmd,
+                                   env=env,
+                                   stdout=asyncio.subprocess.PIPE,
+                                   )
+    await asyncio.wait([
+        _read_stream(process.stdout, process_stdout)
+    ])
+
+    await process.wait()
+
+    return result
+
+async def get_full_unity_version(version_partial: str, force_upgrade: bool = False, update_global = True):
+    global unity_version
+    if len(version_partial.split(".")) == 3:
+        # Not a version partial. Return the whole version
+        if update_global:
+            unity_version = version_partial
+        return version_partial
+
+    version = None
+    if not force_upgrade:
+        # check to see if we have a matching version first
+        installed_cmd = f'{UNITY_HUB_PATH} -- --headless editors --installed'
+        installed_output = await _run_process(installed_cmd)
+
+        matching_versions = list(filter(lambda ver: ver.startswith(version_partial),
+                                   [line.split(" ")[0] for line in installed_output.split("\n")]))
+        if len(matching_versions) > 0:
+            best_version = sorted(matching_versions)[-1]
+            version = best_version
+
+    if version is None:
+        releases_cmd = f'{UNITY_HUB_PATH} -- --headless editors --releases'
+        releases_output = await _run_process(releases_cmd)
+
+        matching_versions = list(filter(lambda ver: ver.startswith(version_partial),
+                                    [line.split(" ")[0] for line in releases_output.split("\n")]))
+        if len(matching_versions) > 0:
+            best_version = sorted(matching_versions)[-1]
+            version = best_version
+
+    if version is not None and update_global:
+        unity_version = version
+
+    return version
+
 def get_unity_home():
-    unity_version = DEFAULT_UNITY_VERSION
+    global unity_version
     if "UNITY_VERSION" in os.environ:
         unity_version = os.environ["UNITY_VERSION"]
-    unity_home = f"/Applications/Unity/Hub/Editor/{unity_version}/Unity.app/Contents"
+    unity_home = UNITY_PATH.format(unity_version=unity_version)
     if "UNITY_HOME" in os.environ:
         unity_home = os.environ["UNITY_HOME"]
     return unity_home
@@ -124,3 +185,21 @@ async def run_unity_command(license_retry_attempts: int, license_retry_timeout_s
         if not should_retry:
             print(f"Unity returned {return_code}")
             return return_code
+
+async def main():
+    argparser = argparse.ArgumentParser()
+    subparser = argparser.add_subparsers(dest='command', title='subcommands', description='valid subcommands')
+
+    version_subparser = subparser.add_parser('get-version')
+    version_subparser.add_argument('--version', default=DEFAULT_UNITY_VERSION, help="Full or version partial to match against")
+    args = argparser.parse_args()
+
+    if args.command == 'get-version':
+        version = await get_full_unity_version(args.version, False, False)
+        print(version)
+
+
+if __name__ == "__main__":
+    task = main()
+    res = asyncio.get_event_loop().run_until_complete(task)
+    exit(res)

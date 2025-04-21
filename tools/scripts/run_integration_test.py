@@ -14,7 +14,7 @@ import threading
 
 import ios_helpers
 import android_helpers
-from unity_helpers import run_unity_command
+from unity_helpers import DEFAULT_UNITY_VERSION, get_full_unity_version, run_unity_command
 
 integration_project_path = "../../samples/Datadog Sample"
 
@@ -50,6 +50,7 @@ async def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--platform", choices=['ios', 'android'], help="The platform to run integration tests on.")
     arg_parser.add_argument("--launch-simulator", action='store_true', help="Whether to launch a simulator or emulator before running tests.")
+    arg_parser.add_argument("--unity-version", default=DEFAULT_UNITY_VERSION, help="What version of Unity to use. May be a partial version.")
     arg_parser.add_argument("--retry", default=0, help="The number of times to retry if a Unity License cannot be obtained")
     arg_parser.add_argument("--retry-wait", default=100, help="The amount of time to wait before retrying after a license failure")
     args = arg_parser.parse_args()
@@ -57,6 +58,8 @@ async def main():
     if args.platform is None:
         print('--platform is required')
         return
+
+    await get_full_unity_version(args.unity_version, update_global=True)
 
     if args.launch_simulator:
         if args.platform == 'ios':

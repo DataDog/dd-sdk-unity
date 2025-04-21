@@ -2,8 +2,7 @@ include:
   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v1/template.yml'
 
 variables:
-  # TODO: Detect unity location in script.
-  UNITY_VERSION: "2022.3.61f1"
+  UNITY_VERSION_PARTIAL: 2022.3
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
 stages:
@@ -16,6 +15,11 @@ stages:
     - brew install --cask unity-hub
     - brew install xcbeautify
     - echo 'Installing Unity Editor and Modules...'
+    - pushd $CI_PROJECT_DIR/tools/scripts
+    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
+    - export UNITY_VERSION=$(./venv/bin/python3 ./unity_helpers.py get-version --version $UNITY_VERSION_PARTIAL)
+    - echo 'Using Unity version $UNITY_VERSION'
+    - popd
     # This can fail if Unity is already installed, so || true
     - /Applications/Unity\ Hub.app/Contents/MacOS/Unity\ Hub -- --headless install --version $UNITY_VERSION --module ios android --architecture arm64 --childModules || true
   create-server-config:
