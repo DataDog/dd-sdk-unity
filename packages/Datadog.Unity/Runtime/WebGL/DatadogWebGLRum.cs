@@ -39,7 +39,7 @@ namespace Datadog.Unity.WebGL
             {
                 applicationId = options.RumApplicationId,
                 clientToken = options.ClientToken,
-                site = DatadogWebGLHelpers.SiteStringForSite(options.Site),
+                site = options.Site.ToWebValue(),
                 sessionSampleRate = options.SessionSampleRate,
                 service = options.ServiceName,
                 env = options.Env,
@@ -75,7 +75,7 @@ namespace Datadog.Unity.WebGL
 
         public void StopView(string key, Dictionary<string, object> attributes = null)
         {
-
+            // Browser SDK does not support stopping views
         }
 
         public void AddAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
@@ -98,10 +98,12 @@ namespace Datadog.Unity.WebGL
 
         public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
+            // Browser SDK does not support start / stop action
         }
 
         public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
+            // Browser SDK does not support start / stop action
         }
 
         public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
@@ -126,19 +128,23 @@ namespace Datadog.Unity.WebGL
 
         public void StartResource(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes = null)
         {
+            // Browser SDK does not support manual resource tracking
         }
 
         public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null)
         {
+            // Browser SDK does not support manual resource tracking
         }
 
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
         {
+            // Browser SDK does not support manual resource tracking
         }
 
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
+            // Browser SDK does not support manual resource tracking
         }
 
         public void AddAttribute(string key, object value)

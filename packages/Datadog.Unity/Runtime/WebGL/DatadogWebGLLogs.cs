@@ -20,7 +20,7 @@ namespace Datadog.Unity.WebGL
                 clientToken = options.ClientToken,
                 env = options.Env,
                 proxy = string.IsNullOrEmpty(options.CustomEndpoint) ? null : options.CustomEndpoint,
-                site = DatadogWebGLHelpers.SiteStringForSite(options.Site),
+                site = options.Site.ToWebValue(),
                 service = options.ServiceName,
                 // TODO: Version
             };

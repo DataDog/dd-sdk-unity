@@ -15,6 +15,16 @@ let ddCoreLib = {
         }
     },
 
+    DDCore_SetTrackingConent: function(rawTrackingContent) {
+        let trackingContent = UTF8ToString(rawTrackingContent);
+        if (DD_LOGS) {
+            DD_LOGS.setTrackingConsent(trackingContent);
+        }
+        if (DD_RUM) {
+            DD_RUM.setTrackingConsent(trackingContent)
+        }
+    }
+
     DDCore_SetUserProperties: function(properties) {
         let preopertiesStr = UTF8ToString(properties);
         let jsProperties = JSON.parse(preopertiesStr) ?? {};

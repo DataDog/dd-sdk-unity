@@ -6,7 +6,7 @@ namespace Datadog.Unity.WebGL
 {
     internal static class DatadogWebGLHelpers
     {
-        internal static string SiteStringForSite(DatadogSite site)
+        internal static string ToWebValue(this DatadogSite site)
         {
             return site switch
             {
@@ -17,6 +17,16 @@ namespace Datadog.Unity.WebGL
                 DatadogSite.Us1Fed => "ddog-gov.com",
                 DatadogSite.Ap1 => "ap1.datadoghq.com",
                 _ => "datadoghq.com"
+            };
+        }
+
+        internal static string ToWebValue(this TrackingConsent consent)
+        {
+            return consent switch
+            {
+                TrackingConsent.NotGranted => "not-granted",
+                TrackingConsent.Granted => "granted",
+                _ => "not-granted"
             };
         }
     }
