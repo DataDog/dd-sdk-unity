@@ -15,13 +15,13 @@ let ddCoreLib = {
         }
     },
 
-    DDCore_SetTrackingConent: function(rawTrackingContent) {
-        let trackingContent = UTF8ToString(rawTrackingContent);
+    DDCore_SetTrackingConsent: function(rawTrackingConsent) {
+        let trackingConsent = UTF8ToString(rawTrackingConsent);
         if (DD_LOGS) {
-            DD_LOGS.setTrackingConsent(trackingContent);
+            DD_LOGS.setTrackingConsent(trackingConsent);
         }
         if (DD_RUM) {
-            DD_RUM.setTrackingConsent(trackingContent)
+            DD_RUM.setTrackingConsent(trackingConsent)
         }
     }
 
