@@ -20,7 +20,7 @@ namespace Datadog.Unity.WebGL
                 clientToken = options.ClientToken,
                 env = options.Env,
                 proxy = string.IsNullOrEmpty(options.CustomEndpoint) ? null : options.CustomEndpoint,
-                site = SiteStringForSite(options.Site),
+                site = options.Site.ToWebValue(),
                 service = options.ServiceName,
                 // TODO: Version
             };
@@ -47,20 +47,6 @@ namespace Datadog.Unity.WebGL
             });
             DDLogs_CreateLogger(loggerId, jsonConfig);
             return logger;
-        }
-
-        private string SiteStringForSite(DatadogSite site)
-        {
-            return site switch
-            {
-                DatadogSite.Us1 => "datadoghq.com",
-                DatadogSite.Us3 => "us3.datadoghq.com",
-                DatadogSite.Us5 => "us5.datadoghq.com",
-                DatadogSite.Eu1 => "datadoghq.eu",
-                DatadogSite.Us1Fed => "ddog-gov.com",
-                DatadogSite.Ap1 => "ap1.datadoghq.com",
-                _ => "datadoghq.com"
-            };
         }
 
         private class LoggingInitOptions

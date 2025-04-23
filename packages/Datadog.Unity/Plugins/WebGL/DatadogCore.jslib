@@ -7,15 +7,34 @@ let ddCoreLib = {
     DDCore_SetUserInfo: function(userInfo) {
         let userInfoStr = UTF8ToString(userInfo);
         let jsUserInfo = JSON.parse(userInfoStr);
-        // TODO: Check if logs / rum need to be set separately
-        DD_LOGS.setUser(jsUserInfo);
+        if (DD_LOGS) {
+            DD_LOGS.setUser(jsUserInfo);
+        }
+        if (DD_RUM) {
+            DD_RUM.setUser(jsUserInfo)
+        }
     },
+
+    DDCore_SetTrackingConsent: function(rawTrackingConsent) {
+        let trackingConsent = UTF8ToString(rawTrackingConsent);
+        if (DD_LOGS) {
+            DD_LOGS.setTrackingConsent(trackingConsent);
+        }
+        if (DD_RUM) {
+            DD_RUM.setTrackingConsent(trackingConsent)
+        }
+    }
 
     DDCore_SetUserProperties: function(properties) {
         let preopertiesStr = UTF8ToString(properties);
         let jsProperties = JSON.parse(preopertiesStr) ?? {};
         for (var key in jsProperties) {
-            DD_LOGS.setUserProperty(key, jsProperties[key])
+            if (DD_LOGS) {
+                DD_LOGS.setUserProperty(key, jsProperties[key])
+            }
+            if (DD_RUM) {
+                DD_RUM.setUserProperty(key, jsProperties[key])
+            }
         }
     }
 };

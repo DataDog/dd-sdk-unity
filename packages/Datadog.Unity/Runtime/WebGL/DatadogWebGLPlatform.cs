@@ -50,11 +50,12 @@ namespace Datadog.Unity.WebGL
 
         public void SetVerbosity(CoreLoggerLevel logLevel)
         {
-
+            // Not implemented on Web
         }
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
+            DDCore_SetTrackingConsent(trackingConsent.ToWebValue());
         }
 
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
@@ -126,7 +127,10 @@ namespace Datadog.Unity.WebGL
 
         public IDdRum InitRum(DatadogConfigurationOptions options)
         {
-            return new DdNoOpRum();
+            var rum = new DatadogWebGLRum();
+            rum.Init(options);
+
+            return rum;
         }
 
         public void SendDebugTelemetry(string message)
@@ -160,5 +164,8 @@ namespace Datadog.Unity.WebGL
 
         [DllImport("__Internal")]
         private static extern void DDCore_SetUserProperties(string jsonUserInfo);
+
+        [DllImport("__Internal")]
+        private static extern void DDCore_SetTrackingConsent(string trackingConsent);
     }
 }

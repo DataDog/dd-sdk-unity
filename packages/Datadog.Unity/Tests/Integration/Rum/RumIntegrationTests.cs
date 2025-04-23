@@ -33,6 +33,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 serverLog = logs;
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
+
                 // Second view makes sure the first one has been closed
                 return sessions.Count >= 1 && sessions[0].Visits.Count >= 5;
             });
@@ -60,10 +61,15 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             Assert.AreEqual(1, firstVisit.ActionEvents.Count);
             var firstAction = firstVisit.ActionEvents[0];
+#if UNITY_WEBGL
+            Assert.AreEqual("custom", firstAction.ActionType);
+#else
             Assert.AreEqual("tap", firstAction.ActionType);
+#endif
             Assert.AreEqual("Tapped Download", firstAction.ActionName);
             Assert.AreEqual(1, firstAction.Attributes["onboarding_stage"].Value<int>());
 
+#if !UNITY_WEBGL
             Assert.AreEqual(1, firstVisit.ResourceEvents.Count);
             var firstResource = firstVisit.ResourceEvents[0];
             Assert.AreEqual("http://fake/resource/1", firstResource.Url);
@@ -79,25 +85,35 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("POST", resourceError.ResourceMethod);
             Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
             Assert.AreEqual("network", resourceError.Source);
-
+#endif
             var secondVisit = visits[1];
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
             var errorEvent = secondVisit.ErrorEvents[0];
 
-            // Android resources don't have ErrorType
-#if !UNITY_ANDROID
+            // Android resources don't have ErrorType, web doesn't contain the namespace
+#if UNITY_IOS
             Assert.AreEqual("System.Exception", errorEvent.ErrorType);
+#elif UNITY_WEBGL
+            Assert.AreEqual("Exception", errorEvent.ErrorType);
 #endif
 
             Assert.AreEqual("Test Exception", errorEvent.Message);
             Assert.IsNotNull(errorEvent.Stack);
+#if UNITY_WEBGL
+            Assert.AreEqual("custom", errorEvent.Source);
+#else
             Assert.AreEqual("source", errorEvent.Source);
+#endif
             Assert.AreEqual("first_call", errorEvent.Attributes["error_attribute"].Value<string>());
             Assert.AreEqual(1, errorEvent.Attributes["onboarding_stage"].Value<int>());
 
             Assert.AreEqual(1, secondVisit.ActionEvents.Count);
             var secondAction = secondVisit.ActionEvents[0];
+#if UNITY_WEBGL
+            Assert.AreEqual("custom", secondAction.ActionType);
+#else
             Assert.AreEqual("tap", secondAction.ActionType);
+#endif
             Assert.AreEqual("Tapped Exception", secondAction.ActionName);
 
             var finalSecondVisitView = secondVisit.ViewEvents.Last();
@@ -117,10 +133,13 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
         private void VerifyCommonTags(MockServerLog log)
         {
+            // Web does not support source overrides yet
+#if !UNITY_WEBGL
             foreach (var request in log.Requests)
             {
                 Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
             }
+#endif
         }
     }
 
