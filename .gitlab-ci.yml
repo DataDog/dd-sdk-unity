@@ -42,6 +42,8 @@ unit-test:
         PROJECT_PATH: '../../test_scaffolds/2021 LTS'
       - UNITY_VERSION_PARTIAL: 2022
         PROJECT_PATH: '../../samples/Datadog Sample'
+      - UNITY_VERSION_PARTIAL: 6000
+        PROJECT_PATH: '../../test_scaffolds/6000 LTS'
   script:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
