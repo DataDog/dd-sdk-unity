@@ -36,12 +36,18 @@ unit-test:
   tags:
     - macos:sonoma
     - specific:true
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: 2021
+        PROJECT_PATH: '../../test_scaffolds/2021 LTS'
+      - UNITY_VERSION_PARTIAL: 2022
+        PROJECT_PATH: '../../samples/Datadog Sample'
   script:
     - !reference [.shared, install-dependencies]
     - !reference [.shared, create-server-config]
     - cd $CI_PROJECT_DIR/tools/scripts
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./run_unit_test.py
+    - ./venv/bin/python3 ./run_unit_test.py --unity-version "$UNITY_VERSION_PARTIAL" --project-path "$PROJECT_PATH"
   artifacts:
     when: always
     expire_in: "30 days"
