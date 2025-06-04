@@ -8,6 +8,7 @@ variables:
 stages:
   - unit-test
   - package
+  - post
 
 .shared:
   install-dependencies:
@@ -94,3 +95,14 @@ package-android:
     expire_in: "30 days"
     paths:
       - samples/Demo Data/Build/Android/datadog-demo.apk
+
+notify-pipeline-succeeded:
+  stage: post
+  tags: [ "arch:amd64" ]
+  image: "$BUILDENV_REGISTRY/images/docker:24.0.4-gbi-focal"
+  when: on_success
+  except:
+    - schedules
+    - develop
+  script:
+    - echo "Pipeline did succeed"
