@@ -16,7 +16,7 @@ namespace Datadog.Unity.Editor.iOS
 {
     public class PostBuildProcessTests
     {
-        private static readonly string _cleanMainfile = "main.txt";
+        private static readonly string _cleanMainFileName = "main.txt";
 
         private string _tempDirectory;
         private string _initializationFilePath;
@@ -27,9 +27,13 @@ namespace Datadog.Unity.Editor.iOS
         {
             _tempDirectory = Path.Combine("tmp", Guid.NewGuid().ToString());
             Directory.CreateDirectory(_tempDirectory);
+            // This assumes current repo structure of 'samples' and 'test_scafolds' being at the same level,
+            // and that all of them are using a relative path to add the package
+            var testDir = Path.GetFullPath("../../packages/Datadog.Unity/Tests/Editor/iOS/");
+            var cleanMainFilePath = Path.Combine(testDir, _cleanMainFileName);
             _initializationFilePath = Path.Combine(_tempDirectory, "DatadogInitialization.swift");
-            _mainFilePath = Path.Combine(_tempDirectory, _cleanMainfile);
-            File.Copy(_cleanMainfile, _mainFilePath);
+            _mainFilePath = Path.Combine(_tempDirectory, _cleanMainFileName);
+            File.Copy(cleanMainFilePath, _mainFilePath);
         }
 
         [TearDown]

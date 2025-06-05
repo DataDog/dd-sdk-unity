@@ -9,45 +9,52 @@
 import argparse
 import asyncio
 import os
-from unity_helpers import *
+import unity_helpers as uh
 
-integration_project_path = "../../samples/Datadog Sample"
+default_project_path = "../../samples/Datadog Sample"
 
 async def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("--retry", default=0, help="The number of times to retry if a Unity License cannot be obtained")
     arg_parser.add_argument("--retry-wait", default=100, help="The amount of time to wait before retrying after a license failure")
+    arg_parser.add_argument("--unity-version", default=uh.DEFAULT_UNITY_VERSION, help="What version of Unity to use. May be a partial version.")
+    arg_parser.add_argument("--project-path", default=default_project_path, help="The path of the project to run unit tests on.")
     args = arg_parser.parse_args()
 
     license_retry_count = args.retry
     license_retry_wait = args.retry_wait
 
+    await uh.get_full_unity_version(args.unity_version, update_global=True)
+
+    print(f'Got Unity Version {uh.unity_version}')
+
     is_ci = "IS_ON_CI" in os.environ
     token = None
     if is_ci:
-        token = await get_unity_license()
+        token = await uh.get_unity_license()
         if token is None:
             print("Failed to get floatling license on CI")
             return 1
 
+    project_path = args.project_path
 
-    return_code = await run_unity_command(license_retry_count, license_retry_wait,
-        "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
+    return_code = await uh.run_unity_command(license_retry_count, license_retry_wait,
+        "-runTests", "-batchMode", "-projectPath", f'"{project_path}"',
         "-testCategory", "!integration",
         "-testResults", "tmp/results.xml", "-logFile", "-",
     )
 
-    return_code = await run_unity_command(license_retry_count, license_retry_wait,
-        "-runTests", "-batchMode", "-projectPath", f'"{integration_project_path}"',
+    return_code = await uh.run_unity_command(license_retry_count, license_retry_wait,
+        "-runTests", "-batchMode", "-projectPath", f'"{project_path}"',
         "-testCategory", "!integration", '-testPlatform', 'PlayMode',
         "-testResults", "tmp/results-play-mode.xml", "-logFile", "-",
     )
 
     if token is not None:
-        await return_unity_license(token)
+        await uh.return_unity_license(token)
 
-    transform_nunit_to_junit("../../samples/Datadog Sample/tmp/results.xml", "../../samples/Datadog Sample/tmp/junit-results.xml")
-    transform_nunit_to_junit("../../samples/Datadog Sample/tmp/results-play-mode.xml", "../../samples/Datadog Sample/tmp/junit-results-play-mode.xml")
+    uh.transform_nunit_to_junit(f"{project_path}/tmp/results.xml", f"{project_path}/tmp/junit-results.xml")
+    uh.transform_nunit_to_junit(f"{project_path}/tmp/results-play-mode.xml", f"{project_path}/tmp/junit-results-play-mode.xml")
 
     return return_code
 
