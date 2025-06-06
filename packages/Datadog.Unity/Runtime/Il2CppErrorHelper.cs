@@ -85,14 +85,14 @@ namespace Datadog.Unity
 
         private static IntPtr GcHandleGetTarget(IntPtr gchandle)
         {
-            #if UNITY_2023
+            #if UNITY_2023_OR_NEWER || UNITY_6000_0_OR_NEWER
             return il2cpp_gchandle_get_target(gchandle);
             #else
             return il2cpp_gchandle_get_target(gchandle.ToInt32());
             #endif
         }
 
-#if UNITY_2023
+#if UNITY_2023_OR_NEWER || UNITY_6000_0_OR_NEWER
         [DllImport("__Internal")]
         private static extern IntPtr il2cpp_gchandle_get_target(IntPtr gchandle);
 

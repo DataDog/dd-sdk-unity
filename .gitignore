@@ -8,3 +8,4 @@ Build/
 samples/Datadog Sample/Assets/Resources/DatadogSettings.asset
 .vscode/settings.json
 *.keystore
+test_scaffolds/6000 LTS/.utmp

@@ -88,6 +88,12 @@ namespace Datadog.Unity.Editor
                             _fileSystemProxy.CreateDirectory(mappingsDestPath);
                         }
 
+                        var originFileName = Path.GetFileName(mappingLocation);
+                        if (!string.IsNullOrEmpty(originFileName))
+                        {
+                            mappingsDestPath = Path.Join(path, originFileName);
+                        }
+
                         Debug.Log("Copying IL2CPP mappings file...");
                         _fileSystemProxy.CopyFile(mappingsSrcPath, mappingsDestPath);
                         foundFile = true;
