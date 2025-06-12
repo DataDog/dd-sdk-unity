@@ -15,7 +15,7 @@ import shutil
 import git
 import github as gh
 
-import update_versions as uv
+import unity_dependencies
 
 REPO_ROOT = "../../"
 PACKAGE_LOCATION = f"{REPO_ROOT}packages/Datadog.Unity"
@@ -76,27 +76,12 @@ def _modify_assembly_info_version(dest: str, version: str):
             else:
                 print(line, end='')
 
-def _update_android_versions(version: str, github_token: str):
-    if version is None:
-        # Need to get the latest version from Github
-        gh_auth = gh.Auth.Token(github_token)
-        github = gh.Github(auth=gh_auth)
-
-        repo = github.get_repo("Datadog/dd-sdk-android")
-        release = repo.get_latest_release()
-        version = release.tag_name
-        print(f"Read latest Android SDK release as {version}")
-
-        github.close()
-
-    uv._update_android_version(version)
-
 def _update_native_sdk_versions(version: str, arg_ios_version:str, arg_android_version: str, native_sdk_versions_path: str):
-    ios_version = arg_ios_version or _get_current_ios_version()
-    android_version = arg_android_version or _get_current_android_version()
+    ios_version = arg_ios_version or unity_dependencies.get_current_ios_version()
+    android_version = arg_android_version or unity_dependencies.get_current_android_version()
 
     if not ios_version or not android_version:
-        print(f"Error: Some native versions could not be retrieved, aborting creation of {dest_native_sdk_versions}")
+        print(f"Error: Some native versions could not be retrieved, aborting creation of {native_sdk_versions_path}")
 
     if not os.path.exists(native_sdk_versions_path):
         lines = [
@@ -245,14 +230,14 @@ def main():
     _modify_assembly_info_version(PACKAGE_LOCATION, version)
     if args.ios_version:
         print(f'Updating iOS to version {args.ios_version} and rebuilding.')
-        uv._update_ios_version(args.ios_version)
+        unity_dependencies.update_ios_version(args.ios_version)
     if args.android_version:
         print(f'Updating Android to version {args.android_version} and rebuilding.')
-        _update_android_versions(args.android_version, github_token)
+        unity_dependencies.update_android_version(args.android_version)
 
     print(f"Updating NATIVE_SDK_VERSIONS.md...")
     dest_native_sdk_versions = os.path.join(REPO_ROOT, 'NATIVE_SDK_VERSIONS.md')
-    _update_native_sdk_versions(version, arg.ios_version, args.android_version, dest_native_sdk_versions)
+    _update_native_sdk_versions(version, args.ios_version, args.android_version, dest_native_sdk_versions)
 
     if not args.no_commit:
         print(f"Tagging source repo with {version}")

@@ -9,7 +9,6 @@
 import fileinput
 import io
 import json
-import selectors
 import subprocess
 from typing import Optional
 
@@ -30,6 +29,7 @@ def _xcrun(*args) -> str:
                                start_new_session=True,
                                universal_newlines=True)
     output = io.StringIO()
+    assert process.stdout
     for line in process.stdout:
         output.write(line)
 

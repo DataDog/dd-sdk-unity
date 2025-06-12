@@ -10,9 +10,8 @@ import argparse
 import asyncio
 import os
 import re
-import subprocess
 import time
-from saxonche import PySaxonProcessor
+from saxonche import PySaxonProcessor # type: ignore
 from typing import Optional
 
 UNITY_HUB_PATH = "/Applications/Unity\\ Hub.app/Contents/MacOS/Unity\\ Hub"
@@ -135,7 +134,7 @@ async def get_unity_license() -> Optional[str]:
 
 async def return_unity_license(token: str):
     cmd = f'{get_license_server_path()} --return-floating {token}'
-    process = await asyncio.create_subprocess_shell (cmd, env=env, stdout=asyncio.subprocess.STDOUT)
+    process = await asyncio.create_subprocess_shell (cmd, stdout=asyncio.subprocess.STDOUT)
 
     return_code = await process.wait()
 
