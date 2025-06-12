@@ -74,6 +74,7 @@ async def main():
 
     # Find the IP address we started on
     local_server_address = None
+    assert mock_server.stdout
     for line in iter(mock_server.stdout.readline, ''):
         print(f'[mock_server] {line}', end='')
         if line.strip().startswith("* Running on"):

@@ -4,3 +4,4 @@ __pycache__/
 .schemas/
 
 venv/
+.mypy_cache/

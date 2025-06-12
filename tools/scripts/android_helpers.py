@@ -8,7 +8,6 @@
 
 import datetime
 import io
-import json
 import os
 import re
 import subprocess
@@ -41,6 +40,7 @@ def _run(args: list[str], write_std_out: bool = False) -> str:
                                start_new_session=True,
                                universal_newlines=True)
     output = io.StringIO()
+    assert process.stdout
     for line in process.stdout:
         if write_std_out:
             print(line)
@@ -123,11 +123,12 @@ def launch_android_emulator(api_level: Optional[str], emulator_name: Optional[st
     elif api_level is not None:
         emulator_name = f"ci_emu_api_{api_level}"
         need_emulator_create = not _emulator_exists(emulator_name)
+    assert emulator_name is not None
 
     if need_emulator_create:
         package = f"system-images;android-{api_level};{AVD_TAG};{AVD_ABI}"
         if should_update:
-            print("Updating emlators with sdkmanager")
+            print("Updating emulators with sdkmanager")
             # TODO: pipe in "Yes"
             _run([_get_sdk_manager(), "--verbose", "emulator"], True)
 
