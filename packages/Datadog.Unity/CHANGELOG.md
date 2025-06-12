@@ -2,9 +2,27 @@
 
 ## Unreleased
 
+* Fix compatibility issues (crash) with Unity 6.
+* Support Unity 2021 in `DatadogTrackedWebRequest`.
 * BREAKING: Send automatically captured errors to RUM instead of Logs.
 * Removed snapshot repository in released Android dependencies file.
 * Add `null` checking and warning logs in worker proxies to surface potential issues closer to the call site.
+* Initial version of WebGl support.
+* Updated iOS SDK to 2.28.1
+  * Fix race condition during consent change, preventing loss of events recorded on the current thread.
+  * Fix sporadic file overwrite during consent change, ensuring event data integrity.
+  * Add addAttributes and removeAttributes APIs.
+  * Fix Fatal App Hang Duplicates.
+  * Improve feature-to-feature communication performances.
+  * Increase RUM batch maximum age to 24hrs.
+* Updated Android SDK to 2.22.0
+  * Send retry information into RUM data upload requests.
+  * Use Java 11 bytecode for public modules.
+  * Add warning log when initializing the SDK outside of the main process.
+  * Update Gradle to version 8.10.2
+  * Update AGP to version 8.8.2.
+  * Improvements to the upload mechanism.
+  * Make SDK support 16Kb page sizes.
 
 ## 1.3.0
 
