@@ -11,7 +11,7 @@
 * Updated iOS SDK to 2.28.1
   * Fix race condition during consent change, preventing loss of events recorded on the current thread.
   * Fix sporadic file overwrite during consent change, ensuring event data integrity.
-  * Add addAttributes and removeAttributes APIs.
+  * Add `addAttributes` and `removeAttributes` APIs.
   * Fix Fatal App Hang Duplicates.
   * Improve feature-to-feature communication performances.
   * Increase RUM batch maximum age to 24hrs.
