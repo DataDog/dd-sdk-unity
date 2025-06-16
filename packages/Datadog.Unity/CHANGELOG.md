@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.4.0
 
 * Fix compatibility issues (crash) with Unity 6.
 * Support Unity 2021 in `DatadogTrackedWebRequest`.
