@@ -167,19 +167,26 @@ namespace Datadog.Unity.Rum
 
         public UnityWebRequestAsyncOperation SendWebRequest()
         {
+            // Determine if the request we're about to send should have tracing headers injected
             var trackingHelper = DatadogSdk.Instance.ResourceTrackingHelper;
-            var tracingHeaders = trackingHelper?.HeaderTypesForHost(_innerRequest.uri) ?? TracingHeaderType.None;
-            var rumKey = Guid.NewGuid().ToString();
-            var attributes = new Dictionary<string, object>();
+            var tracingHeaderType = trackingHelper?.HeaderTypesForHost(_innerRequest.uri) ?? TracingHeaderType.None;
 
+            // Generate a RUM key, i.e. a globally unique value to identify this request as a "resource" in RUM:
+            // so long as this value is non-null, our request corresponds to a RUM resource and should be tracked
+            // as such
+            var rumKey = Guid.NewGuid().ToString();
+
+            // Preprocess the request before sending it, handling errors gracefully
+            var attributes = new Dictionary<string, object>();
             try
             {
-                if (tracingHeaders != TracingHeaderType.None)
+                // Inject tracing headers into the underlying HTTP request if needed
+                if (tracingHeaderType != TracingHeaderType.None)
                 {
                     var context = trackingHelper.GenerateTraceContext();
                     trackingHelper.GenerateDatadogAttributes(context, attributes);
                     var headers = new Dictionary<string, string>();
-                    trackingHelper.GenerateTracingHeaders(context, tracingHeaders, trackingHelper.TraceContextInjection, headers);
+                    trackingHelper.GenerateTracingHeaders(context, tracingHeaderType, trackingHelper.TraceContextInjection, headers);
 
                     foreach (var header in headers)
                     {
@@ -187,6 +194,7 @@ namespace Datadog.Unity.Rum
                     }
                 }
 
+                // Begin a RUM "resource" to track this request in the context of the current RUM view
                 DatadogSdk.Instance.Rum.StartResource(
                     rumKey,
                     EnumHelpers.HttpMethodFromString(_innerRequest.method),
@@ -195,13 +203,17 @@ namespace Datadog.Unity.Rum
             }
             catch (Exception e)
             {
+                // If we failed to start a RUM resource, clear the RUM key to abort any further tracking
                 DatadogSdk.Instance.InternalLogger?.TelemetryError("Error starting RUM resource.", e);
                 rumKey = null;
             }
 
+            // Use Unity's implementation to send the underlying HTTP request, register our own on-complete
+            // callback, and return the resulting AsyncOperation to the caller
             var operation = _innerRequest.SendWebRequest();
             operation.completed += (op) =>
             {
+                // If we started a RUM resource for this request, attempt to record that it's now stopped
                 if (rumKey != null)
                 {
                     try
@@ -210,8 +222,8 @@ namespace Datadog.Unity.Rum
                         {
                             case UnityWebRequest.Result.Success:
                             case UnityWebRequest.Result.ProtocolError:
-                                // Protocol errors include successful calls that return error codes, so they're
-                                // put as part of a "successful" resource call
+                                // ProtocolError indicates a valid response with an error-level HTTP status code:
+                                // we consider a RUM resource completed successfully as long as it got a valid response
                                 var contentType = GetResponseHeader("content-type");
                                 DatadogSdk.Instance.Rum.StopResource(
                                     rumKey,
@@ -221,6 +233,7 @@ namespace Datadog.Unity.Rum
                                 break;
                             case UnityWebRequest.Result.ConnectionError:
                             case UnityWebRequest.Result.DataProcessingError:
+                                // We did not get a valid response; stop the resource and record error details
                                 DatadogSdk.Instance.Rum.StopResourceWithError(rumKey, result.ToString(), error);
                                 break;
                             default:
@@ -229,14 +242,16 @@ namespace Datadog.Unity.Rum
                                 break;
                         }
                     }
-                    catch (NullReferenceException e)
+                    catch (NullReferenceException)
                     {
-                        // This webrequest was disposed before the operation completed. This is not a telemetry
-                        // error, but we should stop the resource.
-                        DatadogSdk.Instance.Rum.StopResourceWithError(rumKey, "RequestDisposed", error);
+                        // If any attempt to access underlying request state resulted in NullReferenceException, it's
+                        // likely that this request was disposed before the operation completed: this is not a
+                        // telemetry error, but we should stop the resource
+                        DatadogSdk.Instance.Rum.StopResourceWithError(rumKey, "RequestDisposed", "Web request was disposed before the operation completed.");
                     }
                     catch (Exception e)
                     {
+                        // Any other unhandled error should be reported as an internal telemetry error
                         DatadogSdk.Instance.InternalLogger?.TelemetryError("Error stopping RUM resource.", e);
                     }
                 }
