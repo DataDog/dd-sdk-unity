@@ -25,6 +25,8 @@ namespace Datadog.Unity
         Us1Fed,
         [InspectorName("ap1")]
         Ap1,
+        [InspectorName("ap2")]
+        Ap2,
     }
 
     /// <summary>

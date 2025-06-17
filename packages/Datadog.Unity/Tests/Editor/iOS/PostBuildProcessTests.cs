@@ -157,6 +157,7 @@ namespace Datadog.Unity.Editor.iOS
         [TestCase(DatadogSite.Us3, ".us3")]
         [TestCase(DatadogSite.Us5, ".us5")]
         [TestCase(DatadogSite.Ap1, ".ap1")]
+        [TestCase(DatadogSite.Ap2, ".ap2")]
         [TestCase(DatadogSite.Eu1, ".eu1")]
         [TestCase(DatadogSite.Us1Fed, ".us1_fed")]
         public void GenerationOptionsFileWritesSite(DatadogSite site, string expectedSite)
