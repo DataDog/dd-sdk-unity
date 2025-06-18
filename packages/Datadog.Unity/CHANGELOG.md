@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-* Fixed a bug that could cause a NullReferenceException when a `DatadogTrackedWebRequest` was canceled.
+* Fixed a bug that could cause a `NullReferenceException` when a `DatadogTrackedWebRequest` was canceled.
 
 ## 1.4.0
 
