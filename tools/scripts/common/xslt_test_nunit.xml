@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="58" result="Failed(Child)" total="58" passed="56" failed="2" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.24846">
+  <test-suite type="TestSuite" id="1081" name="Datadog Sample" fullname="Datadog Sample" runstate="Runnable" testcasecount="58" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.248460" total="58" passed="56" failed="2" inconclusive="0" skipped="0" asserts="0">
+    <properties />
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1152" name="com.datadoghq.unity.editor.tests.dll" fullname="/Users/alex.forsythe/go/src/github.com/DataDog/dd-sdk-unity/samples/Datadog Sample/Library/ScriptAssemblies/com.datadoghq.unity.editor.tests.dll" runstate="Runnable" testcasecount="58" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.241753" total="58" passed="56" failed="2" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="7586" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1153" name="Datadog" fullname="Datadog" runstate="Runnable" testcasecount="58" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.240181" total="58" passed="56" failed="2" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1154" name="Unity" fullname="Datadog.Unity" runstate="Runnable" testcasecount="58" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.236667" total="58" passed="56" failed="2" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1155" name="Editor" fullname="Datadog.Unity.Editor" runstate="Runnable" testcasecount="58" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.232804" total="58" passed="56" failed="2" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestSuite" id="1156" name="iOS" fullname="Datadog.Unity.Editor.iOS" runstate="Runnable" testcasecount="45" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.072164" total="45" passed="45" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1082" name="PostBuildProcessTests" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="45" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.068056" total="45" passed="45" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1134" name="AddInitializationToMainAddsDatadogBlocks" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.AddInitializationToMainAddsDatadogBlocks" methodname="AddInitializationToMainAddsDatadogBlocks" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="54183738" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.007473" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1127" name="ConfigWritesSdkVersion" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.ConfigWritesSdkVersion" methodname="ConfigWritesSdkVersion" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1670000180" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.003942" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+Datadog SDK is running in Editor mode. No data will be sent to Datadog.
+]]></output>
+                </test-case>
+                <test-case id="1126" name="GeneratedBuildIdWritesBuildId" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GeneratedBuildIdWritesBuildId" methodname="GeneratedBuildIdWritesBuildId" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="670351477" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001283" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1130" name="GenerateOptionsFileAddsService" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileAddsService" methodname="GenerateOptionsFileAddsService" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1997156021" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001226" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1083" name="GenerateOptionsFileCreatesFile" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileCreatesFile" methodname="GenerateOptionsFileCreatesFile" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1539760708" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000909" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1110" name="GenerateOptionsFileDoesNotWriteCrashReportingIfDisabled" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileDoesNotWriteCrashReportingIfDisabled" methodname="GenerateOptionsFileDoesNotWriteCrashReportingIfDisabled" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1252892800" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001223" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1129" name="GenerateOptionsFileDoesNotWriteEmptyService" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileDoesNotWriteEmptyService" methodname="GenerateOptionsFileDoesNotWriteEmptyService" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1626652347" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001035" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1116" name="GenerateOptionsFileRemovesVitalsUpdateFrequencyWhenNone" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileRemovesVitalsUpdateFrequencyWhenNone" methodname="GenerateOptionsFileRemovesVitalsUpdateFrequencyWhenNone" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="667611729" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001167" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1084" name="GenerateOptionsFileWritesAutoGenerationWarning" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesAutoGenerationWarning" methodname="GenerateOptionsFileWritesAutoGenerationWarning" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="294869760" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000913" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1111" name="GenerateOptionsFileWritesCrashReportingIfEnabled" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesCrashReportingIfEnabled" methodname="GenerateOptionsFileWritesCrashReportingIfEnabled" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="460228481" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001100" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1085" name="GenerateOptionsFileWritesCustomSource" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesCustomSource" methodname="GenerateOptionsFileWritesCustomSource" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="471410021" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001056" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1128" name="GenerateOptionsFileWritesDefaultEnv" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesDefaultEnv" methodname="GenerateOptionsFileWritesDefaultEnv" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1185557514" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001083" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1131" name="GenerateOptionsFileWritesEnvFromOptions" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesEnvFromOptions" methodname="GenerateOptionsFileWritesEnvFromOptions" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1313938087" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001024" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1132" name="GenerateOptionsFileWritesNilThresholdWhenNotTrackAppHangs" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesNilThresholdWhenNotTrackAppHangs" methodname="GenerateOptionsFileWritesNilThresholdWhenNotTrackAppHangs" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="341972205" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001040" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-suite type="ParameterizedMethod" id="1115" name="GenerateOptionsFileWritesSessionSampleRate" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesSessionSampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.004314" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1112" name="GenerateOptionsFileWritesSessionSampleRate(0.0f)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesSessionSampleRate(0.0f)" methodname="GenerateOptionsFileWritesSessionSampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="2023239074" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001203" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1113" name="GenerateOptionsFileWritesSessionSampleRate(84.0f)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesSessionSampleRate(84.0f)" methodname="GenerateOptionsFileWritesSessionSampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="736513288" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001028" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1114" name="GenerateOptionsFileWritesSessionSampleRate(100.0f)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesSessionSampleRate(100.0f)" methodname="GenerateOptionsFileWritesSessionSampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="420401482" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000993" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-suite type="ParameterizedMethod" id="1124" name="GenerateOptionsFileWritesTelemetrySampleRate" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesTelemetrySampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.003542" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1121" name="GenerateOptionsFileWritesTelemetrySampleRate(0.0f)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesTelemetrySampleRate(0.0f)" methodname="GenerateOptionsFileWritesTelemetrySampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="254939882" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001093" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1122" name="GenerateOptionsFileWritesTelemetrySampleRate(12.0f)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesTelemetrySampleRate(12.0f)" methodname="GenerateOptionsFileWritesTelemetrySampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1781928515" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000978" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1123" name="GenerateOptionsFileWritesTelemetrySampleRate(100.0f)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesTelemetrySampleRate(100.0f)" methodname="GenerateOptionsFileWritesTelemetrySampleRate" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="469335117" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001036" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-case id="1133" name="GenerateOptionsFileWritesThresholdWhenTrackAppHangs" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerateOptionsFileWritesThresholdWhenTrackAppHangs" methodname="GenerateOptionsFileWritesThresholdWhenTrackAppHangs" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="2126747158" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001009" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-suite type="ParameterizedMethod" id="1102" name="GenerationOptionsFileWritesBatchProcessingLevel" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchProcessingLevel" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.003705" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1099" name="GenerationOptionsFileWritesBatchProcessingLevel(Low,&quot;.low&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchProcessingLevel(Low,&quot;.low&quot;)" methodname="GenerationOptionsFileWritesBatchProcessingLevel" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1928315140" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001282" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1100" name="GenerationOptionsFileWritesBatchProcessingLevel(Medium,&quot;.medium&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchProcessingLevel(Medium,&quot;.medium&quot;)" methodname="GenerationOptionsFileWritesBatchProcessingLevel" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1621828895" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001009" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1101" name="GenerationOptionsFileWritesBatchProcessingLevel(High,&quot;.high&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchProcessingLevel(High,&quot;.high&quot;)" methodname="GenerationOptionsFileWritesBatchProcessingLevel" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1558893620" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001007" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-suite type="ParameterizedMethod" id="1094" name="GenerationOptionsFileWritesBatchSize" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchSize" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.003493" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1091" name="GenerationOptionsFileWritesBatchSize(Small,&quot;.small&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchSize(Small,&quot;.small&quot;)" methodname="GenerationOptionsFileWritesBatchSize" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1454100502" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001160" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1092" name="GenerationOptionsFileWritesBatchSize(Medium,&quot;.medium&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchSize(Medium,&quot;.medium&quot;)" methodname="GenerationOptionsFileWritesBatchSize" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="2036978006" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001014" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1093" name="GenerationOptionsFileWritesBatchSize(Large,&quot;.large&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesBatchSize(Large,&quot;.large&quot;)" methodname="GenerationOptionsFileWritesBatchSize" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1113143479" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000918" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-suite type="ParameterizedMethod" id="1090" name="GenerationOptionsFileWritesSdkVerbosity" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSdkVerbosity" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.004311" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1086" name="GenerationOptionsFileWritesSdkVerbosity(Debug,&quot;.debug&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSdkVerbosity(Debug,&quot;.debug&quot;)" methodname="GenerationOptionsFileWritesSdkVerbosity" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1176729177" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001039" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1087" name="GenerationOptionsFileWritesSdkVerbosity(Warn,&quot;.warn&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSdkVerbosity(Warn,&quot;.warn&quot;)" methodname="GenerationOptionsFileWritesSdkVerbosity" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1390903341" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000914" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1088" name="GenerationOptionsFileWritesSdkVerbosity(Error,&quot;.error&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSdkVerbosity(Error,&quot;.error&quot;)" methodname="GenerationOptionsFileWritesSdkVerbosity" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1519691605" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000938" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1089" name="GenerationOptionsFileWritesSdkVerbosity(Critical,&quot;.critical&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSdkVerbosity(Critical,&quot;.critical&quot;)" methodname="GenerationOptionsFileWritesSdkVerbosity" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="540805416" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000942" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-suite type="ParameterizedMethod" id="1109" name="GenerationOptionsFileWritesSite" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.006839" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1103" name="GenerationOptionsFileWritesSite(Us1,&quot;.us1&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite(Us1,&quot;.us1&quot;)" methodname="GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="2119616150" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001070" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1104" name="GenerationOptionsFileWritesSite(Us3,&quot;.us3&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite(Us3,&quot;.us3&quot;)" methodname="GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="396044798" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001065" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1105" name="GenerationOptionsFileWritesSite(Us5,&quot;.us5&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite(Us5,&quot;.us5&quot;)" methodname="GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="254799720" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001125" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1106" name="GenerationOptionsFileWritesSite(Ap1,&quot;.ap1&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite(Ap1,&quot;.ap1&quot;)" methodname="GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="641447367" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000976" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1107" name="GenerationOptionsFileWritesSite(Eu1,&quot;.eu1&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite(Eu1,&quot;.eu1&quot;)" methodname="GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1296454413" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000997" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1108" name="GenerationOptionsFileWritesSite(Us1Fed,&quot;.us1_fed&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesSite(Us1Fed,&quot;.us1_fed&quot;)" methodname="GenerationOptionsFileWritesSite" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1271339721" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000985" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-suite type="ParameterizedMethod" id="1098" name="GenerationOptionsFileWritesUploadFrequency" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesUploadFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.003467" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1095" name="GenerationOptionsFileWritesUploadFrequency(Rare,&quot;.rare&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesUploadFrequency(Rare,&quot;.rare&quot;)" methodname="GenerationOptionsFileWritesUploadFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="2070784144" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001122" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1096" name="GenerationOptionsFileWritesUploadFrequency(Average,&quot;.average&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesUploadFrequency(Average,&quot;.average&quot;)" methodname="GenerationOptionsFileWritesUploadFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="690477010" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000934" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1097" name="GenerationOptionsFileWritesUploadFrequency(Frequent,&quot;.frequent&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesUploadFrequency(Frequent,&quot;.frequent&quot;)" methodname="GenerationOptionsFileWritesUploadFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1350261788" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000970" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-suite type="ParameterizedMethod" id="1120" name="GenerationOptionsFileWritesVitalUpdateFrequency" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesVitalUpdateFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.003701" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1117" name="GenerationOptionsFileWritesVitalUpdateFrequency(Rare,&quot;.rare&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesVitalUpdateFrequency(Rare,&quot;.rare&quot;)" methodname="GenerationOptionsFileWritesVitalUpdateFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="354290332" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001280" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1118" name="GenerationOptionsFileWritesVitalUpdateFrequency(Average,&quot;.average&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesVitalUpdateFrequency(Average,&quot;.average&quot;)" methodname="GenerationOptionsFileWritesVitalUpdateFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1477544311" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001076" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                  <test-case id="1119" name="GenerationOptionsFileWritesVitalUpdateFrequency(Frequent,&quot;.frequent&quot;)" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.GenerationOptionsFileWritesVitalUpdateFrequency(Frequent,&quot;.frequent&quot;)" methodname="GenerationOptionsFileWritesVitalUpdateFrequency" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1172063278" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000957" asserts="0">
+                    <properties />
+                    <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-case id="1125" name="MissingBuildIdDoesNotWriteBuildId" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.MissingBuildIdDoesNotWriteBuildId" methodname="MissingBuildIdDoesNotWriteBuildId" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="234277366" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001104" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+                <test-case id="1135" name="RemoveDatadogBlocksRemovesDatadogBlocks" fullname="Datadog.Unity.Editor.iOS.PostBuildProcessTests.RemoveDatadogBlocksRemovesDatadogBlocks" methodname="RemoveDatadogBlocksRemovesDatadogBlocks" classname="Datadog.Unity.Editor.iOS.PostBuildProcessTests" runstate="Runnable" seed="1946103031" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.001147" asserts="0">
+                  <properties />
+                  <output><![CDATA[Datadog.Unity.DatadogConfigurationOptions must be instantiated using the ScriptableObject.CreateInstance method instead of new DatadogConfigurationOptions.
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1157" name="Tests" fullname="Datadog.Unity.Editor.Tests" runstate="Runnable" testcasecount="13" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.156721" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-suite type="TestFixture" id="1136" name="DatadogConfigurationOptionsTests" fullname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests" classname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.111242" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1137" name="GetOrCreateCreatesAssetCreatesAsset" fullname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests.GetOrCreateCreatesAssetCreatesAsset" methodname="GetOrCreateCreatesAssetCreatesAsset" classname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests" runstate="Runnable" seed="1238239551" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.066775" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1138" name="GetOrCreateCreatesAssetCreatesOptionsWithProperDefaults" fullname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests.GetOrCreateCreatesAssetCreatesOptionsWithProperDefaults" methodname="GetOrCreateCreatesAssetCreatesOptionsWithProperDefaults" classname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests" runstate="Runnable" seed="912222874" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.040681" asserts="0">
+                  <properties />
+                </test-case>
+              </test-suite>
+              <test-suite type="TestFixture" id="1139" name="SymbolAssemblyBuildProcessTest" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" testcasecount="11" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.045071" total="11" passed="9" failed="2" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-suite type="ParameterizedMethod" id="1151" name="AndroidCopyMappingCopiesFileIfExists" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingCopiesFileIfExists" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" testcasecount="2" result="Failed" site="Child" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.042326" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <failure>
+                    <message><![CDATA[One or more child tests had errors]]></message>
+                  </failure>
+                  <test-case id="1149" name="AndroidCopyMappingCopiesFileIfExists(&quot;../../IL2CppBackup/il2cppOutput/Symbols/LineNumberMappings.json&quot;)" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingCopiesFileIfExists(&quot;../../IL2CppBackup/il2cppOutput/Symbols/LineNumberMappings.json&quot;)" methodname="AndroidCopyMappingCopiesFileIfExists" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="877154562" result="Failed" label="Error" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.038097" asserts="0">
+                    <properties />
+                    <failure>
+                      <message><![CDATA[NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 1 call matching:
+	CopyFile("fake-output-path/../../IL2CppBackup/il2cppOutput/Symbols/LineNumberMappings.json", "fake-output-path/symbols")
+Actually received no matching calls.
+Received 1 non-matching call (non-matching arguments indicated with '*' characters):
+	CopyFile("fake-output-path/../../IL2CppBackup/il2cppOutput/Symbols/LineNumberMappings.json", *"fake-output-path/LineNumberMappings.json"*)
+]]></message>
+                      <stack-trace><![CDATA[  at NSubstitute.Core.ReceivedCallsExceptionThrower.Throw (NSubstitute.Core.ICallSpecification callSpecification, System.Collections.Generic.IEnumerable`1[T] matchingCalls, System.Collections.Generic.IEnumerable`1[T] nonMatchingCalls, NSubstitute.ReceivedExtensions.Quantity requiredQuantity) [0x00050] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Routing.Handlers.CheckReceivedCallsHandler.Handle (NSubstitute.Core.ICall call) [0x00078] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Routing.Route.Handle (NSubstitute.Core.ICall call) [0x00004] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Core.CallRouter.Route (NSubstitute.Core.ICall call) [0x0003b] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Proxies.CastleDynamicProxy.CastleForwardingInterceptor.Intercept (Castle.DynamicProxy.IInvocation invocation) [0x00015] in <8379d918a907432cbb693898f808d1e5>:0 
+  at Castle.DynamicProxy.AbstractInvocation.Proceed () [0x00050] in <0d93ab715f134d928e283c11b7beac2b>:0 
+  at NSubstitute.Proxies.CastleDynamicProxy.ProxyIdInterceptor.Intercept (Castle.DynamicProxy.IInvocation invocation) [0x0002e] in <8379d918a907432cbb693898f808d1e5>:0 
+  at Castle.DynamicProxy.AbstractInvocation.Proceed () [0x00050] in <0d93ab715f134d928e283c11b7beac2b>:0 
+  at Castle.Proxies.ObjectProxy.CopyFile (System.String sourcePath, System.String destinationPath) [0x0002f] in <8fdcec3b7b1d4f06bb7e1d2109c33da9>:0 
+  at Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingCopiesFileIfExists (System.String possiblePath) [0x0006d] in /Users/alex.forsythe/go/src/github.com/DataDog/dd-sdk-unity/packages/Datadog.Unity/Tests/Editor/SymbolAssemblyBuildProcessTest.cs:190 
+  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
+  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <282eeebba207477aa66099b3bea7484e>:0 ]]></stack-trace>
+                    </failure>
+                    <output><![CDATA[Copying IL2CPP mappings file...
+]]></output>
+                  </test-case>
+                  <test-case id="1150" name="AndroidCopyMappingCopiesFileIfExists(&quot;src/main/il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json&quot;)" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingCopiesFileIfExists(&quot;src/main/il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json&quot;)" methodname="AndroidCopyMappingCopiesFileIfExists" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="1948008342" result="Failed" label="Error" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000662" asserts="0">
+                    <properties />
+                    <failure>
+                      <message><![CDATA[NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 1 call matching:
+	CopyFile("fake-output-path/src/main/il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json", "fake-output-path/symbols")
+Actually received no matching calls.
+Received 1 non-matching call (non-matching arguments indicated with '*' characters):
+	CopyFile("fake-output-path/src/main/il2CppOutputProject/Source/il2cppOutput/Symbols/LineNumberMappings.json", *"fake-output-path/LineNumberMappings.json"*)
+]]></message>
+                      <stack-trace><![CDATA[  at NSubstitute.Core.ReceivedCallsExceptionThrower.Throw (NSubstitute.Core.ICallSpecification callSpecification, System.Collections.Generic.IEnumerable`1[T] matchingCalls, System.Collections.Generic.IEnumerable`1[T] nonMatchingCalls, NSubstitute.ReceivedExtensions.Quantity requiredQuantity) [0x00050] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Routing.Handlers.CheckReceivedCallsHandler.Handle (NSubstitute.Core.ICall call) [0x00078] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Routing.Route.Handle (NSubstitute.Core.ICall call) [0x00004] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Core.CallRouter.Route (NSubstitute.Core.ICall call) [0x0003b] in <8379d918a907432cbb693898f808d1e5>:0 
+  at NSubstitute.Proxies.CastleDynamicProxy.CastleForwardingInterceptor.Intercept (Castle.DynamicProxy.IInvocation invocation) [0x00015] in <8379d918a907432cbb693898f808d1e5>:0 
+  at Castle.DynamicProxy.AbstractInvocation.Proceed () [0x00050] in <0d93ab715f134d928e283c11b7beac2b>:0 
+  at NSubstitute.Proxies.CastleDynamicProxy.ProxyIdInterceptor.Intercept (Castle.DynamicProxy.IInvocation invocation) [0x0002e] in <8379d918a907432cbb693898f808d1e5>:0 
+  at Castle.DynamicProxy.AbstractInvocation.Proceed () [0x00050] in <0d93ab715f134d928e283c11b7beac2b>:0 
+  at Castle.Proxies.ObjectProxy.CopyFile (System.String sourcePath, System.String destinationPath) [0x0002f] in <8fdcec3b7b1d4f06bb7e1d2109c33da9>:0 
+  at Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingCopiesFileIfExists (System.String possiblePath) [0x0006d] in /Users/alex.forsythe/go/src/github.com/DataDog/dd-sdk-unity/packages/Datadog.Unity/Tests/Editor/SymbolAssemblyBuildProcessTest.cs:190 
+  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
+  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <282eeebba207477aa66099b3bea7484e>:0 ]]></stack-trace>
+                    </failure>
+                    <output><![CDATA[Copying IL2CPP mappings file...
+]]></output>
+                  </test-case>
+                </test-suite>
+                <test-case id="1148" name="AndroidCopyMappingDoesNothingWithCopySymbolsDisabled" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingDoesNothingWithCopySymbolsDisabled" methodname="AndroidCopyMappingDoesNothingWithCopySymbolsDisabled" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="358080236" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000223" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1147" name="AndroidCopyMappingDoesNothingWithDatadogDisabled" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.AndroidCopyMappingDoesNothingWithDatadogDisabled" methodname="AndroidCopyMappingDoesNothingWithDatadogDisabled" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="1072962668" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000072" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1145" name="CopiesIL2CPPFileToOutputPathWhenIos" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.CopiesIL2CPPFileToOutputPathWhenIos" methodname="CopiesIL2CPPFileToOutputPathWhenIos" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="1820027077" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000493" asserts="0">
+                  <properties />
+                  <output><![CDATA[Copying IL2CPP mappings file...
+]]></output>
+                </test-case>
+                <test-case id="1146" name="CopySymbolsDoesNothingForAndroid" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.CopySymbolsDoesNothingForAndroid" methodname="CopySymbolsDoesNothingForAndroid" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="403209288" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000087" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1140" name="DoesNothingWithDatadogDisabled" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.DoesNothingWithDatadogDisabled" methodname="DoesNothingWithDatadogDisabled" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="1065818077" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000075" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1141" name="DoesNothingWithOutputSymbolsDisabled" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.DoesNothingWithOutputSymbolsDisabled" methodname="DoesNothingWithOutputSymbolsDisabled" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="142319146" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000068" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1144" name="WritesGuidToAndroidBuildWhenAndroid" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.WritesGuidToAndroidBuildWhenAndroid" methodname="WritesGuidToAndroidBuildWhenAndroid" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="1001858844" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000275" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1143" name="WritesGuidToSymbolsPathWhenAndroid" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.WritesGuidToSymbolsPathWhenAndroid" methodname="WritesGuidToSymbolsPathWhenAndroid" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="613121290" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000114" asserts="0">
+                  <properties />
+                </test-case>
+                <test-case id="1142" name="WritesGuidToSymbolsPathWhenIos" fullname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest.WritesGuidToSymbolsPathWhenIos" methodname="WritesGuidToSymbolsPathWhenIos" classname="Datadog.Unity.Editor.Tests.SymbolAssemblyBuildProcessTest" runstate="Runnable" seed="935113663" result="Passed" start-time="2025-06-20 13:09:22Z" end-time="2025-06-20 13:09:22Z" duration="0.000111" asserts="0">
+                  <properties />
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

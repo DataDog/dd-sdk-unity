@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -e
+REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+
+SCRIPTS_ROOT="$REPO_ROOT/tools/scripts"
+SCRIPTS_VENV="$SCRIPTS_ROOT/venv"
+
+if [ ! -d "$SCRIPTS_VENV" ]; then
+    python3 -m venv "$SCRIPTS_VENV"
+    "$SCRIPTS_VENV/bin/pip" install -r "$SCRIPTS_ROOT/requirements.txt"
+fi
+
+SCRIPT_NAME="$1"
+if [ "$SCRIPT_NAME" == "" ]; then
+    echo "venv initialized: $SCRIPTS_VENV"
+    exit 0
+fi
+
+shift
+"$SCRIPTS_VENV/bin/python" "$SCRIPTS_ROOT/$SCRIPT_NAME.py" "$@"
