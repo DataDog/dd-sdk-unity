@@ -60,9 +60,9 @@ namespace Datadog.Unity.Logs
 
             public Dictionary<string, object> Attributes { get; private set; }
 
-            public Exception Error { get; private set; }
+            public ErrorInfo Error { get; private set; }
 
-            public static LogMessage Create(DdLogger logger, DdLogLevel level, string message, Dictionary<string, object> attributes, Exception error)
+            public static LogMessage Create(DdLogger logger, DdLogLevel level, string message, Dictionary<string, object> attributes, ErrorInfo error)
             {
                 var obj = _pool.Get();
                 obj.Logger = logger;

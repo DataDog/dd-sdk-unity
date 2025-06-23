@@ -132,7 +132,7 @@ namespace Datadog.Unity.Tests
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                    Arg.Any<ErrorInfo>());
             }).Do(_ => throw new Exception());
 
             // When
@@ -206,7 +206,7 @@ namespace Datadog.Unity.Tests
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                    Arg.Any<ErrorInfo>());
             }).Do(_ => throw new Exception());
 
             // When
@@ -232,7 +232,7 @@ namespace Datadog.Unity.Tests
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                    Arg.Any<ErrorInfo>());
             }).Do(_ => throw expectedException);
 
             // When
@@ -267,7 +267,7 @@ namespace Datadog.Unity.Tests
                 Arg.Any<DdLogLevel>(),
                 Arg.Any<string>(),
                 Arg.Any<Dictionary<string, object>>(),
-                Arg.Any<Exception>());
+                Arg.Any<ErrorInfo>());
         }
 
         [Test]

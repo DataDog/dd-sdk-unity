@@ -51,7 +51,7 @@ namespace Datadog.Unity.WebGL
         }
 
         internal override void PlatformLog(DdLogLevel level, string message,
-            Dictionary<string, object> attributes = null, Exception error = null)
+            Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
             if (jsonAttributes == string.Empty)
@@ -65,7 +65,7 @@ namespace Datadog.Unity.WebGL
                 _loggerId,
                 message,
                 webLogLevel,
-                error?.GetType().ToString(),
+                error?.Type,
                 error?.Message,
                 error?.StackTrace,
                 jsonAttributes);

@@ -19,8 +19,12 @@ namespace Datadog.Unity
         /// <param name="type">An arbitrary string identifying the kind of error this is; typically the name of an Exception type.</param>
         /// <param name="message">The message accompanying this error.</param>
         /// <param name="stackTrace">The stack trace generated with this error, if any.</param>
-        public ErrorInfo(string type, string message, string stackTrace)
+        public ErrorInfo(string type, string message, string stackTrace = null)
         {
+            // The details of this error were provided by the user; there's no
+            // associated Exception
+            Exception = null;
+
             Type = type;
             Message = message;
             StackTrace = stackTrace;
@@ -33,15 +37,39 @@ namespace Datadog.Unity
         /// <param name="e">The exception to be recorded as an error.</param>
         public ErrorInfo(Exception e)
         {
-            Type = e.GetType().Name;
-            Message = e.Message;
-            StackTrace = e.StackTrace;
+            // Storing a reference to the managed Exception object allows us to
+            // reconstruct a native callstack via il2cpp_native_stack_trace
+            Exception = e;
+
+            // Cache error details pulled from exception, but n.b. these fields may be
+            // left uninitialized if the provided Exception is null
+            if (e != null)
+            {
+                Type = e.GetType().Name;
+                Message = e.Message;
+                StackTrace = e.StackTrace;
+            }
         }
 
+        /// <summary>
+        /// Gets the Exception wrapped by this ErrorInfo, if any. May be null if the
+        /// ErrorInfo was not initialized from an Exception.
+        /// </summary>
+        public Exception Exception { get; }
+
+        /// <summary>
+        /// Gets the type name associated with this error; may be null.
+        /// </summary>
         public string Type { get; }
 
+        /// <summary>
+        /// Gets the message associated with this error; may be null.
+        /// </summary>
         public string Message { get; }
 
+        /// <summary>
+        /// Gets the stack trace accompanying this error, may be null.
+        /// </summary>
         public string StackTrace { get; }
 
         /// <summary>

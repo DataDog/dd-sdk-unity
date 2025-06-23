@@ -25,7 +25,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Debug(string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Debug(string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             Log(DdLogLevel.Debug, message, attributes, error);
         }
@@ -36,7 +36,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Info(string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Info(string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             Log(DdLogLevel.Info, message, attributes, error);
         }
@@ -47,7 +47,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Notice(string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Notice(string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             Log(DdLogLevel.Notice, message, attributes, error);
         }
@@ -58,7 +58,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Warn(string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Warn(string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             Log(DdLogLevel.Warn, message, attributes, error);
         }
@@ -69,7 +69,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Error(string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Error(string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             Log(DdLogLevel.Error, message, attributes, error);
         }
@@ -80,7 +80,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Critical(string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Critical(string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             Log(DdLogLevel.Critical, message, attributes, error);
         }
@@ -91,7 +91,7 @@ namespace Datadog.Unity.Logs
         /// <param name="message">The message to send.</param>
         /// <param name="attributes">Any attributes to attach to this log.</param>
         /// <param name="error">An optional error to associate with this log.</param>
-        public void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        public void Log(DdLogLevel level, string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             InternalHelpers.Wrap("Log", () =>
             {
@@ -155,7 +155,7 @@ namespace Datadog.Unity.Logs
         /// <param name="key">The key for the attribute to remove.</param>
         public abstract void RemoveAttribute(string key);
 
-        internal abstract void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null);
+        internal abstract void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, ErrorInfo error = null);
     }
 
     internal class DdNoOpLogger : DdLogger
@@ -185,7 +185,7 @@ namespace Datadog.Unity.Logs
         {
         }
 
-        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
         }
     }
