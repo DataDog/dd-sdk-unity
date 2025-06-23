@@ -106,7 +106,7 @@ namespace Datadog.Unity.WebGL
             // Browser SDK does not support start / stop action
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             if (error == null)
             {
@@ -120,9 +120,9 @@ namespace Datadog.Unity.WebGL
             }
 
             DDRum_AddError(
-                error.GetType().Name,
-                error.Message,
-                error.StackTrace,
+                error.Type ?? "",
+                error.Message ?? "",
+                error.StackTrace ?? "",
                 attributesJson);
         }
 

@@ -94,7 +94,7 @@ namespace Datadog.Unity.Rum
                 });
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             if (error == null)
             {

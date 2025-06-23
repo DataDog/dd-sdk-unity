@@ -59,12 +59,12 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StopAction(type.ToString(), name, jsonAttributes);
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             string stackTrace = null;
             if (error != null)
             {
-                var nativeStackTrace = _platform.GetNativeStack(error);
+                var nativeStackTrace = error.Exception != null ? _platform.GetNativeStack(error.Exception) : null;
                 if (nativeStackTrace != null)
                 {
                     attributes = attributes == null ? new () : new (attributes);
@@ -74,7 +74,7 @@ namespace Datadog.Unity.iOS
                 }
                 else
                 {
-                    stackTrace = error?.StackTrace ?? string.Empty;
+                    stackTrace = error.StackTrace ?? string.Empty;
                 }
             }
 
@@ -82,8 +82,8 @@ namespace Datadog.Unity.iOS
 
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            var errorType = error?.GetType()?.ToString();
-            var errorMessage = error?.Message;
+            var errorType = error?.Type ?? "";
+            var errorMessage = error?.Message ?? "";
 
             DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
         }

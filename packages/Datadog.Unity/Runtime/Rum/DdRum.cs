@@ -133,7 +133,7 @@ namespace Datadog.Unity.Rum
         /// <param name="error">The exception that occurred.</param>
         /// <param name="source">The source of the error.</param>
         /// <param name="attributes">Any additional attributes to associate with the error.</param>
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null);
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null);
 
         /// <summary>
         /// Notifies that the a Resource identified by <c>key</c> started being loaded from
@@ -229,7 +229,7 @@ namespace Datadog.Unity.Rum
         {
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
         }
 

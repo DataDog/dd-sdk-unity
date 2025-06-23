@@ -99,7 +99,7 @@ namespace Datadog.Unity.Tests
             handler.LogException(exception, context);
 
             // Then
-            rum.Received().AddError(exception, RumErrorSource.Source);
+            rum.Received().AddError(Arg.Is<ErrorInfo>(e => e.Exception == exception), RumErrorSource.Source);
         }
 
         [Test]
@@ -156,7 +156,7 @@ namespace Datadog.Unity.Tests
             rum.When(rum =>
             {
                 rum.AddError(
-                    Arg.Any<Exception>(),
+                    Arg.Any<ErrorInfo>(),
                     RumErrorSource.Source,
                     Arg.Any<Dictionary<string, object>>());
             }).Do(_ => throw expectedException);

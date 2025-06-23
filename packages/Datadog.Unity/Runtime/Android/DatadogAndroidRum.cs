@@ -58,8 +58,9 @@ namespace Datadog.Unity.Android
             _rum.Call("stopAction", javaActionType, name, javaAttributes);
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
+            // TODO: We don't handle error type here; but we could pass it via '_dd.error_type' attribute
             var message = error?.Message;
             var stack = error?.StackTrace;
 

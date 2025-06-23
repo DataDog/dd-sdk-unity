@@ -167,7 +167,7 @@ namespace Datadog.Unity.Rum.Tests
             var rum = new DdWorkerProxyRum(_worker, _mockDateProvider);
             var date = new DateTime(2063, 4, 5, 12, 22, 10, DateTimeKind.Utc);
             Dictionary<string, object> capturedAttributes = null;
-            _mockRum.AddError(Arg.Any<Exception>(), Arg.Any<RumErrorSource>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
+            _mockRum.AddError(Arg.Any<ErrorInfo>(), Arg.Any<RumErrorSource>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
             var exception = new Exception();
@@ -182,7 +182,7 @@ namespace Datadog.Unity.Rum.Tests
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).AddError(exception, RumErrorSource.Custom, Arg.Any<Dictionary<string, object>>());
+            _mockRum.Received(1).AddError(Arg.Is<ErrorInfo>(e => e.Exception == exception), RumErrorSource.Custom, Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
             Assert.AreEqual(222, capturedAttributes["int_attribute_3"]);

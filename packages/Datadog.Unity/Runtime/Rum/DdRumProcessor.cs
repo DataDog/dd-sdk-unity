@@ -301,13 +301,13 @@ namespace Datadog.Unity.Rum
             {
             }
 
-            public Exception Error { get; private set; }
+            public ErrorInfo Error { get; private set; }
 
             public RumErrorSource Source { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
 
-            public static AddErrorMessage Create(DateTime messageTime, Exception error, RumErrorSource source, Dictionary<string, object> attributes)
+            public static AddErrorMessage Create(DateTime messageTime, ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes)
             {
                 var obj = _pool.Get();
                 obj.MessageTime = messageTime;
