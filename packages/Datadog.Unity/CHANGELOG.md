@@ -3,6 +3,9 @@
 ## Unreleased
 
 * Fixed a bug that could cause a `NullReferenceException` when a `DatadogTrackedWebRequest` was canceled.
+* Added support for the `AP2` Datadog site.
+* Updated iOS SDK to 2.29.0.
+* Updated Android SDK to 2.23.0.
 
 ## 1.4.0
 
