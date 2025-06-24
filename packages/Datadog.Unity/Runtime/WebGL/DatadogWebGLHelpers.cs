@@ -16,6 +16,7 @@ namespace Datadog.Unity.WebGL
                 DatadogSite.Eu1 => "datadoghq.eu",
                 DatadogSite.Us1Fed => "ddog-gov.com",
                 DatadogSite.Ap1 => "ap1.datadoghq.com",
+                DatadogSite.Ap2 => "ap2.datadoghq.com",
                 _ => "datadoghq.com"
             };
         }

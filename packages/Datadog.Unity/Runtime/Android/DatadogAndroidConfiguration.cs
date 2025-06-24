@@ -18,6 +18,7 @@ namespace Datadog.Unity.Android
                 DatadogSite.Eu1 => "EU1",
                 DatadogSite.Us1Fed => "US1_FED",
                 DatadogSite.Ap1 => "AP1",
+                DatadogSite.Ap2 => "AP2",
                 _ => "US1",
             };
 

@@ -355,6 +355,7 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
                 DatadogSite.Eu1 => ".eu1",
                 DatadogSite.Us1Fed => ".us1_fed",
                 DatadogSite.Ap1 => ".ap1",
+                DatadogSite.Ap2 => ".ap2",
                 _ => ".us1"
             };
         }
