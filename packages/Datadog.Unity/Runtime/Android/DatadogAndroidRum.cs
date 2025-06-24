@@ -60,7 +60,7 @@ namespace Datadog.Unity.Android
 
         public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            // TODO: We don't handle error type here; but we could pass it via '_dd.error_type' attribute
+            // TODO(RUM-9897): We don't handle error type here; but we could pass it via '_dd.error_type' attribute
             var message = error?.Message;
             var stack = error?.StackTrace;
 
@@ -110,16 +110,19 @@ namespace Datadog.Unity.Android
 
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
         {
-            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
-            var errorSource = GetErrorSource(RumErrorSource.Network);
-            _rum.Call("stopResourceWithError", key, null, errorMessage, errorSource,
-                string.Empty, errorType, javaAttributes);
+            var error = new ErrorInfo(errorType, errorMessage, null);
+            StopResourceWithError(key, error, attributes);
         }
 
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            var message = error.Message;
-            var errorType = error.GetType().ToString();
+            StopResourceWithError(key, error, attributes);
+        }
+
+        public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
+        {
+            var message = error.Message ?? "";
+            var errorType = error.Type ?? "";
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             var errorSource = GetErrorSource(RumErrorSource.Network);
 
