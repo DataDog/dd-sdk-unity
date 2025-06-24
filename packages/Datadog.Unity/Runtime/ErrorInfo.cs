@@ -12,6 +12,9 @@ namespace Datadog.Unity
     /// </summary>
     public class ErrorInfo
     {
+        public const string DefaultErrorType = "UnknownError";
+        public const string DefaultErrorMessage = "No error message was supplied to the Datadog SDK";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorInfo"/> class from the
         /// given error details.
@@ -25,8 +28,8 @@ namespace Datadog.Unity
             // associated Exception
             Exception = null;
 
-            Type = type;
-            Message = message;
+            Type = string.IsNullOrEmpty(type) ? DefaultErrorType : type;
+            Message = string.IsNullOrEmpty(message) ? DefaultErrorMessage : type;
             StackTrace = stackTrace;
         }
 
@@ -41,13 +44,24 @@ namespace Datadog.Unity
             // reconstruct a native callstack via il2cpp_native_stack_trace
             Exception = e;
 
-            // Cache error details pulled from exception, but n.b. these fields may be
-            // left uninitialized if the provided Exception is null
+            // Cache error details pulled from exception
             if (e != null)
             {
                 Type = e.GetType().Name;
                 Message = e.Message;
                 StackTrace = e.StackTrace;
+            }
+
+            // Ensure that we have a valid type and message string, even if we weren't
+            // given a valid Exception
+            if (string.IsNullOrEmpty(Type))
+            {
+                Type = DefaultErrorType;
+            }
+
+            if (string.IsNullOrEmpty(Message))
+            {
+                Message = DefaultErrorMessage;
             }
         }
 
@@ -58,12 +72,14 @@ namespace Datadog.Unity
         public Exception Exception { get; }
 
         /// <summary>
-        /// Gets the type name associated with this error; may be null.
+        /// Gets the type name associated with this error; guaranteed to be non-null
+        /// and non-empty.
         /// </summary>
         public string Type { get; }
 
         /// <summary>
-        /// Gets the message associated with this error; may be null.
+        /// Gets the message associated with this error; guaranteed to be non-null and
+        /// non-empty.
         /// </summary>
         public string Message { get; }
 

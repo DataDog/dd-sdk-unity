@@ -120,9 +120,9 @@ namespace Datadog.Unity.WebGL
             }
 
             DDRum_AddError(
-                error.Type ?? "",
-                error.Message ?? "",
-                error.StackTrace ?? "",
+                error.Type,
+                error.Message,
+                error.StackTrace,
                 attributesJson);
         }
 

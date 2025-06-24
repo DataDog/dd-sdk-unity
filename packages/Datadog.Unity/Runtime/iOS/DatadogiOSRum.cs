@@ -82,8 +82,8 @@ namespace Datadog.Unity.iOS
 
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            var errorType = error?.Type ?? "";
-            var errorMessage = error?.Message ?? "";
+            var errorType = error?.Type;
+            var errorMessage = error?.Message;
 
             DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
         }
@@ -123,8 +123,8 @@ namespace Datadog.Unity.iOS
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            var errorType = error?.Type ?? "";
-            var errorMessage = error?.Message ?? "";
+            var errorType = error?.Type;
+            var errorMessage = error?.Message;
 
             // TODO(RUM-9897): We don't pass a stack trace to dd-sdk-ios at all
             DatadogRumBridge.DatadogRum_StopResourceWithError(key, errorType, errorMessage, jsonAttributes);

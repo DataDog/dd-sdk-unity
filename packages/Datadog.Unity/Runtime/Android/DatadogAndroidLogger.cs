@@ -51,8 +51,8 @@ namespace Datadog.Unity.Android
             string errorStack = null;
             if (error != null)
             {
-                errorKind = error.Type ?? "";
-                errorMessage = error.Message ?? "";
+                errorKind = error.Type;
+                errorMessage = error.Message;
                 var nativeStackTrace = error.Exception != null ? _androidPlatform.GetNativeStack(error.Exception) : null;
                 if (nativeStackTrace != null)
                 {

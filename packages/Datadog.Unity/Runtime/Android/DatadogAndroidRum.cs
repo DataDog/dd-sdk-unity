@@ -121,13 +121,11 @@ namespace Datadog.Unity.Android
 
         public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
         {
-            var message = error.Message ?? "";
-            var errorType = error.Type ?? "";
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             var errorSource = GetErrorSource(RumErrorSource.Network);
 
-            _rum.Call("stopResourceWithError", key, null, message, errorSource,
-                error.StackTrace ?? string.Empty, errorType, javaAttributes);
+            _rum.Call("stopResourceWithError", key, null, error.Message, errorSource,
+                error.StackTrace ?? string.Empty, error.Type, javaAttributes);
         }
 
         public void AddAttribute(string key, object value)
