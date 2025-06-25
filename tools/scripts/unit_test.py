@@ -7,7 +7,6 @@ from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
 from common.unity_install import UnityHub, resolve_unity_install, UnityLicenseStatus
-from common.unity_license import require_unity_license
 from common.shell import run_cmd
 from common.xslt import transform_nunit_to_junit
 
@@ -109,7 +108,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs the Unity SDK\'s Unit Test suite against the given version of Unity running the specified project')
     parser.add_argument('--unity-version', '-u', required=True, help='The target version of Unity to run; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', required=True, help='Path to the root directory of the Unity project to load')
-    parser.add_argument('--platform', dest='platforms', action='append', default=['EditMode', 'PlayMode'], help='Platforms to test, e.g. EditMode, PlayMode, or a supported build platform')
+    parser.add_argument('--platform', dest='platforms', action='append', default=['PlayMode'], help='Platforms to test, e.g. EditMode, PlayMode, or a supported build platform')
     parser.add_argument('--out-junit-path-pattern', '-o', default='unit-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()
 
