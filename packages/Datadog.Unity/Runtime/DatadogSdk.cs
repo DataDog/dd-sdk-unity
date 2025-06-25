@@ -281,16 +281,55 @@ namespace Datadog.Unity
 
         private void EnableRum(DatadogConfigurationOptions options)
         {
-            if (options.RumApplicationId is null or "")
+            // Require an application ID
+            if (string.IsNullOrEmpty(options.RumApplicationId))
             {
                 _internalLogger.Log(DdLogLevel.Error, "Datadog RUM is enabled but an Application ID is not set.");
                 return;
             }
 
+            // Prepare our interface to the platform-specific RUM API, and register it to handle worker messages in a
+            // background thread
             var platformRum = _platform.InitRum(options);
             _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
-            Rum = new DdWorkerProxyRum(_worker);
 
+            // Create our main-thread IDdRum interface, which will enqueue messages for the worker-thread implementation
+            // to handle
+            var rumProxy = new DdWorkerProxyRum(_worker);
+            Rum = rumProxy;
+
+            // If we're configured to send performance metrics, instantiate a helper object that will observe frame
+            // timings from within the Unity scene
+            if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
+            {
+                // Create a persistent GameObject and add the DatadogPerformanceTracker behavior to it
+                var performanceTrackerObject = new GameObject("DatadogPerformanceTracker");
+                var performanceTracker = performanceTrackerObject.AddComponent<DatadogPerformanceTracker>();
+                performanceTrackerObject.hideFlags = HideFlags.HideAndDontSave;
+                UnityEngine.Object.DontDestroyOnLoad(performanceTrackerObject);
+
+                // Determine how often we should read from the PerformanceTracker and pass the latest performance
+                // metrics into the platform SDK
+                float reportIntervalSeconds;
+                switch (options.VitalsUpdateFrequency)
+                {
+                    case VitalsUpdateFrequency.Frequent:
+                        reportIntervalSeconds = 0.1f;
+                        break;
+                    case VitalsUpdateFrequency.Average:
+                        reportIntervalSeconds = 0.5f;
+                        break;
+                    default:
+                        reportIntervalSeconds = 1.0f;
+                        break;
+                }
+
+                // Pass a reference to our performance tracker into the RUM proxy, and configure it to periodically
+                // sample the latest values (on the main thread) and initiate updatePerformanceMetric calls
+                rumProxy.InitPerformanceTracker(performanceTracker, reportIntervalSeconds);
+            }
+
+            // Track scene changes as RUM Views, if configured to do so
             if (options.AutomaticSceneTracking)
             {
                 SceneManager.activeSceneChanged += SceneManagerOnActiveSceneChanged;
