@@ -186,7 +186,7 @@ namespace Datadog.Unity.Editor.Tests
             _process.AndroidCopyMappingFile(options, "fake-output-path");
 
             // Then
-            var expectedPath = Path.Join("fake-output-path", "symbols");
+            var expectedPath = Path.Join("fake-output-path", "symbols", "LineNumberMappings.json");
             _fileSystemProxy.Received(1).CopyFile(testPath, expectedPath);
         }
     }

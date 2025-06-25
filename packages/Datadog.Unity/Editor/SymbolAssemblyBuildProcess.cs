@@ -19,7 +19,6 @@ namespace Datadog.Unity.Editor
     {
         internal const string IosDatadogSymbolsDir = "datadogSymbols";
         internal const string AndroidSymbolsDir = "symbols";
-        internal const string AndroidLineNumberMappingsOutputPath = "symbols";
 
         // Relative to the output directory
         internal const string IosLineNumberMappingsLocation =
@@ -65,46 +64,46 @@ namespace Datadog.Unity.Editor
             AndroidCopyMappingFile(options, path);
         }
 
-        internal void AndroidCopyMappingFile(DatadogConfigurationOptions options, string path)
+        internal void AndroidCopyMappingFile(DatadogConfigurationOptions options, string gradleRoot)
         {
+            // If the project is not configured to output symbols, do nothing
             if (!options.Enabled || !options.OutputSymbols)
             {
                 return;
             }
 
-            bool foundFile = false;
+            // Check all known paths where LineNumberMappings.json might be stored, relative
+            // to the root directory of our gradle project
+            string srcFilePath = null;
+            foreach (var relativePath in AndroidLineNumberMappingsLocations)
+            {
+                var candidateFilePath = Path.Join(gradleRoot, relativePath);
+                if (_fileSystemProxy.FileExists(candidateFilePath))
+                {
+                    srcFilePath = candidateFilePath;
+                    break;
+                }
+            }
+
+            // If we failed to find the file, abort
+            if (string.IsNullOrEmpty(srcFilePath))
+            {
+                Debug.LogWarning("Could not find IL2CPP mappings file.");
+                return;
+            }
+
+            // We've found the file: copy it to our canonical destination path
+            var dstDirPath = Path.Join(gradleRoot, AndroidSymbolsDir);
+            var dstFilePath = Path.Join(dstDirPath, Path.GetFileName(srcFilePath));
             try
             {
-                // Find the line number mapping file and copy it to the proper location
-                // for the Datadog Gradle plugin to find
-                foreach (var mappingLocation in AndroidLineNumberMappingsLocations)
+                if (!_fileSystemProxy.DirectoryExists(dstDirPath))
                 {
-                    var mappingsSrcPath = Path.Join(path, mappingLocation);
-                    if (_fileSystemProxy.FileExists(mappingsSrcPath))
-                    {
-                        var mappingsDestPath = Path.Join(path, AndroidLineNumberMappingsOutputPath);
-                        if (!_fileSystemProxy.DirectoryExists(mappingsDestPath))
-                        {
-                            _fileSystemProxy.CreateDirectory(mappingsDestPath);
-                        }
-
-                        var originFileName = Path.GetFileName(mappingLocation);
-                        if (!string.IsNullOrEmpty(originFileName))
-                        {
-                            mappingsDestPath = Path.Join(path, originFileName);
-                        }
-
-                        Debug.Log("Copying IL2CPP mappings file...");
-                        _fileSystemProxy.CopyFile(mappingsSrcPath, mappingsDestPath);
-                        foundFile = true;
-                        break;
-                    }
+                    _fileSystemProxy.CreateDirectory(dstDirPath);
                 }
 
-                if (!foundFile)
-                {
-                    Debug.LogWarning("Could not find IL2CPP mappings file.");
-                }
+                Debug.Log("Copying IL2CPP mappings file...");
+                _fileSystemProxy.CopyFile(srcFilePath, dstFilePath);
             }
             catch (Exception e)
             {
