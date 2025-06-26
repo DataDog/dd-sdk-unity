@@ -2,7 +2,7 @@ import sys
 import argparse
 
 from common.log import init_logger
-from common.unity_install import UnityHub, resolve_unity_install, match_unity_version
+from common.unity import UnityHub, resolve_unity_install, match_unity_version
 
 
 def install_unity(version_prefix: str):
