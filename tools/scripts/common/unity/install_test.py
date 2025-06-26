@@ -2,7 +2,7 @@ import pytest
 
 import os
 
-from .unity_install import UnityVersion, UnityInstall, resolve_unity_install, match_unity_version
+from .install import UnityVersion, UnityInstall, resolve_unity_install, match_unity_version
 
 
 def test_UnityVersion_comparison():

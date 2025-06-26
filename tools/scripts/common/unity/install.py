@@ -1,13 +1,10 @@
 import os
 import re
+import sys
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, TextIO
 
-import os
-import platform
-
-from common.log import get_default_logger
 from common.shell import run_cmd
 
 
@@ -159,6 +156,9 @@ class UnityInstall:
                 license_status=license_status,
             )
         finally:
+            # If we've been writing Unity output to stdout, flush it
+            sys.stdout.flush()
+
             # Close our log file when finished, if we opened one
             if log_file:
                 log_file.close()
@@ -200,7 +200,7 @@ def resolve_unity_install(installs: List[UnityInstall], version_prefix: str) -> 
     matching_version = match_unity_version(versions, version_prefix)
     if not matching_version:
         return None
-    return next((x for x in installs if x.version == matching_version))
+    return next((x for x in installs if x.version == matching_version), None)
 
 
 def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Optional[UnityVersion]:
@@ -232,115 +232,3 @@ def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Op
 
     newest_candidate = list(sorted(candidates))[-1]
     return newest_candidate
-
-
-class UnityHub(object):
-    """Wrapper for the Unity Hub binary."""
-    path: str
-
-    def __init__(self, path):
-        self.path = path
-    
-    def list_installs(self) -> List[UnityInstall]:
-        """
-        Runs Unity Hub in headless mode to obtain a list of all Unity editor
-        installations on this system.
-        """
-        log = get_default_logger()
-        log.info('Finding Unity installations...')
-        installs: List[UnityInstall] = []
-        def _read(line: str, _):
-            install = UnityInstall.parse(line)
-            if install:
-                log.info(f'Found: {install.version} at {install.path}')
-                installs.append(install)
-            else:
-                log.warning(f'Unexpected output format: {line}')
-        run_cmd(
-            self.path, '--', '--headless', 'editors', '--installed',
-            raise_on_nonzero_exitcode=True,
-            output_handler=_read,
-        )
-        return installs
-    
-    def list_release_versions(self) -> List[UnityVersion]:
-        """
-        Runs Unity Hub in headless mode to obtain a list of all Unity editor
-        versions that can be installed to this system.
-        """
-        log = get_default_logger()
-        log.info('Querying available Unity releases...')
-        versions: List[UnityVersion] = []
-        def _read(line: str, _):
-            version = UnityVersion.parse(line.split()[0])
-            if version:
-                log.info(f'Available: {version}')
-                versions.append(version)
-            else:
-                log.warning(f'Unexpected output format: {line}')
-        run_cmd(
-            self.path, '--', '--headless', 'editors', '--releases',
-            raise_on_nonzero_exitcode=True,
-            output_handler=_read,
-        )
-        return versions
-    
-    def install_version(self, version: UnityVersion, modules: List[str]) -> UnityInstall:
-        log = get_default_logger()
-        log.info(f'Installing Unity {version}...')
-
-        args = [self.path, '--', '--headless', 'install', '--version', str(version)]
-        args.extend(modules)
-        args.append('--childModules')
-        if platform.system() == 'Darwin':
-            args.append('--architecture')
-            args.append('arm64' if platform.processor() == 'arm' else 'x86_64')
-        
-        run_cmd(*args, raise_on_nonzero_exitcode=True, echo=True)
-
-        installs = self.list_installs()
-        new_version = next((x for x in installs if x.version == version))
-        if not new_version:
-            raise RuntimeError('Failed to resolve Unity install after successful completion of install command')
-        return new_version
-
-    @classmethod
-    def require(cls) -> 'UnityHub':
-        """
-        Locates the Unity Hub binary on this system, raising an error if not found.
-        """
-        found = cls.find()
-        if not found:
-            raise RuntimeError('Unity Hub binary not found')
-        return found
-
-    @classmethod
-    def find(cls) -> Optional['UnityHub']:
-        """
-        Locates the Unity Hub binary on this system, returning None if not found.
-        """
-        log = get_default_logger()
-
-        # Assemble candidate binary paths based on OS
-        paths: List[str] = []
-        system = platform.system()
-        log.debug(f'Detected OS: {system}')
-        if system == 'Darwin':
-            paths.append('/Applications/Unity Hub.app/Contents/MacOS/Unity Hub')
-        elif system == 'Windows':
-            program_files = os.getenv('ProgramFiles', os.path.normpath('C:/Program Files'))
-            paths.append(os.path.join(program_files, 'Unity Hub', 'UnityHub.exe'))
-            paths.append(os.path.expandvars(os.path.normpath('%LOCALAPPDATA%/Microsoft/WindowsApps/unityhub.exe')))
-        else:
-            paths.append('/usr/bin/unityhub')
-            paths.append('/usr/local/bin/unityhub')
-
-        # Check for the binary at each path and return it once found
-        for path in paths:
-            log.debug(f'Checking path: {path}')
-            if os.path.isfile(path):
-                log.info(f'Found Unity Hub binary at: {path}')
-                return cls(path)
-
-        # We could not detect a Unity Hub installation
-        return None

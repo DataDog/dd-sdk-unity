@@ -2,7 +2,7 @@ import subprocess
 import selectors
 import io
 import sys
-from typing import Callable, Optional, cast
+from typing import Callable, Optional, cast, Tuple, List
 
 
 OutputHandlerFunc = Callable[[str, bool], None]
@@ -66,3 +66,19 @@ def run_cmd(
         raise RuntimeError(f'{args[0]} exited with status code {exitcode}')
 
     return exitcode
+
+
+def capture_output(*args: str) -> Tuple[str, str]:
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    def _read(line: str, is_stderr: bool):
+        if is_stderr:
+            stderr.write(line + '\n')
+        else:
+            stdout.write(line + '\n')
+
+    run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
+
+    stdout.seek(0)
+    stderr.seek(0)
+    return stdout.read(), stderr.read()

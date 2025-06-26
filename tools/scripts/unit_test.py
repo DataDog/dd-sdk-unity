@@ -6,8 +6,7 @@ from typing import List
 from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
-from common.unity_install import UnityHub, resolve_unity_install, UnityLicenseStatus
-from common.shell import run_cmd
+from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus
 from common.xslt import transform_nunit_to_junit
 
 
