@@ -23,7 +23,7 @@ def _run_default_simulator(platform: str):
             yield
 
 
-def test_simulator(platform: str) -> int:
+def start_simulator(platform: str) -> int:
     log = init_logger()
     with _run_default_simulator(platform.lower()):
         log.info('Simulator running.')
@@ -42,4 +42,4 @@ if __name__ == '__main__':
     parser.add_argument('--platform', choices=['ios', 'android'], required=True)
     args = parser.parse_args()
 
-    sys.exit(test_simulator(args.platform))
+    sys.exit(start_simulator(args.platform))

@@ -2,8 +2,8 @@ import pytest
 
 import io
 
-from .types import ExternalDependencyVersions
-from .edm4u_deps import _write_external_dependency_versions_impl
+from .semver import Version
+from .edm4u_deps import ExternalDependencyVersions, _write_external_dependency_versions_impl, read_external_dependency_versions
 
 
 __development_xml__ = '''<dependencies>
@@ -29,8 +29,8 @@ __development_xml__ = '''<dependencies>
 
 
 __versions__ = ExternalDependencyVersions(
-    dd_sdk_android='2.22.0',
-    dd_sdk_ios='2.28.1',
+    dd_sdk_android=Version(major=2, minor=22, patch=0),
+    dd_sdk_ios=Version(major=2, minor=28, patch=1),
 )
 
 
@@ -61,3 +61,11 @@ def test_write_external_dependency_versions_impl():
     _write_external_dependency_versions_impl(infile, outfile, __versions__)
     outfile.seek(0)
     assert outfile.read().decode() == __release_xml__
+
+
+def test_read_external_dependency_versions():
+    got = read_external_dependency_versions(__release_xml__)
+    assert got == ExternalDependencyVersions(
+        dd_sdk_android=Version.parse('2.22.0'),
+        dd_sdk_ios=Version.parse('2.28.1'),
+    )
