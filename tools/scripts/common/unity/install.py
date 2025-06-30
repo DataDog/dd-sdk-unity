@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, TextIO
@@ -147,7 +148,7 @@ class UnityInstall:
                 # If we're piping Unity's output to a log file, write there as well
                 if log_file:
                     log_file.write(line + '\n')
-            
+
             # Run Unity, diverting log output to stdout so we can parse it
             unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', '-', *args]
             exitcode = run_cmd(*unity_args, output_handler=_read)
@@ -162,19 +163,7 @@ class UnityInstall:
             # Close our log file when finished, if we opened one
             if log_file:
                 log_file.close()
-    
-    def run_tests_args(self, project_path: str, platform: str, out_nunit_path: str) -> List[str]:
-        return [
-            self.editor_path,
-            '-runTests',
-            '-batchmode',
-            '-projectPath', project_path,
-            '-testCategory', '!integration',
-            '-testPlatform', platform,
-            '-testResults', out_nunit_path,
-            '-logFile', os.path.splitext(out_nunit_path)[0] + '.log',
-        ]
-    
+
     @classmethod
     def parse(cls, line: str) -> Optional['UnityInstall']:
         """Parses a line of output from Unity Hub's 'editors --installed' command."""

@@ -75,8 +75,8 @@ package-ios:
     - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
     - cd $CI_PROJECT_DIR/tools/scripts
     - ./setup_demo_signing.sh
-    - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./package_demo.py --platform ios --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+    - cd $CI_PROJECT_DIR
+    - ./run-script build_demo --platform ios --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
   artifacts:
     when: on_success
     expire_in: "30 days"
@@ -96,7 +96,7 @@ package-android:
     - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
     - cd $CI_PROJECT_DIR/tools/scripts
     - python3 -m venv venv && ./venv/bin/pip3 install -r requirements.txt
-    - ./venv/bin/python3 ./package_demo.py --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+    - ./run-script build_demo --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
   artifacts:
     when: on_success
     expire_in: "30 days"
