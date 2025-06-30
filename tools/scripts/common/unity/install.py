@@ -1,10 +1,13 @@
 import os
 import re
 import sys
+import tempfile
+import threading
 import subprocess
+import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, TextIO
+from typing import List, Optional, TextIO, Callable
 
 from common.shell import run_cmd
 
@@ -123,46 +126,75 @@ class UnityInstall:
             return os.path.join(unity_root, 'Data', 'Resources', 'Licensing', 'Client', binary_name)
         
     def run_batchmode(self, project_path: str, *args: str, log_path='-', echo_log=True) -> UnityBatchModeResult:
-        # If the caller wants Unity log output written to a file, open it
-        log_file: Optional[TextIO] = None
-        if log_path != '-':
-            log_file = open(os.path.abspath(log_path), 'w')
+        # If the caller doesn't care to have the log file saved anywhere, write it to a
+        # temp file that we can tail
+        log_file_is_temporary = False
+        if log_path == '-':
+            with tempfile.NamedTemporaryFile(suffix='.log', delete=False) as tmp:
+                log_path = tmp.name
+            log_file_is_temporary = True
 
-        # Defer a conditional log_file.close()
+        # Prepare an line-handler callback to parse Unity license status from stdout
+        license_status = UnityLicenseStatus.UNKNOWN
+        def _read(line: str):
+            # Whichever line we've most recently seen determines our status
+            nonlocal license_status
+            if line.startswith('[Licensing::Client] Successfully resolved entitlement details'):
+                license_status = UnityLicenseStatus.VALID
+            elif line.startswith('No valid Unity Editor license found. Please activate your license.'):
+                license_status = UnityLicenseStatus.INVALID
+
+            # If the caller wants us to echo, write each line to Python stdout
+            if echo_log:
+                print(line)
+
+        # Prepare a separate thread to tail output from the Unity log file, passing
+        # each line to the _read callback - trying to pipe output via subprocess.Popen
+        # can get us into trouble with mysterious buffering issues that will cause
+        # Unity to hang
+        stop_event = threading.Event()
+        ready_event = threading.Event()
+
+        def _tail_log():
+            with open(log_path, 'r') as fp:
+                # Seek to EOF
+                fp.seek(0, 2)
+                ready_event.set()
+
+                # Continually poll for new lines in the file
+                while True:
+                    line = fp.readline()
+                    if line:
+                        _read(line.strip('\n'))
+                    elif stop_event.is_set():
+                        break
+                    else:
+                        time.sleep(0.01)
+
+                # Process has exited; read all remaining lines and close the file
+                while True:
+                    line = fp.readline()
+                    if not line:
+                        break
+                    _read(line.rstrip('\n'))
+
+        tail_thread = threading.Thread(target=_tail_log)
+        tail_thread.start()
+        ready_event.wait()
+
+        # Run Unity in batchmode with our desired args, logging to the specified file
+        unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', log_path, *args]
         try:
-            # Prepare an line-handler callback to parse Unity license status from subprocess stdout
-            license_status = UnityLicenseStatus.UNKNOWN
-            def _read(line: str, is_stderr: bool):
-                # Whichever line we've most recently seen determines our status
-                nonlocal license_status
-                if line.startswith('[Licensing::Client] Successfully resolved entitlement details'):
-                    license_status = UnityLicenseStatus.VALID
-                elif line.startswith('No valid Unity Editor license found. Please activate your license.'):
-                    license_status = UnityLicenseStatus.INVALID
-
-                # If the caller wants us to echo, write each line to Python stdout
-                if echo_log:
-                    stream_label = '2' if is_stderr else '1'
-                    print(f'[{stream_label}] {line}')
-
-                # If we're piping Unity's output to a log file, write there as well
-                if log_file:
-                    log_file.write(line + '\n')
-
-            # Run Unity, diverting log output to stdout so we can parse it
-            unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', '-', *args]
-            exitcode = run_cmd(*unity_args, output_handler=_read)
+            exitcode = subprocess.call(unity_args)
+            stop_event.set()
+            tail_thread.join()
             return UnityBatchModeResult(
                 exitcode=exitcode,
                 license_status=license_status,
             )
         finally:
-            # If we've been writing Unity output to stdout, flush it
-            sys.stdout.flush()
-
-            # Close our log file when finished, if we opened one
-            if log_file:
-                log_file.close()
+            if log_file_is_temporary:
+                os.remove(log_path)
 
     @classmethod
     def parse(cls, line: str) -> Optional['UnityInstall']:
