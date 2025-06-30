@@ -60,11 +60,23 @@ namespace Datadog.Unity.Android
 
         public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
-            // TODO(RUM-9897): We don't handle error type here; but we could pass it via '_dd.error_type' attribute
             var message = error?.Message;
             var stack = error?.StackTrace;
 
+            // dd-sdk-android's `addErrorWithStacktrace` function does not accept a string `errorType` parameter:
+            // it instead stashes error type in a specially-named '_dd.error_type' attribute: if we have an error
+            // type and it doesn't conflict with an existing value in the attributes, add it
+            const string INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME = "_dd.error_type";
+            if (!string.IsNullOrEmpty(error?.Type) && !attributes?.ContainsKey(INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME))
+            {
+                attributes ??= new Dictionary<string, object>();
+                attributes[INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME] = error.Type;
+            }
+
+            // Marshal our attributes as a Java map
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+
+            // Attempt to resolve a native stack trace via IL2CPP, if applicable
             if (error != null)
             {
                 var nativeStackTrace = _androidPlatform.GetNativeStack(error);
@@ -84,6 +96,8 @@ namespace Datadog.Unity.Android
                 }
             }
 
+            // Make the call to the Android SDK via JNI, supplying null arguments if the caller did not give us a
+            // valid error value
             var javaErrorSource = GetErrorSource(source);
             _rum.Call("addErrorWithStacktrace", message, javaErrorSource, stack, javaAttributes);
         }
