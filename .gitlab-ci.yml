@@ -45,11 +45,11 @@ unit-test:
     - specific:true
   parallel:
     matrix:
-      - UNITY_VERSION_PARTIAL: 2021
+      - UNITY_VERSION_PARTIAL: '2021.3'
         PROJECT_PATH: 'test_scaffolds/2021 LTS'
-      - UNITY_VERSION_PARTIAL: 2022
+      - UNITY_VERSION_PARTIAL: '2022.3'
         PROJECT_PATH: 'samples/Datadog Sample'
-      - UNITY_VERSION_PARTIAL: 6000
+      - UNITY_VERSION_PARTIAL: '6000.1'
         PROJECT_PATH: 'test_scaffolds/6000 LTS'
   script:
     - !reference [.shared, init-scripts]
@@ -61,6 +61,12 @@ unit-test:
     expire_in: "30 days"
     reports:
       junit: unit-test*.xml
+  retry:
+    max: 2
+    when:
+      - script_failure
+    exit_codes:
+      - 86
 
 package-ios:
   stage: package
