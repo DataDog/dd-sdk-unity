@@ -1,11 +1,20 @@
 # Change Log
 
-## Unreleased
+## 1.4.1
 
-* Fixed a bug that could cause a `NullReferenceException` when a `DatadogTrackedWebRequest` was canceled.
-* Added support for the `AP2` Datadog site.
-* Updated iOS SDK to 2.29.0.
-* Updated Android SDK to 2.23.0.
+* Fix `NullReferenceException` when a `DatadogTrackedWebRequest` was canceled.
+* Add support for the `AP2` Datadog site.
+* Upgrade Datadog iOS SDK to version 2.29.0
+  * Adds support for AP2 Datacenter.
+  * Adds account information configuration.
+* Upgrade Datadog Android SDK to version 2.23.0
+  * RUM: Add account information into RUM events.
+  * Logs: Add Account Information in Logs.
+  * Global: Add `AP2` datacenter support.
+  * RUM: Report resource with size 0.
+  * RUM: Create a new `RumViewScope` when the session is renewed.
+  * RUM: Fix effective sample rate calculation for `SessionEndedMetricDispatcher`.
+  * Bump Datadog Gradle Plugin to 1.17.0.
 
 ## 1.4.0
 
