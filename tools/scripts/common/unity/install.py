@@ -133,6 +133,13 @@ class UnityInstall:
             with tempfile.NamedTemporaryFile(suffix='.log', delete=False) as tmp:
                 log_path = tmp.name
             log_file_is_temporary = True
+        else:
+            # If we have a caller-specified log file path, make sure it exists so we
+            # can open it for read before we've launched Unity
+            if not os.path.isfile(log_path):
+                os.makedirs(os.path.dirname(log_path), exist_ok=True)
+                with open(log_path, 'w') as fp:
+                    pass
 
         # Prepare an line-handler callback to parse Unity license status from stdout
         license_status = UnityLicenseStatus.UNKNOWN
@@ -178,20 +185,27 @@ class UnityInstall:
                         break
                     _read(line.rstrip('\n'))
 
-        tail_thread = threading.Thread(target=_tail_log)
-        tail_thread.start()
-        ready_event.wait()
-
-        # Run Unity in batchmode with our desired args, logging to the specified file
-        unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', log_path, *args]
         try:
+            tail_thread = threading.Thread(target=_tail_log)
+            tail_thread.start()
+            ready_event.wait()
+
+            # Run Unity in batchmode with our desired args, logging to the specified file
+            unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', log_path, *args]
             exitcode = subprocess.call(unity_args)
+
+            # Let the tail thread finish reading from the log file
             stop_event.set()
             tail_thread.join()
+
             return UnityBatchModeResult(
                 exitcode=exitcode,
                 license_status=license_status,
             )
+        except:
+            # Stop the tail thread if we throw an error, get a SIGINT, etc
+            stop_event.set()
+            raise
         finally:
             if log_file_is_temporary:
                 os.remove(log_path)
