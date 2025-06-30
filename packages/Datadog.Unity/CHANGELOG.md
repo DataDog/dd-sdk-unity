@@ -1,5 +1,12 @@
 # Change Log
 
+## Unreleased
+
+* Add a new `ErrorInfo` class that can be used in place of `Exception` when passing errors to the `DatadogSdk` API.
+  * You can pass an `Exception` value anywhere the API expects an `ErrorInfo`: this is the preferred approach.
+  * If you wish to report an error that doesn't correspond to a C# `Exception`, you can instead construct an `ErrorInfo` value.
+  * Note that native stack trace resolution via IL2CPP will _only_ work if you provide the API with an `Exception` value.
+
 ## 1.4.1
 
 * Fix `NullReferenceException` when a `DatadogTrackedWebRequest` was canceled.
