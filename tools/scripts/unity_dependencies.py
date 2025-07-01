@@ -27,7 +27,7 @@ def update_android_version(version: str):
     repository_element = root.find("./androidPackages/repositories")
     if repository_element is not None:
         for repo in repository_element.findall("./repository"):
-            if repo.text is not None  and "snapshots" in repo.text:
+            if repo.text is not None  and "maven-snapshots" in repo.text:
                 repository_element.remove(repo)
 
     tree.write(UNITY_DEPENDENCIES_FILE)
