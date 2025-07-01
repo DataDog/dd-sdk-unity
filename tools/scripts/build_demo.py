@@ -82,12 +82,14 @@ if __name__ == '__main__':
     parser.add_argument('--unity-version', '-u', default=__default_demo_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_demo_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
     parser.add_argument('--platform', choices=['ios', 'android'], required=True, help='The platform to build an app bundle for')
+    parser.add_argument('--custom-endpoint', type=str, help='The URL for a custom intake endpoint to be used during tests')
     parser.add_argument('--client-token', required=True, help='The Datadog client token to use in the packaged application')
     parser.add_argument('--application-id', required=True, help='The RUM Application ID for the packaged application')
     args = parser.parse_args()
 
     config = DatadogRuntimeConfig(
-        args.client_token,
+        custom_endpoint=args.custom_endpoint,
+        client_token=args.client_token,
         rum_application_id=args.application_id,
     )
 

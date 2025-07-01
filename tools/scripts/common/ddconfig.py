@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from contextlib import contextmanager
+from typing import Optional
 
 __dd_settings_asset_filename__ = 'DatadogSettings.asset'
 __dd_settings_asset_relpath__ = os.path.join('Assets', 'Resources', __dd_settings_asset_filename__)
@@ -12,6 +13,7 @@ class DatadogRuntimeConfig:
     Subset of DatadogSettings modified at build-time to configure how the Datadog SDK
     will behave at runtime in the packaged build.
     """
+    custom_endpoint: Optional[str]
     client_token: str
     rum_application_id: str
 
@@ -38,10 +40,14 @@ def modified_datadog_settings(project_root: str, config: DatadogRuntimeConfig):
 
 def _modify_datadog_settings_impl(text: str, config: DatadogRuntimeConfig) -> str:
     lines = text.splitlines()
-    for key, value in [
+    to_modify = [
         ('ClientToken', config.client_token),
         ('RumApplicationId', config.rum_application_id),
-    ]:
+    ]
+    if config.custom_endpoint is not None:
+        to_modify.append(('CustomEndpoint', config.custom_endpoint))
+
+    for key, value in to_modify:
         prefix = f'  {key}:'
         i = next((i for i, s in enumerate(lines) if s.startswith(prefix)), -1)
         if i < 0:

@@ -43,6 +43,7 @@ MonoBehaviour:
 '''
 
 __config__ = DatadogRuntimeConfig(
+    custom_endpoint=None,
     client_token='my-very-special-client-token',
     rum_application_id='my-cool-rum-application',
 )

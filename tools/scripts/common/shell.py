@@ -25,7 +25,8 @@ class OutputBuffer(object):
 
 def run_cmd(
     *args: str,
-    raise_on_nonzero_exitcode=False,
+    raise_on_nonzero_exitcode = False,
+    cwd: Optional[str] = None,
     bufsize: int = 1,
     echo: bool = False,
     output_handler: Optional[OutputHandlerFunc] = None
@@ -33,6 +34,7 @@ def run_cmd(
     # Launch a child process
     process = subprocess.Popen(
         args,
+        cwd=cwd,
         # Pipe both stdout and stderr so we can read them
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -96,7 +98,7 @@ def run_cmd(
     
     assert exitcode is not None
     if raise_on_nonzero_exitcode and exitcode != 0:
-        raise RuntimeError(f'{args[0]} exited with status code {exitcode}')
+        raise subprocess.CalledProcessError(exitcode, args)
 
     return exitcode
 
