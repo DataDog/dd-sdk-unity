@@ -12,9 +12,6 @@ namespace Datadog.Unity
     /// </summary>
     public class ErrorInfo
     {
-        public const string DefaultErrorType = "UnknownError";
-        public const string DefaultErrorMessage = "No error message was supplied to the Datadog SDK";
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorInfo"/> class from the
         /// given error details.
@@ -28,8 +25,8 @@ namespace Datadog.Unity
             // associated Exception
             Exception = null;
 
-            Type = string.IsNullOrEmpty(type) ? DefaultErrorType : type;
-            Message = string.IsNullOrEmpty(message) ? DefaultErrorMessage : type;
+            Type = type ?? "";
+            Message = message ?? "";
             StackTrace = stackTrace;
         }
 
@@ -47,21 +44,14 @@ namespace Datadog.Unity
             // Cache error details pulled from exception
             if (e != null)
             {
-                Type = e.GetType().Name;
-                Message = e.Message;
+                Type = e.GetType().Name ?? "";
+                Message = e.Message ?? "";
                 StackTrace = e.StackTrace;
             }
-
-            // Ensure that we have a valid type and message string, even if we weren't
-            // given a valid Exception
-            if (string.IsNullOrEmpty(Type))
+            else
             {
-                Type = DefaultErrorType;
-            }
-
-            if (string.IsNullOrEmpty(Message))
-            {
-                Message = DefaultErrorMessage;
+                Type = "";
+                Message = "";
             }
         }
 
@@ -72,19 +62,17 @@ namespace Datadog.Unity
         public Exception Exception { get; }
 
         /// <summary>
-        /// Gets the type name associated with this error; guaranteed to be non-null
-        /// and non-empty.
+        /// Gets the type name associated with this error; guaranteed to be non-null.
         /// </summary>
         public string Type { get; }
 
         /// <summary>
-        /// Gets the message associated with this error; guaranteed to be non-null and
-        /// non-empty.
+        /// Gets the message associated with this error; guaranteed to be non-null.
         /// </summary>
         public string Message { get; }
 
         /// <summary>
-        /// Gets the stack trace accompanying this error, may be null.
+        /// Gets the stack trace accompanying this error; may be null.
         /// </summary>
         public string StackTrace { get; }
 

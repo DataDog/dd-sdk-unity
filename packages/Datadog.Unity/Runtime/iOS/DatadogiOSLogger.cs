@@ -43,8 +43,8 @@ namespace Datadog.Unity.iOS
                 var nativeStackTrace = error.Exception != null ? _platform.GetNativeStack(error.Exception) : null;
                 var errorInfo = new Dictionary<string, string>()
                 {
-                    { "type", error.Type ?? string.Empty },
-                    { "message", error.Message ?? string.Empty },
+                    { "type", error.Type },
+                    { "message", error.Message },
                     { "stackTrace", nativeStackTrace ?? error.StackTrace ?? string.Empty },
                 };
 
