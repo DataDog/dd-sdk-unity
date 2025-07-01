@@ -2,7 +2,7 @@
   <androidPackages>
     <repositories>
       <repository>https://repo.maven.apache.org/maven2</repository>
-      <repository>https://oss.sonatype.org/content/repositories/snapshots</repository>
+      <repository>https://central.sonatype.com/repository/maven-snapshots</repository>
     </repositories>
     <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2+">
     </androidPackage>
