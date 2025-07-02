@@ -12,6 +12,8 @@ namespace Datadog.Unity
     /// </summary>
     public class ErrorInfo
     {
+        public static const string DefaultErrorType = "UnknownError";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorInfo"/> class from the
         /// given error details.
@@ -25,7 +27,7 @@ namespace Datadog.Unity
             // associated Exception
             Exception = null;
 
-            Type = type ?? "";
+            Type = string.IsNullOrEmpty(type) ? DefaultErrorType : "";
             Message = message ?? "";
             StackTrace = stackTrace;
         }
@@ -44,13 +46,13 @@ namespace Datadog.Unity
             // Cache error details pulled from exception
             if (e != null)
             {
-                Type = e.GetType().Name ?? "";
+                Type = e.GetType().Name ?? DefaultErrorType;
                 Message = e.Message ?? "";
                 StackTrace = e.StackTrace;
             }
             else
             {
-                Type = "";
+                Type = DefaultErrorType;
                 Message = "";
             }
         }
@@ -62,7 +64,8 @@ namespace Datadog.Unity
         public Exception Exception { get; }
 
         /// <summary>
-        /// Gets the type name associated with this error; guaranteed to be non-null.
+        /// Gets the type name associated with this error; guaranteed to be non-null;
+        /// guaranteed to be non-empty.
         /// </summary>
         public string Type { get; }
 
