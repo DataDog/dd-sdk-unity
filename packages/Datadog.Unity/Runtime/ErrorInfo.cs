@@ -27,7 +27,7 @@ namespace Datadog.Unity
             // associated Exception
             Exception = null;
 
-            Type = string.IsNullOrEmpty(type) ? DefaultErrorType : "";
+            Type = string.IsNullOrEmpty(type) ? DefaultErrorType : type;
             Message = message ?? "";
             StackTrace = stackTrace;
         }
