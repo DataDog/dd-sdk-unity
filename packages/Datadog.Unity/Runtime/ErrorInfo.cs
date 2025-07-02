@@ -12,7 +12,7 @@ namespace Datadog.Unity
     /// </summary>
     public class ErrorInfo
     {
-        public static const string DefaultErrorType = "UnknownError";
+        public const string DefaultErrorType = "UnknownError";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorInfo"/> class from the
@@ -28,7 +28,7 @@ namespace Datadog.Unity
             Exception = null;
 
             Type = string.IsNullOrEmpty(type) ? DefaultErrorType : type;
-            Message = message ?? "";
+            Message = message ?? string.Empty;
             StackTrace = stackTrace;
         }
 
@@ -47,13 +47,13 @@ namespace Datadog.Unity
             if (e != null)
             {
                 Type = e.GetType().Name ?? DefaultErrorType;
-                Message = e.Message ?? "";
+                Message = e.Message ?? string.Empty;
                 StackTrace = e.StackTrace;
             }
             else
             {
                 Type = DefaultErrorType;
-                Message = "";
+                Message = string.Empty;
             }
         }
 
