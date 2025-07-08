@@ -58,12 +58,25 @@ namespace Datadog.Unity.Android
             _rum.Call("stopAction", javaActionType, name, javaAttributes);
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             var message = error?.Message;
             var stack = error?.StackTrace;
 
+            // dd-sdk-android's `addErrorWithStacktrace` function does not accept a string `errorType` parameter:
+            // it instead stashes error type in a specially-named '_dd.error_type' attribute: if we have an error
+            // type and it doesn't conflict with an existing value in the attributes, add it
+            const string INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME = "_dd.error_type";
+            if (!string.IsNullOrEmpty(error?.Type) && !attributes?.ContainsKey(INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME))
+            {
+                attributes ??= new Dictionary<string, object>();
+                attributes[INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME] = error.Type;
+            }
+
+            // Marshal our attributes as a Java map
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+
+            // Attempt to resolve a native stack trace via IL2CPP, if applicable
             if (error != null)
             {
                 var nativeStackTrace = _androidPlatform.GetNativeStack(error);
@@ -83,6 +96,8 @@ namespace Datadog.Unity.Android
                 }
             }
 
+            // Make the call to the Android SDK via JNI, supplying null arguments if the caller did not give us a
+            // valid error value
             var javaErrorSource = GetErrorSource(source);
             _rum.Call("addErrorWithStacktrace", message, javaErrorSource, stack, javaAttributes);
         }
@@ -109,21 +124,22 @@ namespace Datadog.Unity.Android
 
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
         {
-            var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
-            var errorSource = GetErrorSource(RumErrorSource.Network);
-            _rum.Call("stopResourceWithError", key, null, errorMessage, errorSource,
-                string.Empty, errorType, javaAttributes);
+            var error = new ErrorInfo(errorType, errorMessage, null);
+            StopResourceWithError(key, error, attributes);
         }
 
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            var message = error.Message;
-            var errorType = error.GetType().ToString();
+            StopResourceWithError(key, error, attributes);
+        }
+
+        public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
+        {
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
             var errorSource = GetErrorSource(RumErrorSource.Network);
 
-            _rum.Call("stopResourceWithError", key, null, message, errorSource,
-                error.StackTrace ?? string.Empty, errorType, javaAttributes);
+            _rum.Call("stopResourceWithError", key, null, error.Message, errorSource,
+                error.StackTrace ?? string.Empty, error.Type, javaAttributes);
         }
 
         public void AddAttribute(string key, object value)

@@ -66,7 +66,7 @@ namespace Datadog.Unity.Rum
                     break;
                 case StopResourceLoadingWithErrorMessage msg:
                     InjectTime(msg.MessageTime, msg.Attributes);
-                    _rum.StopResourceWithError(msg.Key, msg.ErrorType, msg.ErrorMessage, msg.Attributes);
+                    _rum.StopResourceWithError(msg.Key, msg.Error, msg.Attributes);
                     break;
                 case AddFeatureFlagEvaluationMessage msg:
                     _rum.AddFeatureFlagEvaluation(msg.Key, msg.Value);
@@ -301,13 +301,13 @@ namespace Datadog.Unity.Rum
             {
             }
 
-            public Exception Error { get; private set; }
+            public ErrorInfo Error { get; private set; }
 
             public RumErrorSource Source { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
 
-            public static AddErrorMessage Create(DateTime messageTime, Exception error, RumErrorSource source, Dictionary<string, object> attributes)
+            public static AddErrorMessage Create(DateTime messageTime, ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes)
             {
                 var obj = _pool.Get();
                 obj.MessageTime = messageTime;
@@ -493,20 +493,17 @@ namespace Datadog.Unity.Rum
 
             public RumResourceType ResourceType { get; private set; }
 
-            public string ErrorType { get; private set; }
-
-            public string ErrorMessage { get; private set; }
+            public ErrorInfo Error { get; private set; }
 
             public Dictionary<string, object> Attributes { get; private set; }
 
             public static StopResourceLoadingWithErrorMessage Create(DateTime messageTime, string key,
-                string errorType, string errorMessage, Dictionary<string, object> attributes)
+                ErrorInfo error, Dictionary<string, object> attributes)
             {
                 var obj = _pool.Get();
                 obj.MessageTime = messageTime;
                 obj.Key = key;
-                obj.ErrorType = errorType;
-                obj.ErrorMessage = errorMessage;
+                obj.Error = error;
                 obj.Attributes = attributes ?? new();
 
                 return obj;
@@ -521,8 +518,7 @@ namespace Datadog.Unity.Rum
             {
                 MessageTime = null;
                 Key = null;
-                ErrorType = null;
-                ErrorMessage = null;
+                Error = null;
                 Attributes = null;
             }
         }

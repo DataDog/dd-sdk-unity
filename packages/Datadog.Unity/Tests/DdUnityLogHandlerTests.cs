@@ -99,7 +99,7 @@ namespace Datadog.Unity.Tests
             handler.LogException(exception, context);
 
             // Then
-            rum.Received().AddError(exception, RumErrorSource.Source);
+            rum.Received().AddError(Arg.Is<ErrorInfo>(e => e.Exception == exception), RumErrorSource.Source);
         }
 
         [Test]
@@ -132,7 +132,7 @@ namespace Datadog.Unity.Tests
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                    Arg.Any<ErrorInfo>());
             }).Do(_ => throw new Exception());
 
             // When
@@ -156,7 +156,7 @@ namespace Datadog.Unity.Tests
             rum.When(rum =>
             {
                 rum.AddError(
-                    Arg.Any<Exception>(),
+                    Arg.Any<ErrorInfo>(),
                     RumErrorSource.Source,
                     Arg.Any<Dictionary<string, object>>());
             }).Do(_ => throw expectedException);
@@ -206,7 +206,7 @@ namespace Datadog.Unity.Tests
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                    Arg.Any<ErrorInfo>());
             }).Do(_ => throw new Exception());
 
             // When
@@ -232,7 +232,7 @@ namespace Datadog.Unity.Tests
                     DdLogLevel.Critical,
                     Arg.Any<string>(),
                     Arg.Any<Dictionary<string, object>>(),
-                    Arg.Any<Exception>());
+                    Arg.Any<ErrorInfo>());
             }).Do(_ => throw expectedException);
 
             // When
@@ -267,7 +267,7 @@ namespace Datadog.Unity.Tests
                 Arg.Any<DdLogLevel>(),
                 Arg.Any<string>(),
                 Arg.Any<Dictionary<string, object>>(),
-                Arg.Any<Exception>());
+                Arg.Any<ErrorInfo>());
         }
 
         [Test]

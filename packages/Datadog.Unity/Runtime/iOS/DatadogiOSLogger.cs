@@ -35,16 +35,16 @@ namespace Datadog.Unity.iOS
             return null;
         }
 
-        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             string jsonError = null;
             if (error != null)
             {
-                var nativeStackTrace = _platform.GetNativeStack(error);
+                var nativeStackTrace = error.Exception != null ? _platform.GetNativeStack(error.Exception) : null;
                 var errorInfo = new Dictionary<string, string>()
                 {
-                    { "type", error.GetType()?.ToString() ?? string.Empty },
-                    { "message", error.Message ?? string.Empty },
+                    { "type", error.Type },
+                    { "message", error.Message },
                     { "stackTrace", nativeStackTrace ?? error.StackTrace ?? string.Empty },
                 };
 

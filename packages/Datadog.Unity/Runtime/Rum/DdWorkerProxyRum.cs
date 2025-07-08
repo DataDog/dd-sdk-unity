@@ -94,7 +94,7 @@ namespace Datadog.Unity.Rum
                 });
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             if (error == null)
             {
@@ -155,34 +155,28 @@ namespace Datadog.Unity.Rum
         public void StopResourceWithError(string key, string errorType, string errorMessage,
             Dictionary<string, object> attributes = null)
         {
+            string stackTrace = null;
+            StopResourceWithError(key, new ErrorInfo(errorType, errorMessage, stackTrace));
+        }
+
+        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
+        {
+            StopResourceWithError(key, error, attributes);
+        }
+
+        public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
+        {
             if (key == null)
             {
                 LogNullWarning("StopResourceWithError", "key");
                 return;
             }
 
-            // Default error message and type
-            errorType ??= "(unknown error type)";
-            errorMessage ??= "(no error message)";
-
             InternalHelpers.Wrap("StopResourceWithError",
                 () =>
                 {
                     _worker.AddMessage(DdRumProcessor.StopResourceLoadingWithErrorMessage.Create(
-                        _dateProvider.Now, key, errorType, errorMessage, attributes));
-                });
-        }
-
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
-        {
-            InternalHelpers.Wrap("StopResource",
-                () =>
-                {
-                    var errorType = error?.GetType()?.ToString();
-                    var errorMessage = error?.Message;
-
-                    _worker.AddMessage(DdRumProcessor.StopResourceLoadingWithErrorMessage.Create(
-                        _dateProvider.Now, key, errorType, errorMessage, attributes));
+                        _dateProvider.Now, key, error, attributes));
                 });
         }
 

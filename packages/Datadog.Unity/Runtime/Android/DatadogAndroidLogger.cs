@@ -41,7 +41,7 @@ namespace Datadog.Unity.Android
             }
         }
 
-        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             var androidLevel = InternalHelpers.DdLogLevelToAndroidLogLevel(level);
 
@@ -51,9 +51,9 @@ namespace Datadog.Unity.Android
             string errorStack = null;
             if (error != null)
             {
-                errorKind = error.GetType()?.ToString();
+                errorKind = error.Type;
                 errorMessage = error.Message;
-                var nativeStackTrace = _androidPlatform.GetNativeStack(error);
+                var nativeStackTrace = error.Exception != null ? _androidPlatform.GetNativeStack(error.Exception) : null;
                 if (nativeStackTrace != null)
                 {
                      var nativeErrorSourceAttributeArgs = AndroidJNIHelper.CreateJNIArgArray(

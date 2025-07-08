@@ -59,12 +59,12 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StopAction(type.ToString(), name, jsonAttributes);
         }
 
-        public void AddError(Exception error, RumErrorSource source, Dictionary<string, object> attributes = null)
+        public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
         {
             string stackTrace = null;
             if (error != null)
             {
-                var nativeStackTrace = _platform.GetNativeStack(error);
+                var nativeStackTrace = error.Exception != null ? _platform.GetNativeStack(error.Exception) : null;
                 if (nativeStackTrace != null)
                 {
                     attributes = attributes == null ? new () : new (attributes);
@@ -74,7 +74,7 @@ namespace Datadog.Unity.iOS
                 }
                 else
                 {
-                    stackTrace = error?.StackTrace ?? string.Empty;
+                    stackTrace = error.StackTrace ?? string.Empty;
                 }
             }
 
@@ -82,7 +82,7 @@ namespace Datadog.Unity.iOS
 
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
 
-            var errorType = error?.GetType()?.ToString();
+            var errorType = error?.Type;
             var errorMessage = error?.Message;
 
             DatadogRumBridge.DatadogRum_AddError(errorMessage, source.ToString(), errorType, stackTrace, jsonAttributes);
@@ -108,19 +108,25 @@ namespace Datadog.Unity.iOS
 
         public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
-            attributes ??= new Dictionary<string, object>();
-            var jsonAttributes = JsonConvert.SerializeObject(attributes);
-
-            var errorType = error?.GetType()?.ToString();
-            var errorMessage = error?.Message;
-
-            DatadogRumBridge.DatadogRum_StopResourceWithError(key, errorType, errorMessage, jsonAttributes);
+            StopResourceWithError(key, error, attributes);
         }
 
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
         {
+            var error = new ErrorInfo(errorType, errorMessage);
+            StopResourceWithError(key, error, attributes);
+        }
+
+        public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
+        {
+            // NOTE: We don't pass a stack trace to dd-sdk-ios here because the API doesn't support it. (RUM-10504)
+            // If `stopResourceWithError` were updated to accept a string stack trace parameter, we would want
+            // to attempt to recover a native stack trace with IL2CPP before passing it along.
             attributes ??= new Dictionary<string, object>();
             var jsonAttributes = JsonConvert.SerializeObject(attributes);
+
+            var errorType = error?.Type;
+            var errorMessage = error?.Message;
 
             DatadogRumBridge.DatadogRum_StopResourceWithError(key, errorType, errorMessage, jsonAttributes);
         }

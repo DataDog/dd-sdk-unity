@@ -360,7 +360,7 @@ namespace Datadog.Unity.Tests
             mockLogger.Error("error message");
             mockLogger.Critical("critical message");
 
-            mockLogger.DidNotReceive().PlatformLog(Arg.Any<DdLogLevel>(), Arg.Any<string>(), Arg.Any<Dictionary<string, object>>(), Arg.Any<Exception>());
+            mockLogger.DidNotReceive().PlatformLog(Arg.Any<DdLogLevel>(), Arg.Any<string>(), Arg.Any<Dictionary<string, object>>(), Arg.Any<ErrorInfo>());
         }
 
         [Test]

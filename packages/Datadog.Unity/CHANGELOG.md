@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Add a new `ErrorInfo` class that can be used in place of `Exception` when passing errors to the `DatadogSdk` API.
+
 ## 1.4.1
 
 * Fix `NullReferenceException` when a `DatadogTrackedWebRequest` was canceled.

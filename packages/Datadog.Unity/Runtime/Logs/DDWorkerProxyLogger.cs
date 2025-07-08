@@ -82,7 +82,7 @@ namespace Datadog.Unity.Logs
             _worker.AddMessage(DdLogsProcessor.RemoveTagsWithKeyMessage.Create(_logger, key));
         }
 
-        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, Exception error = null)
+        internal override void PlatformLog(DdLogLevel level, string message, Dictionary<string, object> attributes = null, ErrorInfo error = null)
         {
             if (message == null)
             {
