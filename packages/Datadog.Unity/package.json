@@ -12,6 +12,7 @@
   "type": "library",
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.google.external-dependency-manager": "1.2.178"
-  }
+    "com.google.external-dependency-manager": "1.2.186"
+  },
+  "resolutionStrategy": "highestMinor"
 }
