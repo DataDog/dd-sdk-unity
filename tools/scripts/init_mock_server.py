@@ -1,15 +1,9 @@
-import os
 import sys
 import argparse
-import subprocess
-import signal
 import time
-from typing import List
 
 from common.log import init_logger
 from common.mockserver import prepare_mock_server_venv, run_mock_server
-
-__mock_server_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mock_server'))
 
 
 def init_mock_server(start: bool, port: int):

@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import shutil
 
 from common.log import init_logger
 from common.unity import UnityHub, UnityLicenseStatus, resolve_unity_install
@@ -62,19 +63,44 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
         ios_build_dir = os.path.join(project_root, 'Build', 'iOS')
         if not os.path.isdir(ios_build_dir):
             raise RuntimeError(f'Xcode project not found after successful iOS build: {ios_build_dir}')
+
+        # Ensure that we're working from a clean Xcode project; clear any existing artifacts
+        ios_derived_data_dir = os.path.join(ios_build_dir, 'build')
+        if os.path.isdir(ios_derived_data_dir):
+            log.info(f'Removing existing derived data directory: {ios_derived_data_dir}')
+            shutil.rmtree(ios_derived_data_dir)
+
+        ios_export_dir = os.path.join(ios_build_dir, 'export')
+        if os.path.isdir(ios_export_dir):
+            log.info(f'Removing existing export directory: {ios_export_dir}')
+            shutil.rmtree(ios_export_dir)
+
+        # Run Xcode's 'archive' command to build the project for iOS, placing the build
+        # artifacts (i.e. UnityDemoApp.app) in a 'build' subdirectory, then packaging that build
+        # into an .xcarchive file
         run_xcodebuild(ios_build_dir, [
+            '-derivedDataPath', './build',
             '-workspace', 'Unity-iPhone.xcworkspace',
             '-scheme', 'Unity-iPhone',
             '-destination', 'generic/platform=iOS',
             '-archivePath', './Unity-iPhone.xcarchive', 
             'archive',
         ])
+
+        # Bundle a final .ipa file from that .xcarchive, placing it in 'export'
         run_xcodebuild(ios_build_dir, [
             '-exportArchive',
             '-archivePath', './Unity-iPhone.xcarchive',
             '-exportPath', './export',
             '-exportOptionsPlist', '../../exportOptions.plist',
         ])
+
+        # Verify that we have an .ipa archive in the expected location
+        ipa_path = os.path.join(ios_export_dir, 'UnityDemoApp.ipa')
+        if not os.path.isfile(ipa_path):
+            raise RuntimeError(f'IPA not found after successful iOS build: {ipa_path}')
+        log.info(ipa_path)
+        return 0
 
 
 if __name__ == '__main__':

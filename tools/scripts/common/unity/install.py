@@ -153,7 +153,17 @@ class UnityInstall:
 
             # If the caller wants us to echo, write each line to Python stdout
             if echo_log:
-                print(line)
+                max_retries = 10
+                delay = 0.01
+                for attempt in range(max_retries):
+                    try:
+                        print(line)
+                        break
+                    except BlockingIOError:
+                        if attempt >= max_retries:
+                            raise
+                        time.sleep(delay)
+                        delay *= 2
 
         # Prepare a separate thread to tail output from the Unity log file, passing
         # each line to the _read callback - trying to pipe output via subprocess.Popen
