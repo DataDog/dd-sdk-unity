@@ -13,9 +13,24 @@ class DatadogRuntimeConfig:
     Subset of DatadogSettings modified at build-time to configure how the Datadog SDK
     will behave at runtime in the packaged build.
     """
-    custom_endpoint: Optional[str]
-    client_token: str
-    rum_application_id: str
+    enabled: Optional[bool] = None
+    sdk_verbosity: Optional[int] = None
+    client_token: Optional[str] = None
+    env: Optional[str] = None
+    service_name: Optional[str] = None
+    custom_endpoint: Optional[str] = None
+    batch_size: Optional[int] = None
+    upload_frequency: Optional[int] = None
+    batch_processing_level: Optional[int] = None
+    crash_reporting_enabled: Optional[bool] = None
+    forward_unity_logs: Optional[bool] = None
+    remote_log_threshold: Optional[int] = None
+    rum_enabled: Optional[bool] = None
+    rum_application_id: Optional[str] = None
+    automatic_scene_tracking: Optional[bool] = None
+    session_sample_rate: Optional[int] = None
+    trace_sample_rate: Optional[int] = None
+    telemetry_sample_rate: Optional[int] = None
 
 
 @contextmanager
@@ -41,13 +56,31 @@ def modified_datadog_settings(project_root: str, config: DatadogRuntimeConfig):
 def _modify_datadog_settings_impl(text: str, config: DatadogRuntimeConfig) -> str:
     lines = text.splitlines()
     to_modify = [
+        ('Enabled', config.enabled),
+        ('SdkVerbosity', config.sdk_verbosity),
         ('ClientToken', config.client_token),
+        ('Env', config.env),
+        ('ServiceName', config.service_name),
+        ('CustomEndpoint', config.custom_endpoint),
+        ('BatchSize', config.batch_size),
+        ('UploadFrequency', config.upload_frequency),
+        ('BatchProcessingLevel', config.batch_processing_level),
+        ('CrashReportingEnabled', config.crash_reporting_enabled),
+        ('ForwardUnityLogs', config.forward_unity_logs),
+        ('RemoteLogThreshold', config.remote_log_threshold),
+        ('RumEnabled', config.rum_enabled),
         ('RumApplicationId', config.rum_application_id),
+        ('AutomaticSceneTracking', config.automatic_scene_tracking),
+        ('SessionSampleRate', config.session_sample_rate),
+        ('TraceSampleRate', config.trace_sample_rate),
+        ('TelemetrySampleRate', config.telemetry_sample_rate),
     ]
-    if config.custom_endpoint is not None:
-        to_modify.append(('CustomEndpoint', config.custom_endpoint))
-
-    for key, value in to_modify:
+    for key, value_or_none in to_modify:
+        if value_or_none is None:
+            continue
+        value = value_or_none
+        if isinstance(value, bool):
+            value = int(value)
         prefix = f'  {key}:'
         i = next((i for i, s in enumerate(lines) if s.startswith(prefix)), -1)
         if i < 0:

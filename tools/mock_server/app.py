@@ -169,7 +169,7 @@ def generic_post(rest = ''):
                 schemas=gr.schemas
             )
         )
-        response_text = flask.Response('OK - request recorded to new endpoint\n')
+        response_text = 'OK - request recorded to new endpoint\n'
 
     resp = flask.Response(response_text, status=202)
     add_cors_headers(resp)
@@ -214,8 +214,7 @@ def reset():
     Clear currently logged requests on all endpoints
     """
     global endpoints
-    for e in endpoints:
-        e.requests.clear()
+    endpoints.clear()
     resp = flask.Response('OK', status=200)
     add_cors_headers(resp)
     return resp

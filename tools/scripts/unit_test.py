@@ -9,6 +9,11 @@ from common.log import init_logger
 from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus
 from common.xslt import transform_nunit_to_junit
 
+__repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+__default_test_project_root__ = os.path.join(__repo_root__, 'samples', 'Datadog Sample')
+__default_test_project_unity_version__ = '2022'
+
 
 def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_junit_path_pattern: str):
     """
@@ -98,15 +103,15 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
                 log.error(f'❌ {case.name}')
             return 2
 
-        log.info(f'{num_passed} tests passed ({num_skipped} skipped).')
+        log.info(f'✅ {num_passed} tests passed ({num_skipped} skipped).')
 
     log.info('Unit tests completed OK.')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs the Unity SDK\'s Unit Test suite against the given version of Unity running the specified project')
-    parser.add_argument('--unity-version', '-u', required=True, help='The target version of Unity to run; may be a partial specifier (e.g. "6000", "2023.3")')
-    parser.add_argument('--project', '-p', required=True, help='Path to the root directory of the Unity project to load')
+    parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
+    parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
     parser.add_argument('--platform', dest='platforms', action='append', default=['EditMode', 'PlayMode'], help='Platforms to test, e.g. EditMode, PlayMode, or a supported build platform')
     parser.add_argument('--out-junit-path-pattern', '-o', default='unit-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()

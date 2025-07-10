@@ -1,5 +1,6 @@
 import pytest
 
+import subprocess
 from typing import List
 
 from .shell import run_cmd
@@ -25,5 +26,5 @@ def test_run_cmd_exitcode():
 
 
 def test_run_cmd_raise():
-    with pytest.raises(RuntimeError):
+    with pytest.raises(subprocess.CalledProcessError):
         run_cmd('/bin/sh', '-c', 'exit 42', raise_on_nonzero_exitcode=True)

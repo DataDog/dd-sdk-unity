@@ -10,14 +10,12 @@ def init_mock_server(start: bool, port: int):
     init_logger()
     prepare_mock_server_venv()
     if start:
-        with run_mock_server(port, prefer_localhost=True) as mock:
+        with run_mock_server(port, prefer_localhost=False):
             while True:
                 try:
                     time.sleep(0)
                 except KeyboardInterrupt:
                     break
-
-            mock.get()
 
 
 if __name__ == '__main__':

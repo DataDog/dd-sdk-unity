@@ -4,22 +4,9 @@ import signal
 from contextlib import contextmanager
 from typing import Generator
 
-from pydantic import BaseModel
-
 from common.log import get_default_logger
 
 __mock_server_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'mock_server'))
-
-
-class MockServerClient:
-    url: str
-
-    def __init__(self, url: str):
-        self.url = url
-
-    def get(self):
-        print(self.url)
-
 
 
 def prepare_mock_server_venv():
@@ -47,7 +34,7 @@ def prepare_mock_server_venv():
 
 
 @contextmanager
-def run_mock_server(port: int, prefer_localhost: bool) -> Generator[MockServerClient, None, None]:
+def run_mock_server(port: int, prefer_localhost: bool) -> Generator[None, None, None]:
     log = get_default_logger()
 
     venv_python = os.path.join(__mock_server_root__, 'venv', 'bin', 'python')
@@ -56,10 +43,9 @@ def run_mock_server(port: int, prefer_localhost: bool) -> Generator[MockServerCl
         args.append('--prefer-localhost')
 
     process = subprocess.Popen(args, cwd=__mock_server_root__)
-    client = MockServerClient(f'http://127.0.0.1:{port}')
     
     try:
-        yield client
+        yield
     finally:
         log.info('Shutting down mock server...')
         try:

@@ -5,7 +5,7 @@ from common.apple import AppleDeviceSpec, run_apple_device
 
 
 __default_ios_device__ = AppleDeviceSpec('iOS 18.5', 'iPhone 15 Pro')
-__default_android_device__ = AndroidDeviceSpec.default(api_level=32, device='pixel_4')
+__default_android_device__ = AndroidDeviceSpec.default(api_level=33, device='pixel_4')
 
 
 @contextmanager
