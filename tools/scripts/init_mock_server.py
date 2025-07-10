@@ -6,11 +6,11 @@ from common.log import init_logger
 from common.mockserver import prepare_mock_server_venv, run_mock_server
 
 
-def init_mock_server(start: bool, port: int):
+def init_mock_server(start: bool, port: int, addr: str):
     init_logger()
     prepare_mock_server_venv()
     if start:
-        with run_mock_server(port, prefer_localhost=False):
+        with run_mock_server(addr, port):
             while True:
                 try:
                     time.sleep(0)
@@ -21,7 +21,8 @@ def init_mock_server(start: bool, port: int):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ensures that mock_server has all required schemas along with a properly initialized Python venv')
     parser.add_argument('--start', action='store_true', help='If true, this script will start the mock server and block')
-    parser.add_argument('--port', type=int, default=5000)
+    parser.add_argument('--port', type=int, default=5000, help='Port on which mock server will listen for HTTP connections')
+    parser.add_argument('--addr', type=str, default='', help='Address which mock server will bind to; omit to auto-resolve private IP')
     args = parser.parse_args()
 
-    sys.exit(init_mock_server(args.start, args.port))
+    sys.exit(init_mock_server(args.start, args.port, args.addr))

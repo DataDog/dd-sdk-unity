@@ -34,13 +34,11 @@ def prepare_mock_server_venv():
 
 
 @contextmanager
-def run_mock_server(port: int, prefer_localhost: bool) -> Generator[None, None, None]:
+def run_mock_server(bind_addr: str, port: int) -> Generator[None, None, None]:
     log = get_default_logger()
 
     venv_python = os.path.join(__mock_server_root__, 'venv', 'bin', 'python')
-    args = [venv_python, 'app.py', '--port', str(port)]
-    if prefer_localhost:
-        args.append('--prefer-localhost')
+    args = [venv_python, 'app.py', '--addr', bind_addr, '--port', str(port)]
 
     process = subprocess.Popen(args, cwd=__mock_server_root__)
     

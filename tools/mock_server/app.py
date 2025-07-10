@@ -264,14 +264,17 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
         print(f'⚠️ Could not find endpoint with hash {endpoint_hash}')
         return redirect(url_for('inspect'))
 
-def run(prefer_localhost: bool, port: int):
-    address = get_localhost() if prefer_localhost is True else get_best_server_address()
-    app.run(debug=True, host=address.ip, port=port)
+def run(preferred_address: str, port: int):
+    if not preferred_address:
+        preferred_address = get_best_server_address().ip
+
+    app.run(debug=True, host=preferred_address, port=port)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefer-localhost", action='store_true')
     parser.add_argument("--update-schemas", action='store_true')
+    parser.add_argument("--addr", type=str)
     parser.add_argument("--port", type=int, default=5000)
 
     args = parser.parse_args()
@@ -283,4 +286,11 @@ if __name__ == '__main__':
         print('Missing .schemas. Please run app.py --update-schemas')
         exit()
 
-    run(args.prefer_localhost, args.port)
+    if args.addr and args.prefer_localhost:
+        raise ValueError('--addr and --prefer-localhost are mutually exclusive')
+    
+    preferred_address = args.addr or ''
+    if args.prefer_localhost:
+        preferred_address = '127.0.0.1'
+
+    run(preferred_address, args.port)
