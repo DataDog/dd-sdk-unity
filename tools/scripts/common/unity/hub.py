@@ -64,6 +64,7 @@ class UnityHub(object):
         log.info(f'Installing Unity {version}...')
 
         args = [self.path, '--', '--headless', 'install', '--version', str(version)]
+        args.append('--module')
         args.extend(modules)
         args.append('--childModules')
         if platform.system() == 'Darwin':
