@@ -1,8 +1,11 @@
 # Change Log
 
-## Unreleased
+## 1.4.2
 
 * Add a new `ErrorInfo` class that can be used in place of `Exception` when passing errors to the `DatadogSdk` API.
+* Ensure that `LineNumberMappings.json` is consistently written to `${gradleRoot}/symbols` for Android builds.
+* Fix a Gradle dependency issue that prevented Android builds from completing on Unity 2022 and older.
+* Upgrade External Dependency Manager to `1.2.186`; allow UPM dependency conflicts to be resolved with a `resolutionStrategy` of `highestMinor`.
 
 ## 1.4.1
 
