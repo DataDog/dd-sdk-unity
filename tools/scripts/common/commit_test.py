@@ -6,7 +6,7 @@ from .versions import VersionBump
 
 def test_CommitInfo_parse():
     for message, want in [
-        [
+        (
             'fix a bug or something',
             CommitInfo(
                 conventional=None,
@@ -15,8 +15,8 @@ def test_CommitInfo_parse():
                 bump=VersionBump.PATCH,
                 refs=set(),
             ),
-        ],
-        [
+        ),
+        (
             'fix: Ensure rate-limiting is properly applied',
             CommitInfo(
                 conventional=ConventionalCommitInfo(
@@ -29,8 +29,8 @@ def test_CommitInfo_parse():
                 bump=VersionBump.PATCH,
                 refs=set(),
             ),
-        ],
-        [
+        ),
+        (
             'feat: Do something very important\nImportant things are good to do.\n',
             CommitInfo(
                 conventional=ConventionalCommitInfo(
@@ -43,8 +43,8 @@ def test_CommitInfo_parse():
                 bump=VersionBump.MINOR,
                 refs=set(),
             ),
-        ],
-        [
+        ),
+        (
             'feat(bigthing)!: Very big thing',
             CommitInfo(
                 conventional=ConventionalCommitInfo(
@@ -57,8 +57,8 @@ def test_CommitInfo_parse():
                 bump=VersionBump.MAJOR,
                 refs=set(),
             ),
-        ],
-        [
+        ),
+        (
             'chore(ci): Kick CI for major release\n\nThis is a BREAKING CHANGE, whoa',
             CommitInfo(
                 conventional=ConventionalCommitInfo(
@@ -71,8 +71,8 @@ def test_CommitInfo_parse():
                 bump=VersionBump.MAJOR,
                 refs=set(),
             ),
-        ],
-        [
+        ),
+        (
             'fix: Make that bug go away\n\nWe did it.\n\nrefs: ABC-123,  #33 \n',
             CommitInfo(
                 conventional=ConventionalCommitInfo(
@@ -85,7 +85,7 @@ def test_CommitInfo_parse():
                 bump=VersionBump.PATCH,
                 refs={'ABC-123', '#33'},
             ),
-        ]
+        ),
     ]:
         got = CommitInfo.parse(message)
         assert got == want

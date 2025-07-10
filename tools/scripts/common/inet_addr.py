@@ -13,6 +13,7 @@ def get_reachable_inet_addr() -> Optional[str]:
         ip = get_ip_on_subnet(subnet)
         if ip:
             return ip
+    return None
 
 
 def get_ip_on_subnet(subnet: str) -> Optional[str]:
@@ -20,5 +21,7 @@ def get_ip_on_subnet(subnet: str) -> Optional[str]:
     try:
         s.connect((subnet, 1))
         return s.getsockname()[0]
+    except:
+        return None
     finally:
         s.close()

@@ -22,7 +22,7 @@ class UnityVersion:
     def __str__(self):
         return '%d.%d.%d%s' % (self.major, self.minor, self.patch, self.revision)
 
-    def __eq__(self, other: 'UnityVersion') -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return str(self) == other
         if not isinstance(other, UnityVersion):
@@ -234,6 +234,7 @@ class UnityInstall:
                 architecture=match.group(2),
                 path=path,
             )
+        return None
 
 
 def resolve_unity_install(installs: List[UnityInstall], version_prefix: str) -> Optional[UnityInstall]:

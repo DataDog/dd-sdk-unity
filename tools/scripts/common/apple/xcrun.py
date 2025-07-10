@@ -1,11 +1,9 @@
 import platform
 import subprocess
 import json
-from enum import Enum
-from dataclasses import dataclass
 from typing import List, Dict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from common.shell import capture_output
@@ -23,13 +21,12 @@ class SimctlRuntimeList(BaseModel):
 
 
 class SimctlDeviceListItem(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
+
     udid: str
     device_type_identifier: str
     state: str
     name: str
-
-    class Config:
-        alias_generator = to_camel
 
 
 class SimctlDeviceList(BaseModel):

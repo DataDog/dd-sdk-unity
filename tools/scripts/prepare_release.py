@@ -46,7 +46,7 @@ def _require_clean_repo(root: str, branch_name: str) -> git.Repo:
     
     # Require that we're at the latest revision reflected in GitHub, i.e. we're not
     # behind remote or ahead of remote
-    remote_commit = repo.refs[f'origin/{branch_name}'].commit
+    remote_commit: git.Commit = repo.refs[f'origin/{branch_name}'].commit  # type: ignore
     if repo.head.commit != remote_commit:
         log.error(f'{repo_name} is not up to date with origin/{branch_name}!')
         log.error(f'Local commit: {repo.head.commit}')
@@ -380,14 +380,14 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     feature_commits = [x for x in intervening_commits if x.bump == VersionBump.MINOR]
     if feature_commits:
         log.info(f'{len(feature_commits)} commit(s) introduce feature changes:')
-        for commit in feature_commits:
-            log.info(f'- {commit.headline}')
+        for commit_info in feature_commits:
+            log.info(f'- {commit_info.headline}')
         suggested_version_bump = max(suggested_version_bump, VersionBump.MINOR)
     breaking_commits = [x for x in intervening_commits if x.bump == VersionBump.MAJOR]
     if breaking_commits:
         log.info(f'{len(feature_commits)} commit(s) introduce breaking changes:')
-        for commit in feature_commits:
-            log.info(f'- {commit.headline}')
+        for commit_info in feature_commits:
+            log.info(f'- {commit_info.headline}')
         suggested_version_bump = VersionBump.MAJOR
 
     # If the user explicitly specified a desired version bump, use it

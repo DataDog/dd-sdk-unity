@@ -5,5 +5,6 @@ saxonche==12.5.0
 mypy==1.16.0
 pytest==8.4.0
 requests==2.32.4
+types-requests==2.32.4.20250611
 junitparser==3.2.0
 pydantic==2.11.7
