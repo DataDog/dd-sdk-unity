@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.4.3
 
 * Fix C# compile errors that affected Android builds.
 
