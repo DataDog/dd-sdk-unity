@@ -67,7 +67,7 @@ namespace Datadog.Unity.Android
             // it instead stashes error type in a specially-named '_dd.error_type' attribute: if we have an error
             // type and it doesn't conflict with an existing value in the attributes, add it
             const string INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME = "_dd.error_type";
-            if (!string.IsNullOrEmpty(error?.Type) && !attributes?.ContainsKey(INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME))
+            if (!string.IsNullOrEmpty(error?.Type) && !attributes?.ContainsKey(INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME) != true)
             {
                 attributes ??= new Dictionary<string, object>();
                 attributes[INTERNAL_ERROR_TYPE_ATTRIBUTE_NAME] = error.Type;
@@ -77,9 +77,9 @@ namespace Datadog.Unity.Android
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
 
             // Attempt to resolve a native stack trace via IL2CPP, if applicable
-            if (error != null)
+            if (error != null && error.Exception != null)
             {
-                var nativeStackTrace = _androidPlatform.GetNativeStack(error);
+                var nativeStackTrace = _androidPlatform.GetNativeStack(error.Exception);
                 if (nativeStackTrace != null)
                 {
                     stack = nativeStackTrace;
