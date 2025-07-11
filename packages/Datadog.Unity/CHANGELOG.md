@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Fix C# compile errors that affected Android builds.
+
 ## 1.4.2
 
 * Add a new `ErrorInfo` class that can be used in place of `Exception` when passing errors to the `DatadogSdk` API.
