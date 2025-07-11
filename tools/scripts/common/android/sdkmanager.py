@@ -1,3 +1,6 @@
+"""
+Utility code for invoking sdkmanager, which manages installed Android SDK components.
+"""
 from dataclasses import dataclass
 from typing import List
 

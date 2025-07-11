@@ -1,3 +1,7 @@
+"""
+Utility code for modifying package.json, which specifies the version number used for
+the Datadog.Unity package in Unity Package Manager (UPM).
+"""
 import json
 from typing import IO
 

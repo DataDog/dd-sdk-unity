@@ -1,3 +1,6 @@
+"""
+Utility code for invoking emulator, which simulates Android devices given a target AVD.
+"""
 from dataclasses import dataclass
 
 from .util import resolve_android_binary

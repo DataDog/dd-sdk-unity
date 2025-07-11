@@ -1,3 +1,6 @@
+"""
+Utility code for modifying the DatadogSettings.asset file for any given Unity project.
+"""
 import os
 from dataclasses import dataclass
 from contextlib import contextmanager

@@ -1,3 +1,7 @@
+"""
+Utility code for finding and invoking Unity Hub, which should be installed system-wide
+and which is used to manage installations of the Unity Editor.
+"""
 import os
 import platform
 from typing import List, Optional

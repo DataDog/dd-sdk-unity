@@ -1,3 +1,7 @@
+"""
+Uses Unity Hub to install a target version of the Unity editor if it's not already
+installed, optionally resolving a concrete version from a partial version constraint.
+"""
 import sys
 import argparse
 

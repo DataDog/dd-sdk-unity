@@ -1,3 +1,7 @@
+"""
+Ensures that the mock server Flask app is prepared to run, and optionally runs it,
+blocking until Ctrl-C is received.
+"""
 import sys
 import argparse
 import time

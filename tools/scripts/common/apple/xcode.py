@@ -1,3 +1,7 @@
+"""
+Utility code for invoking xcodebuild, which builds Xcode projects, and xcbeautify,
+which formats the output from xcodebuild in a more human-readable way.
+"""
 import subprocess
 from typing import List
 

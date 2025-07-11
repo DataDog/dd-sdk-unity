@@ -1,3 +1,8 @@
+"""
+High-level interface for iOS simulators; allows you to specify the target device type
+with AppleDeviceSpec and use `with run_apple_device(spec):` to provision and boot the
+appropriate simulator for the duration of the `with` block.
+"""
 from dataclasses import dataclass
 from contextlib import contextmanager
 

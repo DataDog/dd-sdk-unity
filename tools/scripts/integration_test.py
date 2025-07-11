@@ -1,3 +1,8 @@
+"""
+Runs integration tests in a sample project for either iOS or Android, ensuring that the
+mock server app is running, the project is configured appropriately to send the
+requisite requests to the mock server, and any required device emulators are running.
+"""
 import os
 import sys
 import argparse

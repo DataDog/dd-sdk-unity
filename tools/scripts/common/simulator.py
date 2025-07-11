@@ -1,3 +1,7 @@
+"""
+Utility code providing a platform-agnostic abstraction layer for running emulated iOS
+or Android devices.
+"""
 from contextlib import contextmanager
 
 from common.android import AndroidDeviceSpec, run_android_device

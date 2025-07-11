@@ -1,3 +1,8 @@
+"""
+Utility code for modifying DatadogDependencies.xml, which configures External
+Dependency Manager for Unity (EDM4U) to pull in the requisite versions of
+dd-sdk-android and dd-sdk-ios on Android and iOS builds, respectively.
+"""
 import os
 import tempfile
 import io

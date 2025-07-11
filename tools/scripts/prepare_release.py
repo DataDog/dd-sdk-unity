@@ -1,3 +1,9 @@
+"""
+Prepares a new release in the `unity-package` repo, cut from the current state of
+`develop` in `dd-sdk-unity`. Changes are made to your local copies of those two
+repositories, and you will be prompted before each local change is committed, and once
+again before the final set of commits/tags is pushed to GitHub.
+"""
 import os
 import re
 import sys

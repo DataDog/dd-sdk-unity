@@ -1,3 +1,6 @@
+"""
+Utility code for interacting with Xcode build tools and iOS simulators.
+"""
 from .xcrun import Xcrun, Simctl
 from .frontend import AppleDeviceSpec, run_apple_device
 from .xcode import run_xcodebuild

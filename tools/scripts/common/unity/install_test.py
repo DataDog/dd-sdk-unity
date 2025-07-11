@@ -42,7 +42,6 @@ def test_UnityInstall_parse():
         path='/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app'
     )
     assert mac_install.editor_path == '/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app/Contents/MacOS/Unity'
-    assert mac_install.licensing_client_path == '/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app/Contents/Frameworks/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client'
 
     win_install = UnityInstall.parse('2022.3.55f1 (x64), installed at C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.55f1\\Editor\\Unity.exe')
     assert win_install is not None
@@ -57,7 +56,6 @@ def test_UnityInstall_parse():
         path=os.path.normpath('C:/Program Files/Unity/Hub/Editor/2022.3.55f1/Editor/Unity.exe'),
     )
     assert win_install.editor_path == os.path.normpath('C:/Program Files/Unity/Hub/Editor/2022.3.55f1/Editor/Unity.exe')
-    assert win_install.licensing_client_path == os.path.normpath('C:/Program Files/Unity/Hub/Editor/2022.3.55f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe')
 
     linux_install = UnityInstall.parse('2023.2.0f1 (x64), installed at /home/username/Unity/Hub/Editor/2023.2.0f1/Editor/Unity')
     assert linux_install is not None

@@ -1,3 +1,6 @@
+"""
+Utility code for interacting with Android build tools and emulators.
+"""
 from .sdkmanager import AndroidPackage, AndroidSdkManager
 from .avdmanager import AvdManager
 from .emulator import AndroidEmulator

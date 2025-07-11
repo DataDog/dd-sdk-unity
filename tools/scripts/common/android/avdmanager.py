@@ -1,3 +1,7 @@
+"""
+Utility code for invoking avdmanager, which is used to list and create the AVDs
+(Android Virtual Devices) which are run in the Android emulator.
+"""
 import re
 from dataclasses import dataclass
 from typing import Optional, List

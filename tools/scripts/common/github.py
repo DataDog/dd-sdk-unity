@@ -1,3 +1,7 @@
+"""
+Utility code for fetching publicly-accessible information about GitHub repositories via
+public endpoints in the GitHub API.
+"""
 import requests
 from pydantic import BaseModel
 from typing import List

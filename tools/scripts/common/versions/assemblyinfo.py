@@ -1,3 +1,7 @@
+"""
+Utility code for modifying AssemblyInfo.cs, which controls the version string that will
+be baked into C# assemblies when the project is built.
+"""
 from typing import IO, List
 
 from .semver import Version

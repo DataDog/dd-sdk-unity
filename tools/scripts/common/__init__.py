@@ -1,3 +1,3 @@
 """
-Common library code used bhy dd-sdk-unity Python scripts.
+Common library code used by dd-sdk-unity Python scripts.
 """

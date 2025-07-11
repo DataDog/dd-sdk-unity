@@ -1,6 +1,10 @@
+"""
+Utility code for modifying a Unity project's ProjectSettings.asset file in order to
+control whether the generate Xcode project targets iOS simulators or physical iOS
+devices.
+"""
 import os
 import platform as _platform
-from dataclasses import dataclass
 from contextlib import contextmanager
 from enum import Enum
 from typing import Optional

@@ -1,3 +1,7 @@
+"""
+Utility code for invoking adb (Android Debug Bridge), which manages connected Android
+devices.
+"""
 import time
 import subprocess
 

@@ -1,3 +1,7 @@
+"""
+Utility code for invoking xcrun, which provides commands like simctl for managing and
+creating iOS simulators.
+"""
 import platform
 import subprocess
 import json

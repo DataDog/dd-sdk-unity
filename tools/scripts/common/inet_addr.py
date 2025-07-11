@@ -1,3 +1,6 @@
+"""
+Utility code for finding available network interface IPs.
+"""
 import socket
 from typing import cast, Optional
 

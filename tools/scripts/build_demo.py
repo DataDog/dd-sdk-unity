@@ -1,3 +1,6 @@
+"""
+Generates a packaged build of a demo Unity project for either Android or iOS.
+"""
 import os
 import sys
 import argparse
@@ -13,9 +16,6 @@ __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 __default_demo_project_root__ = os.path.join(__repo_root__, 'samples', 'Demo Data')
 __default_demo_project_unity_version__ = '2022'
-
-__ios_output_relpath__ = os.path.join('Build', 'iOS')
-__android_output_relpath__ = os.path.join('Build')
 
 
 def build_demo(unity_version_prefix: str, project_root: str, platform: str, config: DatadogRuntimeConfig):

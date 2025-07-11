@@ -1,3 +1,6 @@
+"""
+Starts an emulated device for either iOS or Android, blocking until Ctrl-C is pressed.
+"""
 import sys
 import time
 import argparse

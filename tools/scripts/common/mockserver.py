@@ -1,3 +1,8 @@
+"""
+Utility code for running the Flask app in tools/mock_server, which manages its Python
+environment separately from tools/scripts and which therefore must be run in its own
+Python interpreter.
+"""
 import os
 import subprocess
 import signal

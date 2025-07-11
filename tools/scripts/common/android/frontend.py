@@ -1,3 +1,8 @@
+"""
+High-level interface for the Android emulator; allows you to specify the target AVD
+with AndroidDeviceSpec and use `with run_android_device(spec):` to provision and boot
+the appropriate emulator instance for the duration of the `with` block.
+"""
 import platform
 import random
 import subprocess

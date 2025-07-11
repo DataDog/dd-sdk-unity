@@ -1,4 +1,8 @@
-import os
+"""
+Utility code for modifying NATIVE_SDK_VERSIONS.md, which records for posterity the
+canonical versions of dd-sdk-android and dd-sdk-ios that are included in each Unity SDK
+release.
+"""
 from dataclasses import dataclass
 from typing import List
 

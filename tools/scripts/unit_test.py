@@ -1,3 +1,6 @@
+"""
+Runs the unit test suite for the Unity SDK's C# implementation layer.
+"""
 import os
 import sys
 import argparse

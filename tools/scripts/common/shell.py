@@ -1,3 +1,6 @@
+"""
+Utility code for running subprocesses and processing their output line-by-line.
+"""
 import subprocess
 import selectors
 import io

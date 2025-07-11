@@ -1,3 +1,6 @@
+"""
+Utility code for converting between different XML test result formats.
+"""
 import os
 
 from saxonche import PySaxonProcessor # type: ignore

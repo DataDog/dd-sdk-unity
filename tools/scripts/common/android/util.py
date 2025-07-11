@@ -1,3 +1,6 @@
+"""
+Helpers for Android tool wrappers.
+"""
 import os
 import platform
 from typing import Tuple

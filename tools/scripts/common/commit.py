@@ -1,3 +1,6 @@
+"""
+Utility code for parsing convention commits.
+"""
 import re
 from dataclasses import dataclass
 from typing import Optional, Tuple, Set

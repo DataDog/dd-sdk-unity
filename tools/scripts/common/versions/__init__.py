@@ -1,3 +1,7 @@
+"""
+Utility code for reading and writing the various file formats in the dd-sdk-unity
+repository that encode version information.
+"""
 from .semver import Version, VersionBump
 from .sdkversions import SdkVersionTable, SdkVersionTableRow
 from .edm4u_deps import ExternalDependencyVersions, read_external_dependency_versions, write_external_dependency_versions

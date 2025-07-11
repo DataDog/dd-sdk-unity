@@ -1,3 +1,6 @@
+"""
+Utility code for logging script output.
+"""
 import logging
 
 

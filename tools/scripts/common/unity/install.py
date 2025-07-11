@@ -1,15 +1,16 @@
+"""
+Utility code for resolving specific versions of the Unity editor, and for invoking the
+Unity editor binary in order to run headless commands.
+"""
 import os
 import re
-import sys
 import tempfile
 import threading
 import subprocess
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, TextIO, Callable
-
-from common.shell import run_cmd
+from typing import List, Optional
 
 
 @dataclass
@@ -87,7 +88,7 @@ class UnityBatchModeResult:
 @dataclass
 class UnityInstall:
     """
-    Represents a single installation of the Unity Editor that's installed on this
+    Represents a single installation of the Unity Editor that's available on this
     machine.
 
     `path` is the exact install path reported by Unity Hub, e.g.:
@@ -96,8 +97,7 @@ class UnityInstall:
     - 'C:\\Program Files\\Unity\\Hub\\Editor\\%VERSION%\\Editor\\Unity.exe'
     - '/home/$USER/Unity/Hub/Editor/$VERSION/Editor/Unity'
 
-    Call `editor_path`, `licensing_client_path`, etc. to resolve binary paths in a
-    OS-agnostic way.
+    Call `editor_path` to resolve binary paths in a OS-agnostic way.
     """
     version: UnityVersion
     architecture: str
