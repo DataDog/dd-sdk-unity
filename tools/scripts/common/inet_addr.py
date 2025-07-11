@@ -1,5 +1,5 @@
 import socket
-from typing import Optional
+from typing import cast, Optional
 
 
 def get_reachable_inet_addr() -> Optional[str]:
@@ -20,7 +20,7 @@ def get_ip_on_subnet(subnet: str) -> Optional[str]:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect((subnet, 1))
-        return s.getsockname()[0]
+        return cast(str, s.getsockname()[0])
     except:
         return None
     finally:

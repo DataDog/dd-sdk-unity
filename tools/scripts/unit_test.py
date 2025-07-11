@@ -111,7 +111,7 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs the Unity SDK\'s Unit Test suite against the given version of Unity running the specified project')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
-    parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
+    parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Datadog Sample' in this repo")
     parser.add_argument('--platform', dest='platforms', action='append', default=['EditMode', 'PlayMode'], help='Platforms to test, e.g. EditMode, PlayMode, or a supported build platform')
     parser.add_argument('--out-junit-path-pattern', '-o', default='unit-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()
