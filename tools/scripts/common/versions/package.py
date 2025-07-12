@@ -1,6 +1,10 @@
 """
 Utility code for modifying package.json, which specifies the version number used for
 the Datadog.Unity package in Unity Package Manager (UPM).
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import json
 from typing import IO

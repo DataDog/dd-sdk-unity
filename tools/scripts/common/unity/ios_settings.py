@@ -2,6 +2,10 @@
 Utility code for modifying a Unity project's ProjectSettings.asset file in order to
 control whether the generate Xcode project targets iOS simulators or physical iOS
 devices.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
 import platform as _platform

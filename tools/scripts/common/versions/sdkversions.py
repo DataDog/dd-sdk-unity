@@ -2,6 +2,10 @@
 Utility code for modifying NATIVE_SDK_VERSIONS.md, which records for posterity the
 canonical versions of dd-sdk-android and dd-sdk-ios that are included in each Unity SDK
 release.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 from dataclasses import dataclass
 from typing import List

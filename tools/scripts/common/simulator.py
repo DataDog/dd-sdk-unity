@@ -1,6 +1,10 @@
 """
 Utility code providing a platform-agnostic abstraction layer for running emulated iOS
 or Android devices.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 from contextlib import contextmanager
 

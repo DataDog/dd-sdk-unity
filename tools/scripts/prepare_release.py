@@ -3,6 +3,10 @@ Prepares a new release in the `unity-package` repo, cut from the current state o
 `develop` in `dd-sdk-unity`. Changes are made to your local copies of those two
 repositories, and you will be prompted before each local change is committed, and once
 again before the final set of commits/tags is pushed to GitHub.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
 import re

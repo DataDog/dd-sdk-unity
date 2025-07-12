@@ -2,6 +2,10 @@
 Runs integration tests in a sample project for either iOS or Android, ensuring that the
 mock server app is running, the project is configured appropriately to send the
 requisite requests to the mock server, and any required device emulators are running.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
 import sys

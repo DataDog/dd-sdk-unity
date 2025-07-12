@@ -1,6 +1,10 @@
 """
 Ensures that the mock server Flask app is prepared to run, and optionally runs it,
 blocking until Ctrl-C is received.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import sys
 import argparse

@@ -1,5 +1,9 @@
 """
 Utility code for invoking emulator, which simulates Android devices given a target AVD.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 from dataclasses import dataclass
 

@@ -1,6 +1,10 @@
 """
 Utility code for invoking avdmanager, which is used to list and create the AVDs
 (Android Virtual Devices) which are run in the Android emulator.
+
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import re
 from dataclasses import dataclass
