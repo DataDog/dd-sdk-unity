@@ -63,8 +63,6 @@ unit-test:
       junit: unit-test*.xml
   retry:
     max: 2
-    when:
-      - script_failure
     exit_codes:
       - 86
 
@@ -88,6 +86,10 @@ package-ios:
     expire_in: "30 days"
     paths:
       - samples/Demo Data/Build/iOS/export/*
+  retry:
+    max: 2
+    exit_codes:
+      - 86
 
 package-android:
   stage: package
@@ -106,6 +108,10 @@ package-android:
     expire_in: "30 days"
     paths:
       - samples/Demo Data/Build/Android/datadog-demo.apk
+  retry:
+    max: 2
+    exit_codes:
+      - 86
 
 notify-pipeline-succeeded:
   stage: post
