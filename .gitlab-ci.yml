@@ -2,30 +2,21 @@ include:
   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v1/template.yml'
 
 variables:
-  UNITY_VERSION_PARTIAL: 2022.3
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
 stages:
-  - unit-test
-  - package
-  - post
+  # This script has been modified to run specific jobs for CI environment testing; these are throwaway changes
+  - temporary
 
 .shared:
   init-scripts:
     # Running with no arguments will ensure our Python venv is initialized
     - ./run-script
   install-unity:
-    # Install Unity Hub and other development dependencies
+    # Install Unity Hub and Unity 2022.3
     - brew install --cask unity-hub
     - brew install xcbeautify
-    # Run install_unity.py to ensure that our requisite version of Unity is installed:
-    # the last line of output will contain the full version string, so export it as
-    # UNITY_VERSION
-    - LOG_TMPFILE=$(mktemp)
-    - ./run-script install_unity "$UNITY_VERSION_PARTIAL" | tee "$LOG_TMPFILE"
-    - export UNITY_VERSION=$(tail -n 1 "$LOG_TMPFILE")
-    - rm "$LOG_TMPFILE"
-    - echo "Using Unity version $UNITY_VERSION"
+    - ./run-script install_unity '2022.3'
   configure-unity-licensing:
     # Grab the Unity Licensing Server configuration and write it to the system-wide
     # Unity config dir so that the Unity Licensing Client installed alongside our
@@ -38,37 +29,8 @@ stages:
     - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
     - ls -la "$UNITY_SUPPORT_PATH"
 
-unit-test:
-  stage: unit-test
-  tags:
-    - macos:sonoma
-    - specific:true
-  parallel:
-    matrix:
-      - UNITY_VERSION_PARTIAL: '2021.3'
-        PROJECT_PATH: 'test_scaffolds/2021 LTS'
-      - UNITY_VERSION_PARTIAL: '2022.3'
-        PROJECT_PATH: 'samples/Datadog Sample'
-      - UNITY_VERSION_PARTIAL: '6000.1'
-        PROJECT_PATH: 'test_scaffolds/6000 LTS'
-  script:
-    - !reference [.shared, init-scripts]
-    - !reference [.shared, install-unity]
-    - !reference [.shared, configure-unity-licensing]
-    - ./run-script unit_test --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
-  artifacts:
-    when: always
-    expire_in: "30 days"
-    reports:
-      junit: unit-test*.xml
-  retry:
-    max: 2
-    exit_codes:
-      # Python scripts exit with 86 on Unity license error
-      - 86
-
-package-ios:
-  stage: package
+integration-test-ios:
+  stage: temporary
   tags:
     - macos:sonoma
     - specific:true
@@ -76,53 +38,12 @@ package-ios:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
-    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
-    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
     - cd $CI_PROJECT_DIR/tools/scripts
     - ./setup_demo_signing.sh
     - cd $CI_PROJECT_DIR
-    - ./run-script build_demo --platform ios --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
-  artifacts:
-    when: on_success
-    expire_in: "30 days"
-    paths:
-      - samples/Demo Data/Build/iOS/export/*
+    - ./run-script integration_test --platform ios
   retry:
     max: 2
     exit_codes:
       # Python scripts exit with 86 on Unity license error
       - 86
-
-package-android:
-  stage: package
-  tags:
-    - macos:sonoma
-    - specific:true
-  script:
-    - !reference [.shared, init-scripts]
-    - !reference [.shared, install-unity]
-    - !reference [.shared, configure-unity-licensing]
-    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
-    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
-    - ./run-script build_demo --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
-  artifacts:
-    when: on_success
-    expire_in: "30 days"
-    paths:
-      - samples/Demo Data/Build/Android/datadog-demo.apk
-  retry:
-    max: 2
-    exit_codes:
-      # Python scripts exit with 86 on Unity license error
-      - 86
-
-notify-pipeline-succeeded:
-  stage: post
-  tags: [ "arch:amd64" ]
-  image: "$BUILDENV_REGISTRY/images/docker:24.0.4-gbi-focal"
-  when: on_success
-  except:
-    - schedules
-    - develop
-  script:
-    - echo "Pipeline did succeed"
