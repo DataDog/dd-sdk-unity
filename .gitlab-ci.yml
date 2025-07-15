@@ -64,6 +64,7 @@ unit-test:
   retry:
     max: 2
     exit_codes:
+      # Python scripts exit with 86 on Unity license error
       - 86
 
 package-ios:
@@ -89,6 +90,7 @@ package-ios:
   retry:
     max: 2
     exit_codes:
+      # Python scripts exit with 86 on Unity license error
       - 86
 
 package-android:
@@ -111,6 +113,7 @@ package-android:
   retry:
     max: 2
     exit_codes:
+      # Python scripts exit with 86 on Unity license error
       - 86
 
 notify-pipeline-succeeded:
