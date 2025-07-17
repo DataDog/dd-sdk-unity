@@ -1,0 +1,5 @@
+scenes:
+- Assets/Scenes/EmptyScene.unity
+- Assets/Scenes/SampleScene.unity
+- Assets/Scenes/AddedScene.unity
+- Assets/Scenes/StressTestScene.unity

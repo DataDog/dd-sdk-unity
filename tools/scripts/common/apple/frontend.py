@@ -9,6 +9,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 from dataclasses import dataclass
 from contextlib import contextmanager
+from typing import Generator
 
 from common.log import get_default_logger
 
@@ -20,9 +21,17 @@ class AppleDeviceSpec:
     runtime: str  # e.g. 'iOS 18.5'
     device: str  # e.g. 'iPhone 16 Pro'
 
+    @property
+    def xcode_destination(self) -> str:
+        value = f'platform=iOS Simulator,name={self.device}'
+        if self.runtime.startswith('iOS '):
+            ios_version = self.runtime[len('iOS '):]
+            value += f',OS={ios_version}'
+        return value
+
 
 @contextmanager
-def run_apple_device(spec: AppleDeviceSpec):
+def run_apple_device(spec: AppleDeviceSpec) -> Generator[str, None, None]:
     log = get_default_logger()
     log.info('Preparing an emulated Apple device...')
     log.info(f'- Runtime: {spec.runtime}')
@@ -55,7 +64,7 @@ def run_apple_device(spec: AppleDeviceSpec):
         log.info(f'Device {device.udid} ({spec.device} on {spec.runtime}) started; waiting for boot...')
         xcrun.simctl.wait_for_boot(device.udid)
         log.info(f'{device.udid} is ready!')
-        yield
+        yield device.udid
     finally:
         log.info(f'Cleanly shutting down device {device.udid}...')
         xcrun.simctl.shutdown(device.udid)

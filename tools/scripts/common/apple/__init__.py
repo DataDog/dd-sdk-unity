@@ -8,6 +8,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 from .xcrun import Xcrun, Simctl
 from .frontend import AppleDeviceSpec, run_apple_device
 from .xcode import run_xcodebuild
+from .plutil import get_bundle_identifier
 
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     'AppleDeviceSpec',
     'run_apple_device',
     'run_xcodebuild',
+    'get_bundle_identifier',
 ]

@@ -1,0 +1,771 @@
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2025-Present Datadog, Inc.
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
+using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
+
+namespace Datadog.Unity.Build
+{
+    public class BuildCommands
+    {
+        private static readonly string[] DefaultScenes =
+        {
+            {%- for scene in build_config.scenes %}
+            "{{ scene }}",
+            {%- endfor %}
+        };
+
+        public static void BuildHeadless()
+        {
+            // Parse options from command-line args supplied to Unity editor binary
+            string[] args = Environment.GetCommandLineArgs();
+            BuildTarget? buildPlatform = null;
+            BuildOptions configOptions = BuildOptions.Development;
+            BuildOptions extraOptions = BuildOptions.None;
+            bool integrationTestSceneOnly = false;
+            string buildOutputDirectory = string.Empty;
+            List<string> extraScriptingDefines = new();
+            ModifiedProjectSettings projectSettings = new();
+            ModifiedDatadogSettings datadogSettings = new();
+            for (int i = 0; i < args.Length; ++i)
+            {
+                if (args[i] == "-buildPlatform" && i + 1 < args.Length)
+                {
+                    string platformString = args[i + 1].ToLower();
+                    if (platformString == "android")
+                    {
+                        buildPlatform = BuildTarget.Android;
+                    }
+                    else if (platformString == "ios")
+                    {
+                        buildPlatform = BuildTarget.iOS;
+                    }
+                }
+
+                if (args[i] == "-buildConfig" && i + 1 < args.Length)
+                {
+                    string configString = args[i + 1].ToLower();
+                    if (configString == "development")
+                    {
+                        configOptions = BuildOptions.Development;
+                    }
+                    else if (configString == "release")
+                    {
+                        configOptions = BuildOptions.None;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Unrecognized option for -buildConfig: {args[i + 1]}");
+                        EditorApplication.Exit(1);
+                    }
+                }
+
+                if (args[i] == "-includeTestAssemblies")
+                {
+                    extraOptions |= BuildOptions.IncludeTestAssemblies;
+                }
+
+                if (args[i] == "-integrationTestSceneOnly")
+                {
+                    integrationTestSceneOnly = true;
+                }
+
+                if (args[i] == "-buildOutputDirectory" && i + 1 < args.Length)
+                {
+                    buildOutputDirectory = args[i + 1];
+                }
+
+                if (args[i].StartsWith("-define:"))
+                {
+                    string symbolName = args[i].Substring(8);
+                    extraScriptingDefines.Add(symbolName);
+                }
+
+                if (args[i].StartsWith("-projectSettings:iPhoneSdkVersion") && i + 1 < args.Length)
+                {
+                    projectSettings.SetIPhoneSdkVersion(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-projectSettings:iOSSimulatorArchitecture") && i + 1 < args.Length)
+                {
+                    projectSettings.SetIOSSimulatorArchitecture(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:Enabled") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetEnabled(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:SdkVerbosity") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetSdkVerbosity(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:ClientToken") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetClientToken(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:Env") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetEnv(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:ServiceName") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetServiceName(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:CustomEndpoint") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetCustomEndpoint(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:BatchSize") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetBatchSize(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:UploadFrequency") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetUploadFrequency(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:BatchProcessingLevel") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetBatchProcessingLevel(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:CrashReportingEnabled") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetCrashReportingEnabled(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:ForwardUnityLogs") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetForwardUnityLogs(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:RemoteLogThreshold") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetRemoteLogThreshold(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:RumEnabled") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetRumEnabled(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:RumApplicationId") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetRumApplicationId(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:AutomaticSceneTracking") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetAutomaticSceneTracking(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:SessionSampleRate") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetSessionSampleRate(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:TraceSampleRate") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetTraceSampleRate(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:TraceContextInjection") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetTraceContextInjection(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:FirstPartyHosts") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetFirstPartyHosts(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:TrackNonFatalAppHangs") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetTrackNonFatalAppHangs(args[i + 1]);
+                }
+
+                if (args[i].StartsWith("-datadogSettings:TelemetrySampleRate") && i + 1 < args.Length)
+                {
+                    datadogSettings.SetTelemetrySampleRate(args[i + 1]);
+                }
+            }
+
+            // Require that we got a recognized target platform
+            if (buildPlatform == null)
+            {
+                Debug.LogError("No supported build platform specified.");
+                EditorApplication.Exit(1);
+                return;
+            }
+
+            // Use the default output directory if not overridden
+            if (buildOutputDirectory == string.Empty)
+            {
+                buildOutputDirectory = GetDefaultOutputDirectory(buildPlatform.Value);
+            }
+
+            // We may need to create a transient blank scene; ensure that it doesn't
+            // already exist so we won't clobber anything on delete
+            const string integrationTestScenePath = "Assets/Scenes/DatadogIntegrationTestScene.unity";
+            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(integrationTestScenePath)))
+            {
+                Debug.LogError($"Transient blank scene file already exists: {integrationTestScenePath}");
+                EditorApplication.Exit(1);
+            }
+
+            // Invoke our build, with assets temporarily modified to satisfy our desired build configuration
+            bool ok = false;
+            try
+            {
+                // Use the default set of scenes configured for the project
+                var scenes = DefaultScenes;
+
+                // If configured to make an integration test build, override that list
+                if (integrationTestSceneOnly)
+                {
+                    // The integration test scene requires test assemblies to be included in the build: if we're being
+                    // asked to make a build that wouldn't actually be able to run integration tests, abort
+                    if ((extraOptions & BuildOptions.IncludeTestAssemblies) == 0)
+                    {
+                        Debug.LogError("Unable to include integration test scene without -includeTestAssemblies.");
+                        EditorApplication.Exit(1);
+                    }
+
+                    // Create a temporary blank scene that will run integration tests
+                    var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+
+                    // Make the main camera background green: if you open a mobile app and get a blank green screen,
+                    // then you'll know you're running an integration test build
+                    foreach (var obj in scene.GetRootGameObjects())
+                    {
+                        var camera = obj.GetComponent<Camera>();
+                        if (camera != null)
+                        {
+                            camera.backgroundColor = new Color(0.0f, 0.75f, 0.0f);
+                        }
+                    }
+
+                    // The 'IntegrationTestRunner' script bootstraps our integration tests into a running game: we
+                    // inject this script into the project (in /Assets/DatadogBuildRuntimeScripts) during the build, so
+                    // we should be able to resolve it in the editor now, and it'll be present in the packaged build
+                    const string testRunnerTypeName = "Datadog.Unity.RuntimeTest.IntegrationTestRunner";
+                    Type testRunnerType = null;
+                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        testRunnerType = assembly.GetType(testRunnerTypeName);
+                        if (testRunnerType != null)
+                        {
+                            break;
+                        }
+                    }
+
+                    // Verify that we found the type: if we failed, we can't populate the scene
+                    if (testRunnerType == null)
+                    {
+                        Debug.LogError($"Could not find type for injected runtime script {testRunnerTypeName}");
+                        EditorApplication.Exit(1);
+                    }
+
+                    // Add a GameObject with a script that will run integration tests and print results to the log
+                    var runnerObj = new GameObject("Integration Test Runner");
+                    runnerObj.AddComponent(testRunnerType);
+
+                    // Save the scene and use it as the one and only scene in our build
+                    EditorSceneManager.SaveScene(scene, integrationTestScenePath);
+                    scenes = new string[]{ integrationTestScenePath };
+                }
+
+                // Apply temporary asset changes for the duration of the build
+                projectSettings.Apply();
+                datadogSettings.Apply();
+
+                var options = configOptions | extraOptions;
+                ok = Build(buildPlatform.Value, scenes, buildOutputDirectory, options, extraScriptingDefines.ToArray());
+            }
+            finally
+            {
+                // Revert any temporary asset changes
+                projectSettings.Revert();
+                datadogSettings.Revert();
+
+                // If we created a temporary integration test scene, delete it
+                if (integrationTestSceneOnly)
+                {
+                    AssetDatabase.DeleteAsset(integrationTestScenePath);
+                }
+            }
+
+            // If the build failed, exit Unity with a status code of 1
+            if (!ok)
+            {
+                EditorApplication.Exit(1);
+            }
+        }
+
+        [MenuItem("Build/Build Android")]
+        public static void BuildAndroid()
+        {
+            BuildInEditor(BuildTarget.Android);
+        }
+
+        [MenuItem("Build/Build iOS")]
+        public static void BuildIOS()
+        {
+            BuildInEditor(BuildTarget.iOS);
+        }
+
+        private static void BuildInEditor(BuildTarget target)
+        {
+            Build(target, DefaultScenes, GetDefaultOutputDirectory(target), BuildOptions.None, null);
+        }
+
+        private static bool Build(BuildTarget target, string[] scenes, string outputDirectory, BuildOptions options, string[] extraScriptingDefines)
+        {
+            string outputLocation = GetOutputLocation(target, outputDirectory);
+
+            Debug.Log($"Building for {target}: {outputLocation}");
+
+            BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
+            buildPlayerOptions.locationPathName = outputLocation;
+            buildPlayerOptions.scenes = scenes;
+            buildPlayerOptions.target = target;
+            buildPlayerOptions.options = options;
+            buildPlayerOptions.extraScriptingDefines = extraScriptingDefines;
+
+            BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            bool ok = report.summary.result == BuildResult.Succeeded;
+            if (ok)
+            {
+                Debug.Log($"Build OK: {outputLocation}");
+            }
+            else
+            {
+                Debug.LogError($"Build Failed:\n{report.SummarizeErrors()}");
+            }
+            return ok;
+        }
+
+        private static string GetDefaultOutputDirectory(BuildTarget target)
+        {
+            switch (target)
+            {
+                case BuildTarget.Android:
+                    return "Build/Android";
+                case BuildTarget.iOS:
+                    return "Build/iOS";
+            }
+            throw new InvalidEnumArgumentException();
+        }
+
+        private static string GetOutputLocation(BuildTarget target, string directory)
+        {
+            switch (target)
+            {
+                case BuildTarget.Android:
+                    return Path.Join(directory, "datadog-demo.apk");
+                case BuildTarget.iOS:
+                    return directory;
+            }
+            throw new InvalidEnumArgumentException();
+        }
+    }
+
+    public struct Optional<T>
+    {
+        private bool _hasValue;
+        private T _value;
+
+        public readonly bool HasValue => _hasValue;
+        public readonly T Value => _hasValue ? _value : throw new InvalidOperationException("No value present.");
+
+        public void Set(T value)
+        {
+            _value = value;
+            _hasValue = true;
+        }
+    }
+
+    public class ModifiedProjectSettings
+    {
+        private class Values
+        {
+            public Optional<iOSSdkVersion> IPhoneSdkVersion;
+            public Optional<AppleMobileArchitectureSimulator> IOSSimulatorArchitecture;
+        }
+
+        private readonly Values _old = new();
+        private readonly Values _new = new();
+
+        public void Apply()
+        {
+            if (_new.IPhoneSdkVersion.HasValue)
+            {
+                _old.IPhoneSdkVersion.Set(PlayerSettings.iOS.sdkVersion);
+                PlayerSettings.iOS.sdkVersion = _new.IPhoneSdkVersion.Value;
+            }
+
+            if (_new.IOSSimulatorArchitecture.HasValue)
+            {
+                _old.IOSSimulatorArchitecture.Set(PlayerSettings.iOS.simulatorSdkArchitecture);
+                PlayerSettings.iOS.simulatorSdkArchitecture = _new.IOSSimulatorArchitecture.Value;
+            }
+        }
+
+        public void Revert()
+        {
+            if (_old.IPhoneSdkVersion.HasValue)
+            {
+                PlayerSettings.iOS.sdkVersion = _old.IPhoneSdkVersion.Value;
+            }
+
+            if (_old.IOSSimulatorArchitecture.HasValue)
+            {
+                PlayerSettings.iOS.simulatorSdkArchitecture = _old.IOSSimulatorArchitecture.Value;
+            }
+        }
+
+        public void SetIPhoneSdkVersion(string arg)
+        {
+            var value = arg switch
+            {
+                "device" => iOSSdkVersion.DeviceSDK,
+                "simulator" => iOSSdkVersion.SimulatorSDK,
+                _ => throw new ArgumentException($"Invalid iOS SDK version: {arg}")
+            };
+            _new.IPhoneSdkVersion.Set(value);
+        }
+
+        public void SetIOSSimulatorArchitecture(string arg)
+        {
+            var value = arg switch
+            {
+                "x86_64" => AppleMobileArchitectureSimulator.X86_64,
+                "arm64" => AppleMobileArchitectureSimulator.ARM64,
+                "universal" => AppleMobileArchitectureSimulator.Universal,
+                _ => throw new ArgumentException($"Invalid iOS simulator architecture: {arg}")
+            };
+            _new.IOSSimulatorArchitecture.Set(value);
+        }
+    }
+
+    public class ModifiedDatadogSettings
+    {
+        private class Values
+        {
+            public Optional<bool> Enabled;
+            public Optional<CoreLoggerLevel> SdkVerbosity;
+            public Optional<string> ClientToken;
+            public Optional<string> Env;
+            public Optional<string> ServiceName;
+            public Optional<string> CustomEndpoint;
+            public Optional<BatchSize> BatchSize;
+            public Optional<UploadFrequency> UploadFrequency;
+            public Optional<BatchProcessingLevel> BatchProcessingLevel;
+            public Optional<bool> CrashReportingEnabled;
+            public Optional<bool> ForwardUnityLogs;
+            public Optional<LogType> RemoteLogThreshold;
+            public Optional<bool> RumEnabled;
+            public Optional<string> RumApplicationId;
+            public Optional<bool> AutomaticSceneTracking;
+            public Optional<float> SessionSampleRate;
+            public Optional<float> TraceSampleRate;
+            public Optional<TraceContextInjection> TraceContextInjection;
+            public Optional<List<FirstPartyHostOption>> FirstPartyHosts;
+            public Optional<bool> TrackNonFatalAppHangs;
+            public Optional<float> TelemetrySampleRate;
+
+            public void CopyFrom(DatadogConfigurationOptions options)
+            {
+                Enabled.Set(options.Enabled);
+                SdkVerbosity.Set(options.SdkVerbosity);
+                ClientToken.Set(options.ClientToken);
+                Env.Set(options.Env);
+                ServiceName.Set(options.ServiceName);
+                CustomEndpoint.Set(options.CustomEndpoint);
+                BatchSize.Set(options.BatchSize);
+                UploadFrequency.Set(options.UploadFrequency);
+                BatchProcessingLevel.Set(options.BatchProcessingLevel);
+                CrashReportingEnabled.Set(options.CrashReportingEnabled);
+                ForwardUnityLogs.Set(options.ForwardUnityLogs);
+                RemoteLogThreshold.Set(options.RemoteLogThreshold);
+                RumEnabled.Set(options.RumEnabled);
+                RumApplicationId.Set(options.RumApplicationId);
+                AutomaticSceneTracking.Set(options.AutomaticSceneTracking);
+                SessionSampleRate.Set(options.SessionSampleRate);
+                TraceSampleRate.Set(options.TraceSampleRate);
+                TraceContextInjection.Set(options.TraceContextInjection);
+                FirstPartyHosts.Set(options.FirstPartyHosts);
+                TrackNonFatalAppHangs.Set(options.TrackNonFatalAppHangs);
+                TelemetrySampleRate.Set(options.TelemetrySampleRate);
+            }
+
+            public void ApplyTo(DatadogConfigurationOptions options)
+            {
+                if (Enabled.HasValue) { options.Enabled = Enabled.Value; }
+                if (SdkVerbosity.HasValue) { options.SdkVerbosity = SdkVerbosity.Value; }
+                if (ClientToken.HasValue) { options.ClientToken = ClientToken.Value; }
+                if (Env.HasValue) { options.Env = Env.Value; }
+                if (ServiceName.HasValue) { options.ServiceName = ServiceName.Value; }
+                if (CustomEndpoint.HasValue) { options.CustomEndpoint = CustomEndpoint.Value; }
+                if (BatchSize.HasValue) { options.BatchSize = BatchSize.Value; }
+                if (UploadFrequency.HasValue) { options.UploadFrequency = UploadFrequency.Value; }
+                if (BatchProcessingLevel.HasValue) { options.BatchProcessingLevel = BatchProcessingLevel.Value; }
+                if (CrashReportingEnabled.HasValue) { options.CrashReportingEnabled = CrashReportingEnabled.Value; }
+                if (ForwardUnityLogs.HasValue) { options.ForwardUnityLogs = ForwardUnityLogs.Value; }
+                if (RemoteLogThreshold.HasValue) { options.RemoteLogThreshold = RemoteLogThreshold.Value; }
+                if (RumEnabled.HasValue) { options.RumEnabled = RumEnabled.Value; }
+                if (RumApplicationId.HasValue) { options.RumApplicationId = RumApplicationId.Value; }
+                if (AutomaticSceneTracking.HasValue) { options.AutomaticSceneTracking = AutomaticSceneTracking.Value; }
+                if (SessionSampleRate.HasValue) { options.SessionSampleRate = SessionSampleRate.Value; }
+                if (TraceSampleRate.HasValue) { options.TraceSampleRate = TraceSampleRate.Value; }
+                if (TraceContextInjection.HasValue) { options.TraceContextInjection = TraceContextInjection.Value; }
+                if (FirstPartyHosts.HasValue) { options.FirstPartyHosts = FirstPartyHosts.Value; }
+                if (TrackNonFatalAppHangs.HasValue) { options.TrackNonFatalAppHangs = TrackNonFatalAppHangs.Value; }
+                if (TelemetrySampleRate.HasValue) { options.TelemetrySampleRate = TelemetrySampleRate.Value; }
+            }
+        }
+
+        private readonly Values _old = new();
+        private readonly Values _new = new();
+        private bool _hasNewValues;
+
+        public void Apply()
+        {
+            if (!_hasNewValues)
+            {
+                return;
+            }
+
+            var options = DatadogConfigurationOptions.Load();
+            _old.CopyFrom(options);
+            _new.ApplyTo(options);
+            EditorUtility.SetDirty(options);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        public void Revert()
+        {
+            if (!_hasNewValues)
+            {
+                return;
+            }
+
+            var options = DatadogConfigurationOptions.Load();
+            _old.ApplyTo(options);
+            EditorUtility.SetDirty(options);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        public void SetEnabled(string arg)
+        {
+            _new.Enabled.Set(ParseBool(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetSdkVerbosity(string arg)
+        {
+            var value = arg switch
+            {
+                "debug" => CoreLoggerLevel.Debug,
+                "warn" => CoreLoggerLevel.Warn,
+                "error" => CoreLoggerLevel.Error,
+                "critical" => CoreLoggerLevel.Critical,
+                _ => throw new ArgumentException($"Invalid SDK verbosity: {arg}")
+            };
+            _new.SdkVerbosity.Set(value);
+            _hasNewValues = true;
+        }
+
+        public void SetClientToken(string arg)
+        {
+            _new.ClientToken.Set(arg);
+            _hasNewValues = true;
+        }
+
+        public void SetEnv(string arg)
+        {
+            _new.Env.Set(arg);
+            _hasNewValues = true;
+        }
+
+        public void SetServiceName(string arg)
+        {
+            _new.ServiceName.Set(arg);
+            _hasNewValues = true;
+        }
+
+        public void SetCustomEndpoint(string arg)
+        {
+            if (arg == "CLEAR")
+            {
+                _new.CustomEndpoint.Set("");
+            }
+            else
+            {
+                _new.CustomEndpoint.Set(arg);
+            }
+            _hasNewValues = true;
+        }
+
+        public void SetBatchSize(string arg)
+        {
+            var value = arg switch
+            {
+                "small" => BatchSize.Small,
+                "medium" => BatchSize.Medium,
+                "large" => BatchSize.Large,
+                _ => throw new ArgumentException($"Invalid batch size: {arg}")
+            };
+            _new.BatchSize.Set(value);
+            _hasNewValues = true;
+        }
+
+        public void SetUploadFrequency(string arg)
+        {
+            var value = arg switch
+            {
+                "frequent" => UploadFrequency.Frequent,
+                "average" => UploadFrequency.Average,
+                "rare" => UploadFrequency.Rare,
+                _ => throw new ArgumentException($"Invalid upload frequency: {arg}")
+            };
+            _new.UploadFrequency.Set(value);
+            _hasNewValues = true;
+        }
+
+        public void SetBatchProcessingLevel(string arg)
+        {
+            var value = arg switch
+            {
+                "low" => BatchProcessingLevel.Low,
+                "medium" => BatchProcessingLevel.Medium,
+                "high" => BatchProcessingLevel.High,
+                _ => throw new ArgumentException($"Invalid batch processing level: {arg}")
+            };
+            _new.BatchProcessingLevel.Set(value);
+            _hasNewValues = true;
+        }
+
+        public void SetCrashReportingEnabled(string arg)
+        {
+            _new.CrashReportingEnabled.Set(ParseBool(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetForwardUnityLogs(string arg)
+        {
+            _new.ForwardUnityLogs.Set(ParseBool(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetRemoteLogThreshold(string arg)
+        {
+            var value = arg switch
+            {
+                "error" => LogType.Error,
+                "assert" => LogType.Assert,
+                "warning" => LogType.Warning,
+                "log" => LogType.Log,
+                "exception" => LogType.Exception,
+                _ => throw new ArgumentException($"Invalid log threshold: {arg}")
+            };
+            _new.RemoteLogThreshold.Set(value);
+            _hasNewValues = true;
+        }
+
+        public void SetRumEnabled(string arg)
+        {
+            _new.RumEnabled.Set(ParseBool(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetRumApplicationId(string arg)
+        {
+            _new.RumApplicationId.Set(arg);
+            _hasNewValues = true;
+        }
+
+        public void SetAutomaticSceneTracking(string arg)
+        {
+            _new.AutomaticSceneTracking.Set(ParseBool(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetSessionSampleRate(string arg)
+        {
+            _new.SessionSampleRate.Set(float.Parse(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetTraceSampleRate(string arg)
+        {
+            _new.TraceSampleRate.Set(float.Parse(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetTraceContextInjection(string arg)
+        {
+            var value = arg switch
+            {
+                "all" => TraceContextInjection.All,
+                "sampled" => TraceContextInjection.Sampled,
+                _ => throw new ArgumentException($"Invalid trace context injection: {arg}")
+            };
+            _new.TraceContextInjection.Set(value);
+            _hasNewValues = true;
+        }
+
+        public void SetFirstPartyHosts(string arg)
+        {
+            if (arg == "CLEAR")
+            {
+                _new.FirstPartyHosts.Set(new List<FirstPartyHostOption>());
+            }
+            else
+            {
+                var value = new List<FirstPartyHostOption>();
+                foreach (var host in arg.Split(","))
+                {
+                    var opt = new FirstPartyHostOption(host, TracingHeaderType.Datadog | TracingHeaderType.TraceContext);
+                    value.Add(opt);
+                }
+                _new.FirstPartyHosts.Set(value);
+            }
+            _hasNewValues = true;
+        }
+
+        public void SetTrackNonFatalAppHangs(string arg)
+        {
+            _new.TrackNonFatalAppHangs.Set(ParseBool(arg));
+            _hasNewValues = true;
+        }
+
+        public void SetTelemetrySampleRate(string arg)
+        {
+            _new.TelemetrySampleRate.Set(float.Parse(arg));
+            _hasNewValues = true;
+        }
+
+        private static bool ParseBool(string arg)
+        {
+            var s = arg.ToLower();
+            return s is "true" or "1";
+        }
+    }
+}

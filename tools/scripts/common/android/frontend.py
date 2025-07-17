@@ -49,7 +49,7 @@ class AndroidDeviceSpec:
 
 
 @contextmanager
-def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, None]:
+def run_android_device(spec: AndroidDeviceSpec) -> Generator[str, None, None]:
     log = get_default_logger()
     log.info('Preparing an emulated Android device...')
     log.info(f'- API Level: {spec.api_level}')
@@ -65,7 +65,7 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, No
     adb = Adb.require()
     log.info(f'Using adb at: {adb.path}')
     emulator = AndroidEmulator.require()
-    log.info(f'Using emulator at: {adb.path}')
+    log.info(f'Using emulator at: {emulator.path}')
 
     # Use sdkmanager to ensure that we have the required system image installed
     installed_packages = sdkmanager.list_installed_packages()
@@ -123,9 +123,9 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, No
         log.info(f'{device.name} is running; waiting for boot...')
         device.wait_for_boot()
 
-        # Device is ready to use; yield it to the caller
+        # Device is ready to use; yield its adb-compatible name to the caller
         log.info(f'{device.name} is ready!')
-        yield device
+        yield device.name
     finally:
         # Attempt a clean shutdown with 'adb emu kill', which should cause our emulator
         # process to shut down as well

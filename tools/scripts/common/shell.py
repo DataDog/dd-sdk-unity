@@ -5,11 +5,15 @@ Unless explicitly stated otherwise, all files in this repository are licensed un
 Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
+import os
+import shlex
 import subprocess
 import selectors
 import io
 import sys
 from typing import Callable, Optional, cast, Tuple, List
+
+from common.log import get_default_logger
 
 
 OutputHandlerFunc = Callable[[str, bool], None]
@@ -42,6 +46,7 @@ def run_cmd(
     process = subprocess.Popen(
         args,
         cwd=cwd,
+        env=os.environ,
         # Pipe both stdout and stderr so we can read them
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -111,16 +116,28 @@ def run_cmd(
 
 
 def capture_output(*args: str) -> Tuple[str, str]:
-    stdout = io.StringIO()
-    stderr = io.StringIO()
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
     def _read(line: str, is_stderr: bool):
         if is_stderr:
-            stderr.write(line + '\n')
+            stderr_buf.write(line + '\n')
         else:
-            stdout.write(line + '\n')
+            stdout_buf.write(line + '\n')
 
-    run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
+    exitcode = run_cmd(*args, output_handler=_read)
 
-    stdout.seek(0)
-    stderr.seek(0)
-    return stdout.read(), stderr.read()
+    stdout_buf.seek(0)
+    stderr_buf.seek(0)
+    stdout, stderr = stdout_buf.read(), stderr_buf.read()
+
+    if exitcode != 0:
+        log = get_default_logger()
+        log.error(f'> {shlex.join(args)}')
+        log.error('=== STDOUT ===')
+        log.error(stdout)
+        log.error('=== STDERR ===')
+        log.error(stderr)
+        log.error(f'< {exitcode} (exit code from {os.path.basename(args[0])})')
+        raise subprocess.CalledProcessError(exitcode, args, stdout.encode(), stderr.encode())
+    
+    return stdout, stderr

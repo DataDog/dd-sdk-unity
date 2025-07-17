@@ -9,6 +9,7 @@ from .sdkmanager import AndroidPackage, AndroidSdkManager
 from .avdmanager import AvdManager
 from .emulator import AndroidEmulator
 from .adb import Adb
+from .aapt import get_package_name
 
 from .frontend import AndroidDeviceSpec, run_android_device
 
@@ -19,6 +20,7 @@ __all__ = [
     'AvdManager',
     'AndroidEmulator',
     'Adb',
+    'get_package_name',
     'AndroidDeviceSpec',
     'run_android_device',
 ]

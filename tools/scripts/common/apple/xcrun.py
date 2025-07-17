@@ -67,11 +67,91 @@ class Simctl(object):
         args = ['xcrun', 'simctl', 'bootstatus', udid]
         subprocess.check_call(args, timeout=timeout_seconds, stdout=subprocess.DEVNULL)
 
+    def uninstall(self, udid: str, app_bundle_id: str, timeout_seconds: float = 30.0):
+        args = ['xcrun', 'simctl', 'uninstall', udid, app_bundle_id]
+        subprocess.check_call(args, timeout=timeout_seconds)
+
+    def install(self, udid: str, app_bundle_path: str, timeout_seconds: float = 60.0):
+        args = ['xcrun', 'simctl', 'install', udid, app_bundle_path]
+        subprocess.check_call(args, timeout=timeout_seconds)
+
+    def launch(self, udid: str, app_bundle_id: str, timeout_seconds: float = 30.0):
+        args = ['xcrun', 'simctl', 'launch', udid, app_bundle_id]
+        subprocess.check_call(args, timeout=timeout_seconds)
+
+
+class DevicectlConnectionProperties(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
+
+    pairing_state: str
+
+
+class DevicectlDeviceProperties(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
+
+    developer_mode_status: str
+    name: str
+    os_build_update: str
+    os_version_number: str
+
+
+class DevicectlHardwareProperties(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
+
+    device_type: str
+    marketing_name: str
+    platform: str
+    product_type: str
+
+
+class DevicectlDevice(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
+
+    identifier: str
+    visibility_class: str
+
+    connection_properties: DevicectlConnectionProperties
+    device_properties: DevicectlDeviceProperties
+    hardware_properties: DevicectlHardwareProperties
+    
+
+class DevicectlListDevicesResult(BaseModel):
+    devices: List[DevicectlDevice]
+
+
+class DevicectlListDevicesCommandOutput(BaseModel):
+    result: DevicectlListDevicesResult
+
+
+class Devicectl(object):
+    
+    def list_devices(self) -> List[DevicectlDevice]:
+        stdout, _ = capture_output('xcrun', 'devicectl', '--json-output', '-', 'list', 'devices')
+        data = json.loads(stdout)
+        output = DevicectlListDevicesCommandOutput(**data)
+        return output.result.devices
+
+    def uninstall(self, udid: str, app_bundle_id: str, timeout_seconds: float = 30.0):
+        args = ['xcrun', 'devicectl', 'device', 'uninstall', 'app', '--device', udid, app_bundle_id]
+        subprocess.check_call(args, timeout=timeout_seconds)
+
+    def install(self, udid: str, app_bundle_path: str, timeout_seconds: float = 60.0):
+        args = ['xcrun', 'devicectl', 'device', 'install', 'app', '--device', udid, app_bundle_path]
+        subprocess.check_call(args, timeout=timeout_seconds)
+
+    def launch(self, udid: str, app_bundle_id: str, timeout_seconds: float = 30.0):
+        args = ['xcrun', 'devicectl', 'device', 'process', 'launch', '--device', udid, '--terminate-existing', app_bundle_id]
+        subprocess.check_call(args, timeout=timeout_seconds)
+
 
 class Xcrun(object):
     @property
     def simctl(self) -> Simctl:
         return Simctl()
+    
+    @property
+    def devicectl(self) -> Devicectl:
+        return Devicectl()
 
     @classmethod
     def require(cls) -> 'Xcrun':

@@ -1,0 +1,5 @@
+scenes:
+- Assets/Scenes/CategoryScene.unity
+- Assets/Scenes/CheckoutScene.unity
+- Assets/Scenes/FirstScene.unity
+- Assets/Scenes/ProductScene.unity

@@ -36,9 +36,9 @@ def prepare_mock_server_venv():
     subprocess.check_call([venv_python, '-m', 'pip', 'install', '-r', requirements_txt])
     log.info('Dependencies up to date.')
 
-    # Run mock_server/schema_update.py to ensure we have the latest RUM events schemas
-    schema_update_py = os.path.join(__mock_server_root__, 'schema_update.py')
-    subprocess.check_call([venv_python, schema_update_py])
+    # Run app.py --update-schemas to ensure we have the latest RUM events schemas
+    update_schema_args = [venv_python, 'app.py', '--update-schemas']
+    subprocess.check_call(update_schema_args, cwd=__mock_server_root__)
     log.info('Event schemas up to date.')
 
 

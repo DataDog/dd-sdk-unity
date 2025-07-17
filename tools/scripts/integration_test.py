@@ -20,7 +20,7 @@ from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, mo
 from common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import prepare_mock_server_venv, run_mock_server
-from common.simulator import run_default_simulator
+from common.simulator import acquire_device
 from common.xslt import transform_nunit_to_junit
 
 
@@ -60,7 +60,7 @@ def _integration_test_env(project_path: str, config: DatadogRuntimeConfig, mock_
                 # TODO: Device targeting is currently implicit; i.e. if a user already
                 # has an Android phone connected or another simulator running, there's
                 # no guarantee that we'll actually use this emulator for our tests
-                with run_default_simulator(platform):
+                with acquire_device(platform, use_simulator=True):
                     yield
 
 def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):

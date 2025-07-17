@@ -10,12 +10,12 @@ import time
 import argparse
 
 from common.log import init_logger
-from common.simulator import run_default_simulator
+from common.simulator import acquire_device
 
 
 def start_simulator(platform: str) -> int:
     log = init_logger()
-    with run_default_simulator(platform.lower()):
+    with acquire_device(platform.lower(), use_simulator=True):
         log.info('Simulator running.')
         log.info('Press Ctrl-C to exit...')
         while True:
