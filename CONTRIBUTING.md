@@ -8,9 +8,9 @@ This document provides some basic guidelines for contributing to this repository
 
 ## Found a bug?
 
-For any urgent matters (such as outages) or issues concerning the Datadog service or UI, contact our support team via https://docs.datadoghq.com/help/ for direct, faster assistance.
+For any urgent matters (such as outages) or issues concerning the Datadog service or UI, contact our support team through https://docs.datadoghq.com/help/ for direct assistance.
 
-You may submit a bug report concerning the Datadog Unity SDK by [opening a GitHub Issue][issues]. Use appropriate template and provide all listed details to help us resolve the issue.
+To submit a bug report concerning the Datadog Unity SDK, [open a GitHub Issue][issues]. Use the appropriate template and provide all listed details to help us resolve the issue.
 
 ## Prerequisites
 
@@ -27,27 +27,27 @@ To work on the Datadog Unity SDK, you'll need to:
 
 ### Android prerequisites
 
-To build the SDK for Android, you'll also need to:
+To build the SDK for Android:
 
 - In Unity Hub, ensure that all relevant Unity Editor installs include the **Android Build Support** components, along with **OpenJDK** and **Android SDK & NDK Tools**.
-- For Android emulator support in scripts: install the [Android SDK][android-sdk] and the [`cmdline-tools`][cmdline-tools] package.
-    - To verify: `$ANDROID_HOME` should be set, and `$ANDROID_HOME/cmdline-tools/latest` should exist.
+- For Android emulator support in scripts, install the [Android SDK][android-sdk] and the [`cmdline-tools`][cmdline-tools] package.
+    - To verify the SDK has successfully installed, check that `$ANDROID_HOME` is set, and `$ANDROID_HOME/cmdline-tools/latest` exists.
 
 [android-sdk]: https://developer.android.com/studio
 [cmdline-tools]: https://developer.android.com/tools
 
 ### iOS prerequisites
 
-To build the SDK for iOS, you'll also need to:
+To build the SDK for iOS:
 
 - In Unity Hub, ensure that all relevant Unity Editor installs include the **iOS Build Support** component.
 - Install [`Xcode`][xcode].
-    - To verify: `xcodebuild -version`
+    - To verify Xcode successfully installed, run: `xcodebuild -version`
 - Ensure that you've configured Xcode for automatic signing by authenticating with your Apple ID.
 - Install [`xcbeautify`][xcbeautify] via `brew install xcbeautify`
-    - To verify: `xcbeautify --version`
+    - To verify xcbeautify successfully installed, run: `xcbeautify --version`
 - Ensure that you have [Ruby][ruby] installed on your system.
-    - To verify: `ruby --version`, `gem --version`
+    - To verify Ruby successfully installed, run: `ruby --version`, `gem --version`
 
 #### Troubleshooting iOS Resolver
 
@@ -56,9 +56,9 @@ Ruby is required by [External Dependency Manager for Unity (EDM4U)][edm4u] when 
 EDM4U can sometimes fail to resolve the `pod` binary that it installs. If you get errors about CocoaPods within Unity (in a window titled "iOS Resolver"), try the following workaround:
 
 - Verify that `pod` has been installed: `pod --version`
-    - If it's not installed: `gem install cocoapods --user-install`
+    - If it's not installed, run: `gem install cocoapods --user-install`
 - Symlink the `pod` binary to one of the hardcoded search paths used by EDM4U:
-    - e.g. `sudo ln -s $(which pod)`
+    - Run `sudo ln -s $(which pod)`
 - Restart Unity.
 
 [xcode]: https://developer.apple.com/xcode/
@@ -92,7 +92,7 @@ To get started, open `samples/Datadog Sample` in Unity 2023, then open the same 
 
 The Datadog SDK includes a suite of tests in [`packages/Datadog.Unity/Tests`][test-src]. All significant code changes to the SDK must have adequate test coverage.
 
-When you open a pull request, your changes will be validated exhaustively against our CI pipeline. As you work, though, it's helpful to run tests locally as well.
+When you open a pull request, your changes are validated exhaustively against our CI pipeline. As you work, though, it's helpful to run tests locally as well.
 
 [test-src]: ./packages/Datadog.Unity/Tests/
 
@@ -107,12 +107,12 @@ We currently run tests against these versions of Unity:
 | [`unit_test`][unit-test]               | [`test_scaffolds/6000 LTS`][scaffold-6000] | Unity 6000.1  |
 | [`integration_test`][integration-test] | [`samples/Datadog Sample`][datadog-sample] | Unity 2022.3  |
 
-Our test scripts use the [Unity Hub][unity-hub] binary to locate and manage installed versions of the Unity Editor. If a test script is unable to locate the required version of the editor, it will exit with an error.
+Our test scripts use the [Unity Hub][unity-hub] binary to locate and manage installed versions of the Unity Editor. If a test script is unable to locate the required version of the editor, it exits with an error.
 
-To install the latest release of a specific editor version, along with all required components for testing the Datadog SDK, you may use the [`install_unity`][install-unity] script:
+To install the latest release of a specific editor version, along with all required components for testing the Datadog SDK, you can use the [`install_unity`][install-unity] script:
 
 ```bash
-# Install the latest version release of Unity 2022.3 via Unity Hub
+# Install the latest version release of Unity 2022.3 through Unity Hub
 ./run-script install_unity 2022.3
 ```
 
@@ -140,9 +140,9 @@ The [`unit_test`][unit-test] script runs all tests except for those in the `Inte
 ./run-script unit_test --project 'test_scaffolds/2021 LTS' --unity-version 2021.3.44f1
 ```
 
-When you run any of these commands from the root of this repository, the script will locate the approriate version of the Unity Editor, then boot a headless instance of that editor. That editor instance will run `EditMode` tests, then `PlayMode` tests, and then it will exit.
+When you run any of these commands from the root of this repository, the script locates the appropriate version of the Unity Editor, then boots a headless instance of that editor. That editor instance runs `EditMode` tests, then `PlayMode` tests, and then it exits.
 
-Note that if you already have the target project open in Unity, test scripts will fail to run, as Unity does not permit the same project to be open in multiple editor instances. If you wish to run unit tests without closing the editor, you may run them directly via (`Window` &rarr; `General` &rarr; `Test Runner`).
+**Note**: If you already have the target project open in Unity, test scripts will fail to run, as Unity does not permit the same project to be open in multiple editor instances. If you wish to run unit tests without closing the editor, you can run them directly through (`Window` &rarr; `General` &rarr; `Test Runner`).
 
 Unit test results are written in JUnit format to `unit-test-<mode>.xml`. If all tests pass, the script will exit with a status code of 0.
 
@@ -168,9 +168,9 @@ Integration test results are written in JUnit format to `integration-test-<platf
 
 #### Debugging integration tests
 
-Running integration tests manually is not trivial, given the extra setup steps that are handled by the script. If you wish to manually recreate the integration test environment:
+Running integration tests manually is not trivial, given the extra setup steps that are handled by the script. If you want to manually recreate the integration test environment:
 
 - Start a mock server with `./run-script init_mock_server --start --port 5000`
 - Configure the Unity project's Datadog Settings with a **Custom Endpoint** URL
-- Ensure that the remaining Datadog Settings match the values specified via `DatadogRuntimeConfig` in [`integration_test.py`][integration-test]
+- Ensure that the remaining Datadog Settings match the values specified through `DatadogRuntimeConfig` in [`integration_test.py`][integration-test]
 - If desired, start a simulator with `./run-script start_simulator --platform android`
