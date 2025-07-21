@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace Datadog.Unity.WebGL
 {
-    public class DatadogWebGLRum : IDdRum
+    public class DatadogWebGLRum : IDdRumInternal
     {
         private class BrowerSdkConfig
         {
@@ -195,6 +195,11 @@ namespace Datadog.Unity.WebGL
         public void StopSession()
         {
             DDRum_StopSession();
+        }
+
+        public void UpdateExternalRefreshRate(double frameTimeSeconds)
+        {
+            // Browser SDK does not support frame rate tracking
         }
 
         [DllImport("__Internal")]

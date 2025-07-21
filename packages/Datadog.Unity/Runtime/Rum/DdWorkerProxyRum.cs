@@ -250,13 +250,6 @@ namespace Datadog.Unity.Rum
                 () => { _worker.AddMessage(new DdRumProcessor.StopSessionMessage()); });
         }
 
-        public void UpdateExternalRefreshRate(double frameTimeSeconds)
-        {
-            // Don't permit user code to call this function; it's for internal use only, but the IDdRum interface is
-            // shared between the user-facing API and the internal platform abstraction layer
-            Debug.LogWarning("UpdateExternalRefreshRate is for internal use only");
-        }
-
         private void LogNullWarning(string methodName, string parameter)
         {
             UnityEngine.Debug.LogWarning($"[Datadog] {methodName} called with null parameter: {parameter}.");

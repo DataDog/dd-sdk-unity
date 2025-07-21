@@ -51,7 +51,7 @@ namespace Datadog.Unity
         {
         }
 
-        public IDdRum InitRum(DatadogConfigurationOptions options)
+        public IDdRumInternal InitRum(DatadogConfigurationOptions options)
         {
             return new DdNoOpRum();
         }

@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Datadog.Unity.Android
 {
-    internal class DatadogAndroidRum : IDdRum
+    internal class DatadogAndroidRum : IDdRumInternal
     {
         private readonly AndroidJavaObject _rum;
         private readonly DatadogAndroidPlatform _androidPlatform;
