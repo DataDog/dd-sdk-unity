@@ -30,7 +30,11 @@ namespace Datadog.Unity.Rum
 
         internal void HandlePerformanceSample(PerformanceSample sample)
         {
-            Debug.Log($"Performance stats in current view: last frame was {sample.FrameTimeMs}ms; {sample.NumFramesOverBudget} of {sample.NumFramesOverBudget + sample.NumFramesUnderBudget} over budget; {sample.NumHitchFrames} hitches");
+            InternalHelpers.Wrap("UpdateExternalRefreshRate",
+                () =>
+                {
+                    _worker.AddMessage(DdRumProcessor.UpdateExternalRefreshRateMessage.Create(sample.FrameTimeMs * 0.001));
+                });
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
@@ -244,6 +248,13 @@ namespace Datadog.Unity.Rum
         {
             InternalHelpers.Wrap("StopSession",
                 () => { _worker.AddMessage(new DdRumProcessor.StopSessionMessage()); });
+        }
+
+        public void UpdateExternalRefreshRate(double frameTimeSeconds)
+        {
+            // Don't permit user code to call this function; it's for internal use only, but the IDdRum interface is
+            // shared between the user-facing API and the internal platform abstraction layer
+            Debug.LogWarning("UpdateExternalRefreshRate is for internal use only");
         }
 
         private void LogNullWarning(string methodName, string parameter)
