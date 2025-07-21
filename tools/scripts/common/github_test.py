@@ -1,0 +1,15 @@
+"""
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+"""
+import pytest
+
+from dataclasses import fields
+
+from .github import get_latest_external_dependency_versions
+
+
+def test_get_latest_external_dependency_versions():
+    got = get_latest_external_dependency_versions()
+    assert len(fields(got)) == 2, "new external dependency added; please update this test"

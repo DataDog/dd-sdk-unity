@@ -27,7 +27,7 @@ class ThirdPartyDependency:
         self.license = csv_line[2]
         self.copyright = csv_line[3]
 
-def main():
+def main() -> None:
     dependency_info: list[ThirdPartyDependency] = []
     try:
         with open(third_party_csv, "r") as csv_file:

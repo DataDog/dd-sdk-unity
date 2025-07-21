@@ -169,7 +169,7 @@ def generic_post(rest = ''):
                 schemas=gr.schemas
             )
         )
-        response_text = flask.Response('OK - request recorded to new endpoint\n')
+        response_text = 'OK - request recorded to new endpoint\n'
 
     resp = flask.Response(response_text, status=202)
     add_cors_headers(resp)
@@ -214,8 +214,7 @@ def reset():
     Clear currently logged requests on all endpoints
     """
     global endpoints
-    for e in endpoints:
-        e.requests.clear()
+    endpoints.clear()
     resp = flask.Response('OK', status=200)
     add_cors_headers(resp)
     return resp
@@ -265,14 +264,18 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
         print(f'⚠️ Could not find endpoint with hash {endpoint_hash}')
         return redirect(url_for('inspect'))
 
-def run(prefer_localhost: bool):
-    address = get_localhost() if prefer_localhost is True else get_best_server_address()
-    app.run(debug=True, host=address.ip)
+def run(preferred_address: str, port: int):
+    if not preferred_address:
+        preferred_address = get_best_server_address().ip
+
+    app.run(debug=True, host=preferred_address, port=port)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefer-localhost", action='store_true')
     parser.add_argument("--update-schemas", action='store_true')
+    parser.add_argument("--addr", type=str)
+    parser.add_argument("--port", type=int, default=5000)
 
     args = parser.parse_args()
     if args.update_schemas:
@@ -283,4 +286,11 @@ if __name__ == '__main__':
         print('Missing .schemas. Please run app.py --update-schemas')
         exit()
 
-    run(args.prefer_localhost)
+    if args.addr and args.prefer_localhost:
+        raise ValueError('--addr and --prefer-localhost are mutually exclusive')
+    
+    preferred_address = args.addr or ''
+    if args.prefer_localhost:
+        preferred_address = '127.0.0.1'
+
+    run(preferred_address, args.port)
