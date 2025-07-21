@@ -71,6 +71,10 @@ namespace Datadog.Unity.Editor
         public const string TraceContextInjectionTooltip =
             "Defines whether the context for a distributed trace should be injected into all requests or only into requests that are sampled in.";
 
+        public const string VitalsUpdateFrequencyTooltip =
+            "Determines how frequently the Datadog SDK will sample system vitals like frame time, CPU usage, and memory usage. " +
+            "'Frequent' samples every ~100ms; 'Average' every ~500ms; and 'Rare' every ~1000ms. 'None' disables sampling entirely.";
+
         public const string TrackNonFatalAnrsTooltip =
             "(Android Only) Wether to track non-fatal ANRs (Application Not Responding) errors. The \"SDK Default\" option disables ANR" +
             "detection on Android 30+ because it would create too much noise over fatal ANRs. On Android 29 and below, however, " +
