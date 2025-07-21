@@ -213,6 +213,13 @@ namespace Datadog.Unity.Rum
         /// last known view is restarted in the new session.
         /// </summary>
         public void StopSession();
+
+        /// <summary>
+        /// Provides a sample of elapsed frame time to the underlying platform SDK, to be used in place of refresh rate
+        /// on platforms where the native SDK's method of monitoring refresh rate is not compatible with Unity.
+        /// </summary>
+        /// <param name="frameTimeSeconds">Time elapsed between frames, in seconds, as of the last measurement taken.</param>
+        public void UpdateExternalRefreshRate(double frameTimeSeconds);
     }
 
     #region NoOp Implementation
@@ -278,6 +285,10 @@ namespace Datadog.Unity.Rum
         }
 
         public void StopSession()
+        {
+        }
+
+        public void UpdateExternalRefreshRate(double frameTimeSeconds)
         {
         }
     }

@@ -326,7 +326,7 @@ namespace Datadog.Unity
                 }
 
                 // Pass a reference to our performance tracker into the RUM proxy, and configure it to periodically
-                // sample the latest values (on the main thread) and initiate updatePerformanceMetric calls
+                // sample the latest values (on the main thread) and initiate updateExternalRefreshRate calls
                 rumProxy.InitPerformanceTracker(performanceTracker, reportIntervalSeconds);
             }
 
