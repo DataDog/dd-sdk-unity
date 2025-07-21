@@ -77,6 +77,9 @@ namespace Datadog.Unity.Rum
         Custom,
     }
 
+    /// <summary>
+    /// Defines the full set of operations that your Unity code may use in order to interact with the Datadog RUM SDK.
+    /// </summary>
     public interface IDdRum
     {
         /// <summary>
@@ -213,7 +216,14 @@ namespace Datadog.Unity.Rum
         /// last known view is restarted in the new session.
         /// </summary>
         public void StopSession();
+    }
 
+    /// <summary>
+    /// Extends IDdRum to include internal-only methods used at the platform abstraction layer. These methods are not
+    /// callable from Unity project code.
+    /// </summary>
+    public interface IDdRumInternal : IDdRum
+    {
         /// <summary>
         /// Provides a sample of elapsed frame time to the underlying platform SDK, to be used in place of refresh rate
         /// on platforms where the native SDK's method of monitoring refresh rate is not compatible with Unity.
@@ -224,7 +234,7 @@ namespace Datadog.Unity.Rum
 
     #region NoOp Implementation
 
-    internal class DdNoOpRum : IDdRum
+    internal class DdNoOpRum : IDdRumInternal
     {
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
         {

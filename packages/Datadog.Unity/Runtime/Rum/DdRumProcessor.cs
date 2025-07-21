@@ -15,9 +15,9 @@ namespace Datadog.Unity.Rum
 
         public const string RumTargetName = "rum";
 
-        private readonly IDdRum _rum;
+        private readonly IDdRumInternal _rum;
 
-        public DdRumProcessor(IDdRum rum)
+        public DdRumProcessor(IDdRumInternal rum)
         {
             _rum = rum;
         }
