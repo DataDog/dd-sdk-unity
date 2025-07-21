@@ -91,6 +91,9 @@ namespace Datadog.Unity.Editor
             _options.TraceSampleRate = EditorGUILayout.FloatField(
                 new GUIContent("Trace Sample Rate", DatadogHelpStrings.TraceSampleRateTooltip),
                 _options.TraceSampleRate);
+            _options.VitalsUpdateFrequency = (VitalsUpdateFrequency)EditorGUILayout.EnumPopup(
+                new GUIContent("Vitals Update Frequency", DatadogHelpStrings.VitalsUpdateFrequencyTooltip),
+                _options.VitalsUpdateFrequency);
             _options.TraceContextInjection = (TraceContextInjection)EditorGUILayout.EnumPopup(
                 new GUIContent("Trace Context Injection", DatadogHelpStrings.TraceContextInjectionTooltip),
                 _options.TraceContextInjection);
