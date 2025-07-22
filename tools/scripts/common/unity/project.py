@@ -13,8 +13,7 @@ from ..log import get_default_logger
 from .install import UnityInstall, resolve_unity_install, UnityVersion, UnityLicenseStatus
 from .hub import UnityHub
 from .asset import AssetModification, AssetRevertFunc
-from .buildscript import BuildScriptTemplate, InjectedBuildScript, ProjectBuildConfiguration
-from .runtimescript import RuntimeScript, InjectedRuntimeScript
+from .injected_script import ProjectBuildConfiguration, InjectedScript, InjectedScriptContext
 
 
 @dataclass
@@ -47,15 +46,9 @@ class UnityProject:
                 revert_func()
 
     @contextmanager
-    def injected_scripts(self, build_scripts: List[BuildScriptTemplate], runtime_scripts: List[RuntimeScript]) -> Generator[None, None, None]:
-        with self.injected_build_scripts(build_scripts):
-            with self.injected_runtime_scripts(runtime_scripts):
-                yield
-
-    @contextmanager
-    def injected_build_scripts(self, scripts: List[BuildScriptTemplate]) -> Generator[None, None, None]:
-        # Early-out if we have no build scripts to inject
-        if not scripts:
+    def injected_scripts(self, cs_relpaths: List[str]) -> Generator[None, None, None]:
+        # Early-out if we have no scripts to inject
+        if not cs_relpaths:
             yield
             return
 
@@ -72,78 +65,17 @@ class UnityProject:
         if not os.path.isdir(assets_dir):
             raise RuntimeError(f'Project has no Assets dir: {assets_dir}')
         
-        # Check for an existing Assets/Editor directory, and store our injected
-        # Editor-only scripts in a DatadogBuild subdirectory
-        assets_editor_dir = os.path.join(assets_dir, 'Editor')
-        datadog_build_dir = os.path.join(assets_editor_dir, 'DatadogBuild')
-        if os.path.isdir(datadog_build_dir):
-            raise RuntimeError(f'Project has an existing directory for injected editor-only build scripts: {datadog_build_dir}')
+        # Load the source of all scripts we want to inject into the project, rendering
+        # templates etc. as necessary
+        scripts: List[InjectedScript] = []
+        for relpath in cs_relpaths:
+            script = InjectedScript.load(relpath, build_config)
+            scripts.append(script)
 
-        # If Assets/Editor doesn't exist, create it (and clean it up when finished)
-        directory_to_recursively_delete = ''
-        if not os.path.isdir(assets_editor_dir):
-            os.mkdir(assets_editor_dir)
-            directory_to_recursively_delete = assets_editor_dir
-        
-        # Create Assets/Editor/DatadogBuild, and prepare to clean it up unless we're
-        # already prepared to delete its parent directory
-        try:
-            os.mkdir(datadog_build_dir)
-            if not directory_to_recursively_delete:
-                directory_to_recursively_delete = datadog_build_dir
-        except:
-            if directory_to_recursively_delete == assets_editor_dir:
-                os.rmdir(assets_editor_dir)
-            raise
-
-        # Our transient script directory is ready: write the scripts, then yield, and
-        # finally clean everything up when finished
-        try:
-            injected_scripts = [InjectedBuildScript.new(s, datadog_build_dir) for s in scripts]
-            for script in injected_scripts:
-                script.write(build_config)
+        # Defer to InjectedScriptContext, which will manage creation and deletion of
+        # all required files and directories upon enter and exit
+        with InjectedScriptContext(self.path, scripts):
             yield
-        finally:
-            if directory_to_recursively_delete:
-                assert Path(directory_to_recursively_delete).is_relative_to(Path(assets_dir))
-                shutil.rmtree(directory_to_recursively_delete)
-
-                directory_meta_path = directory_to_recursively_delete + '.meta'
-                if os.path.isfile(directory_meta_path):
-                    os.remove(directory_meta_path)
-    
-    @contextmanager
-    def injected_runtime_scripts(self, scripts: List[RuntimeScript]) -> Generator[None, None, None]:
-        # Early-out if there's nothing to inject
-        if not scripts:
-            yield
-            return
-
-        # Require that the project has a preexisting Assets directory
-        assets_dir = os.path.join(self.path, 'Assets')
-        if not os.path.isdir(assets_dir):
-            raise RuntimeError(f'Project has no Assets dir: {assets_dir}')
-        
-        # Use a throwaway directory to contain runtime scripts injected by Datadog
-        # build automation
-        injected_scripts_dir_name = 'DatadogBuildRuntimeScripts'
-        injected_scripts_dir = os.path.join(assets_dir, injected_scripts_dir_name)
-        if os.path.isdir(injected_scripts_dir):
-            raise RuntimeError(f'Project has an existing directory for injected runtime scripts: {injected_scripts_dir}')
-        os.mkdir(injected_scripts_dir)
-
-        # Write each of our scripts into the project, yield, then delete the entire
-        # directory on exit
-        try:
-            injected_scripts = [InjectedRuntimeScript.new(s, injected_scripts_dir) for s in scripts]
-            for script in injected_scripts:
-                script.write()
-            yield
-        finally:
-            shutil.rmtree(injected_scripts_dir)
-            directory_meta_path = injected_scripts_dir + '.meta'
-            if os.path.isfile(directory_meta_path):
-                os.remove(directory_meta_path)
         
     @classmethod
     def resolve(cls, path: str, preferred_unity_version_prefix: Optional[str] = None) -> 'UnityProject':

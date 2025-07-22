@@ -14,8 +14,7 @@ from .install import (
 from .hub import UnityHub
 from .ios_settings import modified_ios_target_settings
 from .asset import AssetRevertFunc, AssetPropertyValue, AssetPropertyChange, AssetModification
-from .buildscript import ProjectBuildConfiguration, BuildScriptTemplate, InjectedBuildScript
-from .runtimescript import RuntimeScript, InjectedRuntimeScript
+from .injected_script import ProjectBuildConfiguration, InjectedScript, InjectedScriptContext
 from .project import UnityProject
 
 
@@ -33,9 +32,7 @@ __all__ = [
     'AssetPropertyChange',
     'AssetModification',
     'ProjectBuildConfiguration',
-    'BuildScriptTemplate',
-    'InjectedBuildScript',
-    'RuntimeScript',
-    'InjectedRuntimeScript',
+    'InjectedScript',
+    'InjectedScriptContext',
     'UnityProject',
 ]

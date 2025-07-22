@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from typing import List, Optional, Tuple, Generator
 
 from common.log import init_logger
-from common.unity import UnityProject, BuildScriptTemplate, RuntimeScript
+from common.unity import UnityProject
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import run_mock_server, prepare_mock_server_venv
 from common.simulator import acquire_device, __default_ios_device__, TargetDevice
@@ -97,24 +97,24 @@ def _resolve_existing_build(project: UnityProject, platform: str, config: str, t
 
 
 def _generate_build(project: UnityProject, platform: str, config: str, target: str, backend: str, custom_endpoint_url: str, client_id: str, rum_application_id: str, mode: str) -> Tuple[str, str]:
-    # Prepare to inject some temporary scripts into 'Assets/Editor/DatadogBuild', so we
-    # can invoke headless builds of any project that includes a 'DatadogBuild.yml' file
-    build_scripts: List[BuildScriptTemplate] = []
-    build_scripts.append(BuildScriptTemplate.BUILD_COMMANDS_CS)
+    # Prepare to inject some temporary scripts into the project during the build: this
+    # allows us to target any project with a 'DatadogBuild.yml' file, so that Unity C#
+    # scripts related to building and testing the SDK don't need to be managed
+    # separately for each project
+    script_paths: List[str] = []
+    script_paths.append('Assets/Editor/DatadogBuild/BuildCommands.cs')
 
     # If we're using a custom intake server that's running on an insecure endpoint
     # (i.e. we're using 'http:' rather than 'https:' because we're running locally),
     # configure the build to allow non-TLS HTTP traffic
     if backend != 'live' and custom_endpoint_url.startswith('http:'):
         if platform == 'android':
-            build_scripts.append(BuildScriptTemplate.ENABLE_CLEARTEXT_TRAFFIC_POST_PROCESSOR_CS)
+            script_paths.append('Assets/Editor/DatadogBuild/EnableCleartextTrafficPostProcessor.cs')
 
-    # We may also inject some runtime scripts into the build, at
-    # 'Assets/DatadogBuildRuntimeScripts': for integration tests, this includes a
-    # MonoBehaviour that will bootstrap and run our integration tests
-    runtime_scripts: List[RuntimeScript] = []
+    # If we're generating a build to run integration tests, we'll include a custom
+    # MonoBehaviour that can bootstrap and run our integration tests
     if mode == 'integration-test':
-        runtime_scripts.append(RuntimeScript.INTEGRATION_TEST_RUNNER_CS)
+        script_paths.append('Assets/DatadogBuildRuntimeScripts/IntegrationTestRunner.cs')
     
     # Prepare the arguments for our injected build script
     build_command = 'Datadog.Unity.Build.BuildCommands.BuildHeadless'
@@ -205,7 +205,7 @@ def _generate_build(project: UnityProject, platform: str, config: str, target: s
     # Inject scripts, then run the build in Unity, then remove the injected scripts
     app_bundle_path = ''
     app_bundle_id = ''
-    with project.injected_scripts(build_scripts, runtime_scripts):
+    with project.injected_scripts(script_paths):
         # Execute our build script, which uses BuildPipeline.BuildPlayer and which will
         # exit with status code 1 if it fails
         project.run('-executeMethod', build_command, *build_args)
