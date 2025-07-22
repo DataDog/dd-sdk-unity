@@ -141,7 +141,9 @@ class UnityProject:
             yield
         finally:
             shutil.rmtree(injected_scripts_dir)
-        
+            directory_meta_path = injected_scripts_dir + '.meta'
+            if os.path.isfile(directory_meta_path):
+                os.remove(directory_meta_path)
         
     @classmethod
     def resolve(cls, path: str, preferred_unity_version_prefix: Optional[str] = None) -> 'UnityProject':
