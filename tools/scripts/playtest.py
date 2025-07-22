@@ -196,8 +196,11 @@ def _generate_build(project: UnityProject, platform: str, config: str, target: s
     # including test assemblies, and configure the build to generate a transient blank
     # scene that will contain our integration test runtime script
     if mode == 'integration-test':
-        build_args += ['-includeTestAssemblies']
-        build_args += ['-integrationTestSceneOnly']
+        build_args += [
+            '-includeTestAssemblies',
+            '-integrationTestSceneOnly',
+            '-define:DD_RUNTIME_INTEGRATION_TESTS',
+        ]
 
     # Inject scripts, then run the build in Unity, then remove the injected scripts
     app_bundle_path = ''

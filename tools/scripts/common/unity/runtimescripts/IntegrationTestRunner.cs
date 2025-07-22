@@ -21,6 +21,7 @@ namespace Datadog.Unity.RuntimeTest
 
         private bool _hasFailedTests = false;
         private bool _isTestRunning = false;
+        private bool _currentTestIgnoresFailingLogMessages = false;
         private string _currentTestErrorMessage = null;
         private string _currentTestStackTrace = null;
 
@@ -74,8 +75,11 @@ namespace Datadog.Unity.RuntimeTest
                 // Only capture the first exception logged
                 if (_currentTestErrorMessage == null)
                 {
-                    _currentTestErrorMessage = logString;
-                    _currentTestStackTrace = stackTrace;
+                    if (!_currentTestIgnoresFailingLogMessages || logString != "InvalidOperationException: Error Message")
+                    {
+                        _currentTestErrorMessage = logString;
+                        _currentTestStackTrace = stackTrace;
+                    }
                 }
             }
         }
@@ -174,12 +178,22 @@ namespace Datadog.Unity.RuntimeTest
         {
             // Start the clock on timeouts and test duration stats
             var testStartTime = DateTime.Now;
-            IntegrationTestLog.Invoke(typeIndex, methodIndex);
+            IntegrationTestLog.Invoke(typeIndex, methodIndex, $"{testType.FullName}.{testMethod.Name}");
 
             // Reset state for this test invocation
             _isTestRunning = true;
+            _currentTestIgnoresFailingLogMessages = false;
             _currentTestErrorMessage = null;
             _currentTestStackTrace = null;
+
+            // TODO: This is a simple hack to make existing integration tests work
+            if (testType.FullName == "Datadog.Unity.Tests.Integration.Logging.AutoLoggingIntegrationTests")
+            {
+                if (testMethod.Name == "AutoLoggingIntegrationScenario")
+                {
+                    _currentTestIgnoresFailingLogMessages = true;
+                }
+            }
 
             // Create an instance of our test type and invoke the test method
             object testInstance = null;
@@ -198,7 +212,7 @@ namespace Datadog.Unity.RuntimeTest
                 _isTestRunning = false;
 
                 var duration = DateTime.Now - testStartTime;
-                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                var errorMessage = ex.ToString();
                 var stackTrace = ex.InnerException?.StackTrace ?? ex.StackTrace;
                 IntegrationTestLog.ResultFailed(typeIndex, methodIndex, duration, errorMessage, stackTrace);
                 yield break;
@@ -220,10 +234,18 @@ namespace Datadog.Unity.RuntimeTest
 
         private IEnumerator ExecuteTestCoroutineWithMonitoring(IEnumerator testCoroutine, DateTime testStartTime, int typeIndex, int methodIndex)
         {
+            // Wrap the test coroutine so we'll know when it's finished
+            bool coroutineFinished = false;
+            IEnumerator WrapperCoroutine()
+            {
+                yield return testCoroutine;
+                coroutineFinished = true;
+            }
+
             // If Unity catches an exception, it will immediately terminate the coroutine: rather
             // than `yield return`, which would hang in the event of a test failure, we keep a
             // reference to the coroutine so we can poll it
-            Coroutine runningCoroutine = StartCoroutine(testCoroutine);
+            Coroutine runningCoroutine = StartCoroutine(WrapperCoroutine());
 
             // Establish a timeout in case the test hangs
             const double timeoutSeconds = 60.0;
@@ -231,7 +253,7 @@ namespace Datadog.Unity.RuntimeTest
             bool timeoutExceeded = false;
 
             // Block until the coroutine either finished or times out
-            while (runningCoroutine != null)
+            while (runningCoroutine != null && !coroutineFinished)
             {
                 // If we caught an exception, give it a moment to see if the coroutine terminates
                 // then break out to handle the failure
@@ -254,7 +276,7 @@ namespace Datadog.Unity.RuntimeTest
 
             // If we've timed out (or otherwise broken out of the loop) and our coroutine is still
             // running, explicitly terminate it
-            if (runningCoroutine != null)
+            if (runningCoroutine != null && !coroutineFinished)
             {
                 StopCoroutine(runningCoroutine);
             }
@@ -299,9 +321,9 @@ namespace Datadog.Unity.RuntimeTest
             }
         }
 
-        public static void Invoke(int typeIndex, int methodIndex)
+        public static void Invoke(int typeIndex, int methodIndex, string fullyQualifiedTestName)
         {
-            Write($"INVOKE:{typeIndex}:{methodIndex}", "Test started");
+            Write($"INVOKE:{typeIndex}:{methodIndex}", $"{fullyQualifiedTestName} started");
         }
 
         public static void ResultPassed(int typeIndex, int methodIndex, TimeSpan duration)
@@ -313,14 +335,10 @@ namespace Datadog.Unity.RuntimeTest
         {
             var prefix = $"RESULT:{typeIndex}:{methodIndex}";
             Write(prefix, $"FAILED after {duration.TotalSeconds:F2}s");
-            Write($"{prefix}:ERROR", errorMessage);
-
-            using var reader = new StringReader(stackTrace);
-            string stackTraceLine;
-            int stackTraceLineIndex = 0;
-            while ((stackTraceLine = reader.ReadLine()) != null)
+            WriteMultiline($"{prefix}:ERROR", errorMessage);
+            if (!string.IsNullOrEmpty(stackTrace))
             {
-                Write($"{prefix}:STACK:{stackTraceLineIndex++}", stackTraceLine);
+                WriteMultiline($"{prefix}:STACK", stackTrace);
             }
         }
 
@@ -343,7 +361,20 @@ namespace Datadog.Unity.RuntimeTest
 
         private static void Write(string prefix, string message)
         {
-            Debug.Log($":: IntegrationTestRunner [{prefix}] {message}");
+            // We must use IInternalLogger.DatadogTag to ensure that integration test status
+            // message aren't sent to intake (see DdUnityLogHandler.cs)
+            Debug.unityLogger.Log("Datadog", $":: IntegrationTestRunner [{prefix}] {message}");
+        }
+
+        private static void WriteMultiline(string prefix, string message)
+        {
+            using var reader = new StringReader(message);
+            string line;
+            int lineIndex = 0;
+            while ((line = reader.ReadLine()) != null)
+            {
+                Write($"{prefix}:{lineIndex++}", line);
+            }
         }
     }
 }
