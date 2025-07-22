@@ -24,6 +24,20 @@ namespace Datadog.Unity.RuntimeTest
         private string _currentTestErrorMessage = null;
         private string _currentTestStackTrace = null;
 
+        private void Awake()
+        {
+            // Don't permit more than one instance of IntegrationTestRunner, e.g. if we navigate
+            // back to our integration test scene during tests, don't load a second runner
+            if (FindObjectsOfType<IntegrationTestRunner>().Length > 1)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            // We're the one and only IntegrationTestRunner; ensure we persist across scene changes
+            DontDestroyOnLoad(gameObject);
+        }
+
         private void Start()
         {
             // Register a log callback so we can detect exceptions during async test execution

@@ -227,6 +227,11 @@ namespace Datadog.Unity.Build
                 EditorApplication.Exit(1);
             }
 
+            // We also need a scene named 'EmptyScene' for integration tests, but allow it to be used as-is if it
+            // already exists in the project
+            const string emptyScenePath = "Assets/Scenes/EmptyScene.unity";
+            bool createdEmptyScene = false;
+
             // Invoke our build, with assets temporarily modified to satisfy our desired build configuration
             bool ok = false;
             try
@@ -246,11 +251,11 @@ namespace Datadog.Unity.Build
                     }
 
                     // Create a temporary blank scene that will run integration tests
-                    var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+                    var integrationTestScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
 
                     // Make the main camera background green: if you open a mobile app and get a blank green screen,
                     // then you'll know you're running an integration test build
-                    foreach (var obj in scene.GetRootGameObjects())
+                    foreach (var obj in integrationTestScene.GetRootGameObjects())
                     {
                         var camera = obj.GetComponent<Camera>();
                         if (camera != null)
@@ -285,14 +290,30 @@ namespace Datadog.Unity.Build
                     runnerObj.AddComponent(testRunnerType);
 
                     // Save the scene and use it as the one and only scene in our build
-                    EditorSceneManager.SaveScene(scene, integrationTestScenePath);
-                    scenes = new string[]{ integrationTestScenePath };
+                    EditorSceneManager.SaveScene(integrationTestScene, integrationTestScenePath);
+
+                    // Integration tests also require an 'EmptyScene' to be present in the build; if the project
+                    // already contains a scene by that name, use it as-is (for compatibility); otherwise create it
+                    // temporarily
+                    if (string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(emptyScenePath)))
+                    {
+                        // No such asset exists in this project; create a blank scene and save it
+                        var emptyScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+                        EditorSceneManager.SaveScene(emptyScene, emptyScenePath);
+
+                        // Set a flag so we delete this scene file when the build is finished
+                        createdEmptyScene = true;
+                    }
+
+                    // Only include the scenes required for integration tests in this build
+                    scenes = new string[]{ integrationTestScenePath, emptyScenePath };
                 }
 
                 // Apply temporary asset changes for the duration of the build
                 projectSettings.Apply();
                 datadogSettings.Apply();
 
+                // Now that we have the project in the desired state, run our build as configured
                 var options = configOptions | extraOptions;
                 ok = Build(buildPlatform.Value, scenes, buildOutputDirectory, options, extraScriptingDefines.ToArray());
             }
@@ -306,6 +327,12 @@ namespace Datadog.Unity.Build
                 if (integrationTestSceneOnly)
                 {
                     AssetDatabase.DeleteAsset(integrationTestScenePath);
+                }
+
+                // If we created an EmptyScene for use by integration tests, delete it as well
+                if (createdEmptyScene)
+                {
+                    AssetDatabase.DeleteAsset(emptyScenePath);
                 }
             }
 
