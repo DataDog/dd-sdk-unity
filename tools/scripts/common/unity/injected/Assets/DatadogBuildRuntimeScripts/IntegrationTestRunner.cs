@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Datadog.Unity.RuntimeTest
@@ -361,9 +362,13 @@ namespace Datadog.Unity.RuntimeTest
 
         private static void Write(string prefix, string message)
         {
+#if UNITY_IOS && !UNITY_EDITOR
+            IOSLogger.Log($":: IntegrationTestRunner [{prefix}] {message}");
+#else
             // We must use IInternalLogger.DatadogTag to ensure that integration test status
             // message aren't sent to intake (see DdUnityLogHandler.cs)
             Debug.unityLogger.Log("Datadog", $":: IntegrationTestRunner [{prefix}] {message}");
+#endif
         }
 
         private static void WriteMultiline(string prefix, string message)
@@ -377,4 +382,17 @@ namespace Datadog.Unity.RuntimeTest
             }
         }
     }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    public static class IOSLogger
+    {
+        [DllImport("__Internal")]
+        private static extern void LogToUnifiedSystem(string msg);
+
+        public static void Log(string msg)
+        {
+            LogToUnifiedSystem(msg);
+        }
+    }
+#endif
 }

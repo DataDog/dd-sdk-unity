@@ -115,6 +115,8 @@ def _generate_build(project: UnityProject, platform: str, config: str, target: s
     # MonoBehaviour that can bootstrap and run our integration tests
     if mode == 'integration-test':
         script_paths.append('Assets/DatadogBuildRuntimeScripts/IntegrationTestRunner.cs')
+        if platform == 'ios':
+            script_paths.append('Assets/Plugins/iOS/IntegrationTestLogger.m')
     
     # Prepare the arguments for our injected build script
     build_command = 'Datadog.Unity.Build.BuildCommands.BuildHeadless'
