@@ -5,8 +5,6 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import os
 import sys
-import shutil
-from pathlib import Path
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Optional, List, Generator

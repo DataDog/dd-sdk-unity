@@ -19,7 +19,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from types import TracebackType
-from typing import List, Optional, Type, Set
+from typing import List, Optional, Type, Set, Literal
 
 from pydantic import BaseModel
 from ruamel.yaml import YAML
@@ -133,7 +133,7 @@ class InjectedScriptContext:
             if not self._parent_will_be_removed(script.relpath + '.meta'):
                 self._file_relpaths_to_remove.add(script.relpath + '.meta')
 
-    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]) -> bool:
+    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]) -> Literal[False]:
         log = get_default_logger()
         for file_relpath in self._file_relpaths_to_remove:
             file_path = os.path.join(self.project_path, file_relpath)

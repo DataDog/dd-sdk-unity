@@ -10,7 +10,7 @@ import time
 import argparse
 
 from common.log import init_logger
-from tools.scripts.common.device import acquire_device
+from common.device import acquire_device
 
 
 def start_simulator(platform: str) -> int:
