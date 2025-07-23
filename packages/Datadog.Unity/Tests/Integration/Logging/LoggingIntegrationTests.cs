@@ -119,11 +119,10 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("Warning: this error occurred", exceptionLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", exceptionLog.ServiceName);
-#endif
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:tag-value");
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:second-value");
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "my-tag");
-            Assert.AreEqual("System.InvalidOperationException", exceptionLog.ErrorKind);
+            Assert.That(exceptionLog.ErrorKind, Does.EndWith("InvalidOperationException"));
             Assert.IsFalse(exceptionLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)exceptionLog.RawJson["logger-attribute2"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);

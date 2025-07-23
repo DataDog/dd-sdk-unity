@@ -20,7 +20,9 @@ namespace Datadog.Unity.Tests.Integration.Logging
         {
             // Note -- For now the "Forward Unity Logs" flag needs to be set in the
             // projects settings for this to work (it is unset by default).
+#if !DD_RUNTIME_INTEGRATION_TESTS
             LogAssert.ignoreFailingMessages = true;
+#endif
 
             var mockServerHelper = new MockServerHelper();
             yield return mockServerHelper.Clear();
@@ -35,23 +37,23 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 return logs.Count >= 3;
             });
 
+#if DD_RUNTIME_INTEGRATION_TESTS
+            Assert.AreEqual(2, logs.Count);
+#else
             Assert.AreEqual(3, logs.Count);
+#endif
 
             // The first log is from Unity about `ignoreFailingMessages` being set and can be ignored
             // All other logs have the attribute set
-            for (int i = 1; i < logs.Count; ++i)
-            {
-                var log = logs[i];
-                Assert.AreEqual("attribute_value", (string)log.RawJson["attribute_1"]);
-            }
-
-            var infoLog = logs[1];
+            var infoLog = logs[logs.Count - 2];
             Assert.AreEqual("info", infoLog.Status);
             Assert.AreEqual("Testing logging", infoLog.Message);
+            Assert.AreEqual("attribute_value", (string)infoLog.RawJson["attribute_1"]);
 
-            var warnLog = logs[2];
+            var warnLog = logs[logs.Count - 1];
             Assert.AreEqual("warn", warnLog.Status);
             Assert.AreEqual("Test warning", warnLog.Message);
+            Assert.AreEqual("attribute_value", (string)warnLog.RawJson["attribute_1"]);
         }
 
         public class TestAutoLoggingMonoBehavior : MonoBehaviour, IMonoBehaviourTest

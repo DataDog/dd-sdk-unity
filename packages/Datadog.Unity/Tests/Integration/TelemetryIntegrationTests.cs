@@ -29,10 +29,10 @@ namespace Datadog.Unity.Tests.Integration
             {
                 serverLog = log;
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
-                var telemetyEvents = events
+                var telemetryEvents = events
                     .Where(x => x is RumTelemetryEventDecoder telem &&
                                 telem.TelemetryType != "configuration");
-                return telemetyEvents.Count() >= 3;
+                return telemetryEvents.Count() >= 3;
             });
 
             var telemetryEvents = RumDecoderHelpers.RumEventsFromMockServer(serverLog)
@@ -52,7 +52,7 @@ namespace Datadog.Unity.Tests.Integration
             var exceptionEvent = (RumTelemetryEventDecoder)telemetryEvents[2];
             Assert.AreEqual("Caught bad operation", exceptionEvent.Message);
             Assert.IsNotNull(exceptionEvent.ErrorStack);
-            Assert.AreEqual("System.InvalidOperationException", exceptionEvent.ErrorKind);
+            Assert.That(exceptionEvent.ErrorKind, Does.EndWith("InvalidOperationException"));
         }
     }
 

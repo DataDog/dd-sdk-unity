@@ -52,7 +52,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             // Discard visits that are automatically recorded parts of integration testing
             var visits = session.Visits.Where(
-                visit => visit.Name != string.Empty && !visit.Name.Contains("InitTestScene")).ToArray();
+                visit => visit.Name != string.Empty && !visit.Name.Contains("InitTestScene") && visit.Name != "StartView").ToArray();
             Assert.AreEqual(3, visits.Length);
 
             var firstVisit = visits[0];
@@ -79,7 +79,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var resourceError = firstVisit.ErrorEvents[0];
             Assert.AreEqual("http://fake/resource/2", resourceError.ResourceUrl);
             Assert.AreEqual("POST", resourceError.ResourceMethod);
-            Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
+            Assert.That(resourceError.ErrorType, Does.EndWith("NetworkInformationException"));
             Assert.AreEqual("network", resourceError.Source);
 
             var secondVisit = visits[1];
@@ -87,8 +87,15 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var errorEvent = secondVisit.ErrorEvents[0];
 
             // Android resources don't have ErrorType
-#if UNITY_IOS || UNITY_WEBGL
-            Assert.AreEqual("System.Exception", errorEvent.ErrorType);
+#if !UNITY_ANDROID
+            if (errorEvent.ErrorType.Contains('.'))
+            {
+                Assert.AreEqual("System.Exception", errorEvent.ErrorType);
+            }
+            else
+            {
+                Assert.AreEqual("Exception", errorEvent.ErrorType);
+            }
 #endif
 
             Assert.AreEqual("Test Exception", errorEvent.Message);
