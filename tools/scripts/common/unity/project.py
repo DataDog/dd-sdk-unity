@@ -12,7 +12,6 @@ from ..log import get_default_logger
 
 from .install import UnityInstall, resolve_unity_install, UnityVersion, UnityLicenseStatus
 from .hub import UnityHub
-from .asset import AssetModification, AssetRevertFunc
 from .injected_script import ProjectBuildConfiguration, InjectedScript, InjectedScriptContext
 
 
@@ -31,19 +30,6 @@ class UnityProject:
             sys.exit(86)
         else:
             raise RuntimeError(f'Unity build exited with status code {result.exitcode}')
-
-    @contextmanager
-    def modified_assets(self, modifications: List[AssetModification]) -> Generator[None, None, None]:
-        modifications = AssetModification.merge(modifications)
-        revert_funcs: List[AssetRevertFunc] = []
-        try:
-            for mod in modifications:
-                revert_func = mod.apply(self.path)
-                revert_funcs.append(revert_func)
-            yield
-        finally:
-            for revert_func in revert_funcs:
-                revert_func()
 
     @contextmanager
     def injected_scripts(self, cs_relpaths: List[str]) -> Generator[None, None, None]:

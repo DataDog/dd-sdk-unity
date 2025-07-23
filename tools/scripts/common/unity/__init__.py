@@ -13,9 +13,9 @@ from .install import (
 )
 from .hub import UnityHub
 from .ios_settings import modified_ios_target_settings
-from .asset import AssetRevertFunc, AssetPropertyValue, AssetPropertyChange, AssetModification
 from .injected_script import ProjectBuildConfiguration, InjectedScript, InjectedScriptContext
 from .project import UnityProject
+from .build import UnityBuild, UnityBuildPlatform, UnityBuildConfig, UnityTarget, DatadogBackendType
 
 
 __all__ = [
@@ -27,12 +27,13 @@ __all__ = [
     'match_unity_version',
     'UnityHub',
     'modified_ios_target_settings',
-    'AssetRevertFunc',
-    'AssetPropertyValue',
-    'AssetPropertyChange',
-    'AssetModification',
     'ProjectBuildConfiguration',
     'InjectedScript',
     'InjectedScriptContext',
     'UnityProject',
+    'UnityBuild',
+    'UnityBuildPlatform',
+    'UnityBuildConfig',
+    'UnityTarget',
+    'DatadogBackendType',
 ]

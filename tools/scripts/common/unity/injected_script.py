@@ -11,6 +11,8 @@ instead inject .cs (and .cs.meta) files into the project for the lifetime of the
 """
 import os
 import shutil
+import time
+import uuid
 from dataclasses import dataclass, field
 from types import TracebackType
 from typing import List, Optional, Type, Set
@@ -20,7 +22,6 @@ from ruamel.yaml import YAML
 from jinja2 import Template
 
 from ..log import get_default_logger
-from .asset import write_asset_metadata
 
 __injected_src_dir__ = os.path.join(os.path.dirname(__file__), 'injected')
 
@@ -139,3 +140,13 @@ class InjectedScriptContext:
             log.info(f'Deleting temporary script directory: {dir_path}')
             shutil.rmtree(dir_path)
         return False
+
+
+def write_asset_metadata(meta_path: str):
+    lines = [f'{key}: {value}' for key, value in [
+        ('fileFormatVersion', 2),
+        ('guid', uuid.uuid4().hex),
+        ('timeCreated', int(time.time())),
+    ]]
+    with open(meta_path, 'w') as fp:
+        fp.write('\n'.join(lines) + '\n')
