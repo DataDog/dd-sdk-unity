@@ -34,6 +34,27 @@ class UnityProject:
         else:
             raise RuntimeError(f'Unity build exited with status code {result.exitcode}')
 
+    def run_tests(self, category_filter: str, platform: str, nunit_path: str, log_path: str) -> bool:
+        log = get_default_logger()
+        result = self.editor.run_batchmode(
+            self.path,
+            '-runTests',
+            '-testCategory', category_filter,
+            '-testPlatform', platform,
+            '-testResults', nunit_path,
+            log_path=log_path,
+        )
+        if result.exitcode == 0:
+            log.info('Unity command finished successfully.')
+            return True
+        elif result.license_status != UnityLicenseStatus.VALID:
+            log.error('Unity failed to acquire a license.')
+            sys.exit(86)
+        elif result.exitcode == 2:
+            return False
+        else:
+            raise RuntimeError(f'Unity test run exited with status code {result.exitcode}')
+
     @contextmanager
     def injected_scripts(self, cs_relpaths: List[str]) -> Generator[None, None, None]:
         # Early-out if we have no scripts to inject

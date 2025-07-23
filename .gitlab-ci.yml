@@ -18,13 +18,9 @@ stages:
     # Install Unity Hub and other development dependencies
     - brew install --cask unity-hub
     - brew install xcbeautify
-    # Run install_unity.py to ensure that our requisite version of Unity is installed:
-    # the last line of output will contain the full version string, so export it as
-    # UNITY_VERSION
-    - LOG_TMPFILE=$(mktemp)
-    - ./run-script install_unity "$UNITY_VERSION_PARTIAL" | tee "$LOG_TMPFILE"
-    - export UNITY_VERSION=$(tail -n 1 "$LOG_TMPFILE")
-    - rm "$LOG_TMPFILE"
+    # Use the exact version of Unity specified in the project's ProjectVersion.txt
+    - export UNITY_VERSION=$(grep '^m_EditorVersion:[ ]' "$PROJECT_PATH/ProjectSettings/ProjectVersion.txt" | cut -d' ' -f2)
+    - ./run-script install_unity "$UNITY_VERSION"
     - echo "Using Unity version $UNITY_VERSION"
   configure-unity-licensing:
     # Grab the Unity Licensing Server configuration and write it to the system-wide
@@ -45,17 +41,14 @@ unit-test:
     - specific:true
   parallel:
     matrix:
-      - UNITY_VERSION_PARTIAL: '2021.3'
-        PROJECT_PATH: 'test_scaffolds/2021 LTS'
-      - UNITY_VERSION_PARTIAL: '2022.3'
-        PROJECT_PATH: 'samples/Datadog Sample'
-      - UNITY_VERSION_PARTIAL: '6000.1'
-        PROJECT_PATH: 'test_scaffolds/6000 LTS'
+      - PROJECT_PATH: 'test_scaffolds/2021 LTS'
+      - PROJECT_PATH: 'samples/Datadog Sample'
+      - PROJECT_PATH: 'test_scaffolds/6000 LTS'
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
-    - ./run-script unit_test --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+    - ./run-script unit_test --project "$PROJECT_PATH"
   artifacts:
     when: always
     expire_in: "30 days"
@@ -75,12 +68,14 @@ integration-test:
   parallel:
     matrix:
       - INTEGRATION_TEST_PLATFORM: 'android'
+        PROJECT_PATH: 'samples/Datadog Sample'
       - INTEGRATION_TEST_PLATFORM: 'ios'
+        PROJECT_PATH: 'samples/Datadog Sample'
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
-    - ./run-script integration_test --platform $INTEGRATION_TEST_PLATFORM
+    - ./run-script integration_test --project "$PROJECT_PATH" --platform "$INTEGRATION_TEST_PLATFORM"
   retry:
     max: 2
     exit_codes:
