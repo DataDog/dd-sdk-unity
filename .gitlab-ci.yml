@@ -7,7 +7,7 @@ variables:
 
 stages:
   - unit-test
-  - package
+  - integration-test
   - post
 
 .shared:
@@ -67,49 +67,20 @@ unit-test:
       # Python scripts exit with 86 on Unity license error
       - 86
 
-package-ios:
-  stage: package
+integration-test:
+  stage: integration-test
   tags:
     - macos:sonoma
     - specific:true
+  parallel:
+    matrix:
+      - INTEGRATION_TEST_PLATFORM: 'android'
+      - INTEGRATION_TEST_PLATFORM: 'ios'
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
-    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
-    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
-    - cd $CI_PROJECT_DIR/tools/scripts
-    - ./setup_demo_signing.sh
-    - cd $CI_PROJECT_DIR
-    - ./run-script build_demo --platform ios --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
-  artifacts:
-    when: on_success
-    expire_in: "30 days"
-    paths:
-      - samples/Demo Data/Build/iOS/export/*
-  retry:
-    max: 2
-    exit_codes:
-      # Python scripts exit with 86 on Unity license error
-      - 86
-
-package-android:
-  stage: package
-  tags:
-    - macos:sonoma
-    - specific:true
-  script:
-    - !reference [.shared, init-scripts]
-    - !reference [.shared, install-unity]
-    - !reference [.shared, configure-unity-licensing]
-    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
-    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
-    - ./run-script build_demo --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
-  artifacts:
-    when: on_success
-    expire_in: "30 days"
-    paths:
-      - samples/Demo Data/Build/Android/datadog-demo.apk
+    - ./run-script integration_test --platform $INTEGRATION_TEST_PLATFORM
   retry:
     max: 2
     exit_codes:
