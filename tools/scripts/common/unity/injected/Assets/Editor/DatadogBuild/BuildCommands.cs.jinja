@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
+using System.Threading;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -312,6 +313,13 @@ namespace Datadog.Unity.Build
                 // Apply temporary asset changes for the duration of the build
                 projectSettings.Apply();
                 datadogSettings.Apply();
+
+                // Even through we flag our DatadogSettings asset as dirty and call
+                // AssetDatabase.SaveAssets() and AssetDatabase.Refresh(), there's still a race
+                // condition that can cause the build to proceed without picking up our changes:
+                // just block the main thread for a second to make sure our config changes have
+                // time to propagate
+                Thread.Sleep(1000);
 
                 // Now that we have the project in the desired state, run our build as configured
                 var options = configOptions | extraOptions;
