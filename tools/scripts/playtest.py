@@ -321,6 +321,7 @@ def playtest(project_path: str, platform: str, config: str, target: str, backend
             time.sleep(5)
 
         log.info(f'Launching {app_bundle_id}...')
+        device.tail_logs()
         device.launch_app(app_bundle_id)
 
         if mode in ('interactive', 'demo'):

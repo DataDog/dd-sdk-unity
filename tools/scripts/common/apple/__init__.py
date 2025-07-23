@@ -9,6 +9,7 @@ from .xcrun import Xcrun, Simctl
 from .frontend import AppleDeviceSpec, run_apple_device
 from .xcode import run_xcodebuild
 from .plutil import get_bundle_identifier
+from .libimobiledevice import IDeviceSyslog
 
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     'run_apple_device',
     'run_xcodebuild',
     'get_bundle_identifier',
+    'IDeviceSyslog',
 ]

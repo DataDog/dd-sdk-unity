@@ -9,11 +9,13 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import re
 import time
 import subprocess
+import threading
 from typing import List
 
 from dataclasses import dataclass
 
-from ..shell import capture_output
+from ..log import get_default_logger
+from ..shell import capture_output, run_cmd
 from .util import resolve_android_binary
 
 
@@ -121,6 +123,17 @@ class Adb:
         namespaced_activity = f'{app_bundle_id}/{activity_name}'
         args = [self.path, '-s', device_name, 'shell', 'am', 'start', '-n', namespaced_activity]
         subprocess.check_call(args, timeout=timeout_seconds)
+
+    def tail_logs(self, device_name: str, filters: List[str]):
+        log = get_default_logger()
+        args = [self.path, '-s', device_name, 'logcat'] + filters
+
+        def _log_main():
+            def _read(line: str, _):
+                log.info(line)
+            run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
+        
+        threading.Thread(target=_log_main, daemon=True).start()
 
     @classmethod
     def require(cls) -> 'Adb':

@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from typing import Generator, Callable, Optional, ContextManager
 
 from common.android import AndroidDeviceSpec, run_android_device, Adb
-from common.apple import AppleDeviceSpec, run_apple_device, Xcrun
+from common.apple import AppleDeviceSpec, run_apple_device, Xcrun, IDeviceSyslog
 
 
 __default_ios_device__ = AppleDeviceSpec('iOS 18.5', 'iPhone 15 Pro')
@@ -62,6 +62,28 @@ class TargetDevice:
             assert self.platform == 'android'
             adb = Adb.require()
             adb.launch(self.device_id, app_bundle_id, 'com.unity3d.player.UnityPlayerActivity')
+
+    def tail_logs(self):
+        if self.platform == 'ios':
+            if self.is_simulated:
+                xcrun = Xcrun.require()
+                xcrun.simctl.tail_logs(self.device_id, 'senderImagePath CONTAINS[c] "UnityFramework"')
+            else:
+                idevicesyslog = IDeviceSyslog.require()
+                idevicesyslog.run(self.device_id, 'UnityFramework')
+        else:
+            assert self.platform == 'android'
+            adb = Adb.require()
+            filters = [
+                'Unity:V',
+                'IL2CPP:V',
+                'Datadog:V',
+                'OkHttp:V',
+                'System.err:V',
+                'AndroidRuntime:E',
+                '*:S',
+            ]
+            adb.tail_logs(self.device_id, filters)
 
 
 @contextmanager
@@ -141,5 +163,5 @@ def _acquire_ios_device() -> Generator[TargetDevice, None, None]:
     yield TargetDevice(
         platform='ios',
         is_simulated=False,
-        device_id=device.identifier,
+        device_id=device.hardware_properties.udid,
     )

@@ -8,13 +8,15 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import platform
 import subprocess
+import threading
 import json
 from typing import List, Dict
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from common.shell import capture_output
+from common.log import get_default_logger
+from common.shell import capture_output, run_cmd
 
 
 class SimctlRuntimeListItem(BaseModel):
@@ -79,6 +81,17 @@ class Simctl(object):
         args = ['xcrun', 'simctl', 'launch', udid, app_bundle_id]
         subprocess.check_call(args, timeout=timeout_seconds)
 
+    def tail_logs(self, udid: str, predicate: str):
+        log = get_default_logger()
+        args = ['xcrun', 'simctl', 'spawn', udid, 'log', 'stream', '--style', 'syslog', '--predicate', predicate]
+
+        def _log_main():
+            def _read(line: str, _):
+                log.info(line)
+            run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
+        
+        threading.Thread(target=_log_main, daemon=True).start()
+
 
 class DevicectlConnectionProperties(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel)
@@ -102,6 +115,7 @@ class DevicectlHardwareProperties(BaseModel):
     marketing_name: str
     platform: str
     product_type: str
+    udid: str
 
 
 class DevicectlDevice(BaseModel):
