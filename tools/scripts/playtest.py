@@ -6,10 +6,14 @@ Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
+import re
 import sys
 import time
 import argparse
+import logging
+from datetime import timedelta
 from platform import machine
+from dataclasses import dataclass, field
 from contextlib import contextmanager
 from typing import List, Optional, Tuple, Generator
 
@@ -17,9 +21,153 @@ from common.log import init_logger
 from common.unity import UnityProject
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import run_mock_server, prepare_mock_server_venv
-from tools.scripts.common.device import acquire_device, __default_ios_device__, TargetDevice
+from common.device import acquire_device, __default_ios_device__, TargetDevice
 from common.android import get_package_name, Adb
 from common.apple import run_xcodebuild, get_bundle_identifier
+from common.shell import OutputHandlerFunc
+
+
+@dataclass
+class IntegrationTestResult:
+    passed: bool
+    duration: timedelta
+    error_message: str = ''
+    stack_trace: str = ''
+
+
+@dataclass
+class IntegrationTestMethod:
+    name: str
+    invoked: bool = False
+    result: Optional[IntegrationTestResult] = None
+
+
+@dataclass
+class IntegrationTestType:
+    full_name: str
+    methods: List[IntegrationTestMethod] = field(default_factory=list)
+
+
+@dataclass
+class IntegrationTestRunnerOutputHandler(object):
+    regex = re.compile(r':: IntegrationTestRunner \[([A-Z0-9:_-]+)\] (.*)')
+
+    types: List[IntegrationTestType] = field(default_factory=list)
+    exit_result = ''
+    last_error = ''
+
+    @property
+    def should_exit(self) -> bool:
+        return bool(self.last_error) or bool(self.exit_result)
+    
+    def report(self, log: logging.Logger) -> bool:
+        if not self.should_exit:
+            log.warning('⚠️ Integration tests aborted prematurely.')
+            return False
+        
+        if self.last_error:
+            log.error(f'❌ Error running integration tests: {self.last_error}')
+            return False
+                
+        num_seen = 0
+        num_passed = 0
+        for type in self.types:
+            for method in type.methods:
+                fqn = f'{type.full_name}.{method.name}'
+                num_seen += 1
+
+                if not method.invoked or not method.result:
+                    log.warning(f'- ⚠️ {fqn}: no output detected.')
+                    continue
+
+                if not method.result.passed:
+                    log.error(f'- ❌ [FAIL] {fqn}: ({method.result.duration.total_seconds():0.2f}s)')
+                    for line in method.result.error_message.splitlines():
+                        log.error(line)
+                    if method.result.stack_trace:
+                        log.error('')
+                        log.error('STACK TRACE:')
+                    for line in method.result.stack_trace.splitlines():
+                        log.error(f'  - {line}')
+                    continue
+
+                log.info(f'- ✅ [PASS] {fqn} ({method.result.duration.total_seconds():0.2f}s)')
+                num_passed += 1
+
+        if num_seen == 0:
+            log.error('❌ No integration test output was detected.')
+            return False
+        
+        if num_passed != num_seen:
+            log.error(f'❌ Ran {num_seen} tests; {num_seen - num_passed} failed.')
+            return False
+        
+        if self.exit_result != 'OK':
+            log.error(f'❌ All tests passed, but final exit result was: {self.exit_result}')
+            return False
+        
+        log.info('✅ All tests passed.')
+        return True
+            
+
+    def read(self, line: str):
+        match = self.regex.search(line)
+        if not match:
+            return
+        prefix, message = match.group(1), match.group(2)
+        prefix_tokens = prefix.split(':')
+        head, tail = prefix_tokens[0], prefix_tokens[1:]
+
+        if head == 'ANNOUNCE':
+            if len(tail) > 0:
+                type_index = int(tail[0])
+                if len(tail) == 1:
+                    type_full_name = message
+                    assert len(self.types) == type_index
+                    self.types.append(IntegrationTestType(type_full_name))
+                else:
+                    method_index = int(tail[1])
+                    method_name = message
+                    assert type_index < len(self.types)
+                    assert len(self.types[type_index].methods) == method_index
+                    self.types[type_index].methods.append(IntegrationTestMethod(method_name))
+        elif head == 'INVOKE':
+            method = self._find_method(tail)
+            assert not method.invoked
+            method.invoked = True
+        elif head == 'RESULT':
+            method = self._find_method(tail)
+            if len(tail) <= 2:
+                assert not method.result
+                result_match = re.match(r'(PASSED|FAILED) after (\d+\.\d+)s', message)
+                assert result_match
+                passed = result_match.group(1) == 'PASSED'
+                duration = timedelta(seconds=float(result_match.group(2)))
+                method.result = IntegrationTestResult(passed, duration)
+            else:
+                assert method.result
+                detail_type, detail_line_index = tail[2], int(tail[3])
+                if detail_type == 'ERROR':
+                    assert method.result.error_message.count('\n') == detail_line_index
+                    method.result.error_message += message + '\n'
+                else:
+                    assert detail_type == 'STACK'
+                    assert method.result.stack_trace.count('\n') == detail_line_index
+                    method.result.stack_trace += message + '\n'
+        elif head == 'EXIT':
+            assert not self.exit_result
+            self.exit_result = message
+        elif head == 'ERROR':
+            self.last_error = message
+    
+    def _find_method(self, tail: List[str]) -> IntegrationTestMethod:
+        assert len(tail) >= 2
+        type_index = int(tail[0])
+        method_index = int(tail[1])
+        assert type_index < len(self.types)
+        assert method_index < len(self.types[type_index].methods)
+        return self.types[type_index].methods[method_index]
+
 
 
 @contextmanager
@@ -317,11 +465,19 @@ def playtest(project_path: str, platform: str, config: str, target: str, backend
         log.info(f'Installing new build from {app_bundle_path}...')
         device.install_app(app_bundle_path)
 
-        if platform == 'android' and mode == 'simulator':
-            time.sleep(5)
+        if platform == 'android' and target == 'simulator':
+            time.sleep(2.0)
+
+        integration_test_handler: Optional[IntegrationTestRunnerOutputHandler] = None
+        log_handler: Optional[OutputHandlerFunc] = None
+        if mode == 'integration-test':
+            integration_test_handler = IntegrationTestRunnerOutputHandler()
+            def _read(line: str, _):
+                integration_test_handler.read(line)
+            log_handler = _read
 
         log.info(f'Launching {app_bundle_id}...')
-        device.tail_logs()
+        device.tail_logs(log_handler)
         device.launch_app(app_bundle_id)
 
         if mode in ('interactive', 'demo'):
@@ -340,18 +496,30 @@ def playtest(project_path: str, platform: str, config: str, target: str, backend
             log.info(f'App is running; we will exit in {smoke_timeout_seconds} seconds...')
             time.sleep(smoke_timeout_seconds)
             log.info('Smoke test concluded! Shutting down...')
-        
+
         elif mode == 'integration-test':
-            # TEMP
-            log.info('App is running; press Ctrl-C when done.')
+            integration_test_timeout_seconds = 120.0
+            deadline = time.time() + integration_test_timeout_seconds
+            log.info(f'Integration tests running... (timeout {integration_test_timeout_seconds}s; Ctrl-C to cancel)')
             while True:
                 try:
-                    time.sleep(0)
+                    assert integration_test_handler
+                    if integration_test_handler.should_exit:
+                        break
+                    if time.time() > deadline:
+                        log.warning('Timeout exceeded; aborting integration tests.')
+                        break
+                    time.sleep(0.1)
                 except KeyboardInterrupt:
                     log.info('')
+                    log.warning('Tests canceled.')
                     break
-            log.info('Got Ctrl-C! Shutting down...')
 
+    if mode == 'integration-test':
+        assert integration_test_handler
+        ok = integration_test_handler.report(log)
+        if not ok:
+            return 1
 
 
 if __name__ == '__main__':

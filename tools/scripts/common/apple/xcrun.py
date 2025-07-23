@@ -10,13 +10,13 @@ import platform
 import subprocess
 import threading
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from common.log import get_default_logger
-from common.shell import capture_output, run_cmd
+from common.shell import capture_output, run_cmd, OutputHandlerFunc
 
 
 class SimctlRuntimeListItem(BaseModel):
@@ -81,15 +81,17 @@ class Simctl(object):
         args = ['xcrun', 'simctl', 'launch', udid, app_bundle_id]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def tail_logs(self, udid: str, predicate: str):
+    def tail_logs(self, udid: str, predicate: str, output_handler: Optional[OutputHandlerFunc]):
         log = get_default_logger()
         args = ['xcrun', 'simctl', 'spawn', udid, 'log', 'stream', '--style', 'syslog', '--predicate', predicate]
 
         def _log_main():
-            def _read(line: str, _):
+            def _read(line: str, is_stderr: bool):
                 log.info(line)
+                if output_handler:
+                    output_handler(line, is_stderr)
             run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
-        
+
         threading.Thread(target=_log_main, daemon=True).start()
 
 

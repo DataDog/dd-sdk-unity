@@ -50,7 +50,8 @@ namespace Datadog.Unity.RuntimeTest
             if (types.Count == 0)
             {
                 IntegrationTestLog.Error("No tests found");
-                Application.Quit(1);
+                StartCoroutine(DelayedExit(1));
+                return;
             }
 
             // Write machine-parseable output describing the tests we plan to run
@@ -58,6 +59,12 @@ namespace Datadog.Unity.RuntimeTest
 
             // Start running the tests serially without blocking the main thread
             StartCoroutine(RunTestsSequentially(types));
+        }
+
+        private IEnumerator DelayedExit(int code)
+        {
+            yield return new WaitForSeconds(1.0f);
+            Application.Quit(code);
         }
 
         private void OnDestroy()
@@ -172,7 +179,7 @@ namespace Datadog.Unity.RuntimeTest
             // 2 to indicate that one or more tests failed (exit code 1 indicates test setup error)
             var ok = !_hasFailedTests;
             IntegrationTestLog.Exit(ok);
-            Application.Quit(ok ? 0 : 2);
+            StartCoroutine(DelayedExit(ok ? 0 : 2));
         }
 
         private IEnumerator RunSingleTest(Type testType, MethodInfo testMethod, int typeIndex, int methodIndex)
@@ -363,6 +370,9 @@ namespace Datadog.Unity.RuntimeTest
         private static void Write(string prefix, string message)
         {
 #if UNITY_IOS && !UNITY_EDITOR
+            // Unity does not reliably route Debug.Log output to syslog on iOS simulator builds; so
+            // when building integration tests for iOS we also inject a wrapper for os_log() in
+            // Assets/Plugins/iOS/IntegrationTestLogger.m
             IOSLogger.Log($":: IntegrationTestRunner [{prefix}] {message}");
 #else
             // We must use IInternalLogger.DatadogTag to ensure that integration test status

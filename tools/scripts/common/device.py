@@ -12,6 +12,7 @@ from typing import Generator, Callable, Optional, ContextManager
 
 from common.android import AndroidDeviceSpec, run_android_device, Adb
 from common.apple import AppleDeviceSpec, run_apple_device, Xcrun, IDeviceSyslog
+from common.shell import OutputHandlerFunc
 
 
 __default_ios_device__ = AppleDeviceSpec('iOS 18.5', 'iPhone 15 Pro')
@@ -63,14 +64,14 @@ class TargetDevice:
             adb = Adb.require()
             adb.launch(self.device_id, app_bundle_id, 'com.unity3d.player.UnityPlayerActivity')
 
-    def tail_logs(self):
+    def tail_logs(self, output_handler: Optional[OutputHandlerFunc]):
         if self.platform == 'ios':
             if self.is_simulated:
                 xcrun = Xcrun.require()
-                xcrun.simctl.tail_logs(self.device_id, 'senderImagePath CONTAINS[c] "UnityFramework"')
+                xcrun.simctl.tail_logs(self.device_id, 'senderImagePath CONTAINS[c] "UnityFramework"', output_handler)
             else:
                 idevicesyslog = IDeviceSyslog.require()
-                idevicesyslog.run(self.device_id, 'UnityFramework')
+                idevicesyslog.run(self.device_id, 'UnityFramework', output_handler)
         else:
             assert self.platform == 'android'
             adb = Adb.require()
@@ -83,7 +84,7 @@ class TargetDevice:
                 'AndroidRuntime:E',
                 '*:S',
             ]
-            adb.tail_logs(self.device_id, filters)
+            adb.tail_logs(self.device_id, filters, output_handler)
 
 
 @contextmanager

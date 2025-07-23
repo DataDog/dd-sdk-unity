@@ -10,12 +10,12 @@ import re
 import time
 import subprocess
 import threading
-from typing import List
+from typing import List, Optional
 
 from dataclasses import dataclass
 
 from ..log import get_default_logger
-from ..shell import capture_output, run_cmd
+from ..shell import capture_output, run_cmd, OutputHandlerFunc
 from .util import resolve_android_binary
 
 
@@ -77,7 +77,6 @@ class Adb:
         # If we exceeded our maximum attempts, fail
         raise RuntimeError("Failed to run 'adb devices' successfully after 'adb kill-server && adb start-server'")
 
-
     def list_devices(self) -> List[AdbDevice]:
         # Run adb devices
         output, _ = capture_output(self.path, 'devices')
@@ -124,15 +123,17 @@ class Adb:
         args = [self.path, '-s', device_name, 'shell', 'am', 'start', '-n', namespaced_activity]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def tail_logs(self, device_name: str, filters: List[str]):
+    def tail_logs(self, device_name: str, filters: List[str], output_handler: Optional[OutputHandlerFunc]):
         log = get_default_logger()
         args = [self.path, '-s', device_name, 'logcat'] + filters
 
         def _log_main():
-            def _read(line: str, _):
+            def _read(line: str, is_stderr: bool):
                 log.info(line)
+                if output_handler:
+                    output_handler(line, is_stderr)
             run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
-        
+
         threading.Thread(target=_log_main, daemon=True).start()
 
     @classmethod
