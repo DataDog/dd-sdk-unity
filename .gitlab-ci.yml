@@ -2,7 +2,6 @@ include:
   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v3-sdm/template.yml'
 
 variables:
-  UNITY_VERSION_PARTIAL: 2022.3
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
 stages:
