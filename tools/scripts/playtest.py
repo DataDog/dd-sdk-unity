@@ -17,7 +17,7 @@ from common.log import init_logger
 from common.unity import UnityProject
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import run_mock_server, prepare_mock_server_venv
-from common.simulator import acquire_device, __default_ios_device__, TargetDevice
+from tools.scripts.common.device import acquire_device, __default_ios_device__, TargetDevice
 from common.android import get_package_name, Adb
 from common.apple import run_xcodebuild, get_bundle_identifier
 

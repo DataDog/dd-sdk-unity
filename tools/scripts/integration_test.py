@@ -20,7 +20,7 @@ from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, mo
 from common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import prepare_mock_server_venv, run_mock_server
-from common.simulator import acquire_device
+from tools.scripts.common.device import acquire_device
 from common.xslt import transform_nunit_to_junit
 
 
