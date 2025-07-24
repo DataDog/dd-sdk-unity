@@ -7,11 +7,12 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import os
 import re
+from typing import Optional
 
 from ..shell import capture_output
 
 
-def get_package_name(apk_path: str) -> str:
+def get_package_name(apk_path: str, build_tools_fallback_path: Optional[str] = None) -> str:
     # Check $ANDROID_HOME for available versions of build-tools
     android_home = os.getenv('ANDROID_HOME')
     if not android_home:
@@ -19,7 +20,12 @@ def get_package_name(apk_path: str) -> str:
 
     build_tools = os.path.join(android_home, 'build-tools')
     if not os.path.isdir(build_tools):
-        raise RuntimeError('$ANDROID_HOME/build-tools does not exist')
+        # TEMP workaround for CI to test Android builds
+        # TODO actual fix: install build-tools in runner setup script
+        if build_tools_fallback_path and os.path.isdir(build_tools_fallback_path):
+            build_tools = build_tools_fallback_path
+        else:
+            raise RuntimeError('$ANDROID_HOME/build-tools does not exist')
 
     versions = [s for s in os.listdir(build_tools) if re.match(r'\d+\.\d+\.\d+', s)]
     if not versions:
