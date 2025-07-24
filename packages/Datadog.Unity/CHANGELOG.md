@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.4.4
+
+* Fix an Android build issue that affected Unity 6 versions 6000.0.44 and older.
+
 ## 1.4.3
 
 * Fix C# compile errors that affected Android builds.
