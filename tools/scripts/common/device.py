@@ -15,7 +15,7 @@ from common.apple import AppleDeviceSpec, run_apple_device, Xcrun, IDeviceSyslog
 from common.shell import OutputHandlerFunc
 
 
-__default_ios_device__ = AppleDeviceSpec('iOS 18.5', 'iPhone 15 Pro')
+__default_ios_device__ = AppleDeviceSpec('iOS 17.5', 'iPhone 15 Pro')
 __default_android_device__ = AndroidDeviceSpec.default(api_level=33, device='pixel_4')
 
 
