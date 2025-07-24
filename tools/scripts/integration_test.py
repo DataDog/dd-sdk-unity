@@ -20,7 +20,7 @@ from typing import List, Optional
 from common.log import init_logger
 from common.unity import UnityProject, UnityBuild, UnityBuildPlatform, UnityBuildConfig, UnityTarget, DatadogBackendType
 from common.inet_addr import get_reachable_inet_addr
-from common.mockserver import run_mock_server
+from common.mockserver import run_mock_server, prepare_mock_server_venv
 from common.device import acquire_device, __default_ios_device__
 from common.android import Adb
 
@@ -179,6 +179,7 @@ def integration_test(project_path: str, platform: UnityBuildPlatform, target: Un
 
     # Prepare to run a mock server that will record incoming HTTP requests from the SDK
     # and allow the integration tests to inspect those requests
+    prepare_mock_server_venv()
     mock_server_addr = get_reachable_inet_addr()
     if not mock_server_addr:
         raise RuntimeError('Failed to resolve private IPv4 address for mock server')
