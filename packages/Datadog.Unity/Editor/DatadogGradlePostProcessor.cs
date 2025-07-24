@@ -53,18 +53,56 @@ namespace Datadog.Unity.Editor
         /// <summary>
         /// Evaluates whether we need to apply a compatibility fix to build.gradle in order to prevent build errors due
         /// to the inclusion of `androidx.metrics:metrics-performance:1.0.0-beta02`, which requires AGP 8.6.0+. Unity
-        /// 2022 and 2021 use AGP 7.x, so they require the fix.
+        /// 2022 and 2021 use AGP 7.x, so they require the fix; versions of Unity 6 prior to 6000.0.45 use AGP 8.3.0,
+        /// so they also need the fix.
         /// </summary>
-        /// <returns>True if the detected Unity version predates Unity 6.</returns>
+        /// <returns>True if the detected Unity version predates Unity 6000.0.45.</returns>
         private bool RequiresAndroidxMetricsCompatibilityFix()
         {
+            // Parse the Unity version string
             string version = Application.unityVersion;
             string[] parts = version.Split('.');
-            if (int.TryParse(parts[0], out int majorVersion))
+            if (parts.Length < 3)
             {
-                return majorVersion < 6000;
+                // Silently proceed without applying the fix if unable to parse
+                return false;
             }
-            return false;
+            string majorVersionStr = parts[0];
+            string minorVersionStr = parts[1];
+            string patchVersionStr = parts[2];
+
+            // The last token may have a suffix like 'f1' or 'b2'; strip it off so we can identify the
+            // patch version alone
+            int patchVersionStrLen = 0;
+            while (patchVersionStrLen < patchVersionStr.Length)
+            {
+                if (!Char.IsDigit(patchVersionStr[patchVersionStrLen]))
+                {
+                    break;
+                }
+                patchVersionStrLen++;
+            }
+            patchVersionStr = patchVersionStr.Substring(0, patchVersionStrLen);
+
+            // Parse our plain ol' int values so we can do arithmetic
+            int majorVersion;
+            int minorVersion;
+            int patchVersion;
+            if (!int.TryParse(majorVersionStr, out majorVersion)
+             || !int.TryParse(minorVersionStr, out minorVersion)
+             || !int.TryParse(patchVersionStr, out patchVersion))
+            {
+                return false;
+            }
+
+            // For Unity 6, we only need the fix if we're on 6000.0.44 or older
+            if (majorVersion == 6000)
+            {
+                return minorVersion == 0 && patchVersion < 45;
+            }
+
+            // For other major Unity releases: apply the fix if our version predates Unity 6
+            return majorVersion < 6000;
         }
 
         /// <summary>
