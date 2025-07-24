@@ -10,7 +10,7 @@ from typing import List
 
 from common.shell import capture_output
 
-from .util import resolve_android_binary
+from .util import resolve_cmdline_tools_binary
 
 
 @dataclass
@@ -22,7 +22,7 @@ class AndroidPackage:
 
 class AndroidSdkManager(object):
     """
-    Wrapper for $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.
+    Wrapper for $ANDROID_HOME/cmdline-tools/<version>/bin/sdkmanager.
     """
     path: str
 
@@ -38,7 +38,7 @@ class AndroidSdkManager(object):
 
     @classmethod
     def require(cls) -> 'AndroidSdkManager':
-        path, error_message = resolve_android_binary('cmdline-tools', 'latest', 'bin', 'sdkmanager')
+        path, error_message = resolve_cmdline_tools_binary('sdkmanager')
         if error_message:
             raise RuntimeError(f'Failed to find sdkmanager: {error_message}')
         return cls(path)

@@ -13,7 +13,7 @@ from typing import Optional, List
 from common.log import get_default_logger
 from common.shell import capture_output
 
-from .util import resolve_android_binary
+from .util import resolve_cmdline_tools_binary
 
 
 @dataclass
@@ -30,7 +30,7 @@ class Avd:
 
 class AvdManager(object):
     """
-    Wrapper for $ANDROID_HOME/cmdline-tools/latest/avdmanager.
+    Wrapper for $ANDROID_HOME/cmdline-tools/<version>/bin/avdmanager.
     """
     path: str
 
@@ -52,7 +52,7 @@ class AvdManager(object):
 
     @classmethod
     def require(cls) -> 'AvdManager':
-        path, error_message = path, error_message = resolve_android_binary('cmdline-tools', 'latest', 'bin', 'avdmanager')
+        path, error_message = path, error_message = resolve_cmdline_tools_binary('avdmanager')
         if error_message:
             raise RuntimeError(f'Failed to find avdmanager: {error_message}')
         return cls(path)
