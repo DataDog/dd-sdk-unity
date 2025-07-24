@@ -21,6 +21,10 @@ stages:
     - export UNITY_VERSION=$(grep '^m_EditorVersion:[ ]' "$PROJECT_PATH/ProjectSettings/ProjectVersion.txt" | cut -d' ' -f2)
     - ./run-script install_unity "$UNITY_VERSION"
     - echo "Using Unity version $UNITY_VERSION"
+    # Our build automation scripts expect ANDROID_HOME to be set so they can find aapt,
+    # avdmanager, adb, etc., but CI runners don't have the Android SDK separately
+    # installed, so just use the version installed with Unity
+    - export ANDROID_HOME="/Applications/Unity/Hub/Editor/$UNITY_VERSION/PlaybackEngines/AndroidPlayer/SDK"
   configure-unity-licensing:
     # Grab the Unity Licensing Server configuration and write it to the system-wide
     # Unity config dir so that the Unity Licensing Client installed alongside our
