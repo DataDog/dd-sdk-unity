@@ -24,6 +24,7 @@ namespace Datadog.Unity
         private DatadogWorker _worker;
         private IInternalLogger _internalLogger = new PassThroughInternalLogger();
         private ResourceTrackingHelper _resourceTrackingHelper;
+        private GameObject _performanceTrackerObject;
 
         /// <summary>
         /// Gets the version of the SDK reported to Datadog. This strips the final (revision) part of the version.
@@ -73,7 +74,7 @@ namespace Datadog.Unity
         /// </summary>
         public static void Shutdown()
         {
-            Instance.ShutdownInstance();
+            Instance.ShutdownInstance(false);
         }
 
         /// <summary>
@@ -293,7 +294,6 @@ namespace Datadog.Unity
             var platformRum = _platform.InitRum(options);
             _worker.AddProcessor(DdRumProcessor.RumTargetName, new DdRumProcessor(platformRum));
 
-
             // Create our main-thread IDdRum interface, which will enqueue messages for the worker-thread implementation
             // to handle
             var rumProxy = new DdWorkerProxyRum(_worker);
@@ -304,10 +304,10 @@ namespace Datadog.Unity
             if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
             {
                 // Create a persistent GameObject and add the DatadogPerformanceTracker behavior to it
-                var performanceTrackerObject = new GameObject("DatadogPerformanceTracker");
-                var performanceTracker = performanceTrackerObject.AddComponent<DatadogPerformanceTracker>();
-                performanceTrackerObject.hideFlags = HideFlags.HideAndDontSave;
-                UnityEngine.Object.DontDestroyOnLoad(performanceTrackerObject);
+                _performanceTrackerObject = new GameObject("DatadogPerformanceTracker");
+                var performanceTracker = _performanceTrackerObject.AddComponent<DatadogPerformanceTracker>();
+                _performanceTrackerObject.hideFlags = HideFlags.HideAndDontSave;
+                UnityEngine.Object.DontDestroyOnLoad(_performanceTrackerObject);
 
                 // Determine how often we should read from the PerformanceTracker and pass the latest performance
                 // metrics into the platform SDK
@@ -346,18 +346,33 @@ namespace Datadog.Unity
             });
         }
 
-        private void ShutdownInstance()
+        /// <summary>
+        /// Cleans up internal state owned by the SDK, either when quitting the application or when tearing down test
+        /// state.
+        /// </summary>
+        /// <param name="isQuitting">Whether we're being called in response to <c>Application.quitting</c>.</param>
+        private void ShutdownInstance(bool isQuitting)
         {
+            // Clean up any game objects added to the scene by the SDK, but avoid doing so if the application is
+            // shutting down: only delete objects in response to manual DatadogSdk.Shutdown() calls, i.e. in unit tests
+            if (!isQuitting && _performanceTrackerObject != null)
+            {
+                UnityEngine.Object.Destroy(_performanceTrackerObject);
+                _performanceTrackerObject = null;
+            }
+
+            // Always clean up SDK state
             _platform = null;
             DefaultLogger = null;
             _logHandler?.Detach();
             _logHandler = null;
             _worker?.Stop();
+            _worker = null;
         }
 
         private void OnQuitting()
         {
-            ShutdownInstance();
+            ShutdownInstance(true);
         }
 
         internal class ConfigKeys
