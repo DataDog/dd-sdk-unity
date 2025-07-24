@@ -21,6 +21,9 @@ stages:
     - export UNITY_VERSION=$(grep '^m_EditorVersion:[ ]' "$PROJECT_PATH/ProjectSettings/ProjectVersion.txt" | cut -d' ' -f2)
     - ./run-script install_unity "$UNITY_VERSION"
     - echo "Using Unity version $UNITY_VERSION"
+    # TEMP
+    - xcrun simctl list runtimes available
+    - xcrun simctl list devices available
     # For Android build automation, use the Android SDK installed by install_dd_sdk_unity_tools.sh
     - echo "ANDROID_HOME was $ANDROID_HOME"
     - ls "$HOME/android_sdk"
