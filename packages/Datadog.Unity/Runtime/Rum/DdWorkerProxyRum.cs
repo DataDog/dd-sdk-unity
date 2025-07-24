@@ -33,7 +33,7 @@ namespace Datadog.Unity.Rum
             InternalHelpers.Wrap("UpdateExternalRefreshRate",
                 () =>
                 {
-                    _worker.AddMessage(DdRumProcessor.UpdateExternalRefreshRateMessage.Create(sample.FrameTimeMs * 0.001));
+                    _worker.AddMessage(DdRumProcessor.UpdateExternalRefreshRateMessage.Create(sample.FrameTimeSeconds));
                 });
         }
 

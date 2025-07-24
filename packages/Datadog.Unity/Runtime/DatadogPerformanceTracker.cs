@@ -12,10 +12,7 @@ namespace Datadog.Unity
     /// </summary>
     internal struct PerformanceSample
     {
-        public float FrameTimeMs;
-        public int NumFramesUnderBudget;
-        public int NumFramesOverBudget;
-        public int NumHitchFrames;
+        public float FrameTimeSeconds;
     }
 
     /// <summary>
@@ -25,13 +22,7 @@ namespace Datadog.Unity
     /// </summary>
     internal class DatadogPerformanceTracker : MonoBehaviour
     {
-        private const float HitchThresholdMs = 0.1f;
-
-        private float _frameTimeMs;
-        private float _frameBudgetMs;
-        private int _numFramesUnderBudget;
-        private int _numFramesOverBudget;
-        private int _numHitchFrames;
+        private float _frameTimeSeconds;
 
         private int _updateCount;
         private int _updateCountAtLastReport;
@@ -44,33 +35,10 @@ namespace Datadog.Unity
             _reportIntervalSeconds = intervalSeconds;
         }
 
-        private void Start()
-        {
-            // Compute frame budget threshold, in ms, based on project's target FPS value
-            var targetFPS = Application.targetFrameRate > 0 ? Application.targetFrameRate : 60f;
-            _frameBudgetMs = 1000.0f / targetFPS;
-        }
-
         private void Update()
         {
             // Cache the latest per-frame update time
-            _frameTimeMs = Time.unscaledDeltaTime * 1000f;
-
-            // Accumulate frame counts
-            if (_frameTimeMs < _frameBudgetMs)
-            {
-                _numFramesUnderBudget++;
-            }
-            else
-            {
-                _numFramesOverBudget++;
-            }
-
-            // Detect and count hitch frames
-            if (_frameTimeMs > HitchThresholdMs)
-            {
-                _numHitchFrames++;
-            }
+            _frameTimeSeconds = Time.unscaledDeltaTime;
 
             // Increment our frame count
             _updateCount++;
@@ -113,10 +81,7 @@ namespace Datadog.Unity
             // Create a snapshot of our current performance metrics and report that data via our configured callback
             var sample = new PerformanceSample
             {
-                FrameTimeMs = _frameTimeMs,
-                NumFramesUnderBudget = _numFramesUnderBudget,
-                NumFramesOverBudget = _numFramesOverBudget,
-                NumHitchFrames = _numHitchFrames,
+                FrameTimeSeconds = _frameTimeSeconds,
             };
             _reportCallback(sample);
             _updateCountAtLastReport = _updateCount;
