@@ -54,7 +54,7 @@ namespace Datadog.Unity
         private void Update()
         {
             // Cache the latest per-frame update time
-            _frameTimeMs = Time.deltaTime * 1000f;
+            _frameTimeMs = Time.unscaledDeltaTime * 1000f;
 
             // Accumulate frame counts
             if (_frameTimeMs < _frameBudgetMs)
