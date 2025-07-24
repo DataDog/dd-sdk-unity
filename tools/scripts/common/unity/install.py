@@ -155,6 +155,11 @@ class UnityInstall:
             elif line.startswith('No valid Unity Editor license found. Please activate your license.'):
                 license_status = UnityLicenseStatus.INVALID
 
+            # TEMP: Suppress spammy output to diagnose CI issues without hitting the
+            # ~4MB log size limit
+            if not _should_echo(line):
+                return
+
             # If the caller wants us to echo, write each line to Python stdout
             if echo_log:
                 max_retries = 10
@@ -282,3 +287,12 @@ def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Op
 
     newest_candidate = list(sorted(candidates))[-1]
     return newest_candidate
+
+
+def _should_echo(line: str) -> bool:
+    if line.startswith('[Performance] '): return False
+    if line.startswith('Start importing '): return False
+    if line.startswith(' -> (artifact id:'): return False
+    if '): warning SA' in line: return False
+    if len(line) > 1024: return False
+    return True
