@@ -1,5 +1,10 @@
 # Change Log
 
+## Unreleased
+
+* The "Vitals Update Frequency" option can now be configured in the Datadog Settings UI.
+* Android builds will now report frame time metrics to RUM when "Vitals Update Frequency" is enabled.
+
 ## 1.4.3
 
 * Fix C# compile errors that affected Android builds.
