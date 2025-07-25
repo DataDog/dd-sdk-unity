@@ -20,6 +20,7 @@ namespace Datadog.Unity
     /// loop. This behavior will be added to scene by the Datadog SDK if needed; there is
     /// no need to place it manually.
     /// </summary>
+    [AddComponentMenu("")]
     internal class DatadogPerformanceTracker : MonoBehaviour
     {
         private float _frameTimeSeconds;
