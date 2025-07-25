@@ -61,7 +61,7 @@ class UnityBuild:
         # If we're using a custom intake server that's running on an insecure endpoint
         # (i.e. we're using 'http:' rather than 'https:' because we're running locally),
         # configure the build to allow non-TLS HTTP traffic
-        if backend != DatadogBackendType.LIVE and config == UnityBuildConfig.RELEASE and custom_endpoint_url.startswith('http:'):
+        if backend != DatadogBackendType.LIVE and custom_endpoint_url.startswith('http:'):
             if platform == UnityBuildPlatform.ANDROID:
                 script_paths.append('Assets/Editor/DatadogBuild/EnableCleartextTrafficPostProcessor.cs')
 
