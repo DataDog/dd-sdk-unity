@@ -10,9 +10,14 @@ namespace Datadog.Unity
     /// <summary>
     /// A snapshot of Unity-specific performance metrics.
     /// </summary>
-    internal struct PerformanceSample
+    internal readonly struct PerformanceSample
     {
-        public float FrameTimeSeconds;
+        public readonly float FrameTimeSeconds;
+
+        public PerformanceSample(float frameTimeSeconds)
+        {
+            FrameTimeSeconds = frameTimeSeconds;
+        }
     }
 
     /// <summary>
@@ -80,10 +85,7 @@ namespace Datadog.Unity
             }
 
             // Create a snapshot of our current performance metrics and report that data via our configured callback
-            var sample = new PerformanceSample
-            {
-                FrameTimeSeconds = _frameTimeSeconds,
-            };
+            var sample = new PerformanceSample(_frameTimeSeconds);
             _reportCallback(sample);
             _updateCountAtLastReport = _updateCount;
         }
