@@ -45,10 +45,7 @@ namespace Datadog.Unity.Rum
                 return;
             }
 
-            if (_performanceTracker != null)
-            {
-                _performanceTracker.NotifyViewStarted();
-            }
+            _performanceTracker?.NotifyViewStarted();
 
             InternalHelpers.Wrap("StartView",
                 () =>
@@ -65,10 +62,7 @@ namespace Datadog.Unity.Rum
                 return;
             }
 
-            if (_performanceTracker != null)
-            {
-                _performanceTracker.NotifyViewStopped();
-            }
+            _performanceTracker?.NotifyViewStopped();
 
             InternalHelpers.Wrap("StopView",
                 () => { _worker.AddMessage(DdRumProcessor.StopViewMessage.Create(_dateProvider.Now, key, attributes)); });
