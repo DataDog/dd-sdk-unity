@@ -12,6 +12,7 @@ from .install import (
     match_unity_version,
 )
 from .hub import UnityHub
+from .archive import UnityArchiveRelease, find_archive_release
 from .ios_settings import modified_ios_target_settings
 from .injected_script import ProjectBuildConfiguration, InjectedScript, InjectedScriptContext
 from .project import UnityProject
@@ -26,6 +27,8 @@ __all__ = [
     'resolve_unity_install',
     'match_unity_version',
     'UnityHub',
+    'UnityArchiveRelease',
+    'find_archive_release',
     'modified_ios_target_settings',
     'ProjectBuildConfiguration',
     'InjectedScript',

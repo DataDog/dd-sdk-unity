@@ -8,12 +8,14 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import os
 import platform
+from dataclasses import dataclass
 from typing import List, Optional
 
 from common.log import get_default_logger
 from common.shell import run_cmd
 
 from .install import UnityInstall, UnityVersion
+from .archive import find_archive_release
 
 
 class UnityHub(object):
@@ -67,11 +69,13 @@ class UnityHub(object):
         )
         return versions
     
-    def install_version(self, version: UnityVersion, modules: List[str]) -> UnityInstall:
+    def install_version(self, version: UnityVersion, modules: List[str], changeset: Optional[str]) -> UnityInstall:
         log = get_default_logger()
         log.info(f'Installing Unity {version}...')
 
         args = [self.path, '--', '--headless', 'install', '--version', str(version)]
+        if changeset:
+            args.extend(['--changeset', changeset])
         args.append('--module')
         args.extend(modules)
         args.append('--childModules')

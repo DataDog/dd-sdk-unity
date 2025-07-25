@@ -8,9 +8,10 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import sys
 import argparse
+from typing import Optional
 
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install, match_unity_version
+from common.unity import UnityHub, UnityVersion, resolve_unity_install, match_unity_version, find_archive_release
 
 
 def install_unity(version_prefix: str):
@@ -31,7 +32,7 @@ def install_unity(version_prefix: str):
 
     Prerequisites: Unity Hub must already be installed on the system.
     """
-    init_logger()
+    log = init_logger()
 
     # Check to see if we have the requisite version already installed, and if so, print
     # its full version string to stdout and exit
@@ -42,16 +43,34 @@ def install_unity(version_prefix: str):
         print(found_install.version)
         return 0
 
-    # The target version is not installed; query the set of available versions and find
-    # the newest one that satisfies the desired version
-    versions = unity_hub.list_release_versions()
-    version = match_unity_version(versions, version_prefix)
-    if not version:
-        raise RuntimeError(f'No available Unity release matches version {version_prefix}')
+    # Resolve the details needed to install a specific release
+    version: Optional[UnityVersion] = None
+    changeset: Optional[str] = None
+
+    if version_prefix.count('.') > 1:
+        # If we've been given an exact version to install, find it in the archive and
+        # obtain its changeset hash so Unity Hub will install it regardless of age
+        log.info(f'Searching for version {version_prefix} in Unity release archive...')
+        release = find_archive_release(UnityVersion.parse(version_prefix))
+        if not release:
+            raise RuntimeError(f'No match found in the Unity release archive for version {version_prefix}')
+        log.info(f'Found version {release.version} with changeset hash {release.changeset}.')
+        assert release.changeset
+        version = release.version
+        changeset = release.changeset
+    else:
+        # Otherwise, we have a prefix that we can loosely match on: install whatever
+        # version is advertised in Unity Hub that matches our prefix
+        log.info(f'Searching for any version matching {version_prefix} in available Unity Hub releases...')
+        versions = unity_hub.list_release_versions()
+        version = match_unity_version(versions, version_prefix)
+        if not version:
+            raise RuntimeError(f'No available Unity release matches version {version_prefix}')
 
     # Commence installing this version, and when done, print its full version string to
     # stdout and exit
-    new_install = unity_hub.install_version(version, ['ios', 'android'])
+    assert version
+    new_install = unity_hub.install_version(version, ['ios', 'android'], changeset)
     print(new_install.version)
     return 0
 
