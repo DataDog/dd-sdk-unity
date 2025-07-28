@@ -69,7 +69,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(VitalsUpdateFrequency.Average, options.VitalsUpdateFrequency);
             Assert.AreEqual(100.0f, options.SessionSampleRate);
             Assert.AreEqual(20.0f, options.TraceSampleRate);
-            Assert.AreEqual(TraceContextInjection.All, options.TraceContextInjection);
+            Assert.AreEqual(TraceContextInjection.Sampled, options.TraceContextInjection);
             Assert.AreEqual(20.0f, options.TelemetrySampleRate);
             Assert.AreEqual(NonFatalAnrDetectionOption.Disabled, options.TrackNonFatalAnrs);
             Assert.AreEqual(false, options.TrackNonFatalAppHangs);
