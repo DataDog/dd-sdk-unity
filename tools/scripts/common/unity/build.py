@@ -215,12 +215,9 @@ class UnityBuild:
         if not os.path.isfile(apk_path):
             raise RuntimeError(f'APK not found for Android build: {apk_path}')
 
-        # TEMP CI workaround
-        build_tools_fallback_path = os.path.join(os.path.dirname(project.editor.path), 'PlaybackEngines', 'AndroidPlayer', 'SDK')
-
         # Use aapt to parse the Android package name
         app_bundle_path = apk_path
-        app_bundle_id = get_package_name(apk_path, build_tools_fallback_path)
+        app_bundle_id = get_package_name(apk_path)
 
         return cls(app_bundle_path, app_bundle_id)
 
