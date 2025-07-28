@@ -237,7 +237,7 @@ namespace Datadog.Unity.Android
             logsClass.CallStatic("removeAttribute", key);
         }
 
-        public IDdRum InitRum(DatadogConfigurationOptions options)
+        public IDdRumInternal InitRum(DatadogConfigurationOptions options)
         {
             using var globalRumMonitorClass = new AndroidJavaClass("com.datadog.android.rum.GlobalRumMonitor");
             var rum = globalRumMonitorClass.CallStatic<AndroidJavaObject>("get");

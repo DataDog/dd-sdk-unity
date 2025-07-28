@@ -33,7 +33,7 @@ namespace Datadog.Unity
 
         void AddUserExtraInfo(Dictionary<string, object> extraInfo);
 
-        IDdRum InitRum(DatadogConfigurationOptions options);
+        IDdRumInternal InitRum(DatadogConfigurationOptions options);
 
         void SendDebugTelemetry(string message);
 

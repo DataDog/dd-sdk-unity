@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Datadog.Unity.Worker;
+using UnityEngine;
 
 namespace Datadog.Unity.Rum
 {
@@ -13,10 +14,27 @@ namespace Datadog.Unity.Rum
         private readonly DatadogWorker _worker;
         private readonly IDateProvider _dateProvider;
 
+        private DatadogPerformanceTracker _performanceTracker;
+
         public DdWorkerProxyRum(DatadogWorker worker, IDateProvider dateProvider = null)
         {
             _dateProvider = dateProvider ?? new DefaultDateProvider();
             _worker = worker;
+        }
+
+        public void InitPerformanceTracker(DatadogPerformanceTracker performanceTracker, float reportIntervalSeconds)
+        {
+            _performanceTracker = performanceTracker;
+            _performanceTracker.Init(HandlePerformanceSample, reportIntervalSeconds);
+        }
+
+        internal void HandlePerformanceSample(PerformanceSample sample)
+        {
+            InternalHelpers.Wrap("UpdateExternalRefreshRate",
+                () =>
+                {
+                    _worker.AddMessage(DdRumProcessor.UpdateExternalRefreshRateMessage.Create(sample.FrameTimeSeconds));
+                });
         }
 
         public void StartView(string key, string name = null, Dictionary<string, object> attributes = null)
@@ -26,6 +44,8 @@ namespace Datadog.Unity.Rum
                 LogNullWarning("StartView", "key");
                 return;
             }
+
+            _performanceTracker?.NotifyViewStarted();
 
             InternalHelpers.Wrap("StartView",
                 () =>
@@ -41,6 +61,8 @@ namespace Datadog.Unity.Rum
                 LogNullWarning("StopView", "key");
                 return;
             }
+
+            _performanceTracker?.NotifyViewStopped();
 
             InternalHelpers.Wrap("StopView",
                 () => { _worker.AddMessage(DdRumProcessor.StopViewMessage.Create(_dateProvider.Now, key, attributes)); });

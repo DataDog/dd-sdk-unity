@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace Datadog.Unity.iOS
 {
-    internal class DatadogiOSRum : IDdRum
+    internal class DatadogiOSRum : IDdRumInternal
     {
         private readonly DatadogiOSPlatform _platform;
 
@@ -154,6 +154,12 @@ namespace Datadog.Unity.iOS
         public void StopSession()
         {
             DatadogRumBridge.DatadogRum_StopSession();
+        }
+
+        public void UpdateExternalRefreshRate(double frameTimeSeconds)
+        {
+            // updateExternalRefreshRate is part of the internal RUM API in dd-sdk-android; it is not supported on iOS.
+            // dd-sdk-ios should be able to gather frame time metrics for Unity apps natively.
         }
     }
 

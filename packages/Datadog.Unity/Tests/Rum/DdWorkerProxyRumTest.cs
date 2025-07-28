@@ -15,17 +15,17 @@ namespace Datadog.Unity.Rum.Tests
     {
         private DatadogWorker _worker;
         private DdRumProcessor _rumProcessor;
-        private IDdRum _mockRum;
+        private IDdRumInternal _mockRum;
         private IDateProvider _mockDateProvider;
 
         [SetUp]
         public void SetUp()
         {
-            _mockRum = Substitute.For<IDdRum>();
+            _mockRum = Substitute.For<IDdRumInternal>();
             _mockDateProvider = Substitute.For<IDateProvider>();
 
             _worker = new PassthroughWorker();
-            _rumProcessor = new (_mockRum);
+            _rumProcessor = new(_mockRum);
             _worker.AddProcessor(DdRumProcessor.RumTargetName, _rumProcessor);
             _worker.Start();
         }
@@ -47,7 +47,7 @@ namespace Datadog.Unity.Rum.Tests
             _mockRum.StartView(Arg.Any<string>(), Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
 
             // When
-            rum.StartView("view_key", "Test View", new ()
+            rum.StartView("view_key", "Test View", new()
             {
                 { "attribute_1", 245 },
             });
@@ -71,7 +71,7 @@ namespace Datadog.Unity.Rum.Tests
             _mockRum.StopView(Arg.Any<string>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
 
             // When
-            rum.StopView("view_key", new ()
+            rum.StopView("view_key", new()
             {
                 { "attribute_1", 245 },
             });
@@ -96,7 +96,7 @@ namespace Datadog.Unity.Rum.Tests
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.AddAction(RumUserActionType.Tap, "First Button", new ()
+            rum.AddAction(RumUserActionType.Tap, "First Button", new()
             {
                 { "attribute_1", "my property" },
             });
@@ -121,7 +121,7 @@ namespace Datadog.Unity.Rum.Tests
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.StartAction(RumUserActionType.Scroll, "Scroll List", new ()
+            rum.StartAction(RumUserActionType.Scroll, "Scroll List", new()
             {
                 { "attribute_1", "my property" },
             });
@@ -146,7 +146,7 @@ namespace Datadog.Unity.Rum.Tests
             _mockDateProvider.Now.Returns(date);
 
             // When
-            rum.StopAction(RumUserActionType.Scroll, "Scroll List", new ()
+            rum.StopAction(RumUserActionType.Scroll, "Scroll List", new()
             {
                 { "attribute_1", "my property" },
             });

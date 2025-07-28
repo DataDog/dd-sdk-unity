@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Datadog.Unity.Android
 {
-    internal class DatadogAndroidRum : IDdRum
+    internal class DatadogAndroidRum : IDdRumInternal
     {
         private readonly AndroidJavaObject _rum;
         private readonly DatadogAndroidPlatform _androidPlatform;
@@ -162,6 +162,13 @@ namespace Datadog.Unity.Android
         public void StopSession()
         {
             _rum.Call("stopSession");
+        }
+
+        public void UpdateExternalRefreshRate(double frameTimeSeconds)
+        {
+            // The androidx JankStats API does not work for Unity apps, so as a workaround we periodically push frame
+            // time samples from the Unity game thread into dd-sdk-android via this internal API call
+            _rum.Call("updateExternalRefreshRate", frameTimeSeconds);
         }
 
         internal static AndroidJavaObject GetUserActionType(RumUserActionType action)

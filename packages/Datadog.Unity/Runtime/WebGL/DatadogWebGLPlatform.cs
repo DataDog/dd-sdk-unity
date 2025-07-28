@@ -125,7 +125,7 @@ namespace Datadog.Unity.WebGL
             DDCore_SetUserProperties(jsonAttributes);
         }
 
-        public IDdRum InitRum(DatadogConfigurationOptions options)
+        public IDdRumInternal InitRum(DatadogConfigurationOptions options)
         {
             var rum = new DatadogWebGLRum();
             rum.Init(options);

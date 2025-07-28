@@ -111,7 +111,7 @@ namespace Datadog.Unity.iOS
             Datadog_RemoveLogsAttributes(key);
         }
 
-        public IDdRum InitRum(DatadogConfigurationOptions options)
+        public IDdRumInternal InitRum(DatadogConfigurationOptions options)
         {
             return new DatadogiOSRum(this);
         }
