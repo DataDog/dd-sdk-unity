@@ -25,9 +25,8 @@ stages:
     - xcrun simctl list runtimes available
     - xcrun simctl list devices available
     # For Android build automation, use the Android SDK installed by install_dd_sdk_unity_tools.sh
-    - echo "ANDROID_HOME was $ANDROID_HOME"
-    - ls "$HOME/android_sdk"
-    - export ANDROID_HOME="$HOME/android_sdk"
+    - export ANDROID_HOME
+    - $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install platform-tools
   configure-unity-licensing:
     # Grab the Unity Licensing Server configuration and write it to the system-wide
     # Unity config dir so that the Unity Licensing Client installed alongside our
