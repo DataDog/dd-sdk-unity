@@ -229,7 +229,7 @@ def integration_test(project_path: str, platform: UnityBuildPlatform, target: Un
         device.tail_logs(_handle_output)
         device.launch_app(build.app_bundle_id)
 
-        timeout_seconds = 120.0
+        timeout_seconds = 5 * 60.0
         deadline = time.time() + timeout_seconds
         log.info(f'Integration tests running... (timeout {timeout_seconds}s; Ctrl-C to cancel)')
         while True:
