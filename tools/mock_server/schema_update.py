@@ -6,13 +6,12 @@
 # Copyright 2019-2020 Datadog, Inc.
 # -----------------------------------------------------------
 
-import glob
 import os
 import shutil
-from tempfile import TemporaryDirectory
+import subprocess
 
 schemas_path = ".schemas"
-schema_repo = "git@github.com:DataDog/rum-events-format.git"
+schema_repo = "https://github.com/DataDog/rum-events-format.git"
 
 def schemas_path_exists():
     """
@@ -37,11 +36,10 @@ def update_schemas():
 
 def _clone_schemas_repo():
     print(f"Running git clone of {schema_repo}")
-    os.system(f'git clone {schema_repo} {schemas_path}')
+    args = ['git', 'clone', schema_repo, schemas_path]
+    subprocess.check_call(args)
 
 def _update_schemas_repo():
     print(f"Running git pull on {schemas_path}")
-    pwd = os.getcwd()
-    os.chdir(schemas_path)
-    os.system('git pull')
-    os.chdir(pwd)
+    args = ['git', 'pull']
+    subprocess.check_call(args, cwd=schemas_path)

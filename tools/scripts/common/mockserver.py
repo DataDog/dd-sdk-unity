@@ -49,8 +49,8 @@ def run_mock_server(bind_addr: str, port: int) -> Generator[None, None, None]:
     venv_python = os.path.join(__mock_server_root__, 'venv', 'bin', 'python')
     args = [venv_python, 'app.py', '--addr', bind_addr, '--port', str(port)]
 
+    log.info(f'Starting mock server on {bind_addr}:{port}')
     process = subprocess.Popen(args, cwd=__mock_server_root__)
-    
     try:
         yield
     finally:
