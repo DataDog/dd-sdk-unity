@@ -61,11 +61,11 @@ class Simctl(object):
         args = ['xcrun', 'simctl', 'shutdown', udid]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def boot(self, udid: str, timeout_seconds: float = 30.0):
+    def boot(self, udid: str, timeout_seconds: float = 70.0):
         args = ['xcrun', 'simctl', 'boot', udid]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def wait_for_boot(self, udid: str, timeout_seconds: float = 30.0):
+    def wait_for_boot(self, udid: str, timeout_seconds: float = 60.0):
         args = ['xcrun', 'simctl', 'bootstatus', udid]
         subprocess.check_call(args, timeout=timeout_seconds, stdout=subprocess.DEVNULL)
 

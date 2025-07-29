@@ -101,7 +101,7 @@ class Adb:
 
         return devices
 
-    def wait_for_device(self, device_name: str, timeout_seconds: float = 30.0) -> AdbDevice:
+    def wait_for_device(self, device_name: str, timeout_seconds: float = 60.0) -> AdbDevice:
         args = [self.path, '-s', device_name, 'wait-for-device']
         subprocess.check_call(args, timeout=timeout_seconds)
         return AdbDevice(adb_path=self.path, name=device_name)
