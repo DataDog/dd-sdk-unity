@@ -242,8 +242,8 @@ namespace Datadog.Unity
         public bool AutomaticSceneTracking;
         public VitalsUpdateFrequency VitalsUpdateFrequency = VitalsUpdateFrequency.Average;
         public float SessionSampleRate = 100.0f;
-        public float TraceSampleRate = 20.0f;
-        public TraceContextInjection TraceContextInjection = TraceContextInjection.All;
+        public float TraceSampleRate = 100.0f;
+        public TraceContextInjection TraceContextInjection = TraceContextInjection.Sampled;
         public List<FirstPartyHostOption> FirstPartyHosts = new ();
         public NonFatalAnrDetectionOption TrackNonFatalAnrs = NonFatalAnrDetectionOption.Disabled;
         public bool TrackNonFatalAppHangs = false;
