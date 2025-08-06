@@ -37,6 +37,8 @@ namespace Datadog.Unity.Rum
         private readonly ulong _high;
         private readonly ulong _low;
 
+        public ulong Low64 => _low;
+
         public TracingUuid(ulong high, ulong low)
         {
             _high = high;

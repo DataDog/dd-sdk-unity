@@ -14,7 +14,7 @@ namespace Datadog.Unity.Rum
     internal class ResourceTrackingHelper
     {
         private readonly DatadogConfigurationOptions _options;
-        private readonly RateBasedSampler _traceSampler;
+        private readonly DeterministicTraceSampler _traceSampler;
         private readonly List<FirstPartyHost> _firstPartyHosts;
         private readonly TraceContextInjection _traceContextInjection;
 
@@ -23,7 +23,7 @@ namespace Datadog.Unity.Rum
         public ResourceTrackingHelper(DatadogConfigurationOptions options)
         {
             _options = options;
-            _traceSampler = new RateBasedSampler(options.TraceSampleRate / 100.0f);
+            _traceSampler = new DeterministicTraceSampler(options.TraceSampleRate / 100.0f);
             _firstPartyHosts = options.FirstPartyHosts
                 .Select(x => new FirstPartyHost(x.Host, x.TracingHeaderType))
                 .ToList();
@@ -32,11 +32,12 @@ namespace Datadog.Unity.Rum
 
         public TraceContext GenerateTraceContext()
         {
+            var traceId = TracingUuid.Create128Bit();
             return new TraceContext(
-                TracingUuid.Create128Bit(),
+                traceId,
                 TracingUuid.Create63Bit(),
                 null,
-                _traceSampler.Sample());
+                _traceSampler.SampleByTraceId(traceId.Low64));
         }
 
         internal void GenerateDatadogAttributes(TraceContext traceContext, Dictionary<string, object> attributes)
