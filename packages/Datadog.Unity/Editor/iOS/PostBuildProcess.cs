@@ -193,9 +193,11 @@ func initializeDatadog() {{
             {
                 sb.AppendLine();
                 sb.AppendLine("    CrashReporting.enable()");
-                sb.AppendLine("}");
-                sb.AppendLine();
             }
+
+            // Close `func initializeDatadog() {`
+            sb.AppendLine("}");
+            sb.AppendLine();
 
             File.WriteAllText(path, sb.ToString());
         }
