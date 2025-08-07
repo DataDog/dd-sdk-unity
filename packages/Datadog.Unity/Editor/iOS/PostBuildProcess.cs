@@ -22,7 +22,6 @@ namespace Datadog.Unity.Editor.iOS
     {
         private const string DatadogBlockStart = "// > Datadog Generated Block";
         private const string DatadogBlockEnd = "// < End Datadog Generated Block";
-        private static readonly string FrameworkLocation = "Packages/com.datadoghq.unity/Plugins/iOS";
 
         public int callbackOrder => 1;
 
