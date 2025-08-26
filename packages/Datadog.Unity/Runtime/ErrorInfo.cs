@@ -46,7 +46,7 @@ namespace Datadog.Unity
             // Cache error details pulled from exception
             if (e != null)
             {
-                Type = e.GetType().Name ?? DefaultErrorType;
+                Type = e.GetType().FullName ?? DefaultErrorType;
                 Message = e.Message ?? string.Empty;
                 StackTrace = e.StackTrace;
             }

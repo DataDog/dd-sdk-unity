@@ -147,6 +147,11 @@ namespace Datadog.Unity.WebGL
             // Browser SDK does not support manual resource tracking
         }
 
+        public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
+        {
+            // Browser SDK does not support manual resource tracking
+        }
+
         public void AddAttribute(string key, object value)
         {
             if (key == null)
