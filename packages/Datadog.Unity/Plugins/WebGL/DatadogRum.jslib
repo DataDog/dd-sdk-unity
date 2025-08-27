@@ -9,8 +9,37 @@ let ddRumLib = {
             return false;
         }
 
+        let self = this;
+        this._rumPlugin = {
+            name: 'DatadogUnityWeb',
+            onRumStart: function(options) {
+                self.addEvent = options.addEvent;
+            }
+        };
+
+        // Init internal helpers
+        this.getEventRelativeTime = (timestampMs) => {
+            if (this._navigationStart === undefined) {
+                this._navigationStart = window.performance.timing.navigationStart;
+            }
+
+            if (!this._navigationStart) {
+                return timestampMs;
+            }
+            return (timestampMs - this._navigationStart);
+        };
+
         let configStr = UTF8ToString(rawConfiguration);
         let config = JSON.parse(configStr);
+        // Replace regex strings in allowedTracingUrls with actual JS RegExp
+        config.allowedTracingUrls = config.allowedTracingUrls.map((val) => {
+            return {
+                match: RegExp(val.match),
+                propagatorTypes: val.propagatorTypes
+            };
+        });
+        config.plugins = [this._rumPlugin];
+
         DD_RUM.init(config);
         return true;
     },
@@ -49,12 +78,35 @@ let ddRumLib = {
         DD_RUM.addTiming(name);
     },
 
-    DDRum_AddAction: function(rawName, rawAttributes) {
+    DDRum_AddAction: function(rawType, rawName, rawAttributes) {
+        let id = crypto.randomUUID();
         let name = UTF8ToString(rawName);
+        let type = UTF8ToString(rawType);
         let attributesStr = UTF8ToString(rawAttributes);
+
         let attributes = JSON.parse(attributesStr);
 
-        DD_RUM.addAction(name, attributes);
+        let timestampMs = attributes['_dd.timestamp'];
+        let eventTime = this.getEventRelativeTime(timestampMs);
+
+        this.addEvent(
+            eventTime,
+            {
+                type: 'action',
+                date: eventTime,
+                context: attributes,
+                action: {
+                    id,
+                    type,
+                    target: {
+                        name
+                    }
+                }
+            },
+            {},
+        );
+
+        //DD_RUM.addAction(name, attributes);
     },
 
     DDRum_AddFeatureFlagEvaluation: function(rawAttribute) {
@@ -76,7 +128,7 @@ let ddRumLib = {
 
     DDRum_StopSession: function() {
         DD_RUM.stopSession();
-    },
+    }
 };
 
 mergeInto(LibraryManager.library, ddRumLib);

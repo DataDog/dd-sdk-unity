@@ -61,11 +61,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             Assert.AreEqual(1, firstVisit.ActionEvents.Count);
             var firstAction = firstVisit.ActionEvents[0];
-#if UNITY_WEBGL
-            Assert.AreEqual("custom", firstAction.ActionType);
-#else
             Assert.AreEqual("tap", firstAction.ActionType);
-#endif
             Assert.AreEqual("Tapped Download", firstAction.ActionName);
             Assert.AreEqual(1, firstAction.Attributes["onboarding_stage"].Value<int>());
 
@@ -90,11 +86,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
             var errorEvent = secondVisit.ErrorEvents[0];
 
-            // Android resources don't have ErrorType, web doesn't contain the namespace
-#if UNITY_IOS
+            // Android resources don't have ErrorType
+#if UNITY_IOS || UNITY_WEBGL
             Assert.AreEqual("System.Exception", errorEvent.ErrorType);
-#elif UNITY_WEBGL
-            Assert.AreEqual("Exception", errorEvent.ErrorType);
 #endif
 
             Assert.AreEqual("Test Exception", errorEvent.Message);
@@ -109,11 +103,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             Assert.AreEqual(1, secondVisit.ActionEvents.Count);
             var secondAction = secondVisit.ActionEvents[0];
-#if UNITY_WEBGL
-            Assert.AreEqual("custom", secondAction.ActionType);
-#else
             Assert.AreEqual("tap", secondAction.ActionType);
-#endif
             Assert.AreEqual("Tapped Exception", secondAction.ActionName);
 
             var finalSecondVisitView = secondVisit.ViewEvents.Last();

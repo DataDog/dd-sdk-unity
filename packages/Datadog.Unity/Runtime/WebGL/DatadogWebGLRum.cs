@@ -4,7 +4,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Datadog.Unity.Rum;
 using Newtonsoft.Json;
 
@@ -12,6 +14,12 @@ namespace Datadog.Unity.WebGL
 {
     public class DatadogWebGLRum : IDdRumInternal
     {
+        private class AllowedTracingUrl
+        {
+            public string match { get; set; }
+            public List<string> propagatorTypes { get; set; }
+        }
+
         private class BrowerSdkConfig
         {
             public string applicationId { get; set; }
@@ -23,7 +31,7 @@ namespace Datadog.Unity.WebGL
             public string env { get; set; }
             public string version { get; set; }
             public string proxy { get; set; }
-            // TODO: allowedTracingUrls
+            public List<AllowedTracingUrl> allowedTracingUrls { get; set; }
             public float traceSampleRate { get; set; }
             public string traceContextInjection { get; set; }
             public bool trackFrustrations { get; set; }
@@ -35,6 +43,17 @@ namespace Datadog.Unity.WebGL
 
         public void Init(DatadogConfigurationOptions options)
         {
+            var allowedTracingUrls = options.FirstPartyHosts.Select((e) =>
+            {
+                // Match http and https, and any subdomains (consistent with other platforms)
+                var hostRegex = $@"^http[s]?:\/\/(.*\.)*{Regex.Escape(e.Host)}\/";
+                return new AllowedTracingUrl()
+                {
+                    match = e.Host,
+                    propagatorTypes = e.TracingHeaderType.ToWebValue(),
+                };
+            }).ToList();
+
             var browserSdkConfig = new BrowerSdkConfig
             {
                 applicationId = options.RumApplicationId,
@@ -50,8 +69,11 @@ namespace Datadog.Unity.WebGL
                 trackResources = true,
                 trackLongTasks = true,
                 proxy = options.CustomEndpoint,
+                allowedTracingUrls = allowedTracingUrls,
+                traceContextInjection = options.TraceContextInjection.ToWebValue(),
             };
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
+
             // TODO: Check the return value of this
             DDRum_InitRum(configurationJson);
         }
@@ -92,6 +114,7 @@ namespace Datadog.Unity.WebGL
             }
 
             DDRum_AddAction(
+                type.ToWebValue(),
                 name,
                 attributesJson);
         }
@@ -220,7 +243,7 @@ namespace Datadog.Unity.WebGL
         private static extern void DDRum_AddTiming(string name);
 
         [DllImport("__Internal")]
-        private static extern void DDRum_AddAction(string name, string attributeJson);
+        private static extern void DDRum_AddAction(string type, string name, string attributeJson);
 
         [DllImport("__Internal")]
         private static extern void DDRum_AddError(string errorKind, string errorMessage, string errorStackTrace, string attributeJson);
