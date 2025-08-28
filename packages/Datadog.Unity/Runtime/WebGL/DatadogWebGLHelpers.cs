@@ -44,7 +44,7 @@ namespace Datadog.Unity.WebGL
 
             if ((headerType & TracingHeaderType.TraceContext) != 0)
             {
-                result.Add("trace-context");
+                result.Add("tracecontext");
             }
 
             if ((headerType & TracingHeaderType.B3) != 0)

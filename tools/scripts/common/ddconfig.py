@@ -9,10 +9,21 @@ import os
 from dataclasses import dataclass
 from contextlib import contextmanager
 from typing import Optional
+from yaml import load, dump, Loader, Dumper
 
 __dd_settings_asset_filename__ = 'DatadogSettings.asset'
 __dd_settings_asset_relpath__ = os.path.join('Assets', 'Resources', __dd_settings_asset_filename__)
 
+@dataclass
+class FirstPartyHost:
+    host: str
+    tracing_header_type: int
+
+    # This makes some terrible assumptions about how its being used in Yaml in an array,
+    # but this is the simplest way to write out these objects without having to perform
+    # custom parsing of Unity tags in Yaml.
+    def __str__(self) -> str:
+        return f"\n  - Host: {self.host}\n    TracingHeaderType: {self.tracing_header_type}"
 
 @dataclass
 class DatadogRuntimeConfig:
@@ -38,6 +49,14 @@ class DatadogRuntimeConfig:
     session_sample_rate: Optional[int] = None
     trace_sample_rate: Optional[int] = None
     telemetry_sample_rate: Optional[int] = None
+    first_party_hosts: Optional[list[FirstPartyHost]] = None
+
+    def apply_to(self, path: str):
+        with open(path) as fp:
+            old_text = fp.read()
+        new_text = _modify_datadog_settings_impl(old_text, self)
+        with open(path, 'w') as fp:
+            fp.write(new_text)
 
 
 @contextmanager
@@ -81,6 +100,7 @@ def _modify_datadog_settings_impl(text: str, config: DatadogRuntimeConfig) -> st
         ('SessionSampleRate', config.session_sample_rate),
         ('TraceSampleRate', config.trace_sample_rate),
         ('TelemetrySampleRate', config.telemetry_sample_rate),
+        ('FirstPartyHosts', config.first_party_hosts ),
     ]
     for key, value_or_none in to_modify:
         if value_or_none is None:
@@ -88,9 +108,23 @@ def _modify_datadog_settings_impl(text: str, config: DatadogRuntimeConfig) -> st
         value = value_or_none
         if isinstance(value, bool):
             value = int(value)
+        if isinstance(value, list):
+            if not value:
+                value = ' []'
+            else:
+                value = ''.join([str(t) for t in value])
+        else:
+            value = f' {value}'
+
         prefix = f'  {key}:'
         i = next((i for i, s in enumerate(lines) if s.startswith(prefix)), -1)
         if i < 0:
             raise ValueError(f"Invalid {__dd_settings_asset_filename__} file: no existing line begins with {prefix}")
-        lines[i] = f'{prefix} {value}'
+        # Special case -- if the next line starts an array, we want to remove lines until the array is closed, then add
+        # in our multi-line change, if we have one
+        if len(lines) > i + 1 and lines[i+1].startswith('  - '):
+            while(len(lines) > i + 1 and lines[i + 1].startswith('    ') or lines[i+1].startswith('  - ')):
+                del lines[i+1]
+        lines[i] = f'{prefix}{value}'
+
     return '\n'.join(lines) + '\n'
