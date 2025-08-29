@@ -158,7 +158,7 @@ namespace Datadog.Unity.Rum
             headers[DatadogHttpTracingHeaders.SamplingPriority] = traceContext.sampled ? "1" : "0";
         }
 
-        private static class DatadogAttributeKeys
+        internal static class DatadogAttributeKeys
         {
             public const string TraceId = "_dd.trace_id";
             public const string SpanId = "_dd.span_id";

@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using Datadog.Unity.Rum;
 
@@ -77,6 +78,50 @@ namespace Datadog.Unity.WebGL
                 RumUserActionType.Scroll => "scroll",
                 RumUserActionType.Swipe => "swipe",
                 _ => "custom"
+            };
+        }
+
+        internal static string ToWebValue(this RumResourceType resourceType)
+        {
+            return resourceType switch
+            {
+                RumResourceType.Image => "image",
+                RumResourceType.Xhr => "xhr",
+                RumResourceType.Beacon => "beacon",
+                RumResourceType.Fetch => "fetch",
+                RumResourceType.Media => "media",
+                RumResourceType.Font => "font",
+                RumResourceType.Document => "document",
+                RumResourceType.Css => "css",
+                RumResourceType.Js => "js",
+                RumResourceType.Native => "native",
+                _ => "other",
+            };
+        }
+
+        internal static string ToWebValue(this RumHttpMethod method)
+        {
+            return method switch
+            {
+                RumHttpMethod.Get => "GET",
+                RumHttpMethod.Post => "POST",
+                RumHttpMethod.Put => "PUT",
+                RumHttpMethod.Delete => "DELETE",
+                RumHttpMethod.Head => "HEAD",
+                RumHttpMethod.Patch => "PATCH",
+                _ => "get",
+            };
+        }
+
+        internal static string ToWebValue(this RumErrorSource source)
+        {
+            return source switch
+            {
+                RumErrorSource.Source => "source",
+                RumErrorSource.Network => "network",
+                RumErrorSource.WebView => "webview",
+                RumErrorSource.Console => "console",
+                _ => "custom",
             };
         }
     }

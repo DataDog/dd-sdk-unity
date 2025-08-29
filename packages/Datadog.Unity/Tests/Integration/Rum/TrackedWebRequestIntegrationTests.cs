@@ -9,7 +9,6 @@ using System.Linq;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -19,7 +18,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
     public class TrackedWebRequestIntegrationTests
     {
         [UnityTest]
-        [System.ComponentModel.Category("integration")]
+        [Category("integration")]
         public IEnumerator TrackedWebRequestScenario()
         {
             var mockServerHelper = new MockServerHelper();

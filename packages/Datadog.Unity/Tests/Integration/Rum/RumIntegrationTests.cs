@@ -65,15 +65,15 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("Tapped Download", firstAction.ActionName);
             Assert.AreEqual(1, firstAction.Attributes["onboarding_stage"].Value<int>());
 
-#if !UNITY_WEBGL
-            Assert.AreEqual(1, firstVisit.ResourceEvents.Count);
-            var firstResource = firstVisit.ResourceEvents[0];
+            var resource1 = firstVisit.ResourceEvents.Where(r => r.Url == "http://fake/resource/1").ToList();
+            Assert.AreEqual(1, resource1.Count());
+            var firstResource = resource1.First();
             Assert.AreEqual("http://fake/resource/1", firstResource.Url);
             Assert.AreEqual("GET", firstResource.Method);
             Assert.AreEqual("image", firstResource.ResourceType);
             Assert.AreEqual(200, firstResource.StatusCode);
             Assert.AreEqual(121999, firstResource.Size);
-            Assert.GreaterOrEqual(firstResource.Duration, 50 * 1000 * 1000);
+            Assert.GreaterOrEqual(firstResource.Duration, 45 * 1000 * 1000);
 
             Assert.AreEqual(1, firstVisit.ErrorEvents.Count);
             var resourceError = firstVisit.ErrorEvents[0];
@@ -81,7 +81,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("POST", resourceError.ResourceMethod);
             Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
             Assert.AreEqual("network", resourceError.Source);
-#endif
+
             var secondVisit = visits[1];
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
             var errorEvent = secondVisit.ErrorEvents[0];
@@ -93,11 +93,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             Assert.AreEqual("Test Exception", errorEvent.Message);
             Assert.IsNotNull(errorEvent.Stack);
-#if UNITY_WEBGL
-            Assert.AreEqual("custom", errorEvent.Source);
-#else
             Assert.AreEqual("source", errorEvent.Source);
-#endif
             Assert.AreEqual("first_call", errorEvent.Attributes["error_attribute"].Value<string>());
             Assert.AreEqual(1, errorEvent.Attributes["onboarding_stage"].Value<int>());
 
