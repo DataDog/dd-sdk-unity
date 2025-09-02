@@ -224,6 +224,13 @@ namespace Datadog.Unity.Rum
 
         public bool IsMatch(Uri uri)
         {
+            // If the port is not the default port, it should be included in the regex and therefore
+            // should be included in the match request
+            if (!uri.IsDefaultPort)
+            {
+                return _regex.IsMatch($"{uri.Host}:{uri.Port}");
+            }
+
             return _regex.IsMatch(uri.Host);
         }
     }
