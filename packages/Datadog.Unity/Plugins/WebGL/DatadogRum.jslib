@@ -24,7 +24,12 @@ let ddRumLib = {
 
         this.getEventRelativeTime = (timestampMs) => {
             if (this._navigationStart === undefined) {
-                this._navigationStart = window.performance.timing.navigationStart;
+                if (window.performance.timeOrigin) {
+                    this._navigationStart = window.performance.timeOrigin;
+
+                } else {
+                    this._navigationStart = window.performance.timing.navigationStart;
+                }
             }
 
             if (!this._navigationStart) {
