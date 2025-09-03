@@ -15,13 +15,13 @@ namespace Datadog.Unity.Rum.Tests
     [TestFixture(true, TraceContextInjection.Sampled)]
     [TestFixture(false, TraceContextInjection.All)]
     [TestFixture(false, TraceContextInjection.Sampled)]
-    public class DatadogTrackedWebRequestTest
+    public class ResourceTrackingHelperTest
     {
         private bool _sampled;
         private TraceContextInjection _traceContextInjection;
         private ResourceTrackingHelper _trackingHelper;
 
-        public DatadogTrackedWebRequestTest(bool sampled, TraceContextInjection traceContextInjection)
+        public ResourceTrackingHelperTest(bool sampled, TraceContextInjection traceContextInjection)
         {
             _sampled = sampled;
             _traceContextInjection = traceContextInjection;
@@ -42,11 +42,10 @@ namespace Datadog.Unity.Rum.Tests
         public void GeneratesCorrectDatadogHeaders()
         {
             // Given
-            var headers = new Dictionary<string, string>();
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.Datadog, _traceContextInjection, headers);
+            var headers = _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.Datadog);
 
             // Then
             VerifyHeaders(headers, TracingHeaderType.Datadog, _traceContextInjection, _sampled);
@@ -56,11 +55,10 @@ namespace Datadog.Unity.Rum.Tests
         public void GeneratesCorrectB3Headers()
         {
             // Given
-            var headers = new Dictionary<string, string>();
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3, _traceContextInjection, headers);
+            var headers = _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3);
 
             // Then
             VerifyHeaders(headers, TracingHeaderType.B3, _traceContextInjection, _sampled);
@@ -70,11 +68,10 @@ namespace Datadog.Unity.Rum.Tests
         public void GeneratesCorrectB3MultiHeaders()
         {
             // Given
-            var headers = new Dictionary<string, string>();
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3Multi, _traceContextInjection, headers);
+            var headers = _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.B3Multi);
 
             // Then
             VerifyHeaders(headers, TracingHeaderType.B3Multi, _traceContextInjection, _sampled);
@@ -84,25 +81,59 @@ namespace Datadog.Unity.Rum.Tests
         public void GeneratesCorrectTraceContextHeaders()
         {
             // Given
-            var headers = new Dictionary<string, string>();
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.TraceContext, _traceContextInjection, headers);
+            var headers = _trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.TraceContext);
 
             // Then
             VerifyHeaders(headers, TracingHeaderType.TraceContext, _traceContextInjection, _sampled);
+        }
+
+        [TestCase(TracingHeaderType.Datadog)]
+        [TestCase(TracingHeaderType.B3)]
+        [TestCase(TracingHeaderType.B3Multi)]
+        [TestCase(TracingHeaderType.TraceContext)]
+        public void DatadogAttributesAndTracingHeadersHaveSameValue(TracingHeaderType headerType)
+        {
+            if (!_sampled)
+            {
+                Assert.Pass("DatadogAttributes only filled in sampled requests, so test only applies to sampled requests");
+            }
+
+            // Given
+            var context = _trackingHelper.GenerateTraceContext();
+
+            // When
+            var attributes = _trackingHelper.GenerateDatadogAttributes(context);
+            var headers = _trackingHelper.GenerateTracingHeaders(context, headerType);
+
+            // Then
+            var traceString = attributes.GetValueOrDefault("_dd.trace_id")?.ToString();
+            var spanString = attributes.GetValueOrDefault("_dd.span_id")?.ToString();
+            Assert.IsNotNull(traceString);
+            BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var attributeTraceId);
+
+            Assert.IsNotNull(spanString);
+            BigInteger.TryParse(spanString, out var attributeSpanId);
+
+            GetIdsFromHeaders(headers, headerType, out var headerTraceId, out var headerSpanId);
+            Assert.AreEqual(headerTraceId, attributeTraceId);
+            Assert.AreEqual(context.traceId.ToString(TraceIdRepresentation.Hex32Chars), traceString);
+            Assert.AreEqual(headerSpanId, attributeSpanId);
+            Assert.AreEqual(context.spanId.ToString(TraceIdRepresentation.Dec), spanString);
+
+            Assert.AreEqual(_sampled ? 1.0f : 0.0f, attributes["_dd.rule_psr"]);
         }
 
         [Test]
         public void GeneratesCorrectDatadogAttributesWhenSampled()
         {
             // Given
-            var attributes = new Dictionary<string, object>();
             var context = _trackingHelper.GenerateTraceContext();
 
             // When
-            _trackingHelper.GenerateDatadogAttributes(context, attributes);
+            var attributes = _trackingHelper.GenerateDatadogAttributes(context);
 
             // Then
             var traceString = attributes.GetValueOrDefault("_dd.trace_id")?.ToString();
@@ -124,44 +155,6 @@ namespace Datadog.Unity.Rum.Tests
                 Assert.IsNull(traceString);
                 Assert.IsNull(spanString);
             }
-
-            Assert.AreEqual(_sampled ? 1.0f : 0.0f, attributes["_dd.rule_psr"]);
-        }
-
-        [TestCase(TracingHeaderType.Datadog)]
-        [TestCase(TracingHeaderType.B3)]
-        [TestCase(TracingHeaderType.B3Multi)]
-        [TestCase(TracingHeaderType.TraceContext)]
-        public void DatadogAttributesAndTracingHeadersHaveSameValue(TracingHeaderType headerType)
-        {
-            if (!_sampled)
-            {
-                Assert.Pass("DatadogAttributes only filled in sampled requests, so test only applies to sampled requests");
-            }
-
-            // Given
-            var headers = new Dictionary<string, string>();
-            var attributes = new Dictionary<string, object>();
-            var context = _trackingHelper.GenerateTraceContext();
-
-            // When
-            _trackingHelper.GenerateDatadogAttributes(context, attributes);
-            _trackingHelper.GenerateTracingHeaders(context, headerType, TraceContextInjection.All, headers);
-
-            // Then
-            var traceString = attributes.GetValueOrDefault("_dd.trace_id")?.ToString();
-            var spanString = attributes.GetValueOrDefault("_dd.span_id")?.ToString();
-            Assert.IsNotNull(traceString);
-            BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out var attributeTraceId);
-
-            Assert.IsNotNull(spanString);
-            BigInteger.TryParse(spanString, out var attributeSpanId);
-
-            GetIdsFromHeaders(headers, headerType, out var headerTraceId, out var headerSpanId);
-            Assert.AreEqual(headerTraceId, attributeTraceId);
-            Assert.AreEqual(context.traceId.ToString(TraceIdRepresentation.Hex32Chars), traceString);
-            Assert.AreEqual(headerSpanId, attributeSpanId);
-            Assert.AreEqual(context.spanId.ToString(TraceIdRepresentation.Dec), spanString);
 
             Assert.AreEqual(_sampled ? 1.0f : 0.0f, attributes["_dd.rule_psr"]);
         }
@@ -386,11 +379,39 @@ namespace Datadog.Unity.Rum.Tests
             }
             else
             {
-                Assert.IsFalse(headers.ContainsKey("tracepareht"));
+                Assert.IsFalse(headers.ContainsKey("traceparent"));
                 Assert.IsFalse(headers.ContainsKey("tracestate"));
             }
+        }
+    }
 
-            return;
+    public class CustomResourceTrackingTest
+    {
+        [Test]
+        public void ResourceTrackingHelperPermitsManualContextInjection()
+        {
+            // This test just validates that a user who's _not_ using DatadogTrackedWebRequest can
+            // handle context injection manually using the ResourceTrackingHelper exposed by the
+            // global SDK instance
+            var options = new DatadogConfigurationOptions()
+            {
+                TraceSampleRate = 100.0f,
+                TraceContextInjection = TraceContextInjection.All,
+            };
+            var trackingHelper = new ResourceTrackingHelper(options);
+
+            // Given a ResourceTrackingHelper, we can generate a new trace context
+            var context = trackingHelper.GenerateTraceContext();
+
+            // And we can generate RUM Resource attributes from that context, such that we could
+            // pass them to StartResource
+            var attributes = trackingHelper.GenerateDatadogAttributes(context);
+            Assert.IsNotEmpty(attributes);
+
+            // And we can generate HTTP headers from that context, such that we could set them on
+            // our outgoing request
+            var headers = trackingHelper.GenerateTracingHeaders(context, TracingHeaderType.Datadog);
+            Assert.IsNotEmpty(headers);
         }
     }
 

@@ -167,9 +167,9 @@ namespace Datadog.Unity.Rum
 
         public UnityWebRequestAsyncOperation SendWebRequest()
         {
-        // The browser SDK takes care of tracing requests for us, as UnityWebRequest uses fetch/XHR under the hood,
-        // so we can just directly pass through this call without any additional logic
 #if UNITY_WEBGL
+            // The browser SDK takes care of tracing requests for us, as UnityWebRequest uses fetch/XHR under the hood,
+            // so we can just directly pass through this call without any additional logic
             return _innerRequest.SendWebRequest();
 #else
             // Determine if the request we're about to send should have tracing headers injected
@@ -182,17 +182,15 @@ namespace Datadog.Unity.Rum
             var rumKey = Guid.NewGuid().ToString();
 
             // Preprocess the request before sending it, handling errors gracefully
-            var attributes = new Dictionary<string, object>();
             try
             {
                 // Inject tracing headers into the underlying HTTP request if needed
-                if (tracingHeaderType != TracingHeaderType.None)
+                Dictionary<string, object> attributes = null;
+                if (tracingHeaderType != TracingHeaderType.None && trackingHelper != null)
                 {
                     var context = trackingHelper.GenerateTraceContext();
-                    trackingHelper.GenerateDatadogAttributes(context, attributes);
-                    var headers = new Dictionary<string, string>();
-                    trackingHelper.GenerateTracingHeaders(context, tracingHeaderType, trackingHelper.TraceContextInjection, headers);
-
+                    attributes = trackingHelper.GenerateDatadogAttributes(context);
+                    var headers = trackingHelper.GenerateTracingHeaders(context, tracingHeaderType);
                     foreach (var header in headers)
                     {
                         SetRequestHeader(header.Key, header.Value);
