@@ -23,6 +23,10 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
         public int Size => jsonGetProp<int>(rumEvent, "resource.size");
 
+        public string TraceId => jsonGetProp<string>(rumEvent, "_dd.trace_id");
+
+        public string SpanId => jsonGetProp<string>(rumEvent, "_dd.span_id");
+
         public RumResourceEventDecoder(JObject rawJson)
             : base(rawJson)
         {

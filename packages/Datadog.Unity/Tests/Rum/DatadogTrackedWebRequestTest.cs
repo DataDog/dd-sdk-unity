@@ -408,6 +408,7 @@ namespace Datadog.Unity.Rum.Tests
                 {
                     new FirstPartyHostOption("example.com", TracingHeaderType.Datadog),
                     new FirstPartyHostOption("datadoghq.com", TracingHeaderType.B3),
+                    new FirstPartyHostOption("localhost:5000", TracingHeaderType.B3),
                 }
             };
 
@@ -445,6 +446,45 @@ namespace Datadog.Unity.Rum.Tests
         {
             // Given
             var uri = new Uri("https://app.datadoghq.com/request");
+
+            // When
+            var tracingHeaders = _trackingHelper.HeaderTypesForHost(uri);
+
+            // Then
+            Assert.AreEqual(TracingHeaderType.B3, tracingHeaders);
+        }
+
+        [Test]
+        public void IsFirstPartyHostWithoutMatchingPortReturnsNone()
+        {
+            // Given
+            var uri = new Uri("https://localhost:1337/request");
+
+            // When
+            var tracingHeaders = _trackingHelper.HeaderTypesForHost(uri);
+
+            // Then
+            Assert.AreEqual(TracingHeaderType.None, tracingHeaders);
+        }
+
+        [Test]
+        public void IsFirstPartyHostOnDefaultPortReturnsHeaders()
+        {
+            // Given
+            var uri = new Uri("https://datadoghq.com:443/request");
+
+            // When
+            var tracingHeaders = _trackingHelper.HeaderTypesForHost(uri);
+
+            // Then
+            Assert.AreEqual(TracingHeaderType.B3, tracingHeaders);
+        }
+
+        [Test]
+        public void IsFirstPartyHostMatchesPortReturnsTracingTypes()
+        {
+            // Given
+            var uri = new Uri("https://localhost:5000/request");
 
             // When
             var tracingHeaders = _trackingHelper.HeaderTypesForHost(uri);

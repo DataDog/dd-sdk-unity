@@ -11,7 +11,7 @@ namespace Datadog.Unity.Rum
 {
     internal class DdRumProcessor : IDatadogWorkerProcessor
     {
-        private const string DdRumTimestampAttribute = "_dd.timestamp";
+        internal const string DdRumTimestampAttribute = "_dd.timestamp";
 
         public const string RumTargetName = "rum";
 

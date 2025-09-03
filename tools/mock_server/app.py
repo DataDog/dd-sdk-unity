@@ -16,6 +16,7 @@ import sys
 from typing import Optional
 from dataclasses import dataclass, is_dataclass, asdict
 from flask import Flask, request, Request, render_template, url_for, redirect
+from flask_cors import CORS
 import flask
 from schema_update import schemas_path_exists, update_schemas
 from schemas.schema import Schema
@@ -27,6 +28,7 @@ from templates.components.card import Card, CardTab
 from urllib.parse import urlparse
 
 app = Flask(__name__)
+CORS(app)
 
 @dataclass()
 class GenericRequest:
@@ -175,6 +177,37 @@ def generic_post(rest = ''):
     add_cors_headers(resp)
     return resp
 
+@app.route('/', methods=['GET'])
+@app.route('/<path:rest>', methods=['GET'])
+def generic_get(rest = ''):
+    """
+    GET /*
+
+    Record generic (any) GET request sent to `/**/*`
+    """
+    global endpoints
+
+    gr = GenericRequest(r=request)
+
+    response_text = ''
+    if existing := next((e for e in endpoints if e.hash() == gr.endpoint_hash()), None):
+        existing.requests.append(gr)
+        # write_to_file(endpoint=existing)
+        response_text = 'OK - request recorded to known endpoint\n'
+    else:
+        endpoints.append(
+            GenericEndpoint(
+                method=gr.method,
+                path=gr.path,
+                requests=[gr],
+                schemas=gr.schemas
+            )
+        )
+        response_text = 'OK - request recorded to new endpoint\n'
+
+    resp = flask.Response(response_text, status=202)
+    add_cors_headers(resp)
+    return resp
 
 
 @app.route('/inspect_requests/')
@@ -288,7 +321,7 @@ if __name__ == '__main__':
 
     if args.addr and args.prefer_localhost:
         raise ValueError('--addr and --prefer-localhost are mutually exclusive')
-    
+
     preferred_address = args.addr or ''
     if args.prefer_localhost:
         preferred_address = '127.0.0.1'

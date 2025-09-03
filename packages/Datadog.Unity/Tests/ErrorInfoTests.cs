@@ -25,7 +25,7 @@ namespace Datadog.Unity.Tests
 
             Assert.NotNull(err);
             Assert.NotNull(err.Exception);
-            Assert.AreEqual("InvalidCastException", err.Type);
+            Assert.AreEqual("System.InvalidCastException", err.Type);
             Assert.AreEqual("very bad cast", err.Message);
             StringAssert.Contains("at Datadog.Unity.Tests.ErrorInfoTests.FunctionThatThrows () [0x", err.StackTrace);
         }

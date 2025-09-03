@@ -4,6 +4,8 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Datadog.Unity.Rum;
+using UnityEngine;
 
 namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 {
@@ -35,21 +37,32 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
             // Add other events to their view visits
             foreach (var rumEvent in orderedEvents.Where(e => e is not RumViewEventDecoder))
             {
-                RumViewVisit visit;
-                switch (rumEvent)
+                string viewId = rumEvent switch
                 {
-                    case RumActionEventDecoder actionEvent:
-                        visit = viewVisitsById[actionEvent.ViewInfo.Id];
-                        visit?.ActionEvents.Add(actionEvent);
-                        break;
-                    case RumErrorEventDecoder errorEvent:
-                        visit = viewVisitsById[errorEvent.ViewInfo.Id];
-                        visit?.ErrorEvents.Add(errorEvent);
-                        break;
-                    case RumResourceEventDecoder resourceEvent:
-                        visit = viewVisitsById[resourceEvent.ViewInfo.Id];
-                        visit?.ResourceEvents.Add(resourceEvent);
-                        break;
+                    RumActionEventDecoder actionEvent => actionEvent.ViewInfo.Id,
+                    RumErrorEventDecoder errorEvent => errorEvent.ViewInfo.Id,
+                    RumResourceEventDecoder resourceEvent => resourceEvent.ViewInfo.Id,
+                    _ => null
+                };
+
+                if (viewId != null && viewVisitsById.TryGetValue(viewId, out var visit))
+                {
+                    switch (rumEvent)
+                    {
+                        case RumActionEventDecoder actionEvent:
+                            visit.ActionEvents.Add(actionEvent);
+                            break;
+                        case RumErrorEventDecoder errorEvent:
+                            visit.ErrorEvents.Add(errorEvent);
+                            break;
+                        case RumResourceEventDecoder resourceEvent:
+                            visit.ResourceEvents.Add(resourceEvent);
+                            break;
+                    }
+                }
+                else
+                {
+                    Debug.Log($"Could not find view for event {rumEvent} with viewId {viewId}! Skipping!");
                 }
             }
 

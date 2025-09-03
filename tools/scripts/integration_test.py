@@ -46,14 +46,14 @@ def _integration_test_env(project_path: str, config: DatadogRuntimeConfig, mock_
                 if target != 'simulator':
                     yield
                     return
-                
+
                 # Similarly, proceed with tests if we're targeting iOS: Unity will
                 # launch Xcode and run the tests through it, and Xcode automatically
                 # launches a simulator unconditionally
                 if platform == 'ios':
                     yield
                     return
-                
+
                 # For Android builds with a target of 'simulator', preemptively launch
                 # an emulator running an appropriate AVD: this should become the
                 # default device in adb, and Unity will deploy to it automatically
@@ -62,7 +62,6 @@ def _integration_test_env(project_path: str, config: DatadogRuntimeConfig, mock_
                 # no guarantee that we'll actually use this emulator for our tests
                 with run_default_simulator(platform):
                     yield
-
 
 def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):
     log = init_logger()
@@ -77,12 +76,12 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     unity_install = resolve_unity_install(unity_installs, unity_version_prefix)
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {unity_version_prefix} is installed')
-    
+
     # Ensure that our output path has a 'platform' placeholder
     if r'%(platform)s' not in out_junit_path_pattern:
         root, ext = os.path.splitext(out_junit_path_pattern)
         out_junit_path_pattern = root + r'-%(platform)s' + ext
-    
+
     # Compute paths to artifact files
     junit_abspath = os.path.abspath(out_junit_path_pattern % {'platform': platform.lower()})
     artifact_dir, junit_filename = os.path.split(junit_abspath)
@@ -90,11 +89,12 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     nunit_abspath = os.path.join(artifact_dir, 'nunit-' + junit_filename)
     log_abspath = os.path.join(artifact_dir, junit_filename_noext + '.log')
 
-    # Ensure that any stale artifacts from previous runs are cleaned up
+
     for abspath in [junit_abspath, nunit_abspath, log_abspath]:
         if os.path.isfile(abspath):
             log.info(f'Deleting old artifact: {abspath}')
             os.remove(abspath)
+
 
     # We need our mock server to bind to an address that is reachable from a simulator
     # or external device on our network
@@ -147,11 +147,11 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             return 86
         else:
             raise RuntimeError(f'Unity exited with status code {result.exitcode}')
-        
+
         # Verify that fresh test results have been written to disk
         if not os.path.isfile(nunit_abspath):
             raise RuntimeError(f'Unity failed to write test results to {nunit_abspath}')
-        
+
         # Convert the intermediate NUnit results file to JUnit format, and parse them
         transform_nunit_to_junit(nunit_abspath, junit_abspath)
         log.info(f'JUnit results written to: {junit_abspath}')
@@ -184,7 +184,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Ensures that mock_server has all required schemas along with a properly initialized Python venv')
+    parser = argparse.ArgumentParser(description='Run integration tests on the provided version of Unity and on the specified platform.')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
     parser.add_argument('--platform', choices=['ios', 'android'], required=True, help='The platform to build an app bundle for')

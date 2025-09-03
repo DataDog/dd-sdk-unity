@@ -167,6 +167,11 @@ namespace Datadog.Unity.Rum
 
         public UnityWebRequestAsyncOperation SendWebRequest()
         {
+        // The browser SDK takes care of tracing requests for us, as UnityWebRequest uses fetch/XHR under the hood,
+        // so we can just directly pass through this call without any additional logic
+#if UNITY_WEBGL
+            return _innerRequest.SendWebRequest();
+#else
             // Determine if the request we're about to send should have tracing headers injected
             var trackingHelper = DatadogSdk.Instance.ResourceTrackingHelper;
             var tracingHeaderType = trackingHelper?.HeaderTypesForHost(_innerRequest.uri) ?? TracingHeaderType.None;
@@ -258,6 +263,7 @@ namespace Datadog.Unity.Rum
             };
 
             return operation;
+#endif
         }
 
         public string GetRequestHeader(string name)

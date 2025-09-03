@@ -158,7 +158,7 @@ namespace Datadog.Unity.Rum
             headers[DatadogHttpTracingHeaders.SamplingPriority] = traceContext.sampled ? "1" : "0";
         }
 
-        private static class DatadogAttributeKeys
+        internal static class DatadogAttributeKeys
         {
             public const string TraceId = "_dd.trace_id";
             public const string SpanId = "_dd.span_id";
@@ -224,6 +224,13 @@ namespace Datadog.Unity.Rum
 
         public bool IsMatch(Uri uri)
         {
+            // If the port is not the default port, it should be included in the regex and therefore
+            // should be included in the match request
+            if (!uri.IsDefaultPort)
+            {
+                return _regex.IsMatch($"{uri.Host}:{uri.Port}");
+            }
+
             return _regex.IsMatch(uri.Host);
         }
     }

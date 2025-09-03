@@ -22,17 +22,17 @@ namespace Datadog.Unity.WebGL
 
         public override void AddTag(string tag, string value = null)
         {
-            // Not implemented on Web
+            DDLogs_AddTag(_loggerId, tag, value);
         }
 
         public override void RemoveTag(string tag)
         {
-            // Not implemented on Web
+            DDLogs_RemoveTagsWithKey(_loggerId, tag);
         }
 
         public override void RemoveTagsWithKey(string key)
         {
-            // Not implemented on Web
+            DDLogs_RemoveTagsWithKey(_loggerId, key);
         }
 
         public override void AddAttribute(string key, object value)
@@ -90,6 +90,12 @@ namespace Datadog.Unity.WebGL
         [DllImport("__Internal")]
         private static extern void DDLogs_Log(string loggerId, string message, string level, string errorKind,
             string errorMessage, string errorStackTrace, string attributes);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_AddTag(string loggerId, string tag, string value);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_RemoveTagsWithKey(string loggerId, string tag);
 
         [DllImport("__Internal")]
         private static extern void DDLogs_AddAttribute(string loggerId, string jsonAttribute);

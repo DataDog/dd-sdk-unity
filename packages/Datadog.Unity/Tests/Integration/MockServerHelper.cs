@@ -9,7 +9,6 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Threading.Tasks;
 using System.Web;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
@@ -64,7 +63,7 @@ namespace Datadog.Unity.Tests.Integration
                     }
                     catch (Exception e)
                     {
-                        Debug.Log($"Caught an exception deserializing response: {e}.");
+                        Debug.Log($"Caught an exception deserializing response: {e}\n{e.StackTrace}");
                     }
                 }
 

@@ -9,8 +9,46 @@ let ddRumLib = {
             return false;
         }
 
+        let self = this;
+        this._rumPlugin = {
+            name: 'DatadogUnityWeb',
+            onRumStart: function(options) {
+                self.addEvent = options.addEvent;
+            }
+        };
+
+        // Init internal helpers
+        this.extractEventTimestamp = (attributes) => {
+            return attributes['_dd.timestamp']
+        };
+
+        this.getEventRelativeTime = (timestampMs) => {
+            if (this._navigationStart === undefined) {
+                if (window.performance.timeOrigin) {
+                    this._navigationStart = window.performance.timeOrigin;
+
+                } else {
+                    this._navigationStart = window.performance.timing.navigationStart;
+                }
+            }
+
+            if (!this._navigationStart) {
+                return timestampMs;
+            }
+            return (timestampMs - this._navigationStart);
+        };
+
         let configStr = UTF8ToString(rawConfiguration);
         let config = JSON.parse(configStr);
+        // Replace regex strings in allowedTracingUrls with actual JS RegExp
+        config.allowedTracingUrls = config.allowedTracingUrls.map((val) => {
+            return {
+                match: RegExp(val.match),
+                propagatorTypes: val.propagatorTypes
+            };
+        });
+        config.plugins = [this._rumPlugin];
+
         DD_RUM.init(config);
         return true;
     },
@@ -26,22 +64,84 @@ let ddRumLib = {
         DD_RUM.removeGlobalContextProperty(key);
     },
 
-    DDRum_AddError: function(rawErrorKind, rawErrorMessage, rawErrorStackTrace, rawAttributes) {
+    DDRum_AddError: function(rawErrorKind, rawErrorMessage, rawErrorStackTrace, rawErrorSource, rawAttributes) {
+        let id = crypto.randomUUID();
         let attributesStr = UTF8ToString(rawAttributes);
         let attributes = JSON.parse(attributesStr) ?? {};
 
-        let jsError = null;
-        jsError = new Error(UTF8ToString(rawErrorMessage));
-        jsError.name = UTF8ToString(rawErrorKind);
-        jsError.stack = UTF8ToString(rawErrorStackTrace);
+        let timestampMs = this.extractEventTimestamp(attributes);
+        let eventTime = this.getEventRelativeTime(timestampMs);
 
-        let fingerprint = attributes['_dd.error.fingerprint'];
-        if (fingerprint) {
-            attributes.remove('_dd.error.fingerprint');
-            attributes['error.fingerprint'] = fingerprint;
+        let source = UTF8ToString(rawErrorSource);
+        let message = UTF8ToString(rawErrorMessage);
+        let errorType = UTF8ToString(rawErrorKind);
+        let stack = null;
+        if (rawErrorStackTrace) {
+            stack = UTF8ToString(rawErrorStackTrace);
         }
 
-        DD_RUM.addError(jsError, attributes);
+        let fingerprint = attributes['_dd.error.fingerprint'];
+
+        this.addEvent(
+            eventTime,
+            {
+                date: timestampMs,
+                type: 'error',
+                context: attributes,
+                error: {
+                    id,
+                    message,
+                    source,
+                    stack,
+                    type: errorType,
+                    fingerprint
+                },
+            },
+            {}
+        );
+    },
+
+    DDRum_AddResourceError: function(rawMethod, rawUrl, rawErrorKind, rawErrorMessage, rawErrorStackTrace, rawAttributes) {
+        let id = crypto.randomUUID();
+        let attributesStr = UTF8ToString(rawAttributes);
+        let attributes = JSON.parse(attributesStr) ?? {};
+
+        let timestampMs = this.extractEventTimestamp(attributes);
+        let eventTime = this.getEventRelativeTime(timestampMs);
+
+        let method = UTF8ToString(rawMethod);
+        let url = UTF8ToString(rawUrl);
+        let message = UTF8ToString(rawErrorMessage);
+        let errorType = UTF8ToString(rawErrorKind);
+        let stack = null;
+        if (rawErrorStackTrace) {
+            stack = UTF8ToString(rawErrorStackTrace);
+        }
+
+        let fingerprint = attributes['_dd.error.fingerprint'];
+
+        this.addEvent(
+            eventTime,
+            {
+                date: timestampMs,
+                type: 'error',
+                context: attributes,
+                error: {
+                    id,
+                    message,
+                    source: 'network',
+                    stack,
+                    type: errorType,
+                    fingerprint,
+                    resource: {
+                        method,
+                        url,
+                        status_code: 0,
+                    },
+                },
+            },
+            {},
+        );
     },
 
     DDRum_AddTiming: function(rawName) {
@@ -49,12 +149,48 @@ let ddRumLib = {
         DD_RUM.addTiming(name);
     },
 
-    DDRum_AddAction: function(rawName, rawAttributes) {
+    DDRum_AddAction: function(rawType, rawName, rawAttributes) {
+        let id = crypto.randomUUID();
         let name = UTF8ToString(rawName);
+        let type = UTF8ToString(rawType);
         let attributesStr = UTF8ToString(rawAttributes);
+
         let attributes = JSON.parse(attributesStr);
 
-        DD_RUM.addAction(name, attributes);
+        let timestampMs = this.extractEventTimestamp(attributes);
+        let eventTime = this.getEventRelativeTime(timestampMs);
+
+        this.addEvent(
+            eventTime,
+            {
+                type: 'action',
+                date: timestampMs,
+                context: attributes,
+                action: {
+                    id,
+                    type,
+                    target: {
+                        name
+                    }
+                }
+            },
+            {},
+        );
+    },
+
+    DDRum_AddResource: function(rawEvent) {
+        let eventStr = UTF8ToString(rawEvent);
+        let event = JSON.parse(eventStr);
+
+        let attributes = event.context;
+        let timestampMs = this.extractEventTimestamp(attributes);
+        let eventTime = this.getEventRelativeTime(timestampMs);
+
+        this.addEvent(
+            eventTime,
+            event,
+            {},
+        );
     },
 
     DDRum_AddFeatureFlagEvaluation: function(rawAttribute) {
@@ -76,7 +212,7 @@ let ddRumLib = {
 
     DDRum_StopSession: function() {
         DD_RUM.stopSession();
-    },
+    }
 };
 
 mergeInto(LibraryManager.library, ddRumLib);

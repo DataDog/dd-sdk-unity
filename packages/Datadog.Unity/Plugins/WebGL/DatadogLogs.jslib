@@ -8,11 +8,11 @@ let ddLogsLib = {
         let configStr = UTF8ToString(jsonConfiguration);
         let config = JSON.parse(configStr);
         this._activeLoggers = {}
-        DD_LOGS.init(config)
+        DD_LOGS.init(config);
     },
 
     DDLogs_CreateLogger: function (loggerId, configuration) {
-        let loggerIdStr = UTF8ToString(loggerId)
+        let loggerIdStr = UTF8ToString(loggerId);
         let configStr = UTF8ToString(configuration);
         let jsConfig = JSON.parse(configStr);
 
@@ -28,17 +28,17 @@ let ddLogsLib = {
         let attributesStr = UTF8ToString(attributes);
         let jsAttributes = JSON.parse(attributesStr) ?? {};
         for (var key in jsAttributes) {
-            DD_LOGS.setGlobalContextProperty(key, jsAttributes[key])
+            DD_LOGS.setGlobalContextProperty(key, jsAttributes[key]);
         }
     },
 
     DDLogs_RemoveGlobalAttribute: function(key) {
         let keyStr = UTF8ToString(key);
-        DD_LOGS.removeGlobalContextProperty(keyStr)
+        DD_LOGS.removeGlobalContextProperty(keyStr);
     },
 
     DDLogs_Log: function (loggerId, message, level, errorKind, errorMessage, errorStackTrace, attributes) {
-        let loggerIdStr = UTF8ToString(loggerId)
+        let loggerIdStr = UTF8ToString(loggerId);
         let logger = this._activeLoggers[loggerIdStr];
         if (!logger) {
             return;
@@ -63,29 +63,52 @@ let ddLogsLib = {
             UTF8ToString(message), jsAttributes, UTF8ToString(level), jsError);
     },
 
-    DDLogs_AddAttribute: function (loggerId, jsonAttribute) {
-        let loggerIdStr = UTF8ToString(loggerId)
+    DDLogs_AddTag: function (loggerId, tag, value) {
+        let loggerIdStr = UTF8ToString(loggerId);
         let logger = this._activeLoggers[loggerIdStr];
         if (!logger) {
             return;
         }
 
-        let attributesStr = UTF8ToString(jsonAttribute)
-        let attributes = JSON.parse(attributesStr)
+        let tagStr = UTF8ToString(tag);
+        let valueStr = UTF8ToString(value);
+        logger.addTag(tagStr, valueStr);
+    },
+
+    DDLogs_RemoveTagsWithKey: function (loggerId, tag) {
+        let loggerIdStr = UTF8ToString(loggerId);
+        let logger = this._activeLoggers[loggerIdStr];
+        if (!logger) {
+            return;
+        }
+
+        let tagStr = UTF8ToString(tag);
+        logger.removeTagsWithKey(tagStr);
+    },
+
+    DDLogs_AddAttribute: function (loggerId, jsonAttribute) {
+        let loggerIdStr = UTF8ToString(loggerId);
+        let logger = this._activeLoggers[loggerIdStr];
+        if (!logger) {
+            return;
+        }
+
+        let attributesStr = UTF8ToString(jsonAttribute);
+        let attributes = JSON.parse(attributesStr);
         for (var key in attributes) {
-            logger.setContextProperty(key, attributes[key])
+            logger.setContextProperty(key, attributes[key]);
         }
     },
 
     DDLogs_RemoveAttribute: function(loggerId, key) {
-        let loggerIdStr = UTF8ToString(loggerId)
+        let loggerIdStr = UTF8ToString(loggerId);
         let logger = this._activeLoggers[loggerIdStr];
         if (!logger) {
             return;
         }
 
-        let attributeKey = UTF8ToString(key)
-        logger.removeContextProperty(attributeKey)
+        let attributeKey = UTF8ToString(key);
+        logger.removeContextProperty(attributeKey);
     }
 };
 

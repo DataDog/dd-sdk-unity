@@ -55,10 +55,10 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", debugLog.ServiceName);
+#endif
             Assert.Contains("tag1:tag-value", debugLog.Tags);
             Assert.Contains("tag1:second-value", debugLog.Tags);
             Assert.Contains("my-tag", debugLog.Tags);
-#endif
             Assert.AreEqual("not_silent_logger", debugLog.LoggerName);
             Assert.AreEqual("string", debugLog.RawJson["stringAttribute"]);
 
@@ -67,10 +67,10 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("info message", infoLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", infoLog.ServiceName);
+#endif
             Assert.Contains("tag1:tag-value", infoLog.Tags);
             Assert.Contains("tag1:second-value", debugLog.Tags);
             CollectionAssert.DoesNotContain(infoLog.Tags, "my-tag");
-#endif
             Assert.AreEqual("string value", (string)infoLog.RawJson["logger-attribute1"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
             Assert.AreEqual(1255, (long)infoLog.RawJson["global-attribute-2"]);
@@ -84,10 +84,10 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("warn message", warnLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", warnLog.ServiceName);
+#endif
             Assert.Contains("tag1:tag-value", warnLog.Tags);
             Assert.Contains("tag1:second-value", debugLog.Tags);
             CollectionAssert.DoesNotContain(warnLog.Tags, "my-tag");
-#endif
             Assert.AreEqual("string value", (string)warnLog.RawJson["logger-attribute1"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
             Assert.AreEqual(1255, (long)infoLog.RawJson["global-attribute-2"]);
@@ -99,10 +99,10 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("error message", errorLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", errorLog.ServiceName);
+#endif
             CollectionAssert.DoesNotContain(errorLog.Tags, "tag1:tag-value");
             CollectionAssert.DoesNotContain(errorLog.Tags, "tag1:second-value");
             CollectionAssert.DoesNotContain(errorLog.Tags, "my-tag");
-#endif
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
@@ -119,10 +119,10 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("Warning: this error occurred", exceptionLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", exceptionLog.ServiceName);
+#endif
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:tag-value");
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:second-value");
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "my-tag");
-#endif
             Assert.AreEqual("System.InvalidOperationException", exceptionLog.ErrorKind);
             Assert.IsFalse(exceptionLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)exceptionLog.RawJson["logger-attribute2"]);

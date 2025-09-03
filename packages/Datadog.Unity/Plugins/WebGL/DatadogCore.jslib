@@ -23,7 +23,7 @@ let ddCoreLib = {
         if (DD_RUM) {
             DD_RUM.setTrackingConsent(trackingConsent)
         }
-    }
+    },
 
     DDCore_SetUserProperties: function(properties) {
         let preopertiesStr = UTF8ToString(properties);
