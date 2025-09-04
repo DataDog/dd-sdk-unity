@@ -21,7 +21,7 @@ from common.log import init_logger
 from common.unity import UnityProject, UnityBuild, UnityBuildPlatform, UnityBuildConfig, UnityTarget, DatadogBackendType
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import run_mock_server, prepare_mock_server_venv
-from common.device import acquire_device, __default_ios_device__
+from common.launch import LaunchConfig, launch_build
 from common.android import Adb
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -213,38 +213,30 @@ def integration_test(project_path: str, platform: UnityBuildPlatform, target: Un
     def _handle_output(line: str, _):
         handler.read(line)
 
-    # Start up our mock server and acquire a device to run on
-    with run_mock_server(mock_server_addr, mock_server_port), acquire_device(platform.value, target == UnityTarget.SIMULATOR) as device:
-        log.info(f'Running on  device {device.device_id}')
-
-        log.info(f'Uninstalling any existing versions of {build.app_bundle_id}...')
-        device.uninstall_app(build.app_bundle_id)
-        
-        log.info(f'Installing new build from {build.app_bundle_path}...')
-        device.install_app(build.app_bundle_path)
-
-        if platform == UnityBuildPlatform.ANDROID and target == UnityTarget.SIMULATOR:
-            time.sleep(2.0)
-
-        device.tail_logs(_handle_output)
-        device.launch_app(build.app_bundle_id)
-
-        timeout_seconds = 5 * 60.0
-        deadline = time.time() + timeout_seconds
-        log.info(f'Integration tests running... (timeout {timeout_seconds}s; Ctrl-C to cancel)')
-        while True:
-            try:
-                if handler.should_exit:
-                    log.info('Output indicates that integration tests are finished; exiting...')
+    # Start up the mock server, then run our build as configured
+    launch_config = LaunchConfig(
+        build=build,
+        use_simulator=target == UnityTarget.SIMULATOR,
+        output_func=_handle_output,
+    )
+    with run_mock_server(mock_server_addr, mock_server_port):
+        with launch_build(platform, launch_config):
+            timeout_seconds = 5 * 60.0
+            deadline = time.time() + timeout_seconds
+            log.info(f'Integration tests running... (timeout {timeout_seconds}s; Ctrl-C to cancel)')
+            while True:
+                try:
+                    if handler.should_exit:
+                        log.info('Output indicates that integration tests are finished; exiting...')
+                        break
+                    if time.time() > deadline:
+                        log.warning('Timeout exceeded; aborting integration tests.')
+                        break
+                    time.sleep(0.1)
+                except KeyboardInterrupt:
+                    log.info('')
+                    log.warning('Tests canceled.')
                     break
-                if time.time() > deadline:
-                    log.warning('Timeout exceeded; aborting integration tests.')
-                    break
-                time.sleep(0.1)
-            except KeyboardInterrupt:
-                log.info('')
-                log.warning('Tests canceled.')
-                break
 
     ok = handler.report(log)
     if not ok:

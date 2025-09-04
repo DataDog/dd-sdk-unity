@@ -13,8 +13,10 @@ from .aapt import get_package_name
 
 from .frontend import AndroidDeviceSpec, run_android_device
 
+__default_android_device__ = AndroidDeviceSpec.default(api_level=33, device='pixel_4')
 
 __all__ = [
+    '__default_android_device__',
     'AndroidPackage',
     'AndroidSdkManager',
     'AvdManager',

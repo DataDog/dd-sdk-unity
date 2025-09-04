@@ -10,3 +10,4 @@ junitparser==3.2.0
 pydantic==2.11.7
 ruamel.yaml==0.18.14
 Jinja2==3.1.6
+selenium==4.35.0

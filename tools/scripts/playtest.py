@@ -14,26 +14,20 @@ from common.log import init_logger
 from common.unity import UnityProject, UnityBuild, UnityBuildPlatform, UnityBuildConfig, UnityTarget, DatadogBackendType
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import run_mock_server, prepare_mock_server_venv
-from common.device import acquire_device, __default_ios_device__, TargetDevice
+from common.launch import LaunchConfig, launch_build
 from common.android import Adb
 
 
 @contextmanager
-def _prepare_for_run(mock_server_config: Optional[Tuple[str, int]], platform: UnityBuildPlatform, target: UnityTarget) -> Generator[TargetDevice, None, None]:
+def _conditional_mock_server(mock_server_config: Optional[Tuple[str, int]]) -> Generator[None, None, None]:
+    if not mock_server_config:
+        yield
+        return
 
-    @contextmanager
-    def _conditional_mock_server():
-        if not mock_server_config:
-            yield
-            return
-        
-        addr, port = mock_server_config
-        prepare_mock_server_venv()
-        with run_mock_server(addr, port):
-            yield
-
-    with _conditional_mock_server(), acquire_device(platform.value, target == UnityTarget.SIMULATOR) as device:
-        yield device
+    addr, port = mock_server_config
+    prepare_mock_server_venv()
+    with run_mock_server(addr, port):
+        yield
 
 
 def playtest(project_path: str, platform: UnityBuildPlatform, config: UnityBuildConfig, target: UnityTarget, backend: DatadogBackendType, backend_url: str, client_id: str, rum_application_id: str, is_for_demo: bool, skip_build: bool, skip_play: bool):
@@ -86,30 +80,17 @@ def playtest(project_path: str, platform: UnityBuildPlatform, config: UnityBuild
 
     # Prepare our runtime environment as configured: start up mock server if configured
     # to use one, start simulators if desired, etc.; then install and run the app
-    with _prepare_for_run(run_mock_server_on, platform, target) as device:
-        log.info(f'Running on  device {device.device_id}')
-
-        log.info(f'Uninstalling any existing versions of {build.app_bundle_id}...')
-        device.uninstall_app(build.app_bundle_id)
-        
-        log.info(f'Installing new build from {build.app_bundle_path}...')
-        device.install_app(build.app_bundle_path)
-
-        if platform == UnityBuildPlatform.ANDROID and target == UnityTarget.SIMULATOR:
-            time.sleep(2.0)
-
-        log.info(f'Launching {build.app_bundle_id}...')
-        device.tail_logs(None)
-        device.launch_app(build.app_bundle_id)
-
-        log.info('App is running; press Ctrl-C when done.')
-        while True:
-            try:
-                time.sleep(0)
-            except KeyboardInterrupt:
-                log.info('')
-                break
-        log.info('Got Ctrl-C! Shutting down...')
+    with _conditional_mock_server(run_mock_server_on):
+        use_simulator = target == UnityTarget.SIMULATOR
+        with launch_build(platform, LaunchConfig(build, use_simulator, None)):
+            log.info('App is running; press Ctrl-C when done.')
+            while True:
+                try:
+                    time.sleep(0)
+                except KeyboardInterrupt:
+                    log.info('')
+                    break
+            log.info('Got Ctrl-C! Shutting down...')
 
 
 if __name__ == '__main__':

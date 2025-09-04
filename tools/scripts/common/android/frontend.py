@@ -123,6 +123,11 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[str, None, None]:
         log.info(f'{device.name} is running; waiting for boot...')
         device.wait_for_boot()
 
+        # Configure our new simulator: disable auto-restore of saved app data backups;
+        # suppress 'swipe down to exit fullscreen' banner
+        adb.run_shell(device_name, 'bmgr', 'enable', 'false')
+        adb.run_shell(device_name, 'settings', 'put', 'secure', 'immersive_mode_confirmations', 'confirmed')
+
         # Device is ready to use; yield its adb-compatible name to the caller
         log.info(f'{device.name} is ready!')
         yield device.name

@@ -4,13 +4,13 @@ Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
+from urllib.parse import urlparse
 from platform import machine
 from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional
 
-from ..device import __default_ios_device__
-from ..apple import run_xcodebuild, get_bundle_identifier
+from ..apple import run_xcodebuild, get_bundle_identifier, __default_ios_device__
 from ..android import get_package_name
 from .project import UnityProject
 
@@ -18,6 +18,7 @@ from .project import UnityProject
 class UnityBuildPlatform(str, Enum):
     IOS = 'ios'
     ANDROID = 'android'
+    WEBGL = 'webgl'
 
 
 class UnityBuildConfig(str, Enum):
@@ -117,6 +118,11 @@ class UnityBuild:
         # NOTE: These settings are _required_ for integration tests; if we update this code
         # to allow more flexible configuration in other modes, make sure we're still
         # supplying these values if is_for_integration_test
+        first_party_hosts = ['shopist.io', 'api.shopist.io']
+        if custom_endpoint_url:
+            # Strip scheme; preserve hostname (with port if specified)
+            url = urlparse(custom_endpoint_url)
+            first_party_hosts.append(url.netloc)
         build_args += [
             '-datadogSettings:SdkVerbosity', 'warn',
             '-datadogSettings:BatchSize', 'small',
@@ -129,7 +135,7 @@ class UnityBuild:
             '-datadogSettings:SessionSampleRate', '100',
             '-datadogSettings:TraceSampleRate', '100',
             '-datadogSettings:TraceContextInjection', 'all',
-            '-datadogSettings:FirstPartyHosts', 'shopist.io,api.shopist.io',
+            '-datadogSettings:FirstPartyHosts', ','.join(first_party_hosts),
             '-datadogSettings:TelemetrySampleRate', '100',
         ]
 
@@ -189,7 +195,11 @@ class UnityBuild:
                 ])
                 build = cls._resolve_ios(project, config, target)
 
-            # Build scripts support iOS and Android only
+            # For WebGL, we should have Build/WebGL/index.html
+            elif platform == UnityBuildPlatform.WEBGL:
+                build = cls._resolve_webgl(project)
+
+            # Build scripts support iOS, Android, and WebGL only
             else:
                 raise RuntimeError(f'Unsupported build platform {platform}')
             
@@ -204,9 +214,11 @@ class UnityBuild:
     def resolve_existing(cls, project: UnityProject, platform: UnityBuildPlatform, config: UnityBuildConfig, target: UnityTarget) -> 'UnityBuild':
         if platform == UnityBuildPlatform.ANDROID:
             return cls._resolve_android(project)
-        else:
-            assert platform == UnityBuildPlatform.IOS
+        elif platform == UnityBuildPlatform.IOS:
             return cls._resolve_ios(project, config, target)
+        else:
+            assert platform == UnityBuildPlatform.WEBGL
+            return cls._resolve_webgl(project)
 
     @classmethod
     def _resolve_android(cls, project: UnityProject) -> 'UnityBuild':
@@ -251,3 +263,10 @@ class UnityBuild:
         # Use plutil to parse the iOS bundle identifier
         app_bundle_id = get_bundle_identifier(plist_path)
         return cls(app_bundle_path, app_bundle_id)
+    
+    @classmethod
+    def _resolve_webgl(cls, project: UnityProject) -> 'UnityBuild':
+        index_html_path = os.path.join(project.path, 'Build', 'WebGL', 'index.html')
+        if not os.path.isfile(index_html_path):
+            raise RuntimeError(f'index.html not found for WebGL build: {index_html_path}')
+        return cls(index_html_path, 'WebGL')

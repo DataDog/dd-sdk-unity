@@ -114,13 +114,30 @@ class Adb:
         args = ['adb', '-s', device_name, 'shell', 'pm', 'uninstall', app_bundle_id]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def install(self, device_name: str, app_bundle_path: str, timeout_seconds: float = 60.0):
-        args = [self.path, '-s', device_name, 'install', app_bundle_path]
-        subprocess.check_call(args, timeout=timeout_seconds)
+    def install(self, device_name: str, app_bundle_id: str, app_bundle_path: str, timeout_seconds: float = 60.0):
+        # Install the .apk
+        install_args = [self.path, '-s', device_name, 'install', app_bundle_path]
+        subprocess.check_call(install_args, timeout=timeout_seconds)
+
+        # Run resolve-activity to ensure that the app is in a launchable state
+        resolve_args = [self.path, '-s', device_name, 'shell', 'cmd', 'package', 'resolve-activity', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', app_bundle_id]
+        subprocess.check_call(resolve_args, timeout=timeout_seconds)
+
+        # Pause briefly to ensure everything is settled
+        time.sleep(1.0)
 
     def launch(self, device_name: str, app_bundle_id: str, activity_name: str, timeout_seconds: float = 30.0):
+        # Kill any instances of the app that might already exist
+        force_stop_args = [self.path, '-s', device_name, 'shell', 'am', 'force-stop', app_bundle_id]
+        subprocess.check_call(force_stop_args, timeout=timeout_seconds)
+
+        # Launch the app's main activity
         namespaced_activity = f'{app_bundle_id}/{activity_name}'
-        args = [self.path, '-s', device_name, 'shell', 'am', 'start', '-n', namespaced_activity]
+        start_args = [self.path, '-s', device_name, 'shell', 'am', 'start', '-W', '-a' 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-n', namespaced_activity]
+        subprocess.check_call(start_args, timeout=timeout_seconds)
+
+    def run_shell(self, device_name: str, *shell_args: str, timeout_seconds: float = 30.0):
+        args = [self.path, '-s', device_name, 'shell', *shell_args]
         subprocess.check_call(args, timeout=timeout_seconds)
 
     def tail_logs(self, device_name: str, filters: List[str], output_handler: Optional[OutputHandlerFunc]):

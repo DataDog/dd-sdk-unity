@@ -319,7 +319,7 @@ namespace Datadog.Unity.RuntimeTest
             }
 
             // The current test has ended: report a failure if we saw an exception reported to the
-            // Unity log during test execution; report a failure if we timed our; or report success
+            // Unity log during test execution; report a failure if we timed out; or report success
             // otherwise
             _isTestRunning = false;
             var duration = DateTime.Now - testStartTime;

@@ -11,8 +11,11 @@ from .xcode import run_xcodebuild
 from .plutil import get_bundle_identifier
 from .libimobiledevice import IDeviceSyslog
 
+__default_ios_device__ = AppleDeviceSpec('iOS 17.4', 'iPhone 15 Pro')
+
 
 __all__ = [
+    '__default_ios_device__',
     'Xcrun',
     'Simctl',
     'AppleDeviceSpec',

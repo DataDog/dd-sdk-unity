@@ -48,6 +48,10 @@ namespace Datadog.Unity.Build
                     {
                         buildPlatform = BuildTarget.iOS;
                     }
+                    else if (platformString == "webgl")
+                    {
+                        buildPlatform = BuildTarget.WebGL;
+                    }
                 }
 
                 if (args[i] == "-buildConfig" && i + 1 < args.Length)
@@ -363,6 +367,12 @@ namespace Datadog.Unity.Build
             BuildInEditor(BuildTarget.iOS);
         }
 
+        [MenuItem("Build/Build WebGL")]
+        public static void BuildWebGL()
+        {
+            BuildInEditor(BuildTarget.WebGL);
+        }
+
         private static void BuildInEditor(BuildTarget target)
         {
             Build(target, DefaultScenes, GetDefaultOutputDirectory(target), BuildOptions.None, null);
@@ -402,6 +412,8 @@ namespace Datadog.Unity.Build
                     return "Build/Android";
                 case BuildTarget.iOS:
                     return "Build/iOS";
+                case BuildTarget.WebGL:
+                    return "Build/WebGL";
             }
             throw new InvalidEnumArgumentException();
         }
@@ -413,6 +425,8 @@ namespace Datadog.Unity.Build
                 case BuildTarget.Android:
                     return Path.Join(directory, "datadog-demo.apk");
                 case BuildTarget.iOS:
+                    return directory;
+                case BuildTarget.WebGL:
                     return directory;
             }
             throw new InvalidEnumArgumentException();

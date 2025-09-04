@@ -70,7 +70,7 @@ def install_unity(version_prefix: str):
     # Commence installing this version, and when done, print its full version string to
     # stdout and exit
     assert version
-    new_install = unity_hub.install_version(version, ['ios', 'android'], changeset)
+    new_install = unity_hub.install_version(version, ['ios', 'android', 'webgl'], changeset)
     print(new_install.version)
     return 0
 
