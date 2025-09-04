@@ -1,8 +1,8 @@
 <dependencies>
   <packages>
-    <package>com.datadoghq:dd-sdk-android-logs:2+</package>
-    <package>com.datadoghq:dd-sdk-android-ndk:2+</package>
-    <package>com.datadoghq:dd-sdk-android-rum:2+</package>
+    <package>com.datadoghq:dd-sdk-android-logs:2.26.0</package>
+    <package>com.datadoghq:dd-sdk-android-ndk:2.26.0</package>
+    <package>com.datadoghq:dd-sdk-android-rum:2.26.0</package>
   </packages>
   <files />
   <settings>
