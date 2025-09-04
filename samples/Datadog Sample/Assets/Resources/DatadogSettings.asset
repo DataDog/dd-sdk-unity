@@ -13,28 +13,34 @@ MonoBehaviour:
   m_Name: DatadogSettings
   m_EditorClassIdentifier: 
   Enabled: 1
-  SdkVerbosity: 0
+  SdkVerbosity: 1
   OutputSymbols: 1
   PerformNativeStackMapping: 1
-  ClientToken: 
+  ClientToken: fake-client-token
   Site: 0
-  Env: 
-  ServiceName: 
-  CustomEndpoint: 
-  BatchSize: 0
-  UploadFrequency: 0
+  Env: integration-test
+  ServiceName: datadog-sample
+  CustomEndpoint: http://192.168.0.135:5100
+  BatchSize: 1
+  UploadFrequency: 1
   BatchProcessingLevel: 1
   CrashReportingEnabled: 1
   ForwardUnityLogs: 1
   RemoteLogThreshold: 3
   RumEnabled: 1
-  RumApplicationId: 
+  RumApplicationId: fake-rum-application-id
   AutomaticSceneTracking: 1
   VitalsUpdateFrequency: 2
   SessionSampleRate: 100
   TraceSampleRate: 100
   TraceContextInjection: 0
-  FirstPartyHosts: []
+  FirstPartyHosts:
+  - Host: shopist.io
+    TracingHeaderType: 18
+  - Host: api.shopist.io
+    TracingHeaderType: 18
+  - Host: 192.168.0.135:5100
+    TracingHeaderType: 18
   TrackNonFatalAnrs: 0
   TrackNonFatalAppHangs: 1
   NonFatalAppHangThreshold: 0.25
