@@ -63,7 +63,7 @@ namespace Datadog.Unity.RuntimeTest
 
         private IEnumerator DelayedExit(int code)
         {
-            yield return new WaitForSeconds(1.0f);
+            yield return new WaitForSeconds(1.5f);
             Application.Quit(code);
         }
 
@@ -144,6 +144,35 @@ namespace Datadog.Unity.RuntimeTest
                         if (categoryNameValue != IntegrationTestCategory)
                         {
                             continue;
+                        }
+
+                        // Check for [UnityPlatform], and ignore this test if it's not enabled for
+                        // our current platform
+                        var platformAttr = method.GetCustomAttributes().FirstOrDefault(attr => attr.GetType().Name == "UnityPlatformAttribute");
+                        if (platformAttr != null)
+                        {
+                            // If current platform is explicitly excluded, skip this test
+                            var excludeProp = platformAttr.GetType().GetProperty("exclude", BindingFlags.Public | BindingFlags.Instance);
+                            var excludeArray = excludeProp?.GetValue(platformAttr) as Array;
+                            if (excludeArray != null)
+                            {
+                                if (Array.IndexOf(excludeArray, Application.platform) >= 0)
+                                {
+                                    continue;
+                                }
+                            }
+
+                            // If the attribute specifies an explicit list of included platforms,
+                            // and that list does not include our current platform, skip the test
+                            var includeProp = platformAttr.GetType().GetProperty("include", BindingFlags.Public | BindingFlags.Instance);
+                            var includeArray = includeProp?.GetValue(platformAttr) as Array;
+                            if (includeArray != null && includeArray.Length > 0)
+                            {
+                                if (Array.IndexOf(includeArray, Application.platform) < 0)
+                                {
+                                    continue;
+                                }
+                            }
                         }
 
                         // This method is the entry point of an integration test
