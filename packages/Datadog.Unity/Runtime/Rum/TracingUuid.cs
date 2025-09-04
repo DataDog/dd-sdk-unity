@@ -7,7 +7,10 @@ using System.Numerics;
 
 namespace Datadog.Unity.Rum
 {
-    internal enum TraceIdRepresentation
+    /// <summary>
+    /// Supported formats for representing a TraceId as a string.
+    /// </summary>
+    public enum TraceIdRepresentation
     {
         // Decimal string representation of the entire TraceId
         Dec,
@@ -28,26 +31,41 @@ namespace Datadog.Unity.Rum
         Hex32Chars,
     }
 
-    // A Uint128 value for a trace ID. This is held as two UInt64s,
-    // a low portion and a high portion to avoid the overhead of BigInteger.
-    internal readonly struct TracingUuid
+    /// <summary>
+    /// 128-bit UUID used to identify a trace. Stored as two uint64 values representing the high
+    /// and low portions of the UUID, to avoid the overhead of BigInteger.
+    ///
+    /// May be used to store 64-bit values, in which case the significant portion is always held
+    /// in the lower half.
+    /// </summary>
+    public readonly struct TracingUuid
     {
-        private static Random _random = new Random();
+        private static Random _random = new();
 
         private readonly ulong _high;
         private readonly ulong _low;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TracingUuid"/> struct, given the high and
+        /// low parts of its full 128-bit value.
+        /// </summary>
         public TracingUuid(ulong high, ulong low)
         {
             _high = high;
             _low = low;
         }
 
+        /// <summary>
+        /// Formats the trace ID in decimal format.
+        /// </summary>
         public override string ToString()
         {
             return ToString(TraceIdRepresentation.Dec);
         }
 
+        /// <summary>
+        /// Formats the trace ID in the requested representation.
+        /// </summary>
         public string ToString(TraceIdRepresentation representation)
         {
             switch (representation)
@@ -90,6 +108,10 @@ namespace Datadog.Unity.Rum
             }
         }
 
+        /// <summary>
+        /// Generates a random ID, with the value stored in the lower 63 bits. The topmost bit of
+        /// the lower half is reserved and will always be zero.
+        /// </summary>
         public static TracingUuid Create63Bit()
         {
             byte[] bytes = new byte[sizeof(ulong)];
@@ -102,6 +124,9 @@ namespace Datadog.Unity.Rum
             return new TracingUuid(0, low);
         }
 
+        /// <summary>
+        /// Creates a random ID, with the value stored in the lower 64 bits.
+        /// </summary>
         public static TracingUuid Create64Bit()
         {
             byte[] bytes = new byte[sizeof(ulong)];
@@ -110,6 +135,9 @@ namespace Datadog.Unity.Rum
             return new TracingUuid(0, low);
         }
 
+        /// <summary>
+        /// Creates a random ID with a 128-bit value.
+        /// </summary>
         public static TracingUuid Create128Bit()
         {
             byte[] bytes = new byte[sizeof(ulong)];

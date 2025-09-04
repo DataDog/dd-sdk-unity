@@ -67,7 +67,13 @@ namespace Datadog.Unity
             }
         }
 
-        internal ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;
+        /// <summary>
+        /// Provides access to the logic used to generate and inject trace context. If you're using
+        /// <see cref="DatadogTrackedWebRequest"/>, HTTP requests are tracked automatically. Use
+        /// ResourceTrackingHelper only if you need lower-level control, e.g. to manually inject
+        /// trace context into requests made with a different HTTP client implementation.
+        /// </summary>
+        public ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;
 
         /// <summary>
         /// Shutdown the Datadog SDK. Note, this method is primarily for internal use.
