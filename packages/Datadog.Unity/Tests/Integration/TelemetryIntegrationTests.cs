@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using NUnit.Framework;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace Datadog.Unity.Tests.Integration
     public class TelemetryIntegrationTests
     {
         [UnityTest]
+        [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })] // Telemetry NYI on WebGL
         [Category("integration")]
         public IEnumerator TelemetryIntegrationScenario()
         {

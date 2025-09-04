@@ -109,7 +109,7 @@ namespace Datadog.Unity.Tests.Integration
                     }
                     else
                     {
-                        var parts = (tag[..colonIndex], tag[(colonIndex + 1) ..]);
+                        var parts = (tag[..colonIndex], tag[(colonIndex + 1)..]);
                         tagDict[parts.Item1] = parts.Item2;
                     }
                 }
@@ -133,8 +133,8 @@ namespace Datadog.Unity.Tests.Integration
                 foreach (var header in Headers)
                 {
                     var colonIndex = header.IndexOf(':');
-                    var parts = (header[..colonIndex], header[(colonIndex + 1) ..].Trim());
-                    headerDict[parts.Item1] = parts.Item2;
+                    var parts = (header[..colonIndex], header[(colonIndex + 1)..].Trim());
+                    headerDict[parts.Item1.ToLower()] = parts.Item2;
                 }
 
                 return headerDict;

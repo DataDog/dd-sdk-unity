@@ -24,6 +24,8 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var mockServerHelper = new MockServerHelper();
             yield return mockServerHelper.Clear();
 
+            // Run our test script, collecting the requests received by the mock server
+            // until we've recorded a complete RUM session
             yield return new MonoBehaviourTest<TestTrackedWebRequestMonoBehavior>();
             List<MockServerLog> serverLog = new();
             List<MockServerLog> testRequests = new();
@@ -38,25 +40,39 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 return sessions.Count >= 1 && sessions[0].Visits.Count >= 4;
             });
 
+            // We should have recorded 1 RUM session
             var sessions = RumDecoderHelpers.RumSessionsFromEvents(
                 RumDecoderHelpers.RumEventsFromMockServer(serverLog));
-
             Assert.AreEqual(1, sessions.Count);
-
             var session = sessions.First();
 
-            // Discard visits that are automatically recorded parts of integration testing
-            var visits = session.Visits.Where(
-                visit => visit.Name != string.Empty && !visit.Name.Contains("InitTestScene")).ToArray();
-            Assert.AreEqual(2, visits.Length);
+            // That session should include a visit to the 'First Screen' View, in
+            // addition to the View events recorded automatically on scene change:
+            // filter out any visits to 'InitTestScene' that will appear when running
+            // in-editor, as well as automatic view events from any scene loads that
+            // occurred prior to the start of TestTrackedWebRequestMonoBehavior
+            var visits = session.Visits
+                .Where(visit => visit.Name != string.Empty && !visit.Name.Contains("InitTestScene"))
+                .SkipWhile(visit => visit.Name != "First Screen")
+                .ToArray();
 
+            // We should be left with two visits to RUM Views: the first being
+            // 'First Screen', manually registered via StartView in our test script, and
+            // the second having occurred when we loaded back into EmptyScene
+            Assert.AreEqual(2, visits.Length);
             var firstVisit = visits[0];
+
+            // Within that first View, we should have a Resource recorded to our
+            // non-first-party endpoint, and as such no trace headers should have been
+            // injected in that request
             var getResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("httpbin"));
             Assert.IsNotNull(getResource);
             Assert.AreEqual("https://httpbin.org/status/200", getResource.Url);
             Assert.IsNull(getResource.TraceId);
             Assert.IsNull(getResource.SpanId);
 
+            // Examine the headers that were set on the first request received by the
+            // mock server during the execution of our test script
             var testRequestEndpoint = testRequests.First();
             var testRequest = testRequestEndpoint.Requests.First();
             var schema = testRequest.Schemas.First();
@@ -65,14 +81,17 @@ namespace Datadog.Unity.Tests.Integration.Rum
             // This is mostly just checking that the headers exist. We could make this test more thorough
             // by decoding the trace and span ids and checking the values match the resource event.
             // For now, we'll only check the SpanId and assume unit testing covers the rest.
-            Assert.AreEqual("rum", headers["X-Datadog-Origin"]);
-            Assert.AreEqual("1", headers["X-Datadog-Sampling-Priority"]);
-            Assert.IsNotNull(headers["Traceparent"]);
+            Assert.AreEqual("rum", headers["x-datadog-origin"]);
+            Assert.AreEqual("1", headers["x-datadog-sampling-priority"]);
+            Assert.IsNotNull(headers["traceparent"]);
 
+            // Without our 'First Screen' view, we should also have a Resource recorded
+            // for the request to our first-party endpoint, and it _should_ have
+            // injected trace context headers
             var getFirstPartyResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("integration_get"));
             Assert.IsNotNull(getFirstPartyResource);
             Assert.IsNotNull(getFirstPartyResource.TraceId);
-            Assert.AreEqual(getFirstPartyResource.SpanId, headers["X-Datadog-Parent-Id"]);
+            Assert.AreEqual(getFirstPartyResource.SpanId, headers["x-datadog-parent-id"]);
         }
     }
 

@@ -119,6 +119,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("Warning: this error occurred", exceptionLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", exceptionLog.ServiceName);
+#endif
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:tag-value");
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "tag1:second-value");
             CollectionAssert.DoesNotContain(exceptionLog.Tags, "my-tag");
