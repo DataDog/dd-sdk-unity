@@ -98,7 +98,7 @@ namespace Datadog.Unity.Rum
             return headers;
         }
 
-        private static class DatadogAttributeKeys
+        public static class DatadogAttributeKeys
         {
             public const string TraceId = "_dd.trace_id";
             public const string SpanId = "_dd.span_id";
