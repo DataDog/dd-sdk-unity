@@ -18,12 +18,6 @@ dependencyResolutionManagement {
         mavenCentral()
 // Android Resolver Repos Start
         def unityProjectPath = $/file:///**DIR_UNITYPROJECT**/$.replace("\\", "/")
-        maven {
-            url "https://repo.maven.apache.org/maven2" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
-        }
-        maven {
-            url "https://central.sonatype.com/repository/maven-snapshots" // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
-        }
         mavenLocal()
 // Android Resolver Repos End
         flatDir {
