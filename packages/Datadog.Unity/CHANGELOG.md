@@ -4,6 +4,14 @@
 
 * The "Vitals Update Frequency" option can now be configured in the Datadog Settings UI.
 * Android builds will now report frame time metrics to RUM when "Vitals Update Frequency" is enabled.
+* Improved WebGL support:
+  * Tags can now be added to and removed from specific loggers via `DdLogger.AddTag` and `DdLogger.RemoveTag`.
+  * RUM Action types are now reported faithfully in WebGL builds, rather than being reported as `custom`.
+  * RUM Resources that are manually tracked via `StartResource` and `StopResource*` are now reported in WebGL builds.
+  * WebGL builds now properly evaluate first-party hosts when deciding whether to track HTTP requests.
+  * Using `DatadogTrackedWebRequest` in WebGL builds no longer results in duplicate RUM Resources being reported.
+* `ResourceTrackingHelper` is now public: if you've elected not to use `DatadogTrackedWebRequest`, this change allows you to manually track your HTTP requests as RUM Resources and inject trace context headers.
+* iOS build fixes: `DatadogInitialization.swift` is now rendered properly when crash reporting is disabled; iOS post-build step no longer runs in non-iOS builds on macOS.
 
 ## 1.4.4
 
