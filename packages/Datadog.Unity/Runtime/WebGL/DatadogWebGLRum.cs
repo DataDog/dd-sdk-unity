@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using Datadog.Unity.Rum;
 using Newtonsoft.Json;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 namespace Datadog.Unity.WebGL
 {
@@ -53,7 +54,7 @@ namespace Datadog.Unity.WebGL
                 trackFrustrations = true,
                 trackResources = true,
                 trackLongTasks = true,
-                proxy = options.CustomEndpoint,
+                proxy = string.IsNullOrEmpty(options.CustomEndpoint) ? null : options.CustomEndpoint,
                 allowedTracingUrls = allowedTracingUrls,
                 traceContextInjection = options.TraceContextInjection.ToWebValue(),
             };
@@ -294,59 +295,98 @@ namespace Datadog.Unity.WebGL
         // Disable warning about fields being lower case to match the JSON we need to produce for web
 #pragma warning disable SA1307 // Public fields must begin with upper-case letter
 #pragma warning disable SA1310 // Field names must not contain underscore
+        [Preserve]
         private class AllowedTracingUrl
         {
+            [Preserve]
             public string match { get; set; }
+            [Preserve]
             public List<string> propagatorTypes { get; set; }
         }
 
+        [Preserve]
         private class BrowerSdkConfig
         {
+            [Preserve]
             public string applicationId { get; set; }
+            [Preserve]
             public string clientToken { get; set; }
+            [Preserve]
             public string site { get; set; }
+            [Preserve]
             public float sessionSampleRate { get; set; }
+            [Preserve]
             public float sessionReplaySampleRate { get; set; } = 0f;
+            [Preserve]
             public string service { get; set; }
+            [Preserve]
             public string env { get; set; }
+            [Preserve]
             public string version { get; set; }
+            [Preserve]
             public string proxy { get; set; }
+            [Preserve]
             public List<AllowedTracingUrl> allowedTracingUrls { get; set; }
+            [Preserve]
             public float traceSampleRate { get; set; }
+            [Preserve]
             public string traceContextInjection { get; set; }
+            [Preserve]
             public bool trackFrustrations { get; set; }
+            [Preserve]
             public bool trackViewsManually { get; set; } = true;
+            [Preserve]
             public bool trackResources { get; set; }
+            [Preserve]
             public bool trackLongTasks { get; set; }
+            [Preserve]
             public List<string> enableExperimentalFeatures { get; set; } = new List<string>();
         }
 
+        [Preserve]
         private class WebResourceEvent
         {
+            [Preserve]
             public long date { get; set; }
+            [Preserve]
             public string type { get; set; } = "resource";
+            [Preserve]
             public WebResourceEventData resource { get; set; }
+            [Preserve]
             public Dictionary<string, object> context { get; set; }
+            [Preserve]
             public WebResourceEventDdData dd { get; set; }
         }
 
+        [Preserve]
         private class WebResourceEventDdData
         {
+            [Preserve]
             public string trace_id { get; set; }
+            [Preserve]
             public string span_id { get; set; }
+            [Preserve]
             public float? rule_psr { get; set; }
+            [Preserve]
             public bool discarded { get; set; }
         }
 
+        [Preserve]
         private class WebResourceEventData
         {
+            [Preserve]
             public string id { get; set; }
+            [Preserve]
             public string type { get; set; }
+            [Preserve]
             public string url { get; set; }
+            [Preserve]
             public long duration { get; set; }
+            [Preserve]
             public string method { get; set; }
-
+            [Preserve]
             public int? status_code { get; set; }
+            [Preserve]
             public long? size { get; set; }
         }
 #pragma warning restore SA1310
