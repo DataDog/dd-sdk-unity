@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.5.0
 
 * The "Vitals Update Frequency" option can now be configured in the Datadog Settings UI.
 * Android builds will now report frame time metrics to RUM when "Vitals Update Frequency" is enabled.
@@ -12,6 +12,13 @@
   * Using `DatadogTrackedWebRequest` in WebGL builds no longer results in duplicate RUM Resources being reported.
 * `ResourceTrackingHelper` is now public: if you've elected not to use `DatadogTrackedWebRequest`, this change allows you to manually track your HTTP requests as RUM Resources and inject trace context headers.
 * iOS build fixes: `DatadogInitialization.swift` is now rendered properly when crash reporting is disabled; iOS post-build step no longer runs in non-iOS builds on macOS.
+* Upgrade Datadog iOS SDK to version 2.30.0
+  * Collect battery and locale attributes.
+  * Add `accountInfo` property to `DDLogEvent`.
+* Upgrade Datadog Android SDK to version 2.26.0
+  * RUM: Add battery and display attributes.
+  * RUM: Collect `Locale` attributes.
+  * RUM: Add accessibility attributes.
 
 ## 1.4.4
 
