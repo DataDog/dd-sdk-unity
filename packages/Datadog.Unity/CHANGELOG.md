@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.5.1
+
+* Fix an issue that prevented SDK functionality from working properly in WebGL builds.
+
 ## 1.5.0
 
 * The "Vitals Update Frequency" option can now be configured in the Datadog Settings UI.
