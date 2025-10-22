@@ -49,6 +49,19 @@ namespace Datadog.Unity.Tests.Integration.Logging
             get { return RawTags.Split(','); }
         }
 
+        public string ApplicationVersion
+        {
+            get
+            {
+#if UNITY_IOS
+                return _rawJson["version"] as string;
+#else
+                var tag = Tags.FirstOrDefault(e => e.StartsWith("version:"));
+                return tag == null ? string.Empty : tag.Split(":")[1];
+#endif
+            }
+        }
+
         public string LoggerName
         {
             get { return GetNestedProperty<string>("logger.name"); }

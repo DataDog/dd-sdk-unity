@@ -34,7 +34,6 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 return logs.Count >= 5;
             });
 
-#if !UNITY_WEBGL
             foreach (var log in serverLog)
             {
                 foreach (var request in log.Requests)
@@ -42,7 +41,6 @@ namespace Datadog.Unity.Tests.Integration.Logging
                     Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
                 }
             }
-#endif
 
             Assert.AreEqual(5, logs.Count);
 
@@ -130,6 +128,11 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
             Assert.NotNull(exceptionLog.ErrorStack);
+
+            foreach (var log in logs)
+            {
+                Assert.AreEqual(log.ApplicationVersion, "1.123");
+            }
         }
 
         public class TestLoggingMonoBehavior : MonoBehaviour, IMonoBehaviourTest

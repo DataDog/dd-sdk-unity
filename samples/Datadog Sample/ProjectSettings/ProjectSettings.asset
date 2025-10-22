@@ -77,6 +77,7 @@ PlayerSettings:
   androidMinimumWindowHeight: 300
   androidFullscreenMode: 1
   androidAutoRotationBehavior: 1
+  androidPredictiveBackSupport: 1
   defaultIsNativeResolution: 1
   macRetinaSupport: 1
   runInBackground: 1
@@ -140,7 +141,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 1.0
+  bundleVersion: 1.123
   preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
@@ -162,7 +163,7 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
-    Android: com.datadoghq.unity.example
+    Android: com.UnityTestRunner.UnityTestRunner
     Standalone: com.DefaultCompany.Datadog-Sample
     iPhone: com.DefaultCompany.Datadog-Sample
   buildNumber:
@@ -175,6 +176,7 @@ PlayerSettings:
   AndroidMinSdkVersion: 30
   AndroidTargetSdkVersion: 0
   AndroidPreferredInstallLocation: 1
+  AndroidPreferredDataLocation: 1
   aotOptions: nimt-trampolines=1024
   stripEngineCode: 0
   iPhoneStrippingLevel: 0
@@ -856,7 +858,7 @@ PlayerSettings:
   suppressCommonWarnings: 1
   allowUnsafeCode: 0
   useDeterministicCompilation: 1
-  additionalIl2CppArgs: '    '
+  additionalIl2CppArgs: '     --emit-source-mapping'
   scriptingRuntimeVersion: 1
   gcIncremental: 1
   gcWBarrierValidation: 0

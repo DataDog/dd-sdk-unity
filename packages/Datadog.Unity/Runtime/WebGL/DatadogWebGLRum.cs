@@ -48,8 +48,7 @@ namespace Datadog.Unity.WebGL
                 sessionSampleRate = options.SessionSampleRate,
                 service = options.ServiceName,
                 env = options.Env,
-                // TODO: Version
-                version = "unknown",
+                version = Application.version,
                 traceSampleRate = options.TraceSampleRate,
                 trackFrustrations = true,
                 trackResources = true,
@@ -57,6 +56,7 @@ namespace Datadog.Unity.WebGL
                 proxy = string.IsNullOrEmpty(options.CustomEndpoint) ? null : options.CustomEndpoint,
                 allowedTracingUrls = allowedTracingUrls,
                 traceContextInjection = options.TraceContextInjection.ToWebValue(),
+                source = "unity",
             };
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
 
@@ -341,6 +341,8 @@ namespace Datadog.Unity.WebGL
             public bool trackLongTasks { get; set; }
             [Preserve]
             public List<string> enableExperimentalFeatures { get; set; } = new List<string>();
+            [Preserve]
+            public string source { get; set; }
         }
 
         [Preserve]
