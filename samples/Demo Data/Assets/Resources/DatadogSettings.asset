@@ -15,9 +15,11 @@ MonoBehaviour:
   Enabled: 1
   SdkVerbosity: 0
   OutputSymbols: 1
+  PerformNativeStackMapping: 1
   ClientToken: 
   Site: 0
   Env: 
+  ServiceName: 
   CustomEndpoint: 
   BatchSize: 0
   UploadFrequency: 0
@@ -35,4 +37,7 @@ MonoBehaviour:
   FirstPartyHosts:
   - Host: shopist.io
     TracingHeaderType: 18
+  TrackNonFatalAnrs: 2
+  TrackNonFatalAppHangs: 0
+  NonFatalAppHangThreshold: 0.25
   TelemetrySampleRate: 20
