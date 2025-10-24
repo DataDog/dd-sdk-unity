@@ -4,9 +4,9 @@ apply plugin: 'com.android.library'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 // Android Resolver Dependencies Start
-    implementation 'com.datadoghq:dd-sdk-android-logs:2.26.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
-    implementation 'com.datadoghq:dd-sdk-android-ndk:2.26.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:8
-    implementation 'com.datadoghq:dd-sdk-android-rum:2.26.0' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:4
+    implementation 'com.datadoghq:dd-sdk-android-logs:2.26.1' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:6
+    implementation 'com.datadoghq:dd-sdk-android-ndk:2.26.1' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:8
+    implementation 'com.datadoghq:dd-sdk-android-rum:2.26.1' // Packages/com.datadoghq.unity/Editor/DatadogDependencies.xml:4
 // Android Resolver Dependencies End
 
     constraints {

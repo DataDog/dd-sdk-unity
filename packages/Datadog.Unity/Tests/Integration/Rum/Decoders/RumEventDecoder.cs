@@ -29,6 +29,34 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
             get => jsonGetProp<long>(rumEvent, "date");
         }
 
+        public Dictionary<string, string> ddtags
+        {
+            get
+            {
+                var tagMap = new Dictionary<string, string>();
+                var rawTags = rumEvent["ddtags"]?.Value<string>();
+                if (rawTags == null)
+                {
+                    return tagMap;
+                }
+
+                foreach (var tag in rawTags.Split(","))
+                {
+                    var colon = tag.IndexOf(":");
+                    if (colon == -1)
+                    {
+                        tagMap[tag] = string.Empty;
+                    }
+                    else
+                    {
+                        tagMap[tag.Substring(0, colon)] = tag.Substring(colon + 1);
+                    }
+                }
+
+                return tagMap;
+            }
+        }
+
         public JObject Attributes => rumEvent["context"] as JObject;
 
         public JObject FeatureFlags => rumEvent["feature_flags"] as JObject;

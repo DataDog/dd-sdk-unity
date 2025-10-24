@@ -227,7 +227,7 @@ class UnityInstall:
     @classmethod
     def parse(cls, line: str) -> Optional['UnityInstall']:
         """Parses a line of output from Unity Hub's 'editors --installed' command."""
-        pattern = re.compile(r'^(\S+)\s+\(([^)]+)\), installed at (.+)$')
+        pattern = re.compile(r'^(\S+)\s+\(([^)]+)\),? installed at (.+)$')
         match = pattern.match(line)
         if match:
             path = match.group(3)

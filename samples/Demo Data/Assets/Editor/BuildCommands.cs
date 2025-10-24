@@ -92,7 +92,7 @@ public class BuildCommands
         buildPlayerOptions.locationPathName = outputLocation;
         buildPlayerOptions.scenes = Scenes;
         buildPlayerOptions.target = target;
-        buildPlayerOptions.options = BuildOptions.None;
+        buildPlayerOptions.options = BuildOptions.CleanBuildCache;
 
         BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
         if (report.summary.result == BuildResult.Succeeded)

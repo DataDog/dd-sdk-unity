@@ -43,8 +43,13 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 VerifyCommonTags(log);
             }
 
-            var sessions = RumDecoderHelpers.RumSessionsFromEvents(
-                RumDecoderHelpers.RumEventsFromMockServer(serverLog));
+            var rumEvents = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
+            foreach (var  rumEvent in rumEvents)
+            {
+                VerifyCommonEventTags(rumEvent, "1.123");
+            }
+
+            var sessions = RumDecoderHelpers.RumSessionsFromEvents(rumEvents);
 
             Assert.AreEqual(1, sessions.Count);
 
@@ -120,12 +125,16 @@ namespace Datadog.Unity.Tests.Integration.Rum
         private void VerifyCommonTags(MockServerLog log)
         {
             // Web does not support source overrides yet
-#if !UNITY_WEBGL
             foreach (var request in log.Requests)
             {
                 Assert.AreEqual("unity", request.QueryParameters["ddsource"]);
             }
-#endif
+        }
+
+        private void VerifyCommonEventTags(RumEventDecoder rumLog, string version)
+        {
+            var tags = rumLog.ddtags;
+            Assert.AreEqual(tags["version"], version);
         }
     }
 
