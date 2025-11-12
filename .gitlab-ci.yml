@@ -49,7 +49,7 @@ unit-test:
         PROJECT_PATH: 'test_scaffolds/2021 LTS'
       - UNITY_VERSION_PARTIAL: '2022.3'
         PROJECT_PATH: 'samples/Datadog Sample'
-      - UNITY_VERSION_PARTIAL: '6000.1'
+      - UNITY_VERSION_PARTIAL: '6000.2'
         PROJECT_PATH: 'test_scaffolds/6000 LTS'
   script:
     - !reference [.shared, init-scripts]

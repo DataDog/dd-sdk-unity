@@ -54,7 +54,8 @@ class UnityVersion:
         pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc|f|p)\d+)$')
         match = pattern.match(s)
         if not match:
-            raise ValueError(f'Unexpected format for Unity version: {s}')
+            #raise ValueError(f'Unexpected format for Unity version: {s}')
+            return cls(0, 0, 0, 'Invalid')
         return cls(
             major=int(match.group(1)),
             minor=int(match.group(2)),
@@ -227,14 +228,6 @@ class UnityInstall:
     @classmethod
     def parse(cls, line: str) -> Optional['UnityInstall']:
         """Parses a line of output from Unity Hub's 'editors --installed' command."""
-        # Unity Hub prints a bunch of spurious GraphQL errors alongside the actual
-        # command output, so just ignore any such lines entirely:
-        for substr in ['GraphQL', 'UnityReleaseLabel', '//bit.ly/']:
-            if substr in line:
-                return None
-
-        # Treat any other lines matching this regex as valid output, and attempt to
-        # parse the Unity version and install path from them
         pattern = re.compile(r'^(\S+)\s+\(([^)]+)\),? installed at (.+)$')
         match = pattern.match(line)
         if match:
