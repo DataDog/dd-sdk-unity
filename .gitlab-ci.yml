@@ -20,7 +20,7 @@ stages:
     - brew install --cask unity-hub
     - brew install xcbeautify
     # Run install_unity.py to ensure that our requisite version of Unity is installed
-    - ./run-script install_unity "$UNITY_VERSION" "$UNITY_VERSION_CHANGESET" --force
+    - ./run-script install_unity "$UNITY_VERSION" "$UNITY_VERSION_CHANGESET"
     - echo "Using Unity version $UNITY_VERSION"
   configure-unity-licensing:
     # Grab the Unity Licensing Server configuration and write it to the system-wide
