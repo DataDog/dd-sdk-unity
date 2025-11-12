@@ -128,11 +128,8 @@ namespace Datadog.Unity.Android
                 rumConfigBuilder.Call<AndroidJavaObject>("setSessionSampleRate", options.SessionSampleRate);
                 rumConfigBuilder.Call<AndroidJavaObject>("setTelemetrySampleRate", options.TelemetrySampleRate);
 
-                if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
-                {
-                    using var updateFrequency = DatadogConfigurationHelpers.GetVitalsUpdateFrequency(options.VitalsUpdateFrequency);
-                    rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
-                }
+                using var updateFrequency = DatadogConfigurationHelpers.GetVitalsUpdateFrequency(options.VitalsUpdateFrequency);
+                rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
 
                 switch (options.TrackNonFatalAnrs)
                 {

@@ -54,7 +54,8 @@ class UnityVersion:
         pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc|f|p)\d+)$')
         match = pattern.match(s)
         if not match:
-            raise ValueError(f'Unexpected format for Unity version: {s}')
+            #raise ValueError(f'Unexpected format for Unity version: {s}')
+            return cls(0, 0, 0, 'Invalid')
         return cls(
             major=int(match.group(1)),
             minor=int(match.group(2)),

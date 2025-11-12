@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Fix a bug where setting "Vitals Update Frequency" to `None` would not take effect as intended on Android builds.
+
 ## 1.6.0
 
 * Add application version to WebGL builds.
