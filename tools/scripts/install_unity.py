@@ -22,10 +22,11 @@ def install_unity(version: str, changeset: str, force: bool):
     """
     init_logger()
 
+    unity_hub = UnityHub.require()
+
     # Check to see if we have the requisite version already installed, and if so, print
     # its full version string to stdout and exit
     if not force:
-        unity_hub = UnityHub.require()
         unity_installs = unity_hub.list_installs()
         found_install = resolve_unity_install(unity_installs, version)
         if found_install:
