@@ -67,11 +67,11 @@ class UnityHub(object):
         )
         return versions
     
-    def install_version(self, version: UnityVersion, modules: List[str]) -> UnityInstall:
+    def install_version(self, version: str, changeset: str, modules: List[str]) -> UnityInstall:
         log = get_default_logger()
         log.info(f'Installing Unity {version}...')
 
-        args = [self.path, '--', '--headless', 'install', '--version', str(version)]
+        args = [self.path, '--', '--headless', 'install', '--version', version, '--changeset', changeset]
         args.append('--module')
         args.extend(modules)
         args.append('--childModules')

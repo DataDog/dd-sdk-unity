@@ -112,8 +112,8 @@ Our test scripts use the [Unity Hub][unity-hub] binary to locate and manage inst
 To install the latest release of a specific editor version, along with all required components for testing the Datadog SDK, you can use the [`install_unity`][install-unity] script:
 
 ```bash
-# Install the latest version release of Unity 2022.3 through Unity Hub
-./run-script install_unity 2022.3
+# Install the officially supported release of Unity 2022.3 through Unity Hub
+./run-script install_unity 2022.3.67f2 6bedba8691df'
 ```
 
 [unit-test]: ./tools/scripts/unit_test.py

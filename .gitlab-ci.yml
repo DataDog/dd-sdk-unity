@@ -2,7 +2,8 @@ include:
   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v3-sdm/template.yml'
 
 variables:
-  UNITY_VERSION_PARTIAL: 2022.3
+  UNITY_VERSION: '2022.3.67f2'
+  UNITY_VERSION_CHANGESET: '6bedba8691df'
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
 stages:
@@ -18,13 +19,8 @@ stages:
     # Install Unity Hub and other development dependencies
     - brew install --cask unity-hub
     - brew install xcbeautify
-    # Run install_unity.py to ensure that our requisite version of Unity is installed:
-    # the last line of output will contain the full version string, so export it as
-    # UNITY_VERSION
-    - LOG_TMPFILE=$(mktemp)
-    - ./run-script install_unity "$UNITY_VERSION_PARTIAL" | tee "$LOG_TMPFILE"
-    - export UNITY_VERSION=$(tail -n 1 "$LOG_TMPFILE")
-    - rm "$LOG_TMPFILE"
+    # Run install_unity.py to ensure that our requisite version of Unity is installed
+    - ./run-script install_unity "$UNITY_VERSION" "$UNITY_VERSION_CHANGESET" --force
     - echo "Using Unity version $UNITY_VERSION"
   configure-unity-licensing:
     # Grab the Unity Licensing Server configuration and write it to the system-wide
@@ -45,11 +41,14 @@ unit-test:
     - specific:true
   parallel:
     matrix:
-      - UNITY_VERSION_PARTIAL: '2021.3'
+      - UNITY_VERSION: '2021.3.58f1'
+        UNITY_VERSION_CHANGESET: '2c36cafeeccf'
         PROJECT_PATH: 'test_scaffolds/2021 LTS'
-      - UNITY_VERSION_PARTIAL: '2022.3'
+      - UNITY_VERSION: '2022.3.67f2'
+        UNITY_VERSION_CHANGESET: '6bedba8691df'
         PROJECT_PATH: 'samples/Datadog Sample'
-      - UNITY_VERSION_PARTIAL: '6000.2'
+      - UNITY_VERSION: '6000.2.9f1'
+        UNITY_VERSION_CHANGESET: 'e0c4e791ab71'
         PROJECT_PATH: 'test_scaffolds/6000 LTS'
   script:
     - !reference [.shared, init-scripts]
