@@ -1,10 +1,10 @@
 <dependencies>
   <androidPackages>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2.26.1">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:2.26.3">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:2.26.1">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:2.26.3">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2.26.1">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:2.26.3">
     </androidPackage>
   </androidPackages>
   <iosPods>
