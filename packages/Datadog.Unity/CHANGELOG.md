@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.6.1
 
 * Fix a bug where setting "Vitals Update Frequency" to `None` would not take effect as intended on Android builds.
 
