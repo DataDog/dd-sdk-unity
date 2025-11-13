@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Use of the JankStats API is now fully disabled in Android builds, to guard against crashes triggered by a bug in certain versions of `androidx.metrics`.
+
 ## 1.6.1
 
 * Fix a bug where setting "Vitals Update Frequency" to `None` would not take effect as intended on Android builds.

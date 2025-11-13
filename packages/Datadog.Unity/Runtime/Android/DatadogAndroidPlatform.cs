@@ -148,10 +148,14 @@ namespace Datadog.Unity.Android
                 using var internalBuilderCompanion = internalBuilder.GetStatic<AndroidJavaObject>("Companion");
                 internalBuilderCompanion.Call<AndroidJavaObject>("setTelemetryConfigurationEventMapper", rumConfigBuilder, new TelemetryCallback());
 
-                // Uncomment to always send Configuraiton telemetry
+                // JankStats does not work for Unity apps, and disabling it entirely safeguards against
+                // known crash issues with androidx.metrics
+                internalBuilderCompanion.Call<AndroidJavaObject>("setDisableJankStats", rumConfigBuilder, true);
+
+                // Uncomment to always send Configuration telemetry
                 // var rumAdditionalConfig = new Dictionary<string, object>()
                 // {
-                //     { "_dd.telemetry.configuration_sample_rate", 100.0f },
+                //     { "_dd.telemetry.configuration_sample_rate", 100.0f }
                 // };
                 // internalBuilderCompanion.Call<AndroidJavaObject>("setAdditionalConfiguration",
                 //     rumConfigBuilder,
