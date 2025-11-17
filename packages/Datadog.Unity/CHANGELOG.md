@@ -1,8 +1,9 @@
 # Change Log
 
-## Unreleased
+## 1.6.2
 
 * Use of the JankStats API is now fully disabled in Android builds, to guard against crashes triggered by a bug in certain versions of `androidx.metrics`.
+* Upgrade Datadog Android SDK to version 2.26.3.
 
 ## 1.6.1
 
