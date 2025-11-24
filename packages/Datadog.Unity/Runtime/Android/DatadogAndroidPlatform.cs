@@ -198,7 +198,7 @@ namespace Datadog.Unity.Android
             }
 
             var javaExtraInfo = DatadogAndroidHelpers.DictionaryToJavaMap(extraInfo);
-            _datadogClass.CallStatic("addUserExtraInfo", javaExtraInfo);
+            _datadogClass.CallStatic("addUserProperties", javaExtraInfo);
         }
 
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
