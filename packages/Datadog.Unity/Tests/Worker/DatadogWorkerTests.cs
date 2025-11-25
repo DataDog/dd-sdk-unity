@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System.Threading;
+using Datadog.Unity.Core;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -11,13 +12,15 @@ namespace Datadog.Unity.Worker.Tests
     public class DatadogThreadedWorkerTests
     {
         private IDatadogWorkerProcessor _mockProcessor;
+        private IInternalLogger _mocKLogger;
         private DatadogWorker _worker;
 
         [SetUp]
         public void SetUp()
         {
             _mockProcessor = Substitute.For<IDatadogWorkerProcessor>();
-            _worker = new ThreadedWorker();
+            _mocKLogger = Substitute.For<IInternalLogger>();
+            _worker = new ThreadedWorker(_mocKLogger);
         }
 
         [TearDown]

@@ -6,14 +6,22 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using Datadog.Unity.Core;
+using Datadog.Unity.Logs;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace Datadog.Unity.Worker
 {
     internal class ThreadedWorker : DatadogWorker
     {
         private BlockingCollection<IDatadogWorkerMessage> _workQueue = new();
+        private IInternalLogger _logger;
         private Thread _workerThread;
+
+        public ThreadedWorker(IInternalLogger logger)
+        {
+            _logger = logger;
+        }
 
         public override void Start()
         {
@@ -31,7 +39,6 @@ namespace Datadog.Unity.Worker
         {
             if (_workerThread == null)
             {
-                Debug.Log("Stopping already stopped worker?");
                 return;
             }
 
@@ -46,6 +53,13 @@ namespace Datadog.Unity.Worker
 
         public override void AddMessage(IDatadogWorkerMessage message)
         {
+            if (!(_workerThread?.IsAlive ?? false))
+            {
+                _workerThread = null;
+                Start();
+                _logger.TelemetryDebug("Worker thread was stopped and restarted!");
+            }
+
             _workQueue.Add(message);
         }
 
@@ -69,11 +83,23 @@ namespace Datadog.Unity.Worker
                 {
                     // This is an expected exception and is thrown when the work queue
                     // is completed while .Take is waiting on a new item.
-                    Debug.Log("Stopping worker.");
+                    _logger.Log(DdLogLevel.Debug, "Shutting down worker thread.");
+                }
+                catch (Exception e)
+                {
+                    // Since we're already on the worker thread, send telemetry information
+                    // directly without going through the work queue. This should also
+                    // hopefully log things even if Telemetry is somehow issue itself.
+                    var message = DdTelemetryProcessor.TelemetryErrorMessage.Create(
+                        "Exception on worker thread",
+                        e.StackTrace,
+                        e.GetType().ToString());
+                    HandleMessage(message);
+                    message.Discard();
                 }
             }
 
-            Debug.Log("Stopped!");
+            _logger.Log(DdLogLevel.Debug, "Worker Thread Stopped.");
         }
     }
 }

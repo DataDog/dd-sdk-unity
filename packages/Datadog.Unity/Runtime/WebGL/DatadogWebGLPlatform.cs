@@ -43,7 +43,7 @@ namespace Datadog.Unity.WebGL
             _logs.Init(options);
         }
 
-        public DatadogWorker CreateWorker()
+        public DatadogWorker CreateWorker(IInternalLogger logger)
         {
             return new PassthroughWorker();
         }

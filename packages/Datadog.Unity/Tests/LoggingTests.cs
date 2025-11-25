@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Worker;
 using NSubstitute;
@@ -58,7 +59,7 @@ namespace Datadog.Unity.Tests
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             // When
@@ -78,7 +79,7 @@ namespace Datadog.Unity.Tests
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new()
@@ -103,7 +104,7 @@ namespace Datadog.Unity.Tests
                 .CreateLogger( Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new()
@@ -129,7 +130,7 @@ namespace Datadog.Unity.Tests
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new()
@@ -183,7 +184,7 @@ namespace Datadog.Unity.Tests
                 .CreateLogger(Arg.Any<DatadogLoggingOptions>(), Arg.Any<DatadogWorker>())
                 .Returns(mockLogger);
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new());
@@ -214,7 +215,7 @@ namespace Datadog.Unity.Tests
                 callbackAttributes.Copy(attributes);
             }));
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new());
@@ -244,7 +245,7 @@ namespace Datadog.Unity.Tests
                 callbackAttributes.Copy(attributes);
             }));
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new());
@@ -271,7 +272,7 @@ namespace Datadog.Unity.Tests
             // Given
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
             DatadogSdk.InitWithPlatform(mockPlatform, new());
 
@@ -288,7 +289,7 @@ namespace Datadog.Unity.Tests
             // Given
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new());
@@ -307,7 +308,7 @@ namespace Datadog.Unity.Tests
             // Given
             var mockPlatform = Substitute.For<IDatadogPlatform>();
             var worker = new PassthroughWorker();
-            mockPlatform.CreateWorker()
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>())
                 .Returns(worker);
 
             DatadogSdk.InitWithPlatform(mockPlatform, new());

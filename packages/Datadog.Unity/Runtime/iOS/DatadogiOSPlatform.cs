@@ -49,9 +49,9 @@ namespace Datadog.Unity.iOS
             _shouldTranslateCsStacks = options.OutputSymbols && options.PerformNativeStackMapping && !Debug.isDebugBuild;
         }
 
-        public DatadogWorker CreateWorker()
+        public DatadogWorker CreateWorker(IInternalLogger logger)
         {
-            return new ThreadedWorker();
+            return new ThreadedWorker(logger);
         }
 
         public void SetVerbosity(CoreLoggerLevel logLevel)
