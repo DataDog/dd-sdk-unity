@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Threading;
 using Datadog.Unity.Core;
 using NSubstitute;
@@ -12,15 +13,15 @@ namespace Datadog.Unity.Worker.Tests
     public class DatadogThreadedWorkerTests
     {
         private IDatadogWorkerProcessor _mockProcessor;
-        private IInternalLogger _mocKLogger;
-        private DatadogWorker _worker;
+        private IInternalLogger _mockLogger;
+        private ThreadedWorker _worker;
 
         [SetUp]
         public void SetUp()
         {
             _mockProcessor = Substitute.For<IDatadogWorkerProcessor>();
-            _mocKLogger = Substitute.For<IInternalLogger>();
-            _worker = new ThreadedWorker(_mocKLogger);
+            _mockLogger = Substitute.For<IInternalLogger>();
+            _worker = new ThreadedWorker(_mockLogger);
         }
 
         [TearDown]
@@ -77,6 +78,51 @@ namespace Datadog.Unity.Worker.Tests
             _worker.Stop();
 
             _mockProcessor.Received(1).Process(message);
+        }
+
+        [Test]
+        public void WorkerThreadCatchesProcessorExceptions()
+        {
+            // Given
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
+            _mockProcessor
+                .When(p => p.Process(Arg.Any<IDatadogWorkerMessage>()))
+                .Throw(x => new InvalidCastException("Test Exception"));
+
+            // When
+            var messageA = new MockWorkerMessage("fake data");
+            _worker.AddMessage(messageA);
+            var messageB = new MockWorkerMessage("fake data");
+            _worker.AddMessage(messageB);
+
+            _worker.Stop();
+
+            _mockProcessor.Received(1).Process(messageB);
+        }
+
+        [Test]
+        public void WorkerThreadRestartsIfStopped()
+        {
+            // Given
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
+
+            var messageA = new MockWorkerMessage("fake data");
+            _mockProcessor.When(p => p.Process(messageA))
+                .Throw(new InvalidCastException("Message A"));
+
+
+            // When
+            _worker.Start();
+            _worker.AddMessage(messageA);
+            _worker.Stop();
+            Assert.IsFalse(_worker.IsAlive);
+
+            var messageB = new MockWorkerMessage("fake data");
+            _worker.AddMessage(messageB);
+            _worker.Stop();
+
+            // Then
+            _mockProcessor.Received(1).Process(messageB);
         }
     }
 

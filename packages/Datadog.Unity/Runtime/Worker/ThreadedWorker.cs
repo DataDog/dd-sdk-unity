@@ -14,9 +14,12 @@ namespace Datadog.Unity.Worker
 {
     internal class ThreadedWorker : DatadogWorker
     {
+        private readonly IInternalLogger _logger;
         private BlockingCollection<IDatadogWorkerMessage> _workQueue = new();
-        private IInternalLogger _logger;
         private Thread _workerThread;
+
+        // Used for testing
+        public bool IsAlive => _workerThread != null && _workerThread.IsAlive;
 
         public ThreadedWorker(IInternalLogger logger)
         {
@@ -53,7 +56,7 @@ namespace Datadog.Unity.Worker
 
         public override void AddMessage(IDatadogWorkerMessage message)
         {
-            if (!(_workerThread?.IsAlive ?? false))
+            if (_workerThread == null || !_workerThread.IsAlive)
             {
                 _workerThread = null;
                 Start();
@@ -89,13 +92,12 @@ namespace Datadog.Unity.Worker
                 {
                     // Since we're already on the worker thread, send telemetry information
                     // directly without going through the work queue. This should also
-                    // hopefully log things even if Telemetry is somehow issue itself.
+                    // hopefully log things even if Telemetry is the issue.
                     var message = DdTelemetryProcessor.TelemetryErrorMessage.Create(
                         "Exception on worker thread",
                         e.StackTrace,
                         e.GetType().ToString());
                     HandleMessage(message);
-                    message.Discard();
                 }
             }
 
