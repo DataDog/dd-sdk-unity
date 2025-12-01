@@ -88,11 +88,12 @@ namespace Datadog.Unity.Worker.Tests
             _mockProcessor
                 .When(p => p.Process(Arg.Any<IDatadogWorkerMessage>()))
                 .Throw(x => new InvalidCastException("Test Exception"));
+            _worker.Start();
 
             // When
-            var messageA = new MockWorkerMessage("fake data");
+            var messageA = new MockWorkerMessage("Fake message A");
             _worker.AddMessage(messageA);
-            var messageB = new MockWorkerMessage("fake data");
+            var messageB = new MockWorkerMessage("Fake message B");
             _worker.AddMessage(messageB);
 
             _worker.Stop();
@@ -105,19 +106,17 @@ namespace Datadog.Unity.Worker.Tests
         {
             // Given
             _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
-
-            var messageA = new MockWorkerMessage("fake data");
+            var messageA = new MockWorkerMessage("Fake Message A");
             _mockProcessor.When(p => p.Process(messageA))
                 .Throw(new InvalidCastException("Message A"));
-
 
             // When
             _worker.Start();
             _worker.AddMessage(messageA);
-            _worker.Stop();
+            _worker.Kill();
             Assert.IsFalse(_worker.IsAlive);
 
-            var messageB = new MockWorkerMessage("fake data");
+            var messageB = new MockWorkerMessage("Fake Message B");
             _worker.AddMessage(messageB);
             _worker.Stop();
 

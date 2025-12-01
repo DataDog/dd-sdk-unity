@@ -49,21 +49,32 @@ namespace Datadog.Unity.Worker
             _workerThread.Join();
 
             // Clear out thread and create a new work queue so
-            // this worked can be re-used (although it shouldn't be)
+            // this worker can be re-used (although it shouldn't be)
             _workerThread = null;
             _workQueue = new();
         }
 
         public override void AddMessage(IDatadogWorkerMessage message)
         {
-            if (_workerThread == null || !_workerThread.IsAlive)
+            // Only restart the worker thread if it was previously started
+            if (_workerThread != null)
             {
-                _workerThread = null;
-                Start();
-                _logger.TelemetryDebug("Worker thread was stopped and restarted!");
+                if (!_workerThread.IsAlive)
+                {
+                    _workerThread = null;
+                    Start();
+                    _logger.TelemetryDebug("Worker thread was stopped and restarted!");
+                }
             }
 
             _workQueue.Add(message);
+        }
+
+        // For internal testing. Force the thread to stop as if something went wrong.
+        internal void Kill()
+        {
+            _workerThread.Abort();
+            _workerThread.Join();
         }
 
         private void ThreadWorker()
