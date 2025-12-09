@@ -32,8 +32,7 @@ namespace Datadog.Unity.Tests
             // Given an SDK config that includes RUM and has a nonzero VitalsUpdateFrequency
             var mockWorker = Substitute.For<DatadogWorker>();
             var mockPlatform = Substitute.For<IDatadogPlatform>();
-            var mockLogger = Substitute.For<IInternalLogger>();
-            mockPlatform.CreateWorker(mockLogger).Returns(mockWorker);
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>()).Returns(mockWorker);
             var options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
             options.Enabled = true;
             options.RumEnabled = true;
@@ -62,8 +61,7 @@ namespace Datadog.Unity.Tests
             // Given an SDK config that includes RUM and has VitalsUpdateFrequency.None
             var mockWorker = Substitute.For<DatadogWorker>();
             var mockPlatform = Substitute.For<IDatadogPlatform>();
-            var mockLogger = Substitute.For<IInternalLogger>();
-            mockPlatform.CreateWorker(mockLogger).Returns(mockWorker);
+            mockPlatform.CreateWorker(Arg.Any<IInternalLogger>()).Returns(mockWorker);
             var options = ScriptableObject.CreateInstance<DatadogConfigurationOptions>();
             options.Enabled = true;
             options.RumEnabled = true;
