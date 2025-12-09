@@ -31,7 +31,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             {
                 serverLog = requests;
                 logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 5;
+                return logs.Count >= 6;
             });
 
             foreach (var log in serverLog)
@@ -42,7 +42,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 }
             }
 
-            Assert.AreEqual(5, logs.Count);
+            Assert.AreEqual(6, logs.Count);
 
             var debugLog = logs[0];
             Assert.AreEqual("debug", debugLog.Status);
@@ -104,15 +104,33 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
-            Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
+            Assert.IsFalse(errorLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("value", (string)errorLog.RawJson["attribute"]);
             Assert.AreEqual("user-id", errorLog.UserId);
             Assert.AreEqual("user-name", errorLog.UserName);
             Assert.IsNull(errorLog.UserEmail);
             Assert.AreEqual("property", errorLog.UserExtraInfo["extra"].ToString());
 
+            var userInfoLog = logs[4];
+            Assert.AreEqual("info", userInfoLog.Status);
+            Assert.AreEqual("added user info message", userInfoLog.Message);
+#if !UNITY_WEBGL
+            Assert.AreEqual("logging.service", userInfoLog.ServiceName);
+#endif
+            CollectionAssert.DoesNotContain(userInfoLog.Tags, "tag1:tag-value");
+            CollectionAssert.DoesNotContain(userInfoLog.Tags, "tag1:second-value");
+            CollectionAssert.DoesNotContain(userInfoLog.Tags, "my-tag");
+            Assert.IsFalse(userInfoLog.RawJson.ContainsKey("logger-attribute1"));
+            Assert.AreEqual(1000, (long)userInfoLog.RawJson["logger-attribute2"]);
+            Assert.AreEqual("value-1", (string)userInfoLog.RawJson["global-attribute-1"]);
+            Assert.IsFalse(userInfoLog.RawJson.ContainsKey("global-attribute-2"));
+            Assert.AreEqual("user-id", userInfoLog.UserId);
+            Assert.AreEqual("user-name", userInfoLog.UserName);
+            Assert.IsNull(userInfoLog.UserEmail);
+            Assert.AreEqual("property", userInfoLog.UserExtraInfo["extra"].ToString());
+            Assert.AreEqual("error message", userInfoLog.UserExtraInfo["saw_error"].ToString());
 
-            var exceptionLog = logs[4];
+            var exceptionLog = logs[5];
             Assert.AreEqual("warn", exceptionLog.Status);
             Assert.AreEqual("Warning: this error occurred", exceptionLog.Message);
 #if !UNITY_WEBGL
@@ -196,6 +214,12 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 });
 
                 logger.Error("error message", new() { { "attribute", "value" } });
+
+                DatadogSdk.Instance.AddUserExtraInfo(new()
+                {
+                    { "saw_error", "error message" },
+                });
+                logger.Info("added user info message");
 
                 try
                 {

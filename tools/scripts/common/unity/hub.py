@@ -87,6 +87,22 @@ class UnityHub(object):
             raise RuntimeError('Failed to resolve Unity install after successful completion of install command')
         return new_version
 
+    def install_modules(self, version: UnityVersion, modules: List[str]) :
+        log = get_default_logger()
+        log.info(f'Installing Unity {version}...')
+
+        args = [self.path, '--', '--headless', 'install-modules', '--version', str(version)]
+        for module in modules:
+            args.append('--module')
+            args.append(module)
+        args.append('--childModules')
+        if platform.system() == 'Darwin':
+            args.append('--architecture')
+            args.append('arm64' if platform.processor() == 'arm' else 'x86_64')
+
+        # Don't worry if this fails. It may mean all modules are installed
+        run_cmd(*args, raise_on_nonzero_exitcode=False, echo=True)
+
     @classmethod
     def require(cls) -> 'UnityHub':
         """

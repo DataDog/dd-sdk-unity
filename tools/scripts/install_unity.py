@@ -39,6 +39,8 @@ def install_unity(version_prefix: str):
     unity_installs = unity_hub.list_installs()
     found_install = resolve_unity_install(unity_installs, version_prefix)
     if found_install:
+        # make sure all modules are properly installed for this version
+        new_install = unity_hub.install_modules(found_install.version, ['ios', 'android'])
         print(found_install.version)
         return 0
 
