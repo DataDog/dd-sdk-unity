@@ -7,8 +7,6 @@ using System.Collections.Concurrent;
 using System.Threading;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
-using UnityEngine;
-using UnityEngine.XR;
 
 namespace Datadog.Unity.Worker
 {
