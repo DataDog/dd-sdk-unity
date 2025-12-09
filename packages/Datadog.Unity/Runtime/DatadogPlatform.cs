@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -17,7 +18,7 @@ namespace Datadog.Unity
     {
         void Init(DatadogConfigurationOptions options);
 
-        DatadogWorker CreateWorker();
+        DatadogWorker CreateWorker(IInternalLogger logger);
 
         void SetVerbosity(CoreLoggerLevel logLevel);
 

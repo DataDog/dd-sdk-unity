@@ -67,6 +67,14 @@ public class UIBehavior : MonoBehaviour
         DatadogSdk.Instance.ClearAllData();
     }
 
+    public void AddUserData()
+    {
+        DatadogSdk.Instance.AddUserExtraInfo(new ()
+        {
+            { "attribute_extra", "my_data" },
+        });
+    }
+
     private IEnumerator DoWebRequest()
     {
         var request = DatadogTrackedWebRequest.Get("https://httpbin.org/headers");

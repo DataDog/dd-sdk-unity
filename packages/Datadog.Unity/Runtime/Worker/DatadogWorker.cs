@@ -29,10 +29,6 @@ namespace Datadog.Unity.Worker
     {
         private readonly Dictionary<string, IDatadogWorkerProcessor> _processors = new();
 
-        public DatadogWorker()
-        {
-        }
-
         public abstract void Start();
         public abstract void Stop();
         public abstract void AddMessage(IDatadogWorkerMessage message);

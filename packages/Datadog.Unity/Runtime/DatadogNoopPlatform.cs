@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -25,7 +26,7 @@ namespace Datadog.Unity
         {
         }
 
-        public DatadogWorker CreateWorker()
+        public DatadogWorker CreateWorker(IInternalLogger logger)
         {
             return new NoOpWorker();
         }

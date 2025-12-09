@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Worker;
@@ -49,9 +50,9 @@ namespace Datadog.Unity.iOS
             _shouldTranslateCsStacks = options.OutputSymbols && options.PerformNativeStackMapping && !Debug.isDebugBuild;
         }
 
-        public DatadogWorker CreateWorker()
+        public DatadogWorker CreateWorker(IInternalLogger logger)
         {
-            return new ThreadedWorker();
+            return new ThreadedWorker(logger);
         }
 
         public void SetVerbosity(CoreLoggerLevel logLevel)

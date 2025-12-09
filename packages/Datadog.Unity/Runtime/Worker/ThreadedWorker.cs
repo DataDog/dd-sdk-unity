@@ -6,14 +6,23 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using Datadog.Unity.Core;
-using UnityEngine;
+using Datadog.Unity.Logs;
 
 namespace Datadog.Unity.Worker
 {
     internal class ThreadedWorker : DatadogWorker
     {
+        private readonly IInternalLogger _logger;
         private BlockingCollection<IDatadogWorkerMessage> _workQueue = new();
         private Thread _workerThread;
+
+        // Used for testing
+        public bool IsAlive => _workerThread != null && _workerThread.IsAlive;
+
+        public ThreadedWorker(IInternalLogger logger)
+        {
+            _logger = logger;
+        }
 
         public override void Start()
         {
@@ -31,7 +40,6 @@ namespace Datadog.Unity.Worker
         {
             if (_workerThread == null)
             {
-                Debug.Log("Stopping already stopped worker?");
                 return;
             }
 
@@ -39,14 +47,32 @@ namespace Datadog.Unity.Worker
             _workerThread.Join();
 
             // Clear out thread and create a new work queue so
-            // this worked can be re-used (although it shouldn't be)
+            // this worker can be re-used (although it shouldn't be)
             _workerThread = null;
             _workQueue = new();
         }
 
         public override void AddMessage(IDatadogWorkerMessage message)
         {
+            // Only restart the worker thread if it was previously started
+            if (_workerThread != null)
+            {
+                if (!_workerThread.IsAlive)
+                {
+                    _workerThread = null;
+                    Start();
+                    _logger.TelemetryDebug("Worker thread was stopped and restarted!");
+                }
+            }
+
             _workQueue.Add(message);
+        }
+
+        // For internal testing. Force the thread to stop as if something went wrong.
+        internal void Kill()
+        {
+            _workerThread.Abort();
+            _workerThread.Join();
         }
 
         private void ThreadWorker()
@@ -69,11 +95,22 @@ namespace Datadog.Unity.Worker
                 {
                     // This is an expected exception and is thrown when the work queue
                     // is completed while .Take is waiting on a new item.
-                    Debug.Log("Stopping worker.");
+                    _logger.Log(DdLogLevel.Debug, "Shutting down worker thread.");
+                }
+                catch (Exception e)
+                {
+                    // Since we're already on the worker thread, send telemetry information
+                    // directly without going through the work queue. This should also
+                    // hopefully log things even if Telemetry is the issue.
+                    var message = DdTelemetryProcessor.TelemetryErrorMessage.Create(
+                        "Exception on worker thread",
+                        e.StackTrace,
+                        e.GetType().ToString());
+                    HandleMessage(message);
                 }
             }
 
-            Debug.Log("Stopped!");
+            _logger.Log(DdLogLevel.Debug, "Worker Thread Stopped.");
         }
     }
 }
