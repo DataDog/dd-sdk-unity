@@ -1,5 +1,10 @@
 # Change Log
 
+## Unreleased
+
+* Data passed to `AddUserExtraInfo()` is now properly included in Android builds.
+* The background worker thread now has extra safeguards to ensure that the SDK will continue to collect data in the event of errors on that thread.
+
 ## 1.6.2
 
 * Use of the JankStats API is now fully disabled in Android builds, to guard against crashes triggered by a bug in certain versions of `androidx.metrics`.
