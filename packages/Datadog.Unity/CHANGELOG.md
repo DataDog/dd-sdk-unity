@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.6.3
 
 * Data passed to `AddUserExtraInfo()` is now properly included in Android builds.
 * The background worker thread now has extra safeguards to ensure that the SDK will continue to collect data in the event of errors on that thread.
