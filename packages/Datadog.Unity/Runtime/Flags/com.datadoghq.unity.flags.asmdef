@@ -1,0 +1,16 @@
+{
+    "name": "com.datadoghq.unity.flags",
+    "rootNamespace": "Datadog.Unity.Flags",
+    "references": [
+        "com.datadog.unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
