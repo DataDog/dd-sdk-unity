@@ -3,7 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
-using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -31,19 +31,19 @@ namespace Datadog.Unity.Flags
 
         public string ToJson()
         {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            sb.AppendFormat("\"timestamp\":{0}", Timestamp);
-            sb.AppendFormat(",\"flag\":{{\"key\":{0}}}", JsonHelper.Escape(FlagKey));
-            sb.AppendFormat(",\"allocation\":{{\"key\":{0}}}", JsonHelper.Escape(AllocationKey));
-            sb.AppendFormat(",\"variant\":{{\"key\":{0}}}", JsonHelper.Escape(VariationKey));
-            sb.Append(",\"subject\":{");
-            sb.AppendFormat("\"id\":{0}", JsonHelper.Escape(SubjectId));
-            sb.Append(",\"attributes\":");
-            sb.Append(JsonHelper.DictionaryToJson(SubjectAttributes));
-            sb.Append('}');
-            sb.Append('}');
-            return sb.ToString();
+            var obj = new JObject
+            {
+                ["timestamp"] = Timestamp,
+                ["flag"] = new JObject { ["key"] = FlagKey },
+                ["allocation"] = new JObject { ["key"] = AllocationKey },
+                ["variant"] = new JObject { ["key"] = VariationKey },
+                ["subject"] = new JObject
+                {
+                    ["id"] = SubjectId,
+                    ["attributes"] = JObject.FromObject(SubjectAttributes),
+                },
+            };
+            return obj.ToString(Newtonsoft.Json.Formatting.None);
         }
     }
 }

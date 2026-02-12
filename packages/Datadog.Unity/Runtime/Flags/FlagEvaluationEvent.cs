@@ -3,7 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
-using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -27,53 +27,54 @@ namespace Datadog.Unity.Flags
 
         public string ToJson()
         {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            sb.AppendFormat("\"timestamp\":{0}", Timestamp);
-            sb.AppendFormat(",\"flag\":{{\"key\":{0}}}", JsonHelper.Escape(FlagKey));
-            sb.AppendFormat(",\"first_evaluation\":{0}", FirstEvaluation);
-            sb.AppendFormat(",\"last_evaluation\":{0}", LastEvaluation);
-            sb.AppendFormat(",\"evaluation_count\":{0}", EvaluationCount);
+            var obj = new JObject
+            {
+                ["timestamp"] = Timestamp,
+                ["flag"] = new JObject { ["key"] = FlagKey },
+                ["first_evaluation"] = FirstEvaluation,
+                ["last_evaluation"] = LastEvaluation,
+                ["evaluation_count"] = EvaluationCount,
+            };
 
             if (RuntimeDefaultUsed != true && VariantKey != null)
             {
-                sb.AppendFormat(",\"variant\":{{\"key\":{0}}}", JsonHelper.Escape(VariantKey));
+                obj["variant"] = new JObject { ["key"] = VariantKey };
             }
 
             if (RuntimeDefaultUsed != true && AllocationKey != null)
             {
-                sb.AppendFormat(",\"allocation\":{{\"key\":{0}}}", JsonHelper.Escape(AllocationKey));
+                obj["allocation"] = new JObject { ["key"] = AllocationKey };
             }
 
             if (TargetingRuleKey != null)
             {
-                sb.AppendFormat(",\"targeting_rule\":{{\"key\":{0}}}", JsonHelper.Escape(TargetingRuleKey));
+                obj["targeting_rule"] = new JObject { ["key"] = TargetingRuleKey };
             }
 
             if (TargetingKey != null)
             {
-                sb.AppendFormat(",\"targeting_key\":{0}", JsonHelper.Escape(TargetingKey));
+                obj["targeting_key"] = TargetingKey;
             }
 
             if (RuntimeDefaultUsed.HasValue)
             {
-                sb.AppendFormat(",\"runtime_default_used\":{0}", RuntimeDefaultUsed.Value ? "true" : "false");
+                obj["runtime_default_used"] = RuntimeDefaultUsed.Value;
             }
 
             if (ErrorMessage != null)
             {
-                sb.AppendFormat(",\"error\":{{\"message\":{0}}}", JsonHelper.Escape(ErrorMessage));
+                obj["error"] = new JObject { ["message"] = ErrorMessage };
             }
 
             if (EvaluationAttributes != null && EvaluationAttributes.Count > 0)
             {
-                sb.Append(",\"context\":{\"evaluation\":");
-                sb.Append(JsonHelper.DictionaryToJson(EvaluationAttributes));
-                sb.Append('}');
+                obj["context"] = new JObject
+                {
+                    ["evaluation"] = JObject.FromObject(EvaluationAttributes),
+                };
             }
 
-            sb.Append('}');
-            return sb.ToString();
+            return obj.ToString(Newtonsoft.Json.Formatting.None);
         }
     }
 }

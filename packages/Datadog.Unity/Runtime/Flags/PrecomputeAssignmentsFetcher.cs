@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Datadog.Unity.Core;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -97,66 +99,72 @@ namespace Datadog.Unity.Flags
 
         private string BuildRequestBody(FlagsEvaluationContext context)
         {
-            var sb = new StringBuilder();
-            sb.Append("{\"data\":{\"type\":\"precompute-assignments-request\",\"attributes\":{");
-            sb.AppendFormat("\"env\":{{\"name\":{0},\"dd_env\":{0}}}", JsonHelper.Escape(_env));
-            sb.Append(",\"subject\":{");
-            sb.AppendFormat("\"targeting_key\":{0}", JsonHelper.Escape(context.TargetingKey));
+            var subject = new JObject
+            {
+                ["targeting_key"] = context.TargetingKey,
+            };
 
             if (context.Attributes.Count > 0)
             {
-                sb.Append(",\"targeting_attributes\":");
-                sb.Append(JsonHelper.DictionaryToJson(context.Attributes));
+                subject["targeting_attributes"] = JObject.FromObject(context.Attributes);
             }
 
-            sb.Append("}}}}");
-            return sb.ToString();
+            var body = new JObject
+            {
+                ["data"] = new JObject
+                {
+                    ["type"] = "precompute-assignments-request",
+                    ["attributes"] = new JObject
+                    {
+                        ["env"] = new JObject
+                        {
+                            ["name"] = _env,
+                            ["dd_env"] = _env,
+                        },
+                        ["subject"] = subject,
+                    },
+                },
+            };
+
+            return body.ToString(Formatting.None);
         }
 
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
         {
             var flags = new Dictionary<string, FlagAssignment>();
 
-            // Parse the JSON response: {"data":{"attributes":{"flags":{...}}}}
-            // Using Unity's JsonUtility is limited for dynamic keys, so we use a minimal parser
-            var parsed = MiniJson.Deserialize(json) as Dictionary<string, object>;
-            if (parsed == null)
+            JObject parsed;
+            try
+            {
+                parsed = JObject.Parse(json);
+            }
+            catch
             {
                 return flags;
             }
 
-            if (!parsed.TryGetValue("data", out var dataObj) || !(dataObj is Dictionary<string, object> data))
+            if (!(parsed["data"]?["attributes"]?["flags"] is JObject flagsObj))
             {
                 return flags;
             }
 
-            if (!data.TryGetValue("attributes", out var attrObj) || !(attrObj is Dictionary<string, object> attributes))
+            foreach (var prop in flagsObj.Properties())
             {
-                return flags;
-            }
-
-            if (!attributes.TryGetValue("flags", out var flagsObj) || !(flagsObj is Dictionary<string, object> flagsDict))
-            {
-                return flags;
-            }
-
-            foreach (var kvp in flagsDict)
-            {
-                if (!(kvp.Value is Dictionary<string, object> flagData))
+                if (!(prop.Value is JObject flagData))
                 {
                     continue;
                 }
 
-                var variationType = GetStringField(flagData, "variationType");
-                var variationValueRaw = flagData.ContainsKey("variationValue") ? flagData["variationValue"] : null;
-                var doLog = GetBoolField(flagData, "doLog");
-                var allocationKey = GetStringField(flagData, "allocationKey");
-                var variationKey = GetStringField(flagData, "variationKey");
-                var reason = GetStringField(flagData, "reason");
+                var variationType = flagData["variationType"]?.ToString();
+                var variationValueToken = flagData["variationValue"];
+                var doLog = flagData["doLog"]?.Value<bool>() ?? false;
+                var allocationKey = flagData["allocationKey"]?.ToString();
+                var variationKey = flagData["variationKey"]?.ToString();
+                var reason = flagData["reason"]?.ToString();
 
-                var variationValue = ParseVariationValue(variationType, variationValueRaw);
+                var variationValue = ParseVariationValue(variationType, variationValueToken);
 
-                flags[kvp.Key] = new FlagAssignment(
+                flags[prop.Name] = new FlagAssignment(
                     variationType: variationType,
                     variationValue: variationValue,
                     doLog: doLog,
@@ -168,9 +176,9 @@ namespace Datadog.Unity.Flags
             return flags;
         }
 
-        private static object ParseVariationValue(string variationType, object rawValue)
+        private static object ParseVariationValue(string variationType, JToken token)
         {
-            if (rawValue == null)
+            if (token == null || token.Type == JTokenType.Null)
             {
                 return null;
             }
@@ -178,81 +186,24 @@ namespace Datadog.Unity.Flags
             switch (variationType?.ToLowerInvariant())
             {
                 case "boolean":
-                    if (rawValue is bool boolVal)
-                    {
-                        return boolVal;
-                    }
-                    if (rawValue is string boolStr)
-                    {
-                        return string.Equals(boolStr, "true", StringComparison.OrdinalIgnoreCase);
-                    }
-                    return false;
+                    return token.Value<bool>();
 
                 case "string":
-                    return rawValue.ToString();
+                    return token.Value<string>();
 
                 case "integer":
-                    if (rawValue is long longVal)
-                    {
-                        return (int)longVal;
-                    }
-                    if (rawValue is double dblAsInt)
-                    {
-                        return (int)dblAsInt;
-                    }
-                    if (rawValue is string intStr && int.TryParse(intStr, out var parsed))
-                    {
-                        return parsed;
-                    }
-                    return 0;
+                    return token.Value<int>();
 
                 case "number":
                 case "float":
-                    if (rawValue is double dblVal)
-                    {
-                        return dblVal;
-                    }
-                    if (rawValue is long longAsDbl)
-                    {
-                        return (double)longAsDbl;
-                    }
-                    if (rawValue is string dblStr && double.TryParse(dblStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsedDbl))
-                    {
-                        return parsedDbl;
-                    }
-                    return 0.0;
+                    return token.Value<double>();
 
                 case "object":
-                    return rawValue; // Return as-is (Dictionary<string, object> from MiniJson)
+                    return token.ToObject<Dictionary<string, object>>();
 
                 default:
-                    return rawValue;
+                    return token.ToString();
             }
-        }
-
-        private static string GetStringField(Dictionary<string, object> dict, string key)
-        {
-            if (dict.TryGetValue(key, out var value) && value != null)
-            {
-                return value.ToString();
-            }
-            return null;
-        }
-
-        private static bool GetBoolField(Dictionary<string, object> dict, string key)
-        {
-            if (dict.TryGetValue(key, out var value))
-            {
-                if (value is bool b)
-                {
-                    return b;
-                }
-                if (value is string s)
-                {
-                    return string.Equals(s, "true", StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            return false;
         }
     }
 }

@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Datadog.Unity.Core;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -137,21 +139,25 @@ namespace Datadog.Unity.Flags
 
         private string BuildBatchContextJson()
         {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            sb.AppendFormat("\"device\":{{\"name\":{0},\"type\":{1},\"brand\":{2},\"model\":{3}}}",
-                JsonHelper.Escape(SystemInfo.deviceName),
-                JsonHelper.Escape(GetDeviceType()),
-                JsonHelper.Escape("Unity"),
-                JsonHelper.Escape(SystemInfo.deviceModel));
-            sb.AppendFormat(",\"os\":{{\"name\":{0},\"version\":{1}}}",
-                JsonHelper.Escape(SystemInfo.operatingSystemFamily.ToString()),
-                JsonHelper.Escape(SystemInfo.operatingSystem));
-            sb.AppendFormat(",\"service\":{0}", JsonHelper.Escape(Application.identifier ?? Application.productName));
-            sb.AppendFormat(",\"version\":{0}", JsonHelper.Escape(Application.version));
-            sb.AppendFormat(",\"env\":{0}", JsonHelper.Escape("prod"));
-            sb.Append('}');
-            return sb.ToString();
+            var context = new JObject
+            {
+                ["device"] = new JObject
+                {
+                    ["name"] = SystemInfo.deviceName,
+                    ["type"] = GetDeviceType(),
+                    ["brand"] = "Unity",
+                    ["model"] = SystemInfo.deviceModel,
+                },
+                ["os"] = new JObject
+                {
+                    ["name"] = SystemInfo.operatingSystemFamily.ToString(),
+                    ["version"] = SystemInfo.operatingSystem,
+                },
+                ["service"] = Application.identifier ?? Application.productName,
+                ["version"] = Application.version,
+                ["env"] = "prod",
+            };
+            return context.ToString(Formatting.None);
         }
 
         private static string GetDeviceType()

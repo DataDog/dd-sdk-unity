@@ -88,19 +88,5 @@ namespace Datadog.Unity.Flags.Tests
             Assert.IsTrue(json.Contains("\"runtime_default_used\":true"));
             Assert.IsTrue(json.Contains("\"error\":{\"message\":\"FLAG_NOT_FOUND\"}"));
         }
-
-        [Test]
-        public void JsonEscapesSpecialCharacters()
-        {
-            var escaped = JsonHelper.Escape("hello \"world\"\nnewline");
-            Assert.AreEqual("\"hello \\\"world\\\"\\nnewline\"", escaped);
-        }
-
-        [Test]
-        public void JsonEscapesNullToLiteral()
-        {
-            var escaped = JsonHelper.Escape(null);
-            Assert.AreEqual("null", escaped);
-        }
     }
 }
