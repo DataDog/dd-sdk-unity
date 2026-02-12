@@ -7,7 +7,7 @@ namespace Datadog.Unity.Flags
     /// <summary>
     /// Error codes for flag evaluation failures.
     /// </summary>
-    public enum FlagEvaluationError
+    internal enum FlagEvaluationError
     {
         /// <summary>The provider is not ready to evaluate flags.</summary>
         ProviderNotReady,
@@ -22,7 +22,7 @@ namespace Datadog.Unity.Flags
     /// <summary>
     /// Reason codes explaining why a particular flag value was resolved.
     /// </summary>
-    public enum ResolutionReason
+    internal enum ResolutionReason
     {
         /// <summary>No targeting rules matched; the fallthrough/default allocation was used.</summary>
         Static,
@@ -47,7 +47,7 @@ namespace Datadog.Unity.Flags
     /// Detailed result of a flag evaluation including value, variant, reason, and error information.
     /// </summary>
     /// <typeparam name="T">The type of the flag value.</typeparam>
-    public class FlagDetails<T>
+    internal class FlagDetails<T>
     {
         internal FlagDetails(string key, T value, string variant = null, string reason = null, FlagEvaluationError? error = null)
         {

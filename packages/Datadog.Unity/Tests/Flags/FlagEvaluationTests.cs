@@ -3,134 +3,167 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NUnit.Framework;
+using OpenFeature;
+using OpenFeature.Constant;
 
 namespace Datadog.Unity.Flags.Tests
 {
     public class FlagEvaluationTests
     {
+        private DatadogFeatureProvider _provider;
+        private FlagsClient _client;
         private FlagsRepository _repository;
 
         [SetUp]
         public void SetUp()
         {
             _repository = new FlagsRepository();
+            _client = new FlagsClient(
+                repository: _repository,
+                exposureTracker: new ExposureTracker(),
+                evaluationAggregator: null,
+                fetcher: null,
+                logger: null,
+                trackExposures: false,
+                trackEvaluations: false,
+                onExposure: null);
+
+            _provider = new DatadogFeatureProvider();
+            _provider.SetClient(_client);
+            Api.Instance.SetProviderAsync(_provider).GetAwaiter().GetResult();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _client?.Dispose();
         }
 
         [Test]
-        public void BooleanFlagReturnsCorrectValue()
+        public async Task BooleanFlagReturnsCorrectValue()
         {
-            var flags = new Dictionary<string, FlagAssignment>
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
                 ["show-feature"] = new FlagAssignment("boolean", true, true, "alloc-1", "treatment", "TARGETING_MATCH"),
-            };
-            var context = new FlagsEvaluationContext("user-1");
-            _repository.SetFlagsAndContext(context, flags);
+            });
 
-            var assignment = _repository.GetFlagAssignment("show-feature");
-            Assert.IsNotNull(assignment);
-            Assert.IsTrue(assignment.TryGetValue<bool>(out var value));
+            var ofClient = Api.Instance.GetClient();
+            var value = await ofClient.GetBooleanValueAsync("show-feature", false);
+
             Assert.IsTrue(value);
         }
 
         [Test]
-        public void StringFlagReturnsCorrectValue()
+        public async Task StringFlagReturnsCorrectValue()
         {
-            var flags = new Dictionary<string, FlagAssignment>
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
                 ["theme"] = new FlagAssignment("string", "dark", true, "alloc-1", "dark-mode", "TARGETING_MATCH"),
-            };
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+            });
 
-            var assignment = _repository.GetFlagAssignment("theme");
-            Assert.IsNotNull(assignment);
-            Assert.IsTrue(assignment.TryGetValue<string>(out var value));
+            var ofClient = Api.Instance.GetClient();
+            var value = await ofClient.GetStringValueAsync("theme", "light");
+
             Assert.AreEqual("dark", value);
         }
 
         [Test]
-        public void IntegerFlagReturnsCorrectValue()
+        public async Task IntegerFlagReturnsCorrectValue()
         {
-            var flags = new Dictionary<string, FlagAssignment>
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
                 ["max-items"] = new FlagAssignment("integer", 42, true, "alloc-1", "high", "TARGETING_MATCH"),
-            };
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+            });
 
-            var assignment = _repository.GetFlagAssignment("max-items");
-            Assert.IsTrue(assignment.TryGetValue<int>(out var value));
+            var ofClient = Api.Instance.GetClient();
+            var value = await ofClient.GetIntegerValueAsync("max-items", 10);
+
             Assert.AreEqual(42, value);
         }
 
         [Test]
-        public void DoubleFlagReturnsCorrectValue()
+        public async Task DoubleFlagReturnsCorrectValue()
         {
-            var flags = new Dictionary<string, FlagAssignment>
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
                 ["price"] = new FlagAssignment("number", 9.99, true, "alloc-1", "discount", "TARGETING_MATCH"),
-            };
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+            });
 
-            var assignment = _repository.GetFlagAssignment("price");
-            Assert.IsTrue(assignment.TryGetValue<double>(out var value));
+            var ofClient = Api.Instance.GetClient();
+            var value = await ofClient.GetDoubleValueAsync("price", 0.0);
+
             Assert.AreEqual(9.99, value, 0.001);
         }
 
         [Test]
-        public void MissingFlagReturnsNull()
+        public async Task MissingFlagReturnsDefault()
         {
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), new Dictionary<string, FlagAssignment>());
+            SetFlags(new Dictionary<string, FlagAssignment>());
 
-            var assignment = _repository.GetFlagAssignment("nonexistent");
-            Assert.IsNull(assignment);
+            var ofClient = Api.Instance.GetClient();
+            var value = await ofClient.GetBooleanValueAsync("nonexistent", true);
+
+            Assert.IsTrue(value);
         }
 
         [Test]
-        public void TypeMismatchReturnsFalse()
+        public async Task MissingFlagReturnsErrorDetails()
         {
-            var flags = new Dictionary<string, FlagAssignment>
-            {
-                ["name"] = new FlagAssignment("string", "hello", true, "alloc-1", "greeting", "TARGETING_MATCH"),
-            };
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+            SetFlags(new Dictionary<string, FlagAssignment>());
 
-            var assignment = _repository.GetFlagAssignment("name");
-            Assert.IsFalse(assignment.TryGetValue<bool>(out _));
+            var ofClient = Api.Instance.GetClient();
+            var details = await ofClient.GetBooleanDetailsAsync("nonexistent", false);
+
+            Assert.IsFalse(details.Value);
+            Assert.AreEqual(ErrorType.FlagNotFound, details.ErrorType);
         }
 
         [Test]
-        public void RepositoryContextIsSet()
+        public async Task DetailsIncludeVariantAndReason()
         {
-            var context = new FlagsEvaluationContext("user-42", new Dictionary<string, object>
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
-                { "email", "test@example.com" },
+                ["checkout-v2"] = new FlagAssignment("boolean", true, true, "alloc-1", "treatment", "TARGETING_MATCH"),
             });
-            _repository.SetFlagsAndContext(context, new Dictionary<string, FlagAssignment>());
 
-            Assert.IsNotNull(_repository.Context);
-            Assert.AreEqual("user-42", _repository.Context.TargetingKey);
-            Assert.AreEqual("test@example.com", _repository.Context.Attributes["email"]);
+            var ofClient = Api.Instance.GetClient();
+            var details = await ofClient.GetBooleanDetailsAsync("checkout-v2", false);
+
+            Assert.IsTrue(details.Value);
+            Assert.AreEqual("treatment", details.Variant);
+            Assert.AreEqual("TARGETING_MATCH", details.Reason);
+            Assert.AreEqual(ErrorType.None, details.ErrorType);
         }
 
         [Test]
-        public void SetFlagsReplacesExistingFlags()
+        public async Task SetFlagsReplacesExistingFlags()
         {
-            var flags1 = new Dictionary<string, FlagAssignment>
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
                 ["flag-a"] = new FlagAssignment("boolean", true, true, "a", "v1", "DEFAULT"),
-            };
-            var flags2 = new Dictionary<string, FlagAssignment>
+            });
+
+            var ofClient = Api.Instance.GetClient();
+            var a1 = await ofClient.GetBooleanValueAsync("flag-a", false);
+            Assert.IsTrue(a1);
+
+            SetFlags(new Dictionary<string, FlagAssignment>
             {
                 ["flag-b"] = new FlagAssignment("string", "value", true, "b", "v2", "TARGETING_MATCH"),
-            };
+            });
 
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("u1"), flags1);
-            Assert.IsNotNull(_repository.GetFlagAssignment("flag-a"));
-            Assert.IsNull(_repository.GetFlagAssignment("flag-b"));
+            var a2 = await ofClient.GetBooleanValueAsync("flag-a", false);
+            Assert.IsFalse(a2); // gone, returns default
 
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("u1"), flags2);
-            Assert.IsNull(_repository.GetFlagAssignment("flag-a"));
-            Assert.IsNotNull(_repository.GetFlagAssignment("flag-b"));
+            var b = await ofClient.GetStringValueAsync("flag-b", "none");
+            Assert.AreEqual("value", b);
+        }
+
+        private void SetFlags(Dictionary<string, FlagAssignment> flags)
+        {
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
         }
     }
 }

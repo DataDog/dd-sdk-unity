@@ -4,15 +4,17 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
 
 namespace Datadog.Unity.Flags
 {
     /// <summary>
-    /// A client for evaluating feature flags in your Unity application.
-    /// Provides type-safe access to flag values with automatic exposure tracking
-    /// and evaluation aggregation.
+    /// Internal client for evaluating feature flags. Customers should use the OpenFeature API
+    /// via <c>Api.Instance.GetClient()</c> after calling <c>DdFlags.Enable()</c>.
     /// </summary>
-    public class FlagsClient : IDisposable
+    internal class FlagsClient : IDisposable
     {
         public const string DefaultName = "default";
 

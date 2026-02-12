@@ -5,35 +5,31 @@
 using System;
 using System.Collections.Generic;
 using Datadog.Unity.Core;
+using OpenFeature;
 
 namespace Datadog.Unity.Flags
 {
     /// <summary>
     /// Entry point for the Datadog Flags feature in Unity.
+    /// Registers a Datadog-backed OpenFeature provider automatically.
     ///
-    /// Usage:
     /// <code>
-    /// // After Datadog SDK is initialized
+    /// // Setup
     /// DdFlags.Enable(new FlagsConfiguration());
-    ///
-    /// // Create a client
-    /// var client = DdFlags.CreateClient();
-    ///
-    /// // Set evaluation context
-    /// client.SetEvaluationContext(new FlagsEvaluationContext("user-123", new Dictionary&lt;string, object&gt;
+    /// DdFlags.CreateClient();
+    /// DdFlags.SetEvaluationContext(new FlagsEvaluationContext("user-123"), onComplete: success =>
     /// {
-    ///     { "email", "user@example.com" },
-    ///     { "plan", "premium" }
-    /// }));
-    ///
-    /// // Evaluate flags
-    /// var showFeature = client.GetBooleanValue("show-new-feature", false);
+    ///     // Evaluate flags via OpenFeature
+    ///     var ofClient = Api.Instance.GetClient();
+    ///     var showFeature = await ofClient.GetBooleanValueAsync("show-new-feature", false);
+    /// });
     /// </code>
     /// </summary>
     public static class DdFlags
     {
         private static FlagsConfiguration _configuration;
         private static EvpTelemetrySender _telemetrySender;
+        private static DatadogFeatureProvider _provider;
         private static readonly Dictionary<string, FlagsClient> _clients = new();
         private static bool _enabled;
 
@@ -52,6 +48,10 @@ namespace Datadog.Unity.Flags
             _configuration = configuration ?? new FlagsConfiguration();
             _enabled = true;
 
+            // Register OpenFeature provider
+            _provider = new DatadogFeatureProvider();
+            Api.Instance.SetProviderAsync(_provider).ConfigureAwait(false);
+
             // Initialize the telemetry sender
             var options = DatadogConfigurationOptions.Load();
             if (options != null)
@@ -68,11 +68,11 @@ namespace Datadog.Unity.Flags
         }
 
         /// <summary>
-        /// Creates a new FlagsClient for evaluating feature flags.
+        /// Creates a flags client for the given name. Must be called before SetEvaluationContext.
+        /// The default client is automatically wired as the OpenFeature provider.
         /// </summary>
         /// <param name="name">A unique name for this client. Defaults to "default".</param>
-        /// <returns>A FlagsClient instance.</returns>
-        public static FlagsClient CreateClient(string name = FlagsClient.DefaultName)
+        public static void CreateClient(string name = FlagsClient.DefaultName)
         {
             if (!_enabled)
             {
@@ -82,9 +82,7 @@ namespace Datadog.Unity.Flags
 
             if (_clients.ContainsKey(name))
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
-                    $"FlagsClient named '{name}' already exists. Returning existing client.");
-                return _clients[name];
+                return;
             }
 
             var options = DatadogConfigurationOptions.Load();
@@ -142,15 +140,38 @@ namespace Datadog.Unity.Flags
                 onExposure: onExposure);
 
             _clients[name] = client;
-            return client;
+
+            // Wire up the default client as the OpenFeature provider's backing client
+            if (name == FlagsClient.DefaultName)
+            {
+                _provider?.SetClient(client);
+            }
         }
 
         /// <summary>
-        /// Gets an existing FlagsClient by name.
+        /// Sets the evaluation context and fetches precomputed flag assignments from the server.
+        /// After the callback fires with success, flags are available via the OpenFeature API.
         /// </summary>
-        /// <param name="name">The name of the client. Defaults to "default".</param>
-        /// <returns>The FlagsClient, or null if not found.</returns>
-        public static FlagsClient GetClient(string name = FlagsClient.DefaultName)
+        /// <param name="context">The evaluation context containing targeting key and attributes.</param>
+        /// <param name="onComplete">Optional callback invoked when the fetch completes (true = success).</param>
+        /// <param name="clientName">The client name. Defaults to "default".</param>
+        public static void SetEvaluationContext(
+            FlagsEvaluationContext context,
+            Action<bool> onComplete = null,
+            string clientName = FlagsClient.DefaultName)
+        {
+            if (!_clients.TryGetValue(clientName, out var client))
+            {
+                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
+                    $"No FlagsClient named '{clientName}'. Call DdFlags.CreateClient() first.");
+                onComplete?.Invoke(false);
+                return;
+            }
+
+            client.SetEvaluationContext(context, onComplete);
+        }
+
+        internal static FlagsClient GetClient(string name = FlagsClient.DefaultName)
         {
             _clients.TryGetValue(name, out var client);
             return client;
@@ -167,6 +188,7 @@ namespace Datadog.Unity.Flags
             }
             _clients.Clear();
             _telemetrySender = null;
+            _provider = null;
             _configuration = null;
             _enabled = false;
         }
