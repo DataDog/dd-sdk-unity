@@ -21,17 +21,20 @@ namespace Datadog.Unity.Flags
         private readonly string _clientToken;
         private readonly string _exposureEndpoint;
         private readonly string _evaluationEndpoint;
+        private readonly string _env;
         private readonly IInternalLogger _logger;
 
         public EvpTelemetrySender(
             string clientToken,
             string exposureEndpoint,
             string evaluationEndpoint,
+            string env,
             IInternalLogger logger)
         {
             _clientToken = clientToken;
             _exposureEndpoint = exposureEndpoint;
             _evaluationEndpoint = evaluationEndpoint;
+            _env = env;
             _logger = logger;
         }
 
@@ -155,7 +158,7 @@ namespace Datadog.Unity.Flags
                 },
                 ["service"] = Application.identifier ?? Application.productName,
                 ["version"] = Application.version,
-                ["env"] = "prod",
+                ["env"] = !string.IsNullOrEmpty(_env) ? _env : "prod",
             };
             return context.ToString(Formatting.None);
         }

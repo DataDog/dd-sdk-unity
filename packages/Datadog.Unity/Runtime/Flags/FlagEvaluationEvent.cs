@@ -23,7 +23,7 @@ namespace Datadog.Unity.Flags
         public string TargetingKey { get; set; }
         public bool? RuntimeDefaultUsed { get; set; }
         public string ErrorMessage { get; set; }
-        public Dictionary<string, object> EvaluationAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> EvaluationAttributes { get; set; }
 
         public string ToJson()
         {

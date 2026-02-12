@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Datadog.Unity.Core;
 using OpenFeature;
 
@@ -27,6 +28,7 @@ namespace Datadog.Unity.Flags
     /// </summary>
     public static class DdFlags
     {
+        private static readonly object _lock = new();
         private static FlagsConfiguration _configuration;
         private static EvpTelemetrySender _telemetrySender;
         private static DatadogFeatureProvider _provider;
@@ -39,31 +41,47 @@ namespace Datadog.Unity.Flags
         /// <param name="configuration">Configuration options for the Flags feature.</param>
         public static void Enable(FlagsConfiguration configuration = null)
         {
-            if (_enabled)
+            lock (_lock)
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn, "DdFlags.Enable called multiple times. Ignoring.");
-                return;
-            }
+                if (_enabled)
+                {
+                    DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn, "DdFlags.Enable called multiple times. Ignoring.");
+                    return;
+                }
 
-            _configuration = configuration ?? new FlagsConfiguration();
-            _enabled = true;
+                _configuration = configuration ?? new FlagsConfiguration();
+                _enabled = true;
 
-            // Register OpenFeature provider
-            _provider = new DatadogFeatureProvider();
-            Api.Instance.SetProviderAsync(_provider).ConfigureAwait(false);
+                // Register OpenFeature provider
+                _provider = new DatadogFeatureProvider();
+                _ = Api.Instance.SetProviderAsync(_provider).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
+                            $"Failed to set OpenFeature provider: {t.Exception?.GetBaseException()?.Message}");
+                    }
+                }, TaskScheduler.Default);
 
-            // Initialize the telemetry sender
-            var options = DatadogConfigurationOptions.Load();
-            if (options != null)
-            {
-                var exposureEndpoint = FlagsEndpoints.GetExposureEndpoint(options.Site, _configuration.CustomExposureEndpoint);
-                var evaluationEndpoint = FlagsEndpoints.GetEvaluationEndpoint(options.Site, _configuration.CustomEvaluationEndpoint);
+                // Initialize the telemetry sender
+                var options = DatadogConfigurationOptions.Load();
+                if (options != null)
+                {
+                    var exposureEndpoint = FlagsEndpoints.GetExposureEndpoint(options.Site, _configuration.CustomExposureEndpoint);
+                    var evaluationEndpoint = FlagsEndpoints.GetEvaluationEndpoint(options.Site, _configuration.CustomEvaluationEndpoint);
 
-                _telemetrySender = new EvpTelemetrySender(
-                    clientToken: options.ClientToken,
-                    exposureEndpoint: exposureEndpoint,
-                    evaluationEndpoint: evaluationEndpoint,
-                    logger: DatadogSdk.Instance.InternalLogger);
+                    _telemetrySender = new EvpTelemetrySender(
+                        clientToken: options.ClientToken,
+                        exposureEndpoint: exposureEndpoint,
+                        evaluationEndpoint: evaluationEndpoint,
+                        env: options.Env ?? string.Empty,
+                        logger: DatadogSdk.Instance.InternalLogger);
+                }
+                else
+                {
+                    DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
+                        "DdFlags.Enable: Datadog SDK not configured. Telemetry will be disabled.");
+                }
             }
         }
 
@@ -74,77 +92,81 @@ namespace Datadog.Unity.Flags
         /// <param name="name">A unique name for this client. Defaults to "default".</param>
         public static void CreateClient(string name = FlagsClient.DefaultName)
         {
-            if (!_enabled)
+            lock (_lock)
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
-                    "DdFlags.CreateClient called before DdFlags.Enable(). Call DdFlags.Enable() first.");
-            }
+                if (!_enabled)
+                {
+                    DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
+                        "DdFlags.CreateClient called before DdFlags.Enable(). Call DdFlags.Enable() first.");
+                    return;
+                }
 
-            if (_clients.ContainsKey(name))
-            {
-                return;
-            }
+                if (_clients.ContainsKey(name))
+                {
+                    return;
+                }
 
-            var options = DatadogConfigurationOptions.Load();
-            var logger = DatadogSdk.Instance.InternalLogger;
-            var config = _configuration ?? new FlagsConfiguration();
+                var options = DatadogConfigurationOptions.Load();
+                var logger = DatadogSdk.Instance.InternalLogger;
+                var config = _configuration;
 
-            // Determine precompute endpoint
-            string precomputeEndpoint;
-            if (!string.IsNullOrEmpty(config.CustomFlagsEndpoint))
-            {
-                precomputeEndpoint = config.CustomFlagsEndpoint;
-            }
-            else if (options != null)
-            {
-                precomputeEndpoint = FlagsEndpoints.GetPrecomputeEndpoint(options.Site);
-            }
-            else
-            {
-                precomputeEndpoint = FlagsEndpoints.GetPrecomputeEndpoint(DatadogSite.Us1);
-            }
+                // Determine precompute endpoint
+                string precomputeEndpoint;
+                if (!string.IsNullOrEmpty(config.CustomFlagsEndpoint))
+                {
+                    precomputeEndpoint = config.CustomFlagsEndpoint;
+                }
+                else if (options != null)
+                {
+                    precomputeEndpoint = FlagsEndpoints.GetPrecomputeEndpoint(options.Site);
+                }
+                else
+                {
+                    precomputeEndpoint = FlagsEndpoints.GetPrecomputeEndpoint(DatadogSite.Us1);
+                }
 
-            var repository = new FlagsRepository();
-            var exposureTracker = new ExposureTracker();
+                var repository = new FlagsRepository();
+                var exposureTracker = new ExposureTracker();
 
-            Action<ExposureEvent> onExposure = null;
-            if (config.TrackExposures && _telemetrySender != null)
-            {
-                onExposure = _telemetrySender.SendExposure;
-            }
+                Action<ExposureEvent> onExposure = null;
+                if (config.TrackExposures && _telemetrySender != null)
+                {
+                    onExposure = _telemetrySender.SendExposure;
+                }
 
-            EvaluationAggregator evaluationAggregator = null;
-            if (config.TrackEvaluations && _telemetrySender != null)
-            {
-                var sender = _telemetrySender;
-                evaluationAggregator = new EvaluationAggregator(
-                    onFlush: events => sender.SendEvaluations(events),
-                    flushIntervalSeconds: config.EvaluationFlushIntervalSeconds);
-            }
+                EvaluationAggregator evaluationAggregator = null;
+                if (config.TrackEvaluations && _telemetrySender != null)
+                {
+                    var sender = _telemetrySender;
+                    evaluationAggregator = new EvaluationAggregator(
+                        onFlush: events => sender.SendEvaluations(events),
+                        flushIntervalSeconds: config.EvaluationFlushIntervalSeconds);
+                }
 
-            var fetcher = new PrecomputeAssignmentsFetcher(
-                endpointUrl: precomputeEndpoint,
-                clientToken: options?.ClientToken ?? string.Empty,
-                applicationId: options?.RumApplicationId,
-                env: options?.Env ?? string.Empty,
-                logger: logger);
+                var fetcher = new PrecomputeAssignmentsFetcher(
+                    endpointUrl: precomputeEndpoint,
+                    clientToken: options?.ClientToken ?? string.Empty,
+                    applicationId: options?.RumApplicationId,
+                    env: options?.Env ?? string.Empty,
+                    logger: logger);
 
-            var client = new FlagsClient(
-                repository: repository,
-                exposureTracker: exposureTracker,
-                evaluationAggregator: evaluationAggregator,
-                fetcher: fetcher,
-                logger: logger,
-                trackExposures: config.TrackExposures,
-                trackEvaluations: config.TrackEvaluations,
-                onExposure: onExposure);
+                var client = new FlagsClient(
+                    repository: repository,
+                    exposureTracker: exposureTracker,
+                    evaluationAggregator: evaluationAggregator,
+                    fetcher: fetcher,
+                    logger: logger,
+                    trackExposures: config.TrackExposures,
+                    trackEvaluations: config.TrackEvaluations,
+                    onExposure: onExposure);
 
-            _clients[name] = client;
+                _clients[name] = client;
 
-            // Wire up the default client as the OpenFeature provider's backing client
-            if (name == FlagsClient.DefaultName)
-            {
-                _provider?.SetClient(client);
+                // Wire up the default client as the OpenFeature provider's backing client
+                if (name == FlagsClient.DefaultName)
+                {
+                    _provider?.SetClient(client);
+                }
             }
         }
 
@@ -160,12 +182,16 @@ namespace Datadog.Unity.Flags
             Action<bool> onComplete = null,
             string clientName = FlagsClient.DefaultName)
         {
-            if (!_clients.TryGetValue(clientName, out var client))
+            FlagsClient client;
+            lock (_lock)
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
-                    $"No FlagsClient named '{clientName}'. Call DdFlags.CreateClient() first.");
-                onComplete?.Invoke(false);
-                return;
+                if (!_clients.TryGetValue(clientName, out client))
+                {
+                    DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
+                        $"No FlagsClient named '{clientName}'. Call DdFlags.CreateClient() first.");
+                    onComplete?.Invoke(false);
+                    return;
+                }
             }
 
             client.SetEvaluationContext(context, onComplete);
@@ -173,8 +199,11 @@ namespace Datadog.Unity.Flags
 
         internal static FlagsClient GetClient(string name = FlagsClient.DefaultName)
         {
-            _clients.TryGetValue(name, out var client);
-            return client;
+            lock (_lock)
+            {
+                _clients.TryGetValue(name, out var client);
+                return client;
+            }
         }
 
         /// <summary>
@@ -182,15 +211,26 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public static void Shutdown()
         {
-            foreach (var client in _clients.Values)
+            List<FlagsClient> clientsToDispose;
+            DatadogFeatureProvider providerToShutdown;
+            lock (_lock)
+            {
+                clientsToDispose = new List<FlagsClient>(_clients.Values);
+                providerToShutdown = _provider;
+                _clients.Clear();
+                _telemetrySender = null;
+                _provider = null;
+                _configuration = null;
+                _enabled = false;
+            }
+
+            // Disconnect the provider so stale OpenFeature calls return ProviderNotReady
+            providerToShutdown?.SetClient(null);
+
+            foreach (var client in clientsToDispose)
             {
                 client.Dispose();
             }
-            _clients.Clear();
-            _telemetrySender = null;
-            _provider = null;
-            _configuration = null;
-            _enabled = false;
         }
     }
 }

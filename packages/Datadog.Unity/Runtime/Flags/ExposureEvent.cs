@@ -12,7 +12,7 @@ namespace Datadog.Unity.Flags
     /// </summary>
     internal class ExposureEvent
     {
-        public ExposureEvent(long timestamp, string flagKey, string allocationKey, string variationKey, string subjectId, Dictionary<string, object> subjectAttributes)
+        public ExposureEvent(long timestamp, string flagKey, string allocationKey, string variationKey, string subjectId, IReadOnlyDictionary<string, object> subjectAttributes)
         {
             Timestamp = timestamp;
             FlagKey = flagKey;
@@ -27,21 +27,23 @@ namespace Datadog.Unity.Flags
         public string AllocationKey { get; }
         public string VariationKey { get; }
         public string SubjectId { get; }
-        public Dictionary<string, object> SubjectAttributes { get; }
+        public IReadOnlyDictionary<string, object> SubjectAttributes { get; }
 
         public string ToJson()
         {
+            var subject = new JObject { ["id"] = SubjectId };
+            if (SubjectAttributes.Count > 0)
+            {
+                subject["attributes"] = JObject.FromObject(SubjectAttributes);
+            }
+
             var obj = new JObject
             {
                 ["timestamp"] = Timestamp,
                 ["flag"] = new JObject { ["key"] = FlagKey },
                 ["allocation"] = new JObject { ["key"] = AllocationKey },
                 ["variant"] = new JObject { ["key"] = VariationKey },
-                ["subject"] = new JObject
-                {
-                    ["id"] = SubjectId,
-                    ["attributes"] = JObject.FromObject(SubjectAttributes),
-                },
+                ["subject"] = subject,
             };
             return obj.ToString(Newtonsoft.Json.Formatting.None);
         }

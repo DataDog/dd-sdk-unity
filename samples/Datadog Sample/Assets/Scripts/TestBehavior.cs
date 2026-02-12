@@ -50,13 +50,15 @@ public class TestBehavior : MonoBehaviour
 
         // Feature Flags
         DdFlags.Enable();
-        var flagsClient = DdFlags.CreateClient();
-        flagsClient.SetEvaluationContext(
+        DdFlags.CreateClient();
+        DdFlags.SetEvaluationContext(
             new FlagsEvaluationContext("user-1234", new Dictionary<string, object>
             {
                 { "email", "test@example.com" },
-            }));
-        var featureEnabled = flagsClient.GetBooleanValue("new-feature", false);
-        logger.Info($"Feature flag 'new-feature' = {featureEnabled}");
+            }),
+            onComplete: success =>
+            {
+                logger.Info($"Feature flags ready: {success}");
+            });
     }
 }

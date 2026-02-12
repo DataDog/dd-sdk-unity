@@ -16,7 +16,8 @@
         "nunit.framework.dll",
         "Newtonsoft.Json.dll",
         "NSubstitute.dll",
-        "OpenFeature.dll"
+        "OpenFeature.dll",
+        "Microsoft.Extensions.Logging.Abstractions.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

@@ -18,6 +18,7 @@ namespace Datadog.Unity.Flags
     {
         public const string DefaultName = "default";
 
+        private readonly object _lock = new();
         private readonly FlagsRepository _repository;
         private readonly ExposureTracker _exposureTracker;
         private readonly EvaluationAggregator _evaluationAggregator;
@@ -53,7 +54,16 @@ namespace Datadog.Unity.Flags
         /// <summary>
         /// Gets the current state of the client.
         /// </summary>
-        public FlagsClientState State => _state;
+        public FlagsClientState State
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _state;
+                }
+            }
+        }
 
         /// <summary>
         /// Event raised when the client state changes.
@@ -188,11 +198,14 @@ namespace Datadog.Unity.Flags
 
         public void Dispose()
         {
-            if (_disposed)
+            lock (_lock)
             {
-                return;
+                if (_disposed)
+                {
+                    return;
+                }
+                _disposed = true;
             }
-            _disposed = true;
             _evaluationAggregator?.Dispose();
         }
 
@@ -214,10 +227,8 @@ namespace Datadog.Unity.Flags
                     allocationKey: assignment.AllocationKey,
                     variationKey: assignment.VariationKey);
 
-                if (!_exposureTracker.Contains(exposureKey))
+                if (_exposureTracker.InsertIfAbsent(exposureKey))
                 {
-                    _exposureTracker.Insert(exposureKey);
-
                     var exposureEvent = new ExposureEvent(
                         timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                         flagKey: key,
@@ -239,12 +250,17 @@ namespace Datadog.Unity.Flags
 
         private void TransitionState(FlagsClientState newState)
         {
-            if (_state == newState)
+            Action<FlagsClientState> handler;
+            lock (_lock)
             {
-                return;
+                if (_state == newState)
+                {
+                    return;
+                }
+                _state = newState;
+                handler = StateChanged;
             }
-            _state = newState;
-            StateChanged?.Invoke(newState);
+            handler?.Invoke(newState);
         }
     }
 }

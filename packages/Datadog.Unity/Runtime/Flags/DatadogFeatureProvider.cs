@@ -20,8 +20,8 @@ namespace Datadog.Unity.Flags
     /// Usage:
     /// <code>
     /// DdFlags.Enable(new FlagsConfiguration());
-    /// var client = DdFlags.CreateClient();
-    /// client.SetEvaluationContext(new FlagsEvaluationContext("user-123"));
+    /// DdFlags.CreateClient();
+    /// DdFlags.SetEvaluationContext(new FlagsEvaluationContext("user-123"));
     ///
     /// // Use via OpenFeature API
     /// var ofClient = Api.Instance.GetClient();
@@ -32,7 +32,7 @@ namespace Datadog.Unity.Flags
     {
         internal const string ProviderName = "Datadog";
 
-        private FlagsClient _client;
+        private volatile FlagsClient _client;
 
         internal DatadogFeatureProvider()
         {
@@ -157,22 +157,35 @@ namespace Datadog.Unity.Flags
             if (obj == null) return null;
             if (obj is bool b) return new Value(b);
             if (obj is int i) return new Value(i);
-            if (obj is long l) return new Value((int)l);
+            if (obj is long l) return new Value((double)l);
             if (obj is double d) return new Value(d);
             if (obj is float f) return new Value((double)f);
             if (obj is string s) return new Value(s);
             if (obj is Dictionary<string, object> dict)
             {
-                var structure = new Structure(new Dictionary<string, Value>());
+                var converted = new Dictionary<string, Value>();
                 foreach (var kvp in dict)
                 {
                     var val = ToOpenFeatureValue(kvp.Value);
                     if (val != null)
                     {
-                        structure.Add(kvp.Key, val);
+                        converted[kvp.Key] = val;
                     }
                 }
-                return new Value(structure);
+                return new Value(new Structure(converted));
+            }
+            if (obj is IList<object> list)
+            {
+                var values = new List<Value>(list.Count);
+                foreach (var item in list)
+                {
+                    var val = ToOpenFeatureValue(item);
+                    if (val != null)
+                    {
+                        values.Add(val);
+                    }
+                }
+                return new Value(values);
             }
             return new Value(obj.ToString());
         }

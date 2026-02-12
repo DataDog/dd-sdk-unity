@@ -20,30 +20,6 @@ namespace Datadog.Unity.Flags
     }
 
     /// <summary>
-    /// Reason codes explaining why a particular flag value was resolved.
-    /// </summary>
-    internal enum ResolutionReason
-    {
-        /// <summary>No targeting rules matched; the fallthrough/default allocation was used.</summary>
-        Static,
-
-        /// <summary>The resolved value is the default value provided in code.</summary>
-        Default,
-
-        /// <summary>The resolved value matched targeting rules.</summary>
-        TargetingMatch,
-
-        /// <summary>The resolved value matched a specific evaluation rule.</summary>
-        RuleMatch,
-
-        /// <summary>A prerequisite flag evaluation failed.</summary>
-        PrerequisiteFailed,
-
-        /// <summary>An error occurred during flag evaluation.</summary>
-        Error,
-    }
-
-    /// <summary>
     /// Detailed result of a flag evaluation including value, variant, reason, and error information.
     /// </summary>
     /// <typeparam name="T">The type of the flag value.</typeparam>

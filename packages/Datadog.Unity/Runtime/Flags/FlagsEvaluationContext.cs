@@ -12,6 +12,8 @@ namespace Datadog.Unity.Flags
     /// </summary>
     public class FlagsEvaluationContext
     {
+        private readonly Dictionary<string, object> _attributes;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="FlagsEvaluationContext"/> class.
         /// </summary>
@@ -20,7 +22,9 @@ namespace Datadog.Unity.Flags
         public FlagsEvaluationContext(string targetingKey, Dictionary<string, object> attributes = null)
         {
             TargetingKey = targetingKey ?? string.Empty;
-            Attributes = attributes ?? new Dictionary<string, object>();
+            _attributes = attributes != null
+                ? new Dictionary<string, object>(attributes)
+                : new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -31,6 +35,6 @@ namespace Datadog.Unity.Flags
         /// <summary>
         /// Gets the custom attributes used for targeting rules.
         /// </summary>
-        public Dictionary<string, object> Attributes { get; }
+        public IReadOnlyDictionary<string, object> Attributes => _attributes;
     }
 }
