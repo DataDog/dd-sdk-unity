@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using UnityEngine;
 
 namespace Datadog.Unity.Worker
 {
@@ -26,7 +27,7 @@ namespace Datadog.Unity.Worker
 
         public override void Start()
         {
-            if(_workerThread != null)
+            if (_workerThread != null)
             {
                 // Already started! Don't start twice!
                 return;
@@ -81,7 +82,7 @@ namespace Datadog.Unity.Worker
             AndroidJNI.AttachCurrentThread();
 #endif
 
-            while(!_workQueue.IsCompleted)
+            while (!_workQueue.IsCompleted)
             {
                 try
                 {
