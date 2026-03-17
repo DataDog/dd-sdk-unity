@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Datadog.Unity.Flags
 {
@@ -12,7 +13,7 @@ namespace Datadog.Unity.Flags
     /// </summary>
     public class FlagsEvaluationContext
     {
-        private readonly Dictionary<string, object> _attributes;
+        private readonly IReadOnlyDictionary<string, object> _attributes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FlagsEvaluationContext"/> class.
@@ -22,9 +23,10 @@ namespace Datadog.Unity.Flags
         public FlagsEvaluationContext(string targetingKey, Dictionary<string, object> attributes = null)
         {
             TargetingKey = targetingKey ?? string.Empty;
-            _attributes = attributes != null
-                ? new Dictionary<string, object>(attributes)
-                : new Dictionary<string, object>();
+            _attributes = new ReadOnlyDictionary<string, object>(
+                attributes != null
+                    ? new Dictionary<string, object>(attributes)
+                    : new Dictionary<string, object>());
         }
 
         /// <summary>

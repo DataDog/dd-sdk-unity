@@ -192,6 +192,10 @@ namespace Datadog.Unity.Flags
 
             lock (_lock)
             {
+                if (_disposed)
+                {
+                    return;
+                }
                 if (_aggregations.TryGetValue(key, out var existing))
                 {
                     existing.EvaluationCount += 1;
@@ -235,6 +239,11 @@ namespace Datadog.Unity.Flags
             List<FlagEvaluationEvent> events;
             lock (_lock)
             {
+                if (_disposed)
+                {
+                    return;
+                }
+
                 events = CollectAndClearEvents();
             }
 

@@ -51,12 +51,22 @@ public class TestBehavior : MonoBehaviour
         // Feature Flags
         DdFlags.Enable();
         var flagsClient = DdFlags.CreateClient();
-        flagsClient.SetEvaluationContext(
+        DdFlags.SetEvaluationContext(
             new FlagsEvaluationContext("user-1234", new Dictionary<string, object>
             {
                 { "email", "test@example.com" },
-            }));
-        var featureEnabled = flagsClient.GetBooleanValue("new-feature", false);
-        logger.Info($"Feature flag 'new-feature' = {featureEnabled}");
+            }),
+            onComplete: success =>
+            {
+                if (success)
+                {
+                    var featureEnabled = flagsClient.GetBooleanValue("new-feature", false);
+                    logger.Info($"Feature flag 'new-feature' = {featureEnabled}");
+                }
+                else
+                {
+                    logger.Warn("Failed to fetch feature flags");
+                }
+            });
     }
 }

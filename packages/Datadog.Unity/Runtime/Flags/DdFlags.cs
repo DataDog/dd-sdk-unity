@@ -18,7 +18,7 @@ namespace Datadog.Unity.Flags
     /// DdFlags.SetEvaluationContext(new FlagsEvaluationContext("user-123"), onComplete: success =>
     /// {
     ///     // Evaluate flags
-    ///     var showFeature = client.GetBoolValue("show-new-feature", false);
+    ///     var showFeature = client.GetBooleanValue("show-new-feature", false);
     /// });
     /// </code>
     /// </summary>
@@ -48,8 +48,13 @@ namespace Datadog.Unity.Flags
                 _enabled = true;
 
                 var options = DatadogConfigurationOptions.Load();
-                var exposureEndpoint = FlagsEndpoints.GetExposureEndpoint(options?.Site ?? DatadogSite.Us1);
-                var evaluationEndpoint = FlagsEndpoints.GetEvaluationEndpoint(options?.Site ?? DatadogSite.Us1);
+                var site = options?.Site ?? DatadogSite.Us1;
+                var exposureEndpoint = !string.IsNullOrEmpty(_configuration.CustomExposureEndpoint)
+                    ? _configuration.CustomExposureEndpoint
+                    : FlagsEndpoints.GetExposureEndpoint(site);
+                var evaluationEndpoint = !string.IsNullOrEmpty(_configuration.CustomEvaluationEndpoint)
+                    ? _configuration.CustomEvaluationEndpoint
+                    : FlagsEndpoints.GetEvaluationEndpoint(site);
 
                 _telemetrySender = new EvpTelemetrySender(
                     clientToken: options?.ClientToken ?? string.Empty,

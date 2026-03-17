@@ -4,9 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
 
 namespace Datadog.Unity.Flags
 {
