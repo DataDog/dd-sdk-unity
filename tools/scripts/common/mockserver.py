@@ -50,7 +50,11 @@ def run_mock_server(bind_addr: str, port: int) -> Generator[None, None, None]:
     log = get_default_logger()
 
     venv_python = os.path.join(__mock_server_root__, 'venv', 'bin', 'python')
-    args = [venv_python, 'app.py', '--addr', bind_addr, '--port', str(port)]
+    # Bind to 0.0.0.0 so the server accepts connections on all interfaces, including
+    # 10.0.2.2 (Android emulator's alias for the host). This allows integration tests to
+    # make non-first-party requests via 10.0.2.2 while first-party hosts are configured
+    # only on the LAN IP, so the RUM SDK treats the two addresses differently.
+    args = [venv_python, 'app.py', '--addr', '0.0.0.0', '--port', str(port)]
 
     process = subprocess.Popen(args, cwd=__mock_server_root__)
 
