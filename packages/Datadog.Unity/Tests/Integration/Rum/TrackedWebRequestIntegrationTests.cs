@@ -56,9 +56,8 @@ namespace Datadog.Unity.Tests.Integration.Rum
             // RumIntegrationScenario), so we do not assert on the exact visit count.
             var firstVisit = session.Visits.FirstOrDefault(v => v.Name == "First Screen");
             Assert.IsNotNull(firstVisit, "Expected a 'First Screen' visit in the RUM session");
-            var getResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("httpbin"));
-            Assert.IsNotNull(getResource);
-            Assert.AreEqual("https://httpbin.org/status/200", getResource.Url);
+            var getResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("non_first_party"));
+            Assert.IsNotNull(getResource, "Expected a non-first-party resource event");
             Assert.IsNull(getResource.TraceId);
             Assert.IsNull(getResource.SpanId);
 
@@ -98,19 +97,24 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var rum = DatadogSdk.Instance.Rum;
             rum?.StartView("FirstScreen", name: "First Screen");
 
-            // Make a tracked web request, not first party
-            var getRequest = new DatadogTrackedWebRequest("https://httpbin.org/status/200");
+            // Make a tracked web request that is NOT first-party. We use 10.0.2.2 (the Android
+            // emulator's special alias for the host machine) with the mock server port. The mock
+            // server binds to 0.0.0.0 so it accepts these connections, but the first-party hosts
+            // list only includes the LAN IP, so the RUM SDK won't inject tracing headers here.
+            var datadogSettings = DatadogConfigurationOptions.Load();
+            var endpoint = datadogSettings.CustomEndpoint;
+            var mockPort = new Uri(endpoint).Port;
+            var nonFirstPartyUrl = $"http://10.0.2.2:{mockPort}/non_first_party_get";
+            var getRequest = new DatadogTrackedWebRequest(nonFirstPartyUrl);
             yield return getRequest.SendWebRequest();
 
             if (getRequest.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
             {
-                Debug.Log($"Web request failed: {getRequest.error}");
+                Debug.Log($"Non-first-party web request failed: {getRequest.error}");
             }
 
             // Make a tracked web request, first party. This must be configured in the settings as first party --
             // see `scripts/dev_setup.py` which will set the proper first party hosts
-            var datadogSettings = DatadogConfigurationOptions.Load();
-            var endpoint = datadogSettings.CustomEndpoint;
             var firstPartyGetRequest = new DatadogTrackedWebRequest($"{endpoint}/integration_get");
             yield return firstPartyGetRequest.SendWebRequest();
 
