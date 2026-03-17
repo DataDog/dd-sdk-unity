@@ -1,0 +1,2916 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OpenFeature</name>
+    </assembly>
+    <members>
+        <member name="T:OpenFeature.Api">
+            <summary>
+            The evaluation API allows for the evaluation of feature flag values, independent of any flag control plane or vendor.
+            In the absence of a provider the evaluation API uses the "No-op provider", which simply returns the supplied default flag value.
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/01-flag-evaluation.md#1-flag-evaluation-api"/>
+        </member>
+        <member name="F:OpenFeature.Api._evaluationContextLock">
+            The reader/writer locks are not disposed because the singleton instance should never be disposed.
+        </member>
+        <member name="P:OpenFeature.Api.Instance">
+            <summary>
+            Singleton instance of Api
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Api.SetProviderAsync(OpenFeature.FeatureProvider)">
+            <summary>
+            Sets the default feature provider. In order to wait for the provider to be set, and initialization to complete,
+            await the returned task.
+            </summary>
+            <remarks>The provider cannot be set to null. Attempting to set the provider to null has no effect. May throw an exception if <paramref name="featureProvider"/> cannot be initialized.</remarks>
+            <param name="featureProvider">Implementation of <see cref="T:OpenFeature.FeatureProvider"/></param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> that completes once Provider initialization is complete.</returns>
+        </member>
+        <member name="M:OpenFeature.Api.SetProviderAsync(OpenFeature.FeatureProvider,System.Threading.CancellationToken)">
+            <summary>
+            Sets the default feature provider. In order to wait for the provider to be set, and initialization to complete,
+            await the returned task.
+            </summary>
+            <remarks>The provider cannot be set to null. Attempting to set the provider to null has no effect. May throw an exception if <paramref name="featureProvider"/> cannot be initialized.</remarks>
+            <param name="featureProvider">Implementation of <see cref="T:OpenFeature.FeatureProvider"/></param>
+            <param name="cancellationToken">Propagates notification that the provider initialization should be canceled.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> that completes once Provider initialization is complete.</returns>
+        </member>
+        <member name="M:OpenFeature.Api.SetProviderAsync(System.String,OpenFeature.FeatureProvider)">
+            <summary>
+            Binds the feature provider to the given domain. In order to wait for the provider to be set, and
+            initialization to complete, await the returned task.
+            </summary>
+            <remarks>The provider cannot be set to null. Attempting to set the provider to null has no effect. May throw an exception if <paramref name="featureProvider"/> cannot be initialized.</remarks>
+            <param name="domain">An identifier which logically binds clients with providers</param>
+            <param name="featureProvider">Implementation of <see cref="T:OpenFeature.FeatureProvider"/></param>
+            <exception cref="T:System.ArgumentNullException">domain cannot be null or empty</exception>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> that completes once Provider initialization is complete.</returns>
+        </member>
+        <member name="M:OpenFeature.Api.SetProviderAsync(System.String,OpenFeature.FeatureProvider,System.Threading.CancellationToken)">
+            <summary>
+            Binds the feature provider to the given domain. In order to wait for the provider to be set, and
+            initialization to complete, await the returned task.
+            </summary>
+            <remarks>The provider cannot be set to null. Attempting to set the provider to null has no effect. May throw an exception if <paramref name="featureProvider"/> cannot be initialized.</remarks>
+            <param name="domain">An identifier which logically binds clients with providers</param>
+            <param name="featureProvider">Implementation of <see cref="T:OpenFeature.FeatureProvider"/></param>
+            <param name="cancellationToken">Propagates notification that the provider initialization should be canceled.</param>
+            <exception cref="T:System.ArgumentNullException">domain cannot be null or empty</exception>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> that completes once Provider initialization is complete.</returns>
+        </member>
+        <member name="M:OpenFeature.Api.GetProvider">
+            <summary>
+            Gets the feature provider
+            <para>
+            The feature provider may be set from multiple threads, when accessing the global feature provider
+            it should be accessed once for an operation, and then that reference should be used for all dependent
+            operations. For instance, during an evaluation the flag resolution method, and the provider hooks
+            should be accessed from the same reference, not two independent calls to
+            <see cref="M:OpenFeature.Api.GetProvider"/>.
+            </para>
+            </summary>
+            <returns><see cref="T:OpenFeature.FeatureProvider"/></returns>
+        </member>
+        <member name="M:OpenFeature.Api.GetProvider(System.String)">
+            <summary>
+            Gets the feature provider with given domain
+            </summary>
+            <param name="domain">An identifier which logically binds clients with providers</param>
+            <returns>A provider associated with the given domain, if domain is empty, null, whitespace or doesn't
+            have a corresponding provider the default provider will be returned</returns>
+        </member>
+        <member name="M:OpenFeature.Api.GetProviderMetadata">
+            <summary>
+            Gets providers metadata
+            <para>
+            This method is not guaranteed to return the same provider instance that may be used during an evaluation
+            in the case where the provider may be changed from another thread.
+            For multiple dependent provider operations see <see cref="M:OpenFeature.Api.GetProvider"/>.
+            </para>
+            </summary>
+            <returns><see cref="T:OpenFeature.Model.ClientMetadata"/></returns>
+        </member>
+        <member name="M:OpenFeature.Api.GetProviderMetadata(System.String)">
+            <summary>
+            Gets providers metadata assigned to the given domain. If the domain has no provider
+            assigned to it the default provider will be returned
+            </summary>
+            <param name="domain">An identifier which logically binds clients with providers</param>
+            <returns>Metadata assigned to provider</returns>
+        </member>
+        <member name="M:OpenFeature.Api.GetClient(System.String,System.String,Microsoft.Extensions.Logging.ILogger,OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Create a new instance of <see cref="T:OpenFeature.FeatureClient"/> using the current provider
+            </summary>
+            <param name="name">Name of client, if the <paramref name="name"/> is not provided a default name will be used</param>
+            <param name="version">Version of client</param>
+            <param name="logger">Logger instance used by client</param>
+            <param name="context">Context given to this client</param>
+            <returns><see cref="T:OpenFeature.FeatureClient"/></returns>
+        </member>
+        <member name="M:OpenFeature.Api.AddHooks(System.Collections.Generic.IEnumerable{OpenFeature.Hook})">
+            <summary>
+            Appends list of hooks to global hooks list
+            <para>
+            The appending operation will be atomic.
+            </para>
+            </summary>
+            <param name="hooks">A list of <see cref="T:OpenFeature.Hook"/></param>
+        </member>
+        <member name="M:OpenFeature.Api.AddHooks(OpenFeature.Hook)">
+            <summary>
+            Adds a hook to global hooks list
+            <para>
+            Hooks which are dependent on each other should be provided in a collection
+            using the <see cref="M:OpenFeature.Api.AddHooks(System.Collections.Generic.IEnumerable{OpenFeature.Hook})"/>.
+            </para>
+            </summary>
+            <param name="hook">Hook that implements the <see cref="T:OpenFeature.Hook"/> interface</param>
+        </member>
+        <member name="M:OpenFeature.Api.GetHooks">
+            <summary>
+            Enumerates the global hooks.
+            <para>
+            The items enumerated will reflect the registered hooks
+            at the start of enumeration. Hooks added during enumeration
+            will not be included.
+            </para>
+            </summary>
+            <returns>Enumeration of <see cref="T:OpenFeature.Hook"/></returns>
+        </member>
+        <member name="M:OpenFeature.Api.ClearHooks">
+            <summary>
+            Removes all hooks from global hooks list
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Api.SetContext(OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Sets the global <see cref="T:OpenFeature.Model.EvaluationContext"/>
+            </summary>
+            <param name="context">The <see cref="T:OpenFeature.Model.EvaluationContext"/> to set</param>
+        </member>
+        <member name="M:OpenFeature.Api.GetContext">
+            <summary>
+            Gets the global <see cref="T:OpenFeature.Model.EvaluationContext"/>
+            <para>
+            The evaluation context may be set from multiple threads, when accessing the global evaluation context
+            it should be accessed once for an operation, and then that reference should be used for all dependent
+            operations.
+            </para>
+            </summary>
+            <returns>An <see cref="T:OpenFeature.Model.EvaluationContext"/></returns>
+        </member>
+        <member name="M:OpenFeature.Api.GetTransactionContextPropagator">
+            <summary>
+            Return the transaction context propagator.
+            </summary>
+            <returns><see cref="T:OpenFeature.Model.ITransactionContextPropagator"/>the registered transaction context propagator</returns>
+        </member>
+        <member name="M:OpenFeature.Api.SetTransactionContextPropagator(OpenFeature.Model.ITransactionContextPropagator)">
+            <summary>
+            Sets the transaction context propagator.
+            </summary>
+            <param name="transactionContextPropagator">the transaction context propagator to be registered</param>
+            <exception cref="T:System.ArgumentNullException">Transaction context propagator cannot be null</exception>
+        </member>
+        <member name="M:OpenFeature.Api.GetTransactionContext">
+            <summary>
+            Returns the currently defined transaction context using the registered transaction context propagator.
+            </summary>
+            <returns><see cref="T:OpenFeature.Model.EvaluationContext"/>The current transaction context</returns>
+        </member>
+        <member name="M:OpenFeature.Api.SetTransactionContext(OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Sets the transaction context using the registered transaction context propagator.
+            </summary>
+            <param name="evaluationContext">The <see cref="T:OpenFeature.Model.EvaluationContext"/> to set</param>
+            <exception cref="T:System.InvalidOperationException">Transaction context propagator is not set.</exception>
+            <exception cref="T:System.ArgumentNullException">Evaluation context cannot be null</exception>
+        </member>
+        <member name="M:OpenFeature.Api.ShutdownAsync">
+            <summary>
+            <para>
+            Shut down and reset the current status of OpenFeature API.
+            </para>
+            <para>
+            This call cleans up all active providers and attempts to shut down internal event handling mechanisms.
+            Once shut down is complete, API is reset and ready to use again.
+            </para>
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Api.AddHandler(OpenFeature.Constant.ProviderEventTypes,OpenFeature.Model.EventHandlerDelegate)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.Api.RemoveHandler(OpenFeature.Constant.ProviderEventTypes,OpenFeature.Model.EventHandlerDelegate)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.Api.SetLogger(Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Sets the logger for the API
+            </summary>
+            <param name="logger">The logger to be used</param>
+        </member>
+        <member name="M:OpenFeature.Api.AfterInitializationAsync(OpenFeature.FeatureProvider,System.Threading.CancellationToken)">
+            <summary>
+            Update the provider state to READY and emit a READY event after successful init.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Api.AfterErrorAsync(OpenFeature.FeatureProvider,System.Exception,System.Threading.CancellationToken)">
+            <summary>
+            Update the provider state to ERROR and emit an ERROR after failed init.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Api.ResetApi">
+            <summary>
+            This method should only be using for testing purposes. It will reset the singleton instance of the API.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Api.SetInstance(OpenFeature.Api)">
+            <summary>
+            This method should only be used in the Dependency Injection setup. It will set the singleton instance of the API using the provided instance.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.AsyncLocalTransactionContextPropagator">
+            <summary>
+             This is a task transaction context implementation of <see cref="T:OpenFeature.Model.ITransactionContextPropagator"/>
+             It uses the <see cref="T:System.Threading.AsyncLocal`1"/> to store the transaction context.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.AsyncLocalTransactionContextPropagator.GetTransactionContext">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.AsyncLocalTransactionContextPropagator.SetTransactionContext(OpenFeature.Model.EvaluationContext)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenFeature.Constant.ErrorType">
+            <summary>
+            These errors are used to indicate abnormal execution when evaluation a flag
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/02-providers.md#requirement-227"/>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.None">
+            <summary>
+            Default value, no error occured
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.ProviderNotReady">
+            <summary>
+            Provider has yet been initialized
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.FlagNotFound">
+            <summary>
+            Provider was unable to find the flag
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.ParseError">
+            <summary>
+            Provider failed to parse the flag response
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.TypeMismatch">
+            <summary>
+            Request type does not match the expected type
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.General">
+            <summary>
+            Abnormal execution of the provider
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.InvalidContext">
+            <summary>
+            Context does not satisfy provider requirements.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.TargetingKeyMissing">
+            <summary>
+            Context does not contain a targeting key and the provider requires one.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ErrorType.ProviderFatal">
+            <summary>
+            The provider has entered an irrecoverable error state.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Constant.ProviderEventTypes">
+            <summary>
+            The ProviderEventTypes enum represents the available event types of a provider.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderEventTypes.ProviderReady">
+            <summary>
+            ProviderReady should be emitted by a provider upon completing its initialisation.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderEventTypes.ProviderError">
+            <summary>
+            ProviderError should be emitted by a provider upon encountering an error.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderEventTypes.ProviderConfigurationChanged">
+            <summary>
+            ProviderConfigurationChanged should be emitted by a provider when a flag configuration has been changed.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderEventTypes.ProviderStale">
+            <summary>
+            ProviderStale should be emitted by a provider when it goes into the stale state.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Constant.FlagValueType">
+            <summary>
+             Used to identity what object type of flag being evaluated
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.FlagValueType.Boolean">
+            <summary>
+            Flag is a boolean value
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.FlagValueType.String">
+            <summary>
+            Flag is a string value
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.FlagValueType.Number">
+            <summary>
+            Flag is a numeric value
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.FlagValueType.Object">
+            <summary>
+            Flag is a structured value
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Constant.ProviderStatus">
+            <summary>
+            The state of the provider.
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/main/specification/sections/02-providers.md#requirement-242" />
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderStatus.NotReady">
+            <summary>
+            The provider has not been initialized and cannot yet evaluate flags.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderStatus.Ready">
+            <summary>
+            The provider is ready to resolve flags.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderStatus.Stale">
+            <summary>
+            The provider's cached state is no longer valid and may not be up-to-date with the source of truth.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderStatus.Error">
+            <summary>
+            The provider is in an error state and unable to evaluate flags.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.ProviderStatus.Fatal">
+            <summary>
+            The provider has entered an irrecoverable error state.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Constant.Reason">
+            <summary>
+            Common reasons used during flag resolution
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/02-providers.md#requirement-225">Reason Specification</seealso>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.TargetingMatch">
+            <summary>
+            Use when the flag is matched based on the evaluation context user data
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Split">
+            <summary>
+            Use when the flag is matched based on a split rule in the feature flag provider
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Disabled">
+            <summary>
+            Use when the flag is disabled in the feature flag provider
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Default">
+            <summary>
+            Default reason when evaluating flag
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Static">
+            <summary>
+            The resolved value is static (no dynamic evaluation)
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Cached">
+            <summary>
+            The resolved value was retrieved from cache
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Unknown">
+            <summary>
+            Use when an unknown reason is encountered when evaluating flag.
+            An example of this is if the feature provider returns a reason that is not defined in the spec
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Constant.Reason.Error">
+            <summary>
+            Use this flag when abnormal execution is encountered.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Error.FeatureProviderException">
+            <summary>
+            Used to represent an abnormal error when evaluating a flag.
+            This exception should be thrown when evaluating a flag inside a IFeatureFlag provider
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Error.FeatureProviderException.ErrorType">
+            <summary>
+            Error that occurred during evaluation
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.FeatureProviderException.#ctor(OpenFeature.Constant.ErrorType,System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.FeatureProviderException"/> class
+            </summary>
+            <param name="errorType">Common error types <see cref="P:OpenFeature.Error.FeatureProviderException.ErrorType"/></param>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.FlagNotFoundException">
+            <summary>
+            Provider was unable to find the flag error when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.FlagNotFoundException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.FlagNotFoundException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.GeneralException">
+            <summary>
+            Abnormal execution of the provider when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.GeneralException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.GeneralException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.InvalidContextException">
+            <summary>
+            Context does not satisfy provider requirements when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.InvalidContextException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.InvalidContextException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.ParseErrorException">
+            <summary>
+            Provider failed to parse the flag response when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.ParseErrorException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.ParseErrorException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.ProviderFatalException">
+            <summary>
+            An exception that signals the provider has entered an irrecoverable error state.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.ProviderFatalException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.ProviderFatalException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.ProviderNotReadyException">
+            <summary>
+            Provider has not yet been initialized when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.ProviderNotReadyException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.ProviderNotReadyException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.TargetingKeyMissingException">
+            <summary>
+            Context does not contain a targeting key and the provider requires one when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.TargetingKeyMissingException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.TargetingKeyMissingException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="T:OpenFeature.Error.TypeMismatchException">
+            <summary>
+            Request type does not match the expected type when evaluating a flag.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Error.TypeMismatchException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialize a new instance of the <see cref="T:OpenFeature.Error.TypeMismatchException"/> class
+            </summary>
+            <param name="message">Exception message</param>
+            <param name="innerException">Optional inner exception</param>
+        </member>
+        <member name="F:OpenFeature.EventExecutor._defaultClientName">
+            placeholder for anonymous clients
+        </member>
+        <member name="M:OpenFeature.Extension.EnumExtensions.GetDescription(System.Enum)">
+            <summary>
+            Gets the description of an enum value without using reflection.
+            This is AOT-compatible and only supports specific known enum types.
+            </summary>
+            <param name="value">The enum value to get the description for</param>
+            <returns>The description string or the enum value as string if no description is available</returns>
+        </member>
+        <member name="T:OpenFeature.FeatureProvider">
+            <summary>
+            The provider interface describes the abstraction layer for a feature flag provider.
+            A provider acts as it translates layer between the generic feature flag structure to a target feature flag system.
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/02-providers.md">Provider specification</seealso>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.GetProviderHooks">
+             <summary>
+             Gets an immutable list of hooks that belong to the provider.
+             By default, return an empty list
+            
+             Executed in the order of hooks
+             before: API, Client, Invocation, Provider
+             after: Provider, Invocation, Client, API
+             error (if applicable): Provider, Invocation, Client, API
+             finally: Provider, Invocation, Client, API
+             </summary>
+             <returns>Immutable list of hooks</returns>
+        </member>
+        <member name="F:OpenFeature.FeatureProvider.EventChannel">
+            <summary>
+            The event channel of the provider.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.GetMetadata">
+            <summary>
+            Metadata describing the provider.
+            </summary>
+            <returns><see cref="T:OpenFeature.Model.Metadata"/></returns>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.ResolveBooleanValueAsync(System.String,System.Boolean,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a boolean feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext"/></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns><see cref="T:OpenFeature.Model.ResolutionDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.ResolveStringValueAsync(System.String,System.String,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a string feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext"/></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns><see cref="T:OpenFeature.Model.ResolutionDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.ResolveIntegerValueAsync(System.String,System.Int32,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a integer feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext"/></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns><see cref="T:OpenFeature.Model.ResolutionDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.ResolveDoubleValueAsync(System.String,System.Double,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a double feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext"/></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns><see cref="T:OpenFeature.Model.ResolutionDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.ResolveStructureValueAsync(System.String,OpenFeature.Model.Value,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a structured feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext"/></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns><see cref="T:OpenFeature.Model.ResolutionDetails`1"/></returns>
+        </member>
+        <member name="P:OpenFeature.FeatureProvider.Status">
+            <summary>
+            Internally-managed provider status.
+            The SDK uses this field to track the status of the provider.
+            Not visible outside OpenFeature assembly
+            </summary>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.InitializeAsync(OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <summary>
+            <para>
+            This method is called before a provider is used to evaluate flags. Providers can overwrite this method,
+            if they have special initialization needed prior being called for flag evaluation.
+            When this method completes, the provider will be considered ready for use.
+            </para>
+            </summary>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext"/></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/> to cancel any async side effects.</param>
+            <returns>A task that completes when the initialization process is complete.</returns>
+            <remarks>
+            <para>
+            Providers not implementing this method will be considered ready immediately.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.ShutdownAsync(System.Threading.CancellationToken)">
+            <summary>
+            This method is called when a new provider is about to be used to evaluate flags, or the SDK is shut down.
+            Providers can overwrite this method, if they have special shutdown actions needed.
+            </summary>
+            <returns>A task that completes when the shutdown process is complete.</returns>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/> to cancel any async side effects.</param>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.GetEventChannel">
+            <summary>
+            Returns the event channel of the provider.
+            </summary>
+            <returns>The event channel of the provider</returns>
+        </member>
+        <member name="M:OpenFeature.FeatureProvider.Track(System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.TrackingEventDetails)">
+            <summary>
+            Track a user action or application state, usually representing a business objective or outcome. The implementation of this method is optional.
+            </summary>
+            <param name="trackingEventName">The name associated with this tracking event</param>
+            <param name="evaluationContext">The evaluation context used in the evaluation of the flag (optional)</param>
+            <param name="trackingEventDetails">Data pertinent to the tracking event (Optional)</param>
+        </member>
+        <member name="T:OpenFeature.Hook">
+             <summary>
+             The Hook abstract class describes the default implementation for a hook.
+             A hook has multiple lifecycles, and is called in the following order when normal execution Before, After, Finally.
+             When an abnormal execution occurs, the hook is called in the following order: Error, Finally.
+            
+             Before: immediately before flag evaluation
+             After: immediately after successful flag evaluation
+             Error: immediately after an unsuccessful during flag evaluation
+             Finally: unconditionally after flag evaluation
+            
+             Hooks can be configured to run globally (impacting all flag evaluations), per client, or per flag evaluation invocation.
+            
+             </summary>
+             <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/04-hooks.md">Hook Specification</seealso>
+        </member>
+        <member name="M:OpenFeature.Hook.BeforeAsync``1(OpenFeature.Model.HookContext{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Called immediately before flag evaluation.
+            </summary>
+            <param name="context">Provides context of innovation</param>
+            <param name="hints">Caller provided data</param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <typeparam name="T">Flag value type (bool|number|string|object)</typeparam>
+            <returns>Modified EvaluationContext that is used for the flag evaluation</returns>
+        </member>
+        <member name="M:OpenFeature.Hook.AfterAsync``1(OpenFeature.Model.HookContext{``0},OpenFeature.Model.FlagEvaluationDetails{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Called immediately after successful flag evaluation.
+            </summary>
+            <param name="context">Provides context of innovation</param>
+            <param name="details">Flag evaluation information</param>
+            <param name="hints">Caller provided data</param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <typeparam name="T">Flag value type (bool|number|string|object)</typeparam>
+        </member>
+        <member name="M:OpenFeature.Hook.ErrorAsync``1(OpenFeature.Model.HookContext{``0},System.Exception,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Called immediately after an unsuccessful flag evaluation.
+            </summary>
+            <param name="context">Provides context of innovation</param>
+            <param name="error">Exception representing what went wrong</param>
+            <param name="hints">Caller provided data</param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <typeparam name="T">Flag value type (bool|number|string|object)</typeparam>
+        </member>
+        <member name="M:OpenFeature.Hook.FinallyAsync``1(OpenFeature.Model.HookContext{``0},OpenFeature.Model.FlagEvaluationDetails{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Called unconditionally after flag evaluation.
+            </summary>
+            <param name="context">Provides context of innovation</param>
+            <param name="evaluationDetails">Flag evaluation information</param>
+            <param name="hints">Caller provided data</param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <typeparam name="T">Flag value type (bool|number|string|object)</typeparam>
+        </member>
+        <member name="T:OpenFeature.HookData">
+            <summary>
+            A key-value collection of strings to objects used for passing data between hook stages.
+            <para>
+            This collection is scoped to a single evaluation for a single hook. Each hook stage for the evaluation
+            will share the same <see cref="T:OpenFeature.HookData"/>.
+            </para>
+            <para>
+            This collection is intended for use only during the execution of individual hook stages, a reference
+            to the collection should not be retained.
+            </para>
+            <para>
+            This collection is not thread-safe.
+            </para>
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/main/specification/sections/04-hooks.md#46-hook-data"/>
+        </member>
+        <member name="M:OpenFeature.HookData.Set(System.String,System.Object)">
+            <summary>
+            Set the key to the given value.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This hook data instance</returns>
+        </member>
+        <member name="M:OpenFeature.HookData.Get(System.String)">
+            <summary>
+            Gets the value at the specified key as an object.
+            <remarks>
+            For <see cref="T:OpenFeature.Model.Value"/> types use <see cref="M:OpenFeature.HookData.Get(System.String)"/> instead.
+            </remarks>
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns>The object associated with the key</returns>
+            <exception cref="T:System.Collections.Generic.KeyNotFoundException">
+            Thrown when the context does not contain the specified key
+            </exception>
+        </member>
+        <member name="P:OpenFeature.HookData.Count">
+            <summary>
+            Return a count of all values.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.HookData.GetEnumerator">
+            <summary>
+            Return an enumerator for all values.
+            </summary>
+            <returns>An enumerator for all values</returns>
+        </member>
+        <member name="P:OpenFeature.HookData.Keys">
+            <summary>
+            Return a list containing all the keys in the hook data
+            </summary>
+        </member>
+        <member name="P:OpenFeature.HookData.Values">
+            <summary>
+            Return an enumerable containing all the values of the hook data
+            </summary>
+        </member>
+        <member name="M:OpenFeature.HookData.AsDictionary">
+            <summary>
+            Gets all values as a read only dictionary.
+            <remarks>
+            The dictionary references the original values and is not a thread-safe copy.
+            </remarks>
+            </summary>
+            <returns>A <see cref="T:System.Collections.Generic.IDictionary`2"/> representation of the hook data</returns>
+        </member>
+        <member name="P:OpenFeature.HookData.Item(System.String)">
+            <summary>
+            Gets or sets the value associated with the specified key.
+            </summary>
+            <param name="key">The key of the value to get or set</param>
+            <returns>The value associated with the specified key</returns>
+            <exception cref="T:System.Collections.Generic.KeyNotFoundException">
+            Thrown when getting a value and the context does not contain the specified key
+            </exception>
+        </member>
+        <member name="T:OpenFeature.HookRunner`1">
+            <summary>
+            This class manages the execution of hooks.
+            </summary>
+            <typeparam name="T">type of the evaluation detail provided to the hooks</typeparam>
+        </member>
+        <member name="M:OpenFeature.HookRunner`1.#ctor(System.Collections.Immutable.ImmutableList{OpenFeature.Hook},OpenFeature.Model.EvaluationContext,OpenFeature.SharedHookContext{`0},Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Construct a hook runner instance. Each instance should be used for the execution of a single evaluation.
+            </summary>
+            <param name="hooks">
+            The hooks for the evaluation, these should be in the correct order for the before evaluation stage
+            </param>
+            <param name="evaluationContext">
+            The initial evaluation context, this can be updated as the hooks execute
+            </param>
+            <param name="sharedHookContext">
+            Contents of the initial hook context excluding the evaluation context and hook data
+            </param>
+            <param name="logger">Client logger instance</param>
+        </member>
+        <member name="M:OpenFeature.HookRunner`1.TriggerBeforeHooksAsync(System.Collections.Immutable.IImmutableDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Execute before hooks.
+            </summary>
+            <param name="hints">Optional hook hints</param>
+            <param name="cancellationToken">Cancellation token which can cancel hook operations</param>
+            <returns>Context with any modifications from the before hooks</returns>
+        </member>
+        <member name="M:OpenFeature.HookRunner`1.TriggerAfterHooksAsync(OpenFeature.Model.FlagEvaluationDetails{`0},System.Collections.Immutable.IImmutableDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Execute the after hooks. These are executed in opposite order of the before hooks.
+            </summary>
+            <param name="evaluationDetails">The evaluation details which will be provided to the hook</param>
+            <param name="hints">Optional hook hints</param>
+            <param name="cancellationToken">Cancellation token which can cancel hook operations</param>
+        </member>
+        <member name="M:OpenFeature.HookRunner`1.TriggerErrorHooksAsync(System.Exception,System.Collections.Immutable.IImmutableDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Execute the error hooks. These are executed in opposite order of the before hooks.
+            </summary>
+            <param name="exception">Exception which triggered the error</param>
+            <param name="hints">Optional hook hints</param>
+            <param name="cancellationToken">Cancellation token which can cancel hook operations</param>
+        </member>
+        <member name="M:OpenFeature.HookRunner`1.TriggerFinallyHooksAsync(OpenFeature.Model.FlagEvaluationDetails{`0},System.Collections.Immutable.IImmutableDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Execute the finally hooks. These are executed in opposite order of the before hooks.
+            </summary>
+            <param name="evaluationDetails">The evaluation details which will be provided to the hook</param>
+            <param name="hints">Optional hook hints</param>
+            <param name="cancellationToken">Cancellation token which can cancel hook operations</param>
+        </member>
+        <member name="T:OpenFeature.Hooks.LoggingHook">
+            <summary>
+            The logging hook is a hook which logs messages during the flag evaluation life-cycle.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.LoggingHook.#ctor(Microsoft.Extensions.Logging.ILogger,System.Boolean)">
+            <summary>
+            Initialise a <see cref="T:OpenFeature.Hooks.LoggingHook"/> with a <paramref name="logger"/> and optional Evaluation Context. <paramref name="includeContext"/> will
+            include properties in the <see cref="P:OpenFeature.Model.HookContext`1.EvaluationContext"/> to the generated logs.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.LoggingHook.BeforeAsync``1(OpenFeature.Model.HookContext{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Hooks.LoggingHook.ErrorAsync``1(OpenFeature.Model.HookContext{``0},System.Exception,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Hooks.LoggingHook.AfterAsync``1(OpenFeature.Model.HookContext{``0},OpenFeature.Model.FlagEvaluationDetails{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:OpenFeature.Hooks.LoggingHook.LoggingHookContent">
+            <summary>
+            Generates a log string with contents provided by the <see cref="T:OpenFeature.Hooks.LoggingHook"/>.
+            <para>
+                Specification for log contents found at https://github.com/open-feature/spec/blob/d261f68331b94fd8ed10bc72bc0485cfc72a51a8/specification/appendix-a-included-utilities.md#logging-hook
+            </para>
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Hooks.MetricsHook">
+            <summary>
+            Represents a hook for capturing metrics related to flag evaluations.
+            The meter instrumentation name is "OpenFeature".
+            </summary>
+            <remarks> This is still experimental and subject to change. </remarks>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHook.#ctor(OpenFeature.Hooks.MetricsHookOptions)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Hooks.MetricsHook"/> class.
+            </summary>
+            <param name="options">Optional configuration for the metrics hook.</param>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHook.BeforeAsync``1(OpenFeature.Model.HookContext{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHook.AfterAsync``1(OpenFeature.Model.HookContext{``0},OpenFeature.Model.FlagEvaluationDetails{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHook.ErrorAsync``1(OpenFeature.Model.HookContext{``0},System.Exception,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHook.FinallyAsync``1(OpenFeature.Model.HookContext{``0},OpenFeature.Model.FlagEvaluationDetails{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:OpenFeature.Hooks.MetricsHookOptions">
+            <summary>
+            Configuration options for the <see cref="T:OpenFeature.Hooks.MetricsHook"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Hooks.MetricsHookOptions.Default">
+            <summary>
+            The default options for the <see cref="T:OpenFeature.Hooks.MetricsHook"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Hooks.MetricsHookOptions.CustomDimensions">
+            <summary>
+            Custom dimensions or tags to be associated with Meters in <see cref="T:OpenFeature.Hooks.MetricsHook"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Hooks.MetricsHookOptions.FlagMetadataCallbacks">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHookOptions.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Hooks.MetricsHookOptions"/> class with default values.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHookOptions.#ctor(System.Collections.Generic.IReadOnlyCollection{System.Collections.Generic.KeyValuePair{System.String,System.Object}},System.Collections.Generic.IReadOnlyCollection{System.Collections.Generic.KeyValuePair{System.String,System.Func{OpenFeature.Model.ImmutableMetadata,System.Object}}})">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Hooks.MetricsHookOptions"/> class.
+            </summary>
+            <param name="customDimensions">Optional custom dimensions to tag Counter increments with.</param>
+            <param name="flagMetadataSelectors"></param>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHookOptions.CreateBuilder">
+            <summary>
+            Creates a new builder for <see cref="T:OpenFeature.Hooks.MetricsHookOptions"/>.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Hooks.MetricsHookOptions.MetricsHookOptionsBuilder">
+            <summary>
+            A builder for constructing <see cref="T:OpenFeature.Hooks.MetricsHookOptions"/> instances.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHookOptions.MetricsHookOptionsBuilder.WithCustomDimension(System.String,System.Object)">
+            <summary>
+            Adds a custom dimension.
+            </summary>
+            <param name="key">The key for the custom dimension.</param>
+            <param name="value">The value for the custom dimension.</param>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHookOptions.MetricsHookOptionsBuilder.WithFlagEvaluationMetadata(System.String,System.Func{OpenFeature.Model.ImmutableMetadata,System.Object})">
+            <summary>
+            Provide a callback to evaluate flag metadata for a specific flag key.
+            </summary>
+            <param name="key">The key for the custom dimension.</param>
+            <param name="flagMetadataCallback">The callback to retrieve the value to tag successful flag evaluations.</param>
+            <returns></returns>
+        </member>
+        <member name="M:OpenFeature.Hooks.MetricsHookOptions.MetricsHookOptionsBuilder.Build">
+            <summary>
+            Builds the <see cref="T:OpenFeature.Hooks.MetricsHookOptions"/> instance.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Hooks.TraceEnricherHook">
+            <summary>
+            A hook that enriches telemetry traces with additional information during the feature flag evaluation lifecycle.
+            This hook adds relevant flag evaluation details as tags and events to the current <see cref="T:System.Diagnostics.Activity"/> for tracing purposes.
+            On error, it attaches exception information to the trace, using the appropriate API depending on the .NET version.
+            </summary>
+            <remarks> This is still experimental and subject to change. </remarks>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHook.#ctor(OpenFeature.Hooks.TraceEnricherHookOptions)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Hooks.TraceEnricherHook"/> class.
+            </summary>
+            <param name="options">Optional configuration for the traces hook.</param>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHook.FinallyAsync``1(OpenFeature.Model.HookContext{``0},OpenFeature.Model.FlagEvaluationDetails{``0},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Adds tags and events to the current <see cref="T:System.Diagnostics.Activity"/> for tracing purposes.
+            </summary>
+            <typeparam name="T">The type of the flag value being evaluated.</typeparam>
+            <param name="context">The hook context containing metadata about the evaluation.</param>
+            <param name="details">Details about the flag evaluation including the key, value, and variant.</param>
+            <param name="hints">Optional dictionary of hints that can modify hook behavior.</param>
+            <param name="cancellationToken">A token to cancel the operation.</param>
+            <returns>A completed <see cref="T:System.Threading.Tasks.ValueTask"/> representing the asynchronous operation.</returns>
+        </member>
+        <member name="T:OpenFeature.Hooks.TraceEnricherHookOptions">
+            <summary>
+            Configuration options for the <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Hooks.TraceEnricherHookOptions.Default">
+            <summary>
+            The default options for the <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Hooks.TraceEnricherHookOptions.Tags">
+            <summary>
+            Custom tags to be associated with current <see cref="T:System.Diagnostics.Activity"/> in <see cref="T:OpenFeature.Hooks.TraceEnricherHook"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Hooks.TraceEnricherHookOptions.FlagMetadataCallbacks">
+            <summary>
+            Flag metadata callbacks to be associated with current <see cref="T:System.Diagnostics.Activity"/>.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHookOptions.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/> class with default values.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHookOptions.#ctor(System.Collections.Generic.IReadOnlyCollection{System.Collections.Generic.KeyValuePair{System.String,System.Object}},System.Collections.Generic.IReadOnlyCollection{System.Collections.Generic.KeyValuePair{System.String,System.Func{OpenFeature.Model.ImmutableMetadata,System.Object}}})">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/> class.
+            </summary>
+            <param name="tags">Optional custom tags to tag Counter increments with.</param>
+            <param name="flagMetadataSelectors">Optional flag metadata callbacks to be associated with current <see cref="T:System.Diagnostics.Activity"/>.</param>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHookOptions.CreateBuilder">
+            <summary>
+            Creates a new builder for <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/>.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Hooks.TraceEnricherHookOptions.TraceEnricherHookOptionsBuilder">
+            <summary>
+            A builder for constructing <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/> instances.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHookOptions.TraceEnricherHookOptionsBuilder.WithTag(System.String,System.Object)">
+            <summary>
+            Adds a custom tag to the <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions.TraceEnricherHookOptionsBuilder"/>.
+            </summary>
+            <param name="key">The key for the custom dimension.</param>
+            <param name="value">The value for the custom dimension.</param>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHookOptions.TraceEnricherHookOptionsBuilder.WithFlagEvaluationMetadata(System.String,System.Func{OpenFeature.Model.ImmutableMetadata,System.Object})">
+            <summary>
+            Provide a callback to evaluate flag metadata and add it as a custom tag on the current <see cref="T:System.Diagnostics.Activity"/>.
+            </summary>
+            <param name="key">The key for the custom tag.</param>
+            <param name="flagMetadataCallback">The callback to retrieve the value to tag successful flag evaluations.</param>
+            <returns></returns>
+        </member>
+        <member name="M:OpenFeature.Hooks.TraceEnricherHookOptions.TraceEnricherHookOptionsBuilder.Build">
+            <summary>
+            Builds the <see cref="T:OpenFeature.Hooks.TraceEnricherHookOptions"/> instance.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.IEventBus">
+            <summary>
+            Defines the methods required for handling events.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.IEventBus.AddHandler(OpenFeature.Constant.ProviderEventTypes,OpenFeature.Model.EventHandlerDelegate)">
+            <summary>
+            Adds an Event Handler for the given event type.
+            </summary>
+            <param name="type">The type of the event</param>
+            <param name="handler">Implementation of the <see cref="T:OpenFeature.Model.EventHandlerDelegate"/></param>
+        </member>
+        <member name="M:OpenFeature.IEventBus.RemoveHandler(OpenFeature.Constant.ProviderEventTypes,OpenFeature.Model.EventHandlerDelegate)">
+            <summary>
+            Removes an Event Handler for the given event type.
+            </summary>
+            <param name="type">The type of the event</param>
+            <param name="handler">Implementation of the <see cref="T:OpenFeature.Model.EventHandlerDelegate"/></param>
+        </member>
+        <member name="T:OpenFeature.IFeatureClient">
+            <summary>
+            Interface used to resolve flags of varying types.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.AddHooks(System.Collections.Generic.IEnumerable{OpenFeature.Hook})">
+            <summary>
+            Appends hooks to client
+            <para>
+            The appending operation will be atomic.
+            </para>
+            </summary>
+            <param name="hooks">A list of Hooks that implement the <see cref="T:OpenFeature.Hook"/> interface</param>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetHooks">
+            <summary>
+            Enumerates the global hooks.
+            <para>
+            The items enumerated will reflect the registered hooks
+            at the start of enumeration. Hooks added during enumeration
+            will not be included.
+            </para>
+            </summary>
+            <returns>Enumeration of <see cref="T:OpenFeature.Hook"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetContext">
+            <summary>
+            Gets the <see cref="T:OpenFeature.Model.EvaluationContext"/> of this client
+            <para>
+            The evaluation context may be set from multiple threads, when accessing the client evaluation context
+            it should be accessed once for an operation, and then that reference should be used for all dependent
+            operations.
+            </para>
+            </summary>
+            <returns><see cref="T:OpenFeature.Model.EvaluationContext"/>of this client</returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.SetContext(OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Sets the <see cref="T:OpenFeature.Model.EvaluationContext"/> of the client
+            </summary>
+            <param name="context">The <see cref="T:OpenFeature.Model.EvaluationContext"/> to set</param>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetMetadata">
+            <summary>
+            Gets client metadata
+            </summary>
+            <returns>Client metadata <see cref="T:OpenFeature.Model.ClientMetadata"/></returns>
+        </member>
+        <member name="P:OpenFeature.IFeatureClient.ProviderStatus">
+            <summary>
+            Returns the current status of the associated provider.
+            </summary>
+            <returns><see cref="P:OpenFeature.IFeatureClient.ProviderStatus"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetBooleanValueAsync(System.String,System.Boolean,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a boolean feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag value.</returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetBooleanDetailsAsync(System.String,System.Boolean,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a boolean feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag details <see cref="T:OpenFeature.Model.FlagEvaluationDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetStringValueAsync(System.String,System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a string feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag value.</returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetStringDetailsAsync(System.String,System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a string feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag details <see cref="T:OpenFeature.Model.FlagEvaluationDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetIntegerValueAsync(System.String,System.Int32,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a integer feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag value.</returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetIntegerDetailsAsync(System.String,System.Int32,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a integer feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag details <see cref="T:OpenFeature.Model.FlagEvaluationDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetDoubleValueAsync(System.String,System.Double,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a double feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag value.</returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetDoubleDetailsAsync(System.String,System.Double,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a double feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag details <see cref="T:OpenFeature.Model.FlagEvaluationDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetObjectValueAsync(System.String,OpenFeature.Model.Value,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a structure object feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag value.</returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.GetObjectDetailsAsync(System.String,OpenFeature.Model.Value,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <summary>
+            Resolves a structure object feature flag
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="context"><see cref="T:OpenFeature.Model.EvaluationContext">Evaluation Context</see></param>
+            <param name="config"><see cref="T:OpenFeature.Model.EvaluationContext">Flag Evaluation Options</see></param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>Resolved flag details <see cref="T:OpenFeature.Model.FlagEvaluationDetails`1"/></returns>
+        </member>
+        <member name="M:OpenFeature.IFeatureClient.Track(System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.TrackingEventDetails)">
+            <summary>
+            Use this method to track user interactions and the application state.
+            </summary>
+            <param name="trackingEventName">The name associated with this tracking event</param>
+            <param name="evaluationContext">The evaluation context used in the evaluation of the flag (optional)</param>
+            <param name="trackingEventDetails">Data pertinent to the tracking event (Optional)</param>
+            <exception cref="T:System.ArgumentException">When trackingEventName is null or empty</exception>
+        </member>
+        <member name="T:OpenFeature.Model.ClientMetadata">
+            <summary>
+            Represents the client metadata
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ClientMetadata.Version">
+            <summary>
+            Version of the client
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.ClientMetadata.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Model.ClientMetadata"/> class
+            </summary>
+            <param name="name">Name of client</param>
+            <param name="version">Version of client</param>
+        </member>
+        <member name="T:OpenFeature.Model.EvaluationContext">
+            <summary>
+            A KeyValuePair with a string key and object value that is used to apply user defined properties
+            to the feature flag evaluation context.
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/03-evaluation-context.md">Evaluation context</seealso>
+        </member>
+        <member name="F:OpenFeature.Model.EvaluationContext.TargetingKeyIndex">
+            <summary>
+            The index for the "targeting key" property when the EvaluationContext is serialized or expressed as a dictionary.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.#ctor(OpenFeature.Model.Structure)">
+            <summary>
+            Internal constructor used by the builder.
+            </summary>
+            <param name="content"></param>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.#ctor">
+            <summary>
+            Private constructor for making an empty <see cref="T:OpenFeature.Model.EvaluationContext"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.EvaluationContext.Empty">
+            <summary>
+            An empty evaluation context.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.GetValue(System.String)">
+            <summary>
+            Gets the Value at the specified key
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns>The <see cref="T:OpenFeature.Model.Value"/> associated with the key</returns>
+            <exception cref="T:System.Collections.Generic.KeyNotFoundException">
+            Thrown when the context does not contain the specified key
+            </exception>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when the key is <see langword="null" />
+            </exception>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.ContainsKey(System.String)">
+            <summary>
+            Bool indicating if the specified key exists in the evaluation context
+            </summary>
+            <param name="key">The key of the value to be checked</param>
+            <returns><see cref="T:System.Boolean" />indicating the presence of the key</returns>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when the key is <see langword="null" />
+            </exception>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.TryGetValue(System.String,OpenFeature.Model.Value@)">
+            <summary>
+            Gets the value associated with the specified key
+            </summary>
+            <param name="value">The <see cref="T:OpenFeature.Model.Value"/> or <see langword="null" /> if the key was not present</param>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns><see cref="T:System.Boolean" />indicating the presence of the key</returns>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when the key is <see langword="null" />
+            </exception>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.AsDictionary">
+            <summary>
+            Gets all values as a Dictionary
+            </summary>
+            <returns>New <see cref="T:System.Collections.Generic.IDictionary`2"/> representation of this Structure</returns>
+        </member>
+        <member name="P:OpenFeature.Model.EvaluationContext.Count">
+            <summary>
+            Return a count of all values
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.EvaluationContext.TargetingKey">
+            <summary>
+            Returns the targeting key for the context.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.GetEnumerator">
+            <summary>
+            Return an enumerator for all values
+            </summary>
+            <returns>An enumerator for all values</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContext.Builder">
+            <summary>
+            Get a builder which can build an <see cref="T:OpenFeature.Model.EvaluationContext"/>.
+            </summary>
+            <returns>The builder</returns>
+        </member>
+        <member name="T:OpenFeature.Model.EvaluationContextBuilder">
+            <summary>
+            A builder which allows the specification of attributes for an <see cref="T:OpenFeature.Model.EvaluationContext"/>.
+            <para>
+            A <see cref="T:OpenFeature.Model.EvaluationContextBuilder"/> object is intended for use by a single thread and should not be used
+            from multiple threads. Once an <see cref="T:OpenFeature.Model.EvaluationContext"/> has been created it is immutable and safe for use
+            from multiple threads.
+            </para>
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.#ctor">
+            <summary>
+            Internal to only allow direct creation by <see cref="M:OpenFeature.Model.EvaluationContext.Builder"/>.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.SetTargetingKey(System.String)">
+            <summary>
+            Set the targeting key for the context.
+            </summary>
+            <param name="targetingKey">The targeting key</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,OpenFeature.Model.Value)">
+            <summary>
+            Set the key to the given <see cref="T:OpenFeature.Model.Value"/>.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,System.String)">
+            <summary>
+            Set the key to the given string.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,System.Int32)">
+            <summary>
+            Set the key to the given int.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,System.Double)">
+            <summary>
+            Set the key to the given double.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,System.Int64)">
+            <summary>
+            Set the key to the given long.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,System.Boolean)">
+            <summary>
+            Set the key to the given bool.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,OpenFeature.Model.Structure)">
+            <summary>
+            Set the key to the given <see cref="T:OpenFeature.Model.Structure"/>.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Set(System.String,System.DateTime)">
+            <summary>
+            Set the key to the given DateTime.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Merge(OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Incorporate an existing context into the builder.
+            <para>
+            Any existing keys in the builder will be replaced by keys in the context.
+            </para>
+            </summary>
+            <param name="context">The context to add merge</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.EvaluationContextBuilder.Build">
+            <summary>
+            Build an immutable <see cref="T:OpenFeature.Model.EvaluationContext"/>.
+            </summary>
+            <returns>An immutable <see cref="T:OpenFeature.Model.EvaluationContext"/></returns>
+        </member>
+        <member name="T:OpenFeature.Model.FlagEvaluationDetails`1">
+            <summary>
+            The contract returned to the caller that describes the result of the flag evaluation process.
+            </summary>
+            <typeparam name="T">Flag value type</typeparam>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.7.0/specification/types.md#evaluation-details"/>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.Value">
+            <summary>
+            Feature flag evaluated value
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.FlagKey">
+            <summary>
+            Feature flag key
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.ErrorType">
+            <summary>
+            Error that occurred during evaluation
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.ErrorMessage">
+            <summary>
+            Message containing additional details about an error.
+            <para>
+            Will be <see langword="null" /> if there is no error or if the provider didn't provide any additional error
+            details.
+            </para>
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.Reason">
+            <summary>
+            Describes the reason for the outcome of the evaluation process
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.Variant">
+            <summary>
+            A variant is a semantic identifier for a value. This allows for referral to particular values without
+            necessarily including the value itself, which may be quite prohibitively large or otherwise unsuitable
+            in some cases.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationDetails`1.FlagMetadata">
+            <summary>
+            A structure which supports definition of arbitrary properties, with keys of type string, and values of type boolean, string, or number.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.FlagEvaluationDetails`1.#ctor(System.String,`0,OpenFeature.Constant.ErrorType,System.String,System.String,System.String,OpenFeature.Model.ImmutableMetadata)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Model.FlagEvaluationDetails`1"/> class.
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="value">Evaluated value</param>
+            <param name="errorType">Error</param>
+            <param name="reason">Reason</param>
+            <param name="variant">Variant</param>
+            <param name="errorMessage">Error message</param>
+            <param name="flagMetadata">Flag metadata</param>
+        </member>
+        <member name="T:OpenFeature.Model.FlagEvaluationOptions">
+            <summary>
+            A structure containing the one or more hooks and hook hints
+            The hook and hook hints are added to the list of hooks called during the evaluation process
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/types.md#evaluation-options">Flag Evaluation Options</seealso>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationOptions.Hooks">
+            <summary>
+            An immutable list of <see cref="T:OpenFeature.Hook"/>
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.FlagEvaluationOptions.HookHints">
+            <summary>
+            An immutable dictionary of hook hints
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.FlagEvaluationOptions.#ctor(System.Collections.Immutable.IImmutableList{OpenFeature.Hook},System.Collections.Immutable.IImmutableDictionary{System.String,System.Object})">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Model.FlagEvaluationOptions"/> class.
+            </summary>
+            <param name="hooks">An immutable list of hooks to use during evaluation</param>
+            <param name="hookHints">Optional - a list of hints that are passed through the hook lifecycle</param>
+        </member>
+        <member name="M:OpenFeature.Model.FlagEvaluationOptions.#ctor(OpenFeature.Hook,System.Collections.Immutable.ImmutableDictionary{System.String,System.Object})">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Model.FlagEvaluationOptions"/> class.
+            </summary>
+            <param name="hook">A hook to use during the evaluation</param>
+            <param name="hookHints">Optional - a list of hints that are passed through the hook lifecycle</param>
+        </member>
+        <member name="T:OpenFeature.Model.HookContext`1">
+            <summary>
+            Context provided to hook execution
+            </summary>
+            <typeparam name="T">Flag value type</typeparam>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.5.2/specification/sections/04-hooks.md#41-hook-context"/>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.FlagKey">
+            <summary>
+            Feature flag being evaluated
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.DefaultValue">
+            <summary>
+            Default value if flag fails to be evaluated
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.FlagValueType">
+            <summary>
+            The value type of the flag
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.EvaluationContext">
+            <summary>
+            User defined evaluation context used in the evaluation process
+            <see cref="P:OpenFeature.Model.HookContext`1.EvaluationContext"/>
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.ClientMetadata">
+            <summary>
+            Client metadata
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.ProviderMetadata">
+            <summary>
+            Provider metadata
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.HookContext`1.Data">
+            <summary>
+            Hook data
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.HookContext`1.#ctor(System.String,`0,OpenFeature.Constant.FlagValueType,OpenFeature.Model.ClientMetadata,OpenFeature.Model.Metadata,OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Initialize a new instance of <see cref="T:OpenFeature.Model.HookContext`1"/>
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="flagValueType">Flag value type</param>
+            <param name="clientMetadata">Client metadata</param>
+            <param name="providerMetadata">Provider metadata</param>
+            <param name="evaluationContext">Evaluation context</param>
+            <exception cref="T:System.ArgumentNullException">When any of arguments are null</exception>
+        </member>
+        <member name="T:OpenFeature.Model.ImmutableMetadata">
+            <summary>
+            Represents immutable metadata associated with feature flags and events.
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.7.0/specification/types.md#flag-metadata"/>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.7.0/specification/types.md#event-metadata"/>
+        </member>
+        <member name="M:OpenFeature.Model.ImmutableMetadata.#ctor">
+            <summary>
+            Constructor for the <see cref="T:OpenFeature.Model.ImmutableMetadata"/> class.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.ImmutableMetadata.#ctor(System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            Constructor for the <see cref="T:OpenFeature.Model.ImmutableMetadata"/> class.
+            </summary>
+            <param name="metadata">The dictionary containing the metadata.</param>
+        </member>
+        <member name="M:OpenFeature.Model.ImmutableMetadata.GetBool(System.String)">
+            <summary>
+            Gets the boolean value associated with the specified key.
+            </summary>
+            <param name="key">The key of the value to retrieve.</param>
+            <returns>The boolean value associated with the key, or null if the key is not found.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.ImmutableMetadata.GetInt(System.String)">
+            <summary>
+            Gets the integer value associated with the specified key.
+            </summary>
+            <param name="key">The key of the value to retrieve.</param>
+            <returns>The value associated with the key as an integer, if it is of type double or int; otherwise, null.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.ImmutableMetadata.GetDouble(System.String)">
+            <summary>
+            Gets the double value associated with the specified key.
+            </summary>
+            <param name="key">The key of the value to retrieve.</param>
+            <returns>The value associated with the key as a double, if it is of type double or int; otherwise, null.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.ImmutableMetadata.GetString(System.String)">
+            <summary>
+            Gets the string value associated with the specified key.
+            </summary>
+            <param name="key">The key of the value to retrieve.</param>
+            <returns>The string value associated with the key, or null if the key is not found.</returns>
+        </member>
+        <member name="T:OpenFeature.Model.ITransactionContextPropagator">
+            <summary>
+            <see cref="T:OpenFeature.Model.ITransactionContextPropagator"/> is responsible for persisting a transactional context
+            for the duration of a single transaction.
+            Examples of potential transaction specific context include: a user id, user agent, IP.
+            Transaction context is merged with evaluation context prior to flag evaluation.
+            </summary>
+            <remarks>
+            The precedence of merging context can be seen in
+            <a href="https://openfeature.dev/specification/sections/evaluation-context#requirement-323">the specification</a>.
+            </remarks>
+        </member>
+        <member name="M:OpenFeature.Model.ITransactionContextPropagator.GetTransactionContext">
+            <summary>
+             Returns the currently defined transaction context using the registered transaction context propagator.
+            </summary>
+            <returns><see cref="T:OpenFeature.Model.EvaluationContext"/>The current transaction context</returns>
+        </member>
+        <member name="M:OpenFeature.Model.ITransactionContextPropagator.SetTransactionContext(OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Sets the transaction context.
+            </summary>
+            <param name="evaluationContext">The transaction context to be set</param>
+        </member>
+        <member name="T:OpenFeature.Model.Metadata">
+            <summary>
+            <see cref="T:OpenFeature.Api"/> metadata
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.Metadata.Name">
+            <summary>
+            Gets name of <see cref="T:OpenFeature.Api"/> instance
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Metadata.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Model.Metadata"/> class.
+            </summary>
+            <param name="name">Name of <see cref="T:OpenFeature.Api"/> instance</param>
+        </member>
+        <member name="T:OpenFeature.Model.EventHandlerDelegate">
+            <summary>
+            The EventHandlerDelegate is an implementation of an Event Handler
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Model.ProviderEventPayload">
+            <summary>
+            Contains the payload of an OpenFeature Event.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ProviderEventPayload.ProviderName">
+            <summary>
+            Name of the provider.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ProviderEventPayload.Type">
+            <summary>
+            Type of the event
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ProviderEventPayload.Message">
+            <summary>
+            A message providing more information about the event.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ProviderEventPayload.ErrorType">
+            <summary>
+            Optional error associated with the event. 
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ProviderEventPayload.FlagsChanged">
+            <summary>
+            A List of flags that have been changed.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ProviderEventPayload.EventMetadata">
+            <summary>
+            Metadata information for the event.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Model.ResolutionDetails`1">
+            <summary>
+            Defines the contract that the <see cref="T:OpenFeature.FeatureProvider"/> is required to return
+            Describes the details of the feature flag being evaluated
+            </summary>
+            <typeparam name="T">Flag value type</typeparam>
+            <seealso href="https://github.com/open-feature/spec/blob/v0.7.0/specification/types.md#resolution-details"/>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.Value">
+            <summary>
+            Feature flag evaluated value
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.FlagKey">
+            <summary>
+            Feature flag key
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.ErrorType">
+            <summary>
+            Error that occurred during evaluation
+            <see cref="P:OpenFeature.Model.ResolutionDetails`1.ErrorType"/>
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.ErrorMessage">
+            <summary>
+            Message containing additional details about an error.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.Reason">
+            <summary>
+            Describes the reason for the outcome of the evaluation process
+            <see cref="P:OpenFeature.Model.ResolutionDetails`1.Reason"/>
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.Variant">
+            <summary>
+            A variant is a semantic identifier for a value. This allows for referral to particular values without
+            necessarily including the value itself, which may be quite prohibitively large or otherwise unsuitable
+            in some cases.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.ResolutionDetails`1.FlagMetadata">
+            <summary>
+            A structure which supports definition of arbitrary properties, with keys of type string, and values of type boolean, string, or number.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.ResolutionDetails`1.#ctor(System.String,`0,OpenFeature.Constant.ErrorType,System.String,System.String,System.String,OpenFeature.Model.ImmutableMetadata)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Model.ResolutionDetails`1"/> class.
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="value">Evaluated value</param>
+            <param name="errorType">Error</param>
+            <param name="reason">Reason</param>
+            <param name="variant">Variant</param>
+            <param name="errorMessage">Error message</param>
+            <param name="flagMetadata">Flag metadata</param>
+        </member>
+        <member name="T:OpenFeature.Model.Structure">
+            <summary>
+            Structure represents a map of Values
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.#ctor(System.Collections.Immutable.ImmutableDictionary{System.String,OpenFeature.Model.Value})">
+            <summary>
+            Internal constructor for use by the builder.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.#ctor">
+            <summary>
+            Private constructor for creating an empty <see cref="T:OpenFeature.Model.Structure"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.Structure.Empty">
+            <summary>
+            An empty structure.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.#ctor(System.Collections.Generic.IDictionary{System.String,OpenFeature.Model.Value})">
+            <summary>
+            Creates a new structure with the supplied attributes
+            </summary>
+            <param name="attributes"></param>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.GetValue(System.String)">
+            <summary>
+            Gets the Value at the specified key
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns><see cref="T:OpenFeature.Model.Value"/></returns>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.ContainsKey(System.String)">
+            <summary>
+            Bool indicating if the specified key exists in the structure
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns><see cref="T:System.Boolean"/>indicating the presence of the key.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.TryGetValue(System.String,OpenFeature.Model.Value@)">
+            <summary>
+            Gets the value associated with the specified key by mutating the supplied value.
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+            <param name="value">value to be mutated</param>
+            <returns><see cref="T:System.Boolean"/> indicating the presence of the key.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.AsDictionary">
+            <summary>
+            Gets all values as a Dictionary
+            </summary>
+            <returns>New <see cref="T:System.Collections.IDictionary"/> representation of this Structure</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Structure.Item(System.String)">
+            <summary>
+            Return the value at the supplied index
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+        </member>
+        <member name="P:OpenFeature.Model.Structure.Keys">
+            <summary>
+            Return a list containing all the keys in this structure
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.Structure.Values">
+            <summary>
+            Return an enumerable containing all the values in this structure
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.Structure.Count">
+            <summary>
+            Return a count of all values
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.GetEnumerator">
+            <summary>
+            Return an enumerator for all values
+            </summary>
+            <returns><see cref="T:System.Collections.IEnumerator"/></returns>
+        </member>
+        <member name="M:OpenFeature.Model.Structure.Builder">
+            <summary>
+            Get a builder which can build a <see cref="T:OpenFeature.Model.Structure"/>.
+            </summary>
+            <returns>The builder</returns>
+        </member>
+        <member name="T:OpenFeature.Model.StructureBuilder">
+            <summary>
+            A builder which allows the specification of attributes for a <see cref="T:OpenFeature.Model.Structure"/>.
+            <para>
+            A <see cref="T:OpenFeature.Model.StructureBuilder"/> object is intended for use by a single thread and should not be used from
+            multiple threads. Once a <see cref="T:OpenFeature.Model.Structure"/> has been created it is immutable and safe for use from
+            multiple threads.
+            </para>
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.#ctor">
+            <summary>
+            Internal to only allow direct creation by <see cref="M:OpenFeature.Model.Structure.Builder"/>.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,OpenFeature.Model.Value)">
+            <summary>
+            Set the key to the given <see cref="T:OpenFeature.Model.Value"/>.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.String)">
+            <summary>
+            Set the key to the given string.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.Int32)">
+            <summary>
+            Set the key to the given int.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.Double)">
+            <summary>
+            Set the key to the given double.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.Int64)">
+            <summary>
+            Set the key to the given long.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.Boolean)">
+            <summary>
+            Set the key to the given bool.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,OpenFeature.Model.Structure)">
+            <summary>
+            Set the key to the given <see cref="T:OpenFeature.Model.Structure"/>.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.DateTime)">
+            <summary>
+            Set the key to the given DateTime.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Set(System.String,System.Collections.Generic.IList{OpenFeature.Model.Value})">
+            <summary>
+            Set the key to the given list.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.StructureBuilder.Build">
+            <summary>
+            Build an immutable <see cref="T:OpenFeature.Model.Structure"/>/
+            </summary>
+            <returns>The built <see cref="T:OpenFeature.Model.Structure"/></returns>
+        </member>
+        <member name="T:OpenFeature.Model.TrackingEventDetails">
+            <summary>
+            The `tracking event details` structure defines optional data pertinent to a particular `tracking event`.
+            </summary>
+            <seealso href="https://github.com/open-feature/spec/blob/main/specification/sections/06-tracking.md#62-tracking-event-details"/>
+        </member>
+        <member name="F:OpenFeature.Model.TrackingEventDetails.Value">
+             <summary>
+            A predefined value field for the tracking details.
+             </summary>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.#ctor(OpenFeature.Model.Structure,System.Nullable{System.Double})">
+            <summary>
+            Internal constructor used by the builder.
+            </summary>
+            <param name="content"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.#ctor">
+            <summary>
+            Private constructor for making an empty <see cref="T:OpenFeature.Model.TrackingEventDetails"/>.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Model.TrackingEventDetails.Empty">
+            <summary>
+            Empty tracking event details.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.GetValue(System.String)">
+            <summary>
+            Gets the Value at the specified key
+            </summary>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns>The <see cref="T:OpenFeature.Model.Value"/> associated with the key</returns>
+            <exception cref="T:System.Collections.Generic.KeyNotFoundException">
+            Thrown when the context does not contain the specified key
+            </exception>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when the key is <see langword="null" />
+            </exception>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.ContainsKey(System.String)">
+            <summary>
+            Bool indicating if the specified key exists in the evaluation context
+            </summary>
+            <param name="key">The key of the value to be checked</param>
+            <returns><see cref="T:System.Boolean" />indicating the presence of the key</returns>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when the key is <see langword="null" />
+            </exception>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.TryGetValue(System.String,OpenFeature.Model.Value@)">
+            <summary>
+            Gets the value associated with the specified key
+            </summary>
+            <param name="value">The <see cref="T:OpenFeature.Model.Value"/> or <see langword="null" /> if the key was not present</param>
+            <param name="key">The key of the value to be retrieved</param>
+            <returns><see cref="T:System.Boolean" />indicating the presence of the key</returns>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when the key is <see langword="null" />
+            </exception>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.AsDictionary">
+            <summary>
+            Gets all values as a Dictionary
+            </summary>
+            <returns>New <see cref="T:System.Collections.Generic.IDictionary`2"/> representation of this Structure</returns>
+        </member>
+        <member name="P:OpenFeature.Model.TrackingEventDetails.Count">
+            <summary>
+            Return a count of all values
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.GetEnumerator">
+            <summary>
+            Return an enumerator for all values
+            </summary>
+            <returns>An enumerator for all values</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetails.Builder">
+            <summary>
+            Get a builder which can build an <see cref="T:OpenFeature.Model.EvaluationContext"/>.
+            </summary>
+            <returns>The builder</returns>
+        </member>
+        <member name="T:OpenFeature.Model.TrackingEventDetailsBuilder">
+            <summary>
+            A builder which allows the specification of attributes for an <see cref="T:OpenFeature.Model.TrackingEventDetails"/>.
+            <para>
+            A <see cref="T:OpenFeature.Model.TrackingEventDetailsBuilder"/> object is intended for use by a single thread and should not be used
+            from multiple threads. Once an <see cref="T:OpenFeature.Model.TrackingEventDetails"/> has been created it is immutable and safe for use
+            from multiple threads.
+            </para>
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.#ctor">
+            <summary>
+            Internal to only allow direct creation by <see cref="M:OpenFeature.Model.TrackingEventDetails.Builder"/>.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.SetValue(System.Nullable{System.Double})">
+            <summary>
+            Set the predefined value field for the tracking details.
+            </summary>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,OpenFeature.Model.Value)">
+            <summary>
+            Set the key to the given <see cref="T:OpenFeature.Model.Value"/>.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,System.String)">
+            <summary>
+            Set the key to the given string.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,System.Int32)">
+            <summary>
+            Set the key to the given int.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,System.Double)">
+            <summary>
+            Set the key to the given double.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,System.Int64)">
+            <summary>
+            Set the key to the given long.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,System.Boolean)">
+            <summary>
+            Set the key to the given bool.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,OpenFeature.Model.Structure)">
+            <summary>
+            Set the key to the given <see cref="T:OpenFeature.Model.Structure"/>.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Set(System.String,System.DateTime)">
+            <summary>
+            Set the key to the given DateTime.
+            </summary>
+            <param name="key">The key for the value</param>
+            <param name="value">The value to set</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Merge(OpenFeature.Model.TrackingEventDetails)">
+            <summary>
+            Incorporate existing tracking details into the builder.
+            <para>
+            Any existing keys in the builder will be replaced by keys in the tracking details, including the Value set
+            through <see cref="M:OpenFeature.Model.TrackingEventDetailsBuilder.SetValue(System.Nullable{System.Double})"/>.
+            </para>
+            </summary>
+            <param name="trackingDetails">The tracking details to add merge</param>
+            <returns>This builder</returns>
+        </member>
+        <member name="M:OpenFeature.Model.TrackingEventDetailsBuilder.Build">
+            <summary>
+            Build an immutable <see cref="T:OpenFeature.Model.TrackingEventDetails"/>.
+            </summary>
+            <returns>An immutable <see cref="T:OpenFeature.Model.TrackingEventDetails"/></returns>
+        </member>
+        <member name="T:OpenFeature.Model.Value">
+            <summary>
+             Values serve as a return type for provider objects. Providers may deal in JSON, protobuf, XML or some other data-interchange format.
+             This intermediate representation provides a good medium of exchange.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor">
+            <summary>
+            Creates a Value with the inner value set to null
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.Object)">
+            <summary>
+            Creates a Value with the inner set to the object
+            </summary>
+            <param name="value"><see cref="T:System.Object">The object to set as the inner value</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(OpenFeature.Model.Value)">
+            <summary>
+            Creates a Value with the inner value to the inner value of the value param
+            </summary>
+            <param name="value"><see cref="T:OpenFeature.Model.Value">Value type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.Boolean)">
+            <summary>
+            Creates a Value with the inner set to bool type
+            </summary>
+            <param name="value"><see cref="T:System.Boolean">Bool type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.Int32)">
+            <summary>
+            Creates a Value by converting value to a double
+            </summary>
+            <param name="value"><see cref="T:System.Int32">Int type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.Double)">
+            <summary>
+            Creates a Value with the inner set to double type
+            </summary>
+            <param name="value"><see cref="T:System.Double">Double type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.String)">
+            <summary>
+            Creates a Value with the inner set to string type
+            </summary>
+            <param name="value"><see cref="T:System.String">String type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(OpenFeature.Model.Structure)">
+            <summary>
+            Creates a Value with the inner set to structure type
+            </summary>
+            <param name="value"><see cref="T:OpenFeature.Model.Structure">Structure type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.Collections.Generic.IList{OpenFeature.Model.Value})">
+            <summary>
+            Creates a Value with the inner set to list type
+            </summary>
+            <param name="value"><see cref="T:System.Collections.Immutable.IImmutableList`1">List type</see></param>
+        </member>
+        <member name="M:OpenFeature.Model.Value.#ctor(System.DateTime)">
+            <summary>
+            Creates a Value with the inner set to DateTime type
+            </summary>
+            <param name="value"><see cref="T:System.DateTime">DateTime type</see></param>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsNull">
+            <summary>
+            Determines if inner value is null
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is null</see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsBoolean">
+            <summary>
+            Determines if inner value is bool
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is bool</see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsNumber">
+            <summary>
+            Determines if inner value is numeric
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is double</see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsString">
+            <summary>
+            Determines if inner value is string
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is string</see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsStructure">
+            <summary>
+            Determines if inner value is <see cref="T:OpenFeature.Model.Structure">Structure</see>
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is <see cref="T:OpenFeature.Model.Structure">Structure</see></see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsList">
+            <summary>
+            Determines if inner value is list
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is list</see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.IsDateTime">
+            <summary>
+            Determines if inner value is DateTime
+            </summary>
+            <returns><see cref="T:System.Boolean">True if value is DateTime</see></returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsObject">
+            <summary>
+            Returns the underlying inner value as an object. Returns null if the inner value is null.
+            </summary>
+            <returns>Value as object</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsInteger">
+            <summary>
+            Returns the underlying int value.
+            Value will be null if it isn't an integer
+            </summary>
+            <returns>Value as int</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsBoolean">
+            <summary>
+            Returns the underlying bool value.
+            Value will be null if it isn't a bool
+            </summary>
+            <returns>Value as bool</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsDouble">
+            <summary>
+            Returns the underlying double value.
+            Value will be null if it isn't a double
+            </summary>
+            <returns>Value as int</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsString">
+            <summary>
+            Returns the underlying string value.
+            Value will be null if it isn't a string
+            </summary>
+            <returns>Value as string</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsStructure">
+            <summary>
+            Returns the underlying Structure value.
+            Value will be null if it isn't a Structure
+            </summary>
+            <returns>Value as Structure</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsList">
+            <summary>
+            Returns the underlying List value.
+            Value will be null if it isn't a List
+            </summary>
+            <returns>Value as List</returns>
+        </member>
+        <member name="P:OpenFeature.Model.Value.AsDateTime">
+            <summary>
+            Returns the underlying DateTime value.
+            Value will be null if it isn't a DateTime
+            </summary>
+            <returns>Value as DateTime</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.Equals(OpenFeature.Model.Value)">
+            <summary>
+            Determines whether the specified <see cref="T:OpenFeature.Model.Value"/> is equal to the current <see cref="T:OpenFeature.Model.Value"/>.
+            </summary>
+            <param name="other">The <see cref="T:OpenFeature.Model.Value"/> to compare with the current <see cref="T:OpenFeature.Model.Value"/>.</param>
+            <returns>true if the specified <see cref="T:OpenFeature.Model.Value"/> is equal to the current <see cref="T:OpenFeature.Model.Value"/>; otherwise, false.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.Equals(System.Object)">
+            <summary>
+            Determines whether the specified object is equal to the current <see cref="T:OpenFeature.Model.Value"/>.
+            </summary>
+            <param name="obj">The object to compare with the current <see cref="T:OpenFeature.Model.Value"/>.</param>
+            <returns>true if the specified object is equal to the current <see cref="T:OpenFeature.Model.Value"/>; otherwise, false.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.GetHashCode">
+            <summary>
+            Returns the hash code for this <see cref="T:OpenFeature.Model.Value"/>.
+            </summary>
+            <returns>A hash code for the current <see cref="T:OpenFeature.Model.Value"/>.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.op_Equality(OpenFeature.Model.Value,OpenFeature.Model.Value)">
+            <summary>
+            Determines whether two <see cref="T:OpenFeature.Model.Value"/> instances are equal.
+            </summary>
+            <param name="left">The first <see cref="T:OpenFeature.Model.Value"/> to compare.</param>
+            <param name="right">The second <see cref="T:OpenFeature.Model.Value"/> to compare.</param>
+            <returns>true if the values are equal; otherwise, false.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.op_Inequality(OpenFeature.Model.Value,OpenFeature.Model.Value)">
+            <summary>
+            Determines whether two <see cref="T:OpenFeature.Model.Value"/> instances are not equal.
+            </summary>
+            <param name="left">The first <see cref="T:OpenFeature.Model.Value"/> to compare.</param>
+            <param name="right">The second <see cref="T:OpenFeature.Model.Value"/> to compare.</param>
+            <returns>true if the values are not equal; otherwise, false.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.GetValueType">
+            <summary>
+            Gets the type of the current value.
+            </summary>
+            <returns>The <see cref="T:OpenFeature.Model.Value.ValueType"/> of the current value.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.StructureEquals(OpenFeature.Model.Value)">
+            <summary>
+            Compares two Structure values for equality.
+            </summary>
+            <param name="other">The other <see cref="T:OpenFeature.Model.Value"/> to compare.</param>
+            <returns>true if the structures are equal; otherwise, false.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.ListEquals(OpenFeature.Model.Value)">
+            <summary>
+            Compares two List values for equality.
+            </summary>
+            <param name="other">The other <see cref="T:OpenFeature.Model.Value"/> to compare.</param>
+            <returns>true if the lists are equal; otherwise, false.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.GetStructureHashCode">
+            <summary>
+            Gets the hash code for a Structure value.
+            </summary>
+            <returns>The hash code of the structure.</returns>
+        </member>
+        <member name="M:OpenFeature.Model.Value.GetListHashCode">
+            <summary>
+            Gets the hash code for a List value.
+            </summary>
+            <returns>The hash code of the list.</returns>
+        </member>
+        <member name="T:OpenFeature.Model.Value.ValueType">
+            <summary>
+            Represents the different types that a <see cref="T:OpenFeature.Model.Value"/> can contain.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Model.ValueJsonConverter">
+            <summary>
+            A <see cref="T:System.Text.Json.Serialization.JsonConverter`1"/> for <see cref="T:OpenFeature.Model.Value"/> for Json serialization.
+            This converter is AOT-compatible as it uses manual JSON reading/writing 
+            instead of reflection-based serialization.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Model.ValueJsonConverter.Write(System.Text.Json.Utf8JsonWriter,OpenFeature.Model.Value,System.Text.Json.JsonSerializerOptions)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.Model.ValueJsonConverter.Read(System.Text.Json.Utf8JsonReader@,System.Type,System.Text.Json.JsonSerializerOptions)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenFeature.FeatureClient">
+            <summary>
+            OpenFeature Client implementation for resolving feature flags and tracking user interactions.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.FeatureClient.ExtractProvider``1(System.Func{OpenFeature.FeatureProvider,System.Func{System.String,``0,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken,System.Threading.Tasks.Task{OpenFeature.Model.ResolutionDetails{``0}}}})">
+            <summary>
+            Get a provider and an associated typed flag resolution method.
+            <para>
+            The global provider could change between two accesses, so in order to safely get provider information we
+            must first alias it and then use that alias to access everything we need.
+            </para>
+            </summary>
+            <param name="method">
+                This method should return the desired flag resolution method from the given provider reference.
+            </param>
+            <typeparam name="T">The type of the resolution method</typeparam>
+            <returns>A tuple containing a resolution method and the provider it came from.</returns>
+        </member>
+        <member name="P:OpenFeature.FeatureClient.ProviderStatus">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetContext">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.SetContext(OpenFeature.Model.EvaluationContext)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.#ctor(OpenFeature.Api,System.Func{OpenFeature.FeatureProvider},System.String,System.String,Microsoft.Extensions.Logging.ILogger,OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.FeatureClient"/> class.
+            </summary>
+            <param name="api">The API instance for accessing global state and providers</param>
+            <param name="providerAccessor">Function to retrieve current provider</param>
+            <param name="name">Name of client <see cref="T:OpenFeature.Model.ClientMetadata"/></param>
+            <param name="version">Version of client <see cref="T:OpenFeature.Model.ClientMetadata"/></param>
+            <param name="logger">Logger used by client</param>
+            <param name="context">Context given to this client</param>
+            <exception cref="T:System.ArgumentNullException">Throws if any of the required parameters are null</exception>
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetMetadata">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.AddHooks(OpenFeature.Hook)">
+            <summary>
+            Add hook to client
+            <para>
+            Hooks which are dependent on each other should be provided in a collection
+            using the <see cref="M:OpenFeature.FeatureClient.AddHooks(System.Collections.Generic.IEnumerable{OpenFeature.Hook})"/>.
+            </para>
+            </summary>
+            <param name="hook">Hook that implements the <see cref="T:OpenFeature.Hook"/> interface</param>
+        </member>
+        <member name="M:OpenFeature.FeatureClient.AddHandler(OpenFeature.Constant.ProviderEventTypes,OpenFeature.Model.EventHandlerDelegate)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.RemoveHandler(OpenFeature.Constant.ProviderEventTypes,OpenFeature.Model.EventHandlerDelegate)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.AddHooks(System.Collections.Generic.IEnumerable{OpenFeature.Hook})">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetHooks">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.ClearHooks">
+            <summary>
+            Removes all hooks from the client
+            </summary>
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetBooleanValueAsync(System.String,System.Boolean,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetBooleanDetailsAsync(System.String,System.Boolean,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetStringValueAsync(System.String,System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetStringDetailsAsync(System.String,System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetIntegerValueAsync(System.String,System.Int32,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetIntegerDetailsAsync(System.String,System.Int32,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetDoubleValueAsync(System.String,System.Double,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetDoubleDetailsAsync(System.String,System.Double,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetObjectValueAsync(System.String,OpenFeature.Model.Value,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.GetObjectDetailsAsync(System.String,OpenFeature.Model.Value,OpenFeature.Model.EvaluationContext,OpenFeature.Model.FlagEvaluationOptions,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenFeature.FeatureClient.Track(System.String,OpenFeature.Model.EvaluationContext,OpenFeature.Model.TrackingEventDetails)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenFeature.ProviderRepository">
+            <summary>
+            This class manages the collection of providers, both default and named, contained by the API.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.ProviderRepository._providersLock">
+             The reader/writer locks is not disposed because the singleton instance should never be disposed.
+            
+             Mutations of the _defaultProvider or _featureProviders are done within this lock even though
+             _featureProvider is a concurrent collection. This is for a couple of reasons, the first is that
+             a provider should only be shutdown if it is not in use, and it could be in use as either a named or
+             default provider.
+            
+             The second is that a concurrent collection doesn't provide any ordering, so we could check a provider
+             as it was being added or removed such as two concurrent calls to SetProvider replacing multiple instances
+             of that provider under different names.
+        </member>
+        <member name="M:OpenFeature.ProviderRepository.SetProviderAsync(OpenFeature.FeatureProvider,OpenFeature.Model.EvaluationContext,System.Func{OpenFeature.FeatureProvider,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Func{OpenFeature.FeatureProvider,System.Exception,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Threading.CancellationToken)">
+            <summary>
+            Set the default provider
+            </summary>
+            <param name="featureProvider">the provider to set as the default, passing null has no effect</param>
+            <param name="context">the context to initialize the provider with</param>
+            <param name="afterInitSuccess">
+            called after the provider has initialized successfully, only called if the provider needed initialization
+            </param>
+            <param name="afterInitError">
+            called if an error happens during the initialization of the provider, only called if the provider needed
+            initialization
+            </param>
+            <param name="cancellationToken">a cancellation token to cancel the operation</param>
+        </member>
+        <member name="M:OpenFeature.ProviderRepository.SetProviderAsync(System.String,OpenFeature.FeatureProvider,OpenFeature.Model.EvaluationContext,System.Func{OpenFeature.FeatureProvider,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Func{OpenFeature.FeatureProvider,System.Exception,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Threading.CancellationToken)">
+            <summary>
+            Set a named provider
+            </summary>
+            <param name="domain">an identifier which logically binds clients with providers</param>
+            <param name="featureProvider">the provider to set as the default, passing null has no effect</param>
+            <param name="context">the context to initialize the provider with</param>
+            <param name="afterInitSuccess">
+            called after the provider has initialized successfully, only called if the provider needed initialization
+            </param>
+            <param name="afterInitError">
+            called if an error happens during the initialization of the provider, only called if the provider needed
+            initialization
+            </param>
+            <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken"/> to cancel any async side effects.</param>
+        </member>
+        <member name="M:OpenFeature.ProviderRepository.ShutdownIfUnusedAsync(OpenFeature.FeatureProvider,System.Threading.CancellationToken)">
+            <remarks>
+            Shutdown the feature provider if it is unused. This must be called within a write lock of the _providersLock.
+            </remarks>
+        </member>
+        <member name="M:OpenFeature.ProviderRepository.SafeShutdownProviderAsync(OpenFeature.FeatureProvider,System.Threading.CancellationToken)">
+            <remarks>
+            <para>
+            Shut down the provider and capture any exceptions thrown.
+            </para>
+            <para>
+            The provider is set either to a name or default before the old provider it shut down, so
+            it would not be meaningful to emit an error.
+            </para>
+            </remarks>
+        </member>
+        <member name="T:OpenFeature.Providers.Memory.Flag">
+            <summary>
+            Flag representation for the in-memory provider.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Providers.Memory.Flag.Disabled">
+            <summary>
+            Indicates if the flag is disabled. When disabled, the flag will resolve to the default value.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Providers.Memory.Flag`1">
+            <summary>
+            Flag representation for the in-memory provider.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.Flag`1.#ctor(System.Collections.Generic.Dictionary{System.String,`0},System.String,System.Func{OpenFeature.Model.EvaluationContext,System.String},OpenFeature.Model.ImmutableMetadata,System.Boolean)">
+            <summary>
+            Flag representation for the in-memory provider.
+            </summary>
+            <param name="variants">dictionary of variants and their corresponding values</param>
+            <param name="defaultVariant">default variant (should match 1 key in variants dictionary)</param>
+            <param name="contextEvaluator">optional context-sensitive evaluation function</param>
+            <param name="flagMetadata">optional metadata for the flag</param>
+            <param name="disabled">indicates if the flag is disabled</param>
+        </member>
+        <member name="P:OpenFeature.Providers.Memory.Flag`1.Disabled">
+            <summary>
+            Indicates if the flag is disabled. When disabled, the flag will resolve to the default value.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Providers.Memory.InMemoryProvider">
+            <summary>
+            The in memory provider.
+            Useful for testing and demonstration purposes.
+            </summary>
+            <seealso href="https://openfeature.dev/specification/appendix-a#in-memory-provider">In Memory Provider specification</seealso>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.GetMetadata">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.#ctor(System.Collections.Generic.IDictionary{System.String,OpenFeature.Providers.Memory.Flag})">
+            <summary>
+            Construct a new InMemoryProvider.
+            </summary>
+            <param name="flags">dictionary of Flags</param>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.UpdateFlagsAsync(System.Collections.Generic.IDictionary{System.String,OpenFeature.Providers.Memory.Flag})">
+            <summary>
+            Update provider flag configuration, replacing all flags.
+            </summary>
+            <param name="flags">the flags to use instead of the previous flags.</param>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.ResolveBooleanValueAsync(System.String,System.Boolean,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.ResolveStringValueAsync(System.String,System.String,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.ResolveIntegerValueAsync(System.String,System.Int32,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.ResolveDoubleValueAsync(System.String,System.Double,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Providers.Memory.InMemoryProvider.ResolveStructureValueAsync(System.String,OpenFeature.Model.Value,OpenFeature.Model.EvaluationContext,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:OpenFeature.Serialization.OpenFeatureJsonSerializerContext">
+            <summary>
+            JSON serializer context for AOT compilation support.
+            This ensures that all necessary types are pre-compiled for JSON serialization
+            when using NativeAOT.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.Boolean">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.Double">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.EvaluationContext">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.Structure">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.Value">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.DictionaryStringValue">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.KeyValuePairStringValue">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.ListValue">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.ImmutableDictionaryStringValue">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.ImmutableListValue">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.DateTime">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.Int32">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.String">
+            <summary>
+            Defines the source generated JSON serialization contract metadata for a given type.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.Default">
+            <summary>
+            The default <see cref="T:System.Text.Json.Serialization.JsonSerializerContext"/> associated with a default <see cref="T:System.Text.Json.JsonSerializerOptions"/> instance.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.GeneratedSerializerOptions">
+            <summary>
+            The source-generated options associated with this context.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.#ctor(System.Text.Json.JsonSerializerOptions)">
+            <inheritdoc/>
+        </member>
+        <member name="M:OpenFeature.Serialization.OpenFeatureJsonSerializerContext.GetTypeInfo(System.Type)">
+            <inheritdoc/>
+        </member>
+        <member name="T:OpenFeature.SharedHookContext`1">
+            <summary>
+            Component of the hook context which shared between all hook instances
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="flagValueType">Flag value type</param>
+            <param name="clientMetadata">Client metadata</param>
+            <param name="providerMetadata">Provider metadata</param>
+            <typeparam name="T">Flag value type</typeparam>
+        </member>
+        <member name="M:OpenFeature.SharedHookContext`1.#ctor(System.String,`0,OpenFeature.Constant.FlagValueType,OpenFeature.Model.ClientMetadata,OpenFeature.Model.Metadata)">
+            <summary>
+            Component of the hook context which shared between all hook instances
+            </summary>
+            <param name="flagKey">Feature flag key</param>
+            <param name="defaultValue">Default value</param>
+            <param name="flagValueType">Flag value type</param>
+            <param name="clientMetadata">Client metadata</param>
+            <param name="providerMetadata">Provider metadata</param>
+            <typeparam name="T">Flag value type</typeparam>
+        </member>
+        <member name="P:OpenFeature.SharedHookContext`1.FlagKey">
+            <summary>
+            Feature flag being evaluated
+            </summary>
+        </member>
+        <member name="P:OpenFeature.SharedHookContext`1.DefaultValue">
+            <summary>
+            Default value if flag fails to be evaluated
+            </summary>
+        </member>
+        <member name="P:OpenFeature.SharedHookContext`1.FlagValueType">
+            <summary>
+            The value type of the flag
+            </summary>
+        </member>
+        <member name="P:OpenFeature.SharedHookContext`1.ClientMetadata">
+            <summary>
+            Client metadata
+            </summary>
+        </member>
+        <member name="P:OpenFeature.SharedHookContext`1.ProviderMetadata">
+            <summary>
+            Provider metadata
+            </summary>
+        </member>
+        <member name="M:OpenFeature.SharedHookContext`1.ToHookContext(OpenFeature.Model.EvaluationContext)">
+            <summary>
+            Create a hook context from this shared context.
+            </summary>
+            <param name="evaluationContext">Evaluation context</param>
+            <returns>A hook context</returns>
+        </member>
+        <member name="T:OpenFeature.Telemetry.EvaluationEvent">
+            <summary>
+            Represents an evaluation event for feature flags.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Telemetry.EvaluationEvent.#ctor(System.String,System.Collections.Generic.IDictionary{System.String,System.Object})">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenFeature.Telemetry.EvaluationEvent"/> class.
+            </summary>
+            <param name="name">The name of the event.</param>
+            <param name="attributes">The attributes of the event.</param>
+        </member>
+        <member name="P:OpenFeature.Telemetry.EvaluationEvent.Name">
+            <summary>
+            Gets the name of the event.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Telemetry.EvaluationEvent.Attributes">
+            <summary>
+            Gets the attributes of the event.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Telemetry.EvaluationEventBuilder`1">
+            <summary>
+            Class for creating evaluation events for feature flags.
+            </summary>
+        </member>
+        <member name="P:OpenFeature.Telemetry.EvaluationEventBuilder`1.Default">
+            <summary>
+            Gets the default instance of the <see cref="T:OpenFeature.Telemetry.EvaluationEventBuilder`1"/>.
+            </summary>
+        </member>
+        <member name="M:OpenFeature.Telemetry.EvaluationEventBuilder`1.Build(OpenFeature.Model.HookContext{`0},OpenFeature.Model.FlagEvaluationDetails{`0})">
+            <summary>
+            Creates an evaluation event based on the provided hook context and flag evaluation details.
+            </summary>
+            <param name="hookContext">The context of the hook containing flag key and provider metadata.</param>
+            <param name="details">The details of the flag evaluation including reason, variant, and metadata.</param>
+            <returns>An instance of <see cref="T:OpenFeature.Telemetry.EvaluationEvent"/> containing the event name, attributes, and body.</returns>
+        </member>
+        <member name="T:OpenFeature.Telemetry.TelemetryConstants">
+            <summary>
+            The attributes of an OpenTelemetry compliant event for flag evaluation.
+            <see href="https://opentelemetry.io/docs/specs/semconv/feature-flags/feature-flags-logs/"/>
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.Key">
+            <summary>
+            The lookup key of the feature flag.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.ErrorCode">
+            <summary>
+            Describes a class of error the operation ended with.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.ErrorMessage">
+            <summary>
+            A message explaining the nature of an error occurring during flag evaluation.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.Variant">
+            <summary>
+            A semantic identifier for an evaluated flag value.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.Value">
+            <summary>
+            The evaluated value of the feature flag.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.ContextId">
+            <summary>
+            The unique identifier for the flag evaluation context. For example, the targeting key.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.Reason">
+            <summary>
+            The reason code which shows how a feature flag value was determined.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.Provider">
+            <summary>
+            Describes a class of error the operation ended with.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.FlagSetId">
+            <summary>
+            The identifier of the flag set to which the feature flag belongs.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryConstants.Version">
+            <summary>
+            The version of the ruleset used during the evaluation. This may be any stable value which uniquely identifies the ruleset.
+            </summary>
+        </member>
+        <member name="T:OpenFeature.Telemetry.TelemetryFlagMetadata">
+            <summary>
+            Well-known flag metadata attributes for telemetry events.
+            <remarks>See also: https://openfeature.dev/specification/appendix-d#flag-metadata</remarks>
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryFlagMetadata.ContextId">
+            <summary>
+            The context identifier returned in the flag metadata uniquely identifies
+            the subject of the flag evaluation. If not available, the targeting key
+            should be used.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryFlagMetadata.FlagSetId">
+            <summary>
+            ///A logical identifier for the flag set.
+            </summary>
+        </member>
+        <member name="F:OpenFeature.Telemetry.TelemetryFlagMetadata.Version">
+            <summary>
+            A version string (format unspecified) for the flag or flag set.
+            </summary>
+        </member>
+    </members>
+</doc>
