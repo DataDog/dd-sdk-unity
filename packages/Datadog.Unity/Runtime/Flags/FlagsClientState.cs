@@ -9,7 +9,7 @@ namespace Datadog.Unity.Flags
     /// <summary>
     /// Represents the current state of a FlagsClient.
     /// </summary>
-    internal enum FlagsClientState
+    public enum FlagsClientState
     {
         /// <summary>The client is not ready to evaluate flags.</summary>
         NotReady,
