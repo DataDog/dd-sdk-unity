@@ -140,7 +140,10 @@ namespace Datadog.Unity.Tests.Integration
         {
             get
             {
-                var headerDict = new Dictionary<string, string>();
+                // HTTP headers are case-insensitive (RFC 7230). Flask normalizes header names to
+                // title-case (e.g. "Dd-Api-Key"), so use OrdinalIgnoreCase to allow lookups
+                // with any casing (e.g. "dd-api-key").
+                var headerDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var header in Headers)
                 {
                     var colonIndex = header.IndexOf(':');
