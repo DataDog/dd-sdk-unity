@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
@@ -35,6 +36,16 @@ namespace Datadog.Unity.Tests.Integration
         {
             var request = UnityWebRequest.Get($"{_endpoint}/reset");
             yield return request.SendWebRequest();
+        }
+
+        public IEnumerator ConfigureResponse(string path, int status, string body, string contentType = "application/json")
+        {
+            var payload = JsonConvert.SerializeObject(new { path, status, body, content_type = contentType });
+            var webRequest = new UnityWebRequest($"{_endpoint}/configure_response", "POST");
+            webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(payload));
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            yield return webRequest.SendWebRequest();
         }
 
         public IEnumerator PollRequests(TimeSpan duration, Func<List<MockServerLog>, bool> parseRequests)

@@ -10,6 +10,8 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import os
 import subprocess
 import signal
+import socket
+import time
 from contextlib import contextmanager
 from typing import Generator
 
@@ -36,9 +38,10 @@ def prepare_mock_server_venv():
     subprocess.check_call([venv_python, '-m', 'pip', 'install', '-r', requirements_txt])
     log.info('Dependencies up to date.')
 
-    # Run mock_server/schema_update.py to ensure we have the latest RUM events schemas
-    schema_update_py = os.path.join(__mock_server_root__, 'schema_update.py')
-    subprocess.check_call([venv_python, schema_update_py])
+    # Run app.py --update-schemas to ensure we have the latest RUM events schemas.
+    # Note: schema_update.py has no __main__ block and is a no-op when run directly.
+    app_py = os.path.join(__mock_server_root__, 'app.py')
+    subprocess.check_call([venv_python, app_py, '--update-schemas'], cwd=__mock_server_root__)
     log.info('Event schemas up to date.')
 
 
@@ -50,7 +53,23 @@ def run_mock_server(bind_addr: str, port: int) -> Generator[None, None, None]:
     args = [venv_python, 'app.py', '--addr', bind_addr, '--port', str(port)]
 
     process = subprocess.Popen(args, cwd=__mock_server_root__)
-    
+
+    # Wait for the server to be ready before yielding
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(f'Mock server exited unexpectedly with code {process.returncode}')
+        try:
+            with socket.create_connection((bind_addr, port), timeout=1):
+                break
+        except OSError:
+            time.sleep(0.5)
+    else:
+        process.kill()
+        raise RuntimeError(f'Mock server did not start within 30 seconds on {bind_addr}:{port}')
+
+    log.info(f'Mock server is ready at http://{bind_addr}:{port}')
+
     try:
         yield
     finally:

@@ -18,6 +18,8 @@ namespace Datadog.Unity.Flags
     /// </summary>
     internal class PrecomputeAssignmentsFetcher
     {
+        public const int FetchTimeoutSeconds = 30;
+
         private readonly string _endpointUrl;
         private readonly string _clientToken;
         private readonly string _applicationId;
@@ -52,6 +54,7 @@ namespace Datadog.Unity.Flags
                 var request = new UnityWebRequest(_endpointUrl, "POST");
                 request.uploadHandler = new UploadHandlerRaw(bodyBytes);
                 request.downloadHandler = new DownloadHandlerBuffer();
+                request.timeout = FetchTimeoutSeconds;
                 request.SetRequestHeader("Content-Type", "application/vnd.api+json");
                 request.SetRequestHeader("dd-client-token", _clientToken);
 
