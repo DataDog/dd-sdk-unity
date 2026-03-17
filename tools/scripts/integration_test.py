@@ -17,7 +17,7 @@ from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
 from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, modified_ios_target_settings
-from common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
+from common.ddconfig import DatadogRuntimeConfig, FirstPartyHost, modified_datadog_settings
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import prepare_mock_server_venv, run_mock_server
 from common.simulator import run_default_simulator
@@ -107,6 +107,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     # Temporarily modify the project's DatadogSettings asset so that it will send data
     # to the mock server we're about to stand up, and also apply any settings that the
     # integration tests require
+    mock_host = f'{mock_server_bind_addr}:{mock_server_port}'
     config = DatadogRuntimeConfig(
         enabled=True,
         sdk_verbosity=1,
@@ -126,6 +127,8 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
         session_sample_rate=100,
         trace_sample_rate=100,
         telemetry_sample_rate=100,
+        # 18 == TracingHeaderType.Datadog | TracingHeaderType.TraceContext
+        first_party_hosts=[FirstPartyHost(host=mock_host, tracing_header_type=18)],
     )
     with _integration_test_env(project_path, config, mock_server_bind_addr, mock_server_port, platform, target):
         # Run our Unity project's integration tests in the editor
