@@ -45,7 +45,7 @@ namespace Datadog.Unity.Flags
         {
             if (_enabled)
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn, "DdFlags.Enable called multiple times. Ignoring.");
+                // Already enabled, ignoring
                 return;
             }
 
@@ -63,7 +63,7 @@ namespace Datadog.Unity.Flags
                     clientToken: options.ClientToken,
                     exposureEndpoint: exposureEndpoint,
                     evaluationEndpoint: evaluationEndpoint,
-                    logger: DatadogSdk.Instance.InternalLogger);
+                    logger: null);
             }
         }
 
@@ -76,19 +76,16 @@ namespace Datadog.Unity.Flags
         {
             if (!_enabled)
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
-                    "DdFlags.CreateClient called before DdFlags.Enable(). Call DdFlags.Enable() first.");
+                // Not enabled - should call Enable() first
             }
 
             if (_clients.ContainsKey(name))
             {
-                DatadogSdk.Instance.InternalLogger?.Log(Logs.DdLogLevel.Warn,
-                    $"FlagsClient named '{name}' already exists. Returning existing client.");
+                // Client already exists, return existing
                 return _clients[name];
             }
 
             var options = DatadogConfigurationOptions.Load();
-            var logger = DatadogSdk.Instance.InternalLogger;
             var config = _configuration ?? new FlagsConfiguration();
 
             // Determine precompute endpoint
@@ -129,14 +126,14 @@ namespace Datadog.Unity.Flags
                 clientToken: options?.ClientToken ?? string.Empty,
                 applicationId: options?.RumApplicationId,
                 env: options?.Env ?? string.Empty,
-                logger: logger);
+                logger: null);
 
             var client = new FlagsClient(
                 repository: repository,
                 exposureTracker: exposureTracker,
                 evaluationAggregator: evaluationAggregator,
                 fetcher: fetcher,
-                logger: logger,
+                logger: null,
                 trackExposures: config.TrackExposures,
                 trackEvaluations: config.TrackEvaluations,
                 onExposure: onExposure);
