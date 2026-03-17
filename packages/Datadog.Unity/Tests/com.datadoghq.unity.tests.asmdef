@@ -17,7 +17,9 @@
         "Newtonsoft.Json.dll",
         "NSubstitute.dll",
         "OpenFeature.dll",
-        "Microsoft.Extensions.Logging.Abstractions.dll"
+        "Microsoft.Extensions.Logging.Abstractions.dll",
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "System.Threading.Channels.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

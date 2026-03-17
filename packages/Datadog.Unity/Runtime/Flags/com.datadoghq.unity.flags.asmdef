@@ -7,8 +7,14 @@
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll",
+        "OpenFeature.dll",
+        "Microsoft.Extensions.Logging.Abstractions.dll",
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "System.Threading.Channels.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
