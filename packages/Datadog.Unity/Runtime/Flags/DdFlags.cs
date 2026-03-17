@@ -55,6 +55,7 @@ namespace Datadog.Unity.Flags
                     clientToken: options?.ClientToken ?? string.Empty,
                     exposureEndpoint: exposureEndpoint,
                     evaluationEndpoint: evaluationEndpoint,
+                    env: options?.Env ?? string.Empty,
                     logger: null);
             }
         }
