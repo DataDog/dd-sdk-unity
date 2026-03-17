@@ -53,7 +53,6 @@ namespace Datadog.Unity.Flags
                 request.uploadHandler = new UploadHandlerRaw(bodyBytes);
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/vnd.api+json");
-                request.SetRequestHeader("Accept-Encoding", "gzip, deflate, br");
                 request.SetRequestHeader("dd-client-token", _clientToken);
 
                 if (!string.IsNullOrEmpty(_applicationId))
@@ -68,7 +67,7 @@ namespace Datadog.Unity.Flags
                     {
                         if (request.result != UnityWebRequest.Result.Success)
                         {
-                            _logger.Log(Logs.DdLogLevel.Warn, $"Failed to fetch flag assignments: {request.error}");
+                            _logger?.Log(Logs.DdLogLevel.Warn, $"Failed to fetch flag assignments: {request.error}");
                             onComplete?.Invoke(null);
                             return;
                         }
@@ -79,8 +78,8 @@ namespace Datadog.Unity.Flags
                     }
                     catch (Exception e)
                     {
-                        _logger.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
-                        _logger.TelemetryError("Error parsing flag assignments", e);
+                        _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
+                        _logger?.TelemetryError("Error parsing flag assignments", e);
                         onComplete?.Invoke(null);
                     }
                     finally
@@ -91,8 +90,8 @@ namespace Datadog.Unity.Flags
             }
             catch (Exception e)
             {
-                _logger.Log(Logs.DdLogLevel.Warn, $"Error fetching flag assignments: {e.Message}");
-                _logger.TelemetryError("Error fetching flag assignments", e);
+                _logger?.Log(Logs.DdLogLevel.Warn, $"Error fetching flag assignments: {e.Message}");
+                _logger?.TelemetryError("Error fetching flag assignments", e);
                 onComplete?.Invoke(null);
             }
         }
@@ -132,6 +131,11 @@ namespace Datadog.Unity.Flags
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
         {
             var flags = new Dictionary<string, FlagAssignment>();
+
+            if (string.IsNullOrEmpty(json))
+            {
+                return flags;
+            }
 
             JObject parsed;
             try
@@ -176,6 +180,40 @@ namespace Datadog.Unity.Flags
             return flags;
         }
 
+        private static object ConvertJToken(JToken token)
+        {
+            switch (token.Type)
+            {
+                case JTokenType.Object:
+                    var dict = new Dictionary<string, object>();
+                    foreach (var prop in ((JObject)token).Properties())
+                    {
+                        dict[prop.Name] = ConvertJToken(prop.Value);
+                    }
+                    return dict;
+                case JTokenType.Array:
+                    var list = new List<object>();
+                    foreach (var item in (JArray)token)
+                    {
+                        list.Add(ConvertJToken(item));
+                    }
+                    return list;
+                case JTokenType.Integer:
+                    return token.Value<long>();
+                case JTokenType.Float:
+                    return token.Value<double>();
+                case JTokenType.String:
+                    return token.Value<string>();
+                case JTokenType.Boolean:
+                    return token.Value<bool>();
+                case JTokenType.Null:
+                case JTokenType.Undefined:
+                    return null;
+                default:
+                    return token.ToString();
+            }
+        }
+
         private static object ParseVariationValue(string variationType, JToken token)
         {
             if (token == null || token.Type == JTokenType.Null)
@@ -199,7 +237,7 @@ namespace Datadog.Unity.Flags
                     return token.Value<double>();
 
                 case "object":
-                    return token.ToObject<Dictionary<string, object>>();
+                    return ConvertJToken(token);
 
                 default:
                     return token.ToString();

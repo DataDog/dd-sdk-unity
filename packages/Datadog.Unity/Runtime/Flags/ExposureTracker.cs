@@ -80,9 +80,11 @@ namespace Datadog.Unity.Flags
         }
 
         /// <summary>
-        /// Inserts the exposure into the cache. If the cache is full, the oldest entry is evicted.
+        /// Atomically checks if the exposure is already tracked, and if not, inserts it.
+        /// Returns true if the key was newly inserted (caller should send the exposure).
+        /// Returns false if the key already existed (duplicate, no action needed).
         /// </summary>
-        public void Insert(ExposureKey exposure)
+        public bool InsertIfAbsent(ExposureKey exposure)
         {
             lock (_lock)
             {
@@ -92,11 +94,11 @@ namespace Datadog.Unity.Flags
                     var node = _cache[exposure];
                     _order.Remove(node);
                     _order.AddLast(node);
-                    return;
+                    return false;
                 }
 
                 // Evict oldest if at capacity
-                while (_cache.Count >= _countLimit && _order.First != null)
+                if (_cache.Count >= _countLimit && _order.First != null)
                 {
                     var oldest = _order.First;
                     _order.RemoveFirst();
@@ -105,6 +107,7 @@ namespace Datadog.Unity.Flags
 
                 var newNode = _order.AddLast(exposure);
                 _cache[exposure] = newNode;
+                return true;
             }
         }
 

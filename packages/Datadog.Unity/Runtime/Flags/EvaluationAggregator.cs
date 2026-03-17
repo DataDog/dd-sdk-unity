@@ -24,6 +24,7 @@ namespace Datadog.Unity.Flags
             public readonly string TargetingKey;
             public readonly string ErrorMessage;
             public readonly int ContextHash;
+            public readonly IReadOnlyDictionary<string, object> Context;
 
             public AggregationKey(
                 string flagKey,
@@ -31,13 +32,14 @@ namespace Datadog.Unity.Flags
                 string allocationKey,
                 string targetingKey,
                 string errorMessage,
-                Dictionary<string, object> context)
+                IReadOnlyDictionary<string, object> context)
             {
                 FlagKey = flagKey;
                 VariantKey = variantKey;
                 AllocationKey = allocationKey;
                 TargetingKey = targetingKey;
                 ErrorMessage = errorMessage;
+                Context = context;
 
                 // Deterministic hash of context attributes (sorted keys)
                 unchecked
@@ -62,7 +64,7 @@ namespace Datadog.Unity.Flags
                     && AllocationKey == other.AllocationKey
                     && TargetingKey == other.TargetingKey
                     && ErrorMessage == other.ErrorMessage
-                    && ContextHash == other.ContextHash;
+                    && DictionaryEquals(Context, other.Context);
             }
 
             public override bool Equals(object obj)
@@ -84,6 +86,19 @@ namespace Datadog.Unity.Flags
                     return hash;
                 }
             }
+
+            private static bool DictionaryEquals(IReadOnlyDictionary<string, object> a, IReadOnlyDictionary<string, object> b)
+            {
+                if (ReferenceEquals(a, b)) return true;
+                if (a == null || b == null) return false;
+                if (a.Count != b.Count) return false;
+                foreach (var kvp in a)
+                {
+                    if (!b.TryGetValue(kvp.Key, out var bVal)) return false;
+                    if (!Equals(kvp.Value, bVal)) return false;
+                }
+                return true;
+            }
         }
 
         internal class AggregatedEvaluation
@@ -94,7 +109,7 @@ namespace Datadog.Unity.Flags
             public string TargetingKey;
             public string TargetingRuleKey;
             public string ErrorMessage;
-            public Dictionary<string, object> Context;
+            public IReadOnlyDictionary<string, object> Context;
             public long FirstEvaluation;
             public long LastEvaluation;
             public int EvaluationCount;
@@ -128,6 +143,7 @@ namespace Datadog.Unity.Flags
         private readonly object _lock = new();
         private readonly int _maxAggregations;
         private readonly float _flushIntervalSeconds;
+        private readonly SynchronizationContext _mainThreadContext;
         private Dictionary<AggregationKey, AggregatedEvaluation> _aggregations = new();
         private Timer _flushTimer;
         private Action<List<FlagEvaluationEvent>> _onFlush;
@@ -142,6 +158,11 @@ namespace Datadog.Unity.Flags
             _flushIntervalSeconds = Math.Max(MinFlushIntervalSeconds, Math.Min(MaxFlushIntervalSeconds, flushIntervalSeconds));
             _maxAggregations = maxAggregations;
 
+            // Capture Unity's main-thread SynchronizationContext so the timer
+            // callback can dispatch back to the main thread (UnityWebRequest
+            // and SystemInfo APIs are main-thread-only).
+            _mainThreadContext = SynchronizationContext.Current;
+
             var intervalMs = (int)(_flushIntervalSeconds * 1000);
             _flushTimer = new Timer(OnTimerElapsed, null, intervalMs, intervalMs);
         }
@@ -154,13 +175,20 @@ namespace Datadog.Unity.Flags
         {
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+            // Defensive copy of context attributes
+            IReadOnlyDictionary<string, object> contextCopy = evaluationContext?.Attributes != null
+                ? new Dictionary<string, object>(evaluationContext.Attributes)
+                : null;
+
             var key = new AggregationKey(
                 flagKey: flagKey,
                 variantKey: assignment?.VariationKey,
                 allocationKey: assignment?.AllocationKey,
                 targetingKey: evaluationContext?.TargetingKey,
                 errorMessage: flagError,
-                context: evaluationContext?.Attributes);
+                context: contextCopy);
+
+            List<FlagEvaluationEvent> eventsToFlush = null;
 
             lock (_lock)
             {
@@ -182,7 +210,7 @@ namespace Datadog.Unity.Flags
                         TargetingKey = evaluationContext?.TargetingKey,
                         TargetingRuleKey = null,
                         ErrorMessage = flagError,
-                        Context = evaluationContext?.Attributes,
+                        Context = contextCopy,
                         FirstEvaluation = now,
                         LastEvaluation = now,
                         EvaluationCount = 1,
@@ -192,24 +220,58 @@ namespace Datadog.Unity.Flags
 
                 if (_aggregations.Count >= _maxAggregations)
                 {
-                    FlushInternal();
+                    eventsToFlush = CollectAndClearEvents();
                 }
+            }
+
+            if (eventsToFlush != null)
+            {
+                _onFlush?.Invoke(eventsToFlush);
             }
         }
 
         public void Flush()
         {
+            List<FlagEvaluationEvent> events;
             lock (_lock)
             {
-                FlushInternal();
+                events = CollectAndClearEvents();
+            }
+
+            if (events != null)
+            {
+                _onFlush?.Invoke(events);
             }
         }
 
-        private void FlushInternal()
+        public void Dispose()
+        {
+            List<FlagEvaluationEvent> events = null;
+            lock (_lock)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                _flushTimer?.Dispose();
+                _flushTimer = null;
+
+                events = CollectAndClearEvents();
+            }
+
+            if (events != null)
+            {
+                _onFlush?.Invoke(events);
+            }
+        }
+
+        private List<FlagEvaluationEvent> CollectAndClearEvents()
         {
             if (_aggregations.Count == 0)
             {
-                return;
+                return null;
             }
 
             var events = _aggregations.Values
@@ -217,28 +279,19 @@ namespace Datadog.Unity.Flags
                 .ToList();
 
             _aggregations.Clear();
-
-            _onFlush?.Invoke(events);
+            return events;
         }
 
         private void OnTimerElapsed(object state)
         {
-            Flush();
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
+            if (_mainThreadContext != null)
             {
-                return;
+                _mainThreadContext.Post(_ => Flush(), null);
             }
-
-            _disposed = true;
-            _flushTimer?.Dispose();
-            _flushTimer = null;
-
-            // Final flush
-            Flush();
+            else
+            {
+                Flush();
+            }
         }
     }
 }

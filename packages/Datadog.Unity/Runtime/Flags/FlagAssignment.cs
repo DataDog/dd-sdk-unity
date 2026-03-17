@@ -90,7 +90,9 @@ namespace Datadog.Unity.Flags
                     return true;
                 }
 
-                if (typeof(T) == typeof(int) && VariationValue is double doubleVal)
+                if (typeof(T) == typeof(int) && VariationValue is double doubleVal
+                    && doubleVal == Math.Truncate(doubleVal)
+                    && doubleVal >= int.MinValue && doubleVal <= int.MaxValue)
                 {
                     value = (T)(object)(int)doubleVal;
                     return true;
@@ -99,7 +101,7 @@ namespace Datadog.Unity.Flags
                 value = default;
                 return false;
             }
-            catch
+            catch (Exception e) when (e is InvalidCastException or OverflowException)
             {
                 value = default;
                 return false;
