@@ -13,30 +13,28 @@ MonoBehaviour:
   m_Name: DatadogSettings
   m_EditorClassIdentifier: 
   Enabled: 1
-  SdkVerbosity: 1
+  SdkVerbosity: 0
   OutputSymbols: 1
   PerformNativeStackMapping: 1
-  ClientToken: fake-client-token
+  ClientToken: 
   Site: 0
-  Env: integration-test
-  ServiceName: datadog-sample
-  CustomEndpoint: http://10.173.124.248:5100
-  BatchSize: 1
-  UploadFrequency: 1
+  Env: 
+  ServiceName: 
+  CustomEndpoint: 
+  BatchSize: 0
+  UploadFrequency: 0
   BatchProcessingLevel: 1
   CrashReportingEnabled: 1
   ForwardUnityLogs: 1
   RemoteLogThreshold: 3
   RumEnabled: 1
-  RumApplicationId: fake-rum-application-id
+  RumApplicationId: 
   AutomaticSceneTracking: 1
   VitalsUpdateFrequency: 2
   SessionSampleRate: 100
   TraceSampleRate: 100
   TraceContextInjection: 0
-  FirstPartyHosts:
-  - Host: 10.173.124.248:5100
-    TracingHeaderType: 18
+  FirstPartyHosts: []
   TrackNonFatalAnrs: 0
   TrackNonFatalAppHangs: 1
   NonFatalAppHangThreshold: 0.25
