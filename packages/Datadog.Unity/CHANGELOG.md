@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.6.4
+
+* Fixed a missing `using` statement that could cause Android builds to fail.
+
 ## 1.6.3
 
 * Data passed to `AddUserExtraInfo()` is now properly included in Android builds.
