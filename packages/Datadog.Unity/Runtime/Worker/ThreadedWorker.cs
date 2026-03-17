@@ -78,7 +78,7 @@ namespace Datadog.Unity.Worker
         private void ThreadWorker()
         {
 #if UNITY_ANDROID
-            AndroidJNI.AttachCurrentThread();
+            UnityEngine.AndroidJNI.AttachCurrentThread();
 #endif
 
             while(!_workQueue.IsCompleted)
