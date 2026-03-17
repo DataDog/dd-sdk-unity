@@ -11,10 +11,10 @@ using System.Runtime.CompilerServices;
 namespace Datadog.Unity.Flags
 {
     /// <summary>
-    /// Internal client for evaluating feature flags. Customers should use the OpenFeature API
-    /// via <c>Api.Instance.GetClient()</c> after calling <c>DdFlags.Enable()</c>.
+    /// Client for evaluating feature flags. Use <c>DdFlags.CreateClient()</c> to create
+    /// an instance after calling <c>DdFlags.Enable()</c>.
     /// </summary>
-    internal class FlagsClient : IDisposable
+    public class FlagsClient : IDisposable
     {
         public const string DefaultName = "default";
 
