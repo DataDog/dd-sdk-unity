@@ -12,7 +12,7 @@ namespace Datadog.Unity.Flags
     /// <summary>
     /// Aggregates flag evaluation events and flushes them periodically or when the max count is reached.
     /// Matching the iOS EvaluationAggregator pattern: dimensions = (flagKey, variantKey, allocationKey,
-    /// targetingKey, errorMessage, contextHash). Flush triggers: timer (10s default), max aggregations (1000).
+    /// targetingKey, errorMessage, contextKey). Flush triggers: timer (10s default), max aggregations (1000).
     /// </summary>
     internal class EvaluationAggregator : IDisposable
     {
@@ -26,8 +26,9 @@ namespace Datadog.Unity.Flags
             public readonly string AllocationKey;
             public readonly string TargetingKey;
             public readonly string ErrorMessage;
-            public readonly int ContextHash;
-            public readonly IReadOnlyDictionary<string, object> Context;
+            // Canonical sorted representation of context attributes used for equality and hashing.
+            // Keys and values are separated by \x00; pairs are separated by \x01.
+            public readonly string ContextKey;
 
             public AggregationKey(
                 string flagKey,
@@ -42,26 +43,7 @@ namespace Datadog.Unity.Flags
                 AllocationKey = allocationKey;
                 TargetingKey = targetingKey;
                 ErrorMessage = errorMessage;
-                Context = context;
-
-                // Deterministic hash of context attributes (sorted keys).
-                // unchecked: integer overflow is intentional; hash wrapping is acceptable.
-                unchecked
-                {
-                    // 17 and 31 are standard primes for polynomial hash combining (Bloch, Effective Java).
-                    var hash = 17;
-                    if (context != null)
-                    {
-                        foreach (var key in context.Keys.OrderBy(k => k, StringComparer.Ordinal))
-                        {
-                            hash = hash * 31 + key.GetHashCode();
-                            // Note: context values are primitives in practice (string, bool, int, double),
-                            // so GetHashCode() here is stable even though object allows mutation.
-                            hash = hash * 31 + (context[key]?.GetHashCode() ?? 0);
-                        }
-                    }
-                    ContextHash = hash;
-                }
+                ContextKey = BuildContextKey(context);
             }
 
             public bool Equals(AggregationKey other)
@@ -71,7 +53,7 @@ namespace Datadog.Unity.Flags
                     && AllocationKey == other.AllocationKey
                     && TargetingKey == other.TargetingKey
                     && ErrorMessage == other.ErrorMessage
-                    && DictionaryEquals(Context, other.Context);
+                    && ContextKey == other.ContextKey;
             }
 
             public override bool Equals(object obj)
@@ -80,33 +62,18 @@ namespace Datadog.Unity.Flags
             }
 
             public override int GetHashCode()
-            {
-                // unchecked: integer overflow is intentional; hash wrapping is acceptable.
-                // 17 and 31 are standard primes for polynomial hash combining (Bloch, Effective Java).
-                unchecked
-                {
-                    var hash = 17;
-                    hash = hash * 31 + (FlagKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (VariantKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (AllocationKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (TargetingKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (ErrorMessage?.GetHashCode() ?? 0);
-                    hash = hash * 31 + ContextHash;
-                    return hash;
-                }
-            }
+                => HashCode.Combine(FlagKey, VariantKey, AllocationKey, TargetingKey, ErrorMessage, ContextKey);
 
-            private static bool DictionaryEquals(IReadOnlyDictionary<string, object> a, IReadOnlyDictionary<string, object> b)
+            private static string BuildContextKey(IReadOnlyDictionary<string, object> context)
             {
-                if (ReferenceEquals(a, b)) return true;
-                if (a == null || b == null) return false;
-                if (a.Count != b.Count) return false;
-                foreach (var kvp in a)
+                if (context == null || context.Count == 0)
                 {
-                    if (!b.TryGetValue(kvp.Key, out var bVal)) return false;
-                    if (!Equals(kvp.Value, bVal)) return false;
+                    return string.Empty;
                 }
-                return true;
+
+                return string.Join("\x01", context.Keys
+                    .OrderBy(k => k, StringComparer.Ordinal)
+                    .Select(k => $"{k}\x00{context[k]}"));
             }
         }
 
