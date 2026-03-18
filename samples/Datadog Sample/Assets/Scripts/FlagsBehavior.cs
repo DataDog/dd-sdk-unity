@@ -15,6 +15,8 @@ public class FlagsBehavior : MonoBehaviour
 {
     public void Start()
     {
+        DontDestroyOnLoad(gameObject);
+
         // 1. Enable the Flags feature (after Datadog SDK is already initialized)
         DdFlags.Enable(new FlagsConfiguration
         {

@@ -17,12 +17,12 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void InsertedExposureIsFound()
+        public void TrackedExposureIsFound()
         {
             var tracker = new ExposureTracker();
             var key = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "variant-a");
 
-            tracker.InsertIfAbsent(key);
+            tracker.TrackExposure(key);
 
             Assert.IsTrue(tracker.Contains(key));
         }
@@ -34,7 +34,7 @@ namespace Datadog.Unity.Flags.Tests
             var key1 = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "variant-a");
             var key2 = new ExposureTracker.ExposureKey("user-1", "flag-2", "alloc-1", "variant-a");
 
-            tracker.InsertIfAbsent(key1);
+            tracker.TrackExposure(key1);
 
             Assert.IsFalse(tracker.Contains(key2));
         }
@@ -49,15 +49,15 @@ namespace Datadog.Unity.Flags.Tests
             var key3 = new ExposureTracker.ExposureKey("user", "flag-3", "alloc", "var");
             var key4 = new ExposureTracker.ExposureKey("user", "flag-4", "alloc", "var");
 
-            tracker.InsertIfAbsent(key1);
-            tracker.InsertIfAbsent(key2);
-            tracker.InsertIfAbsent(key3);
+            tracker.TrackExposure(key1);
+            tracker.TrackExposure(key2);
+            tracker.TrackExposure(key3);
 
             Assert.AreEqual(3, tracker.Count);
             Assert.IsTrue(tracker.Contains(key1));
 
             // Adding a 4th should evict the oldest (key1)
-            tracker.InsertIfAbsent(key4);
+            tracker.TrackExposure(key4);
 
             Assert.AreEqual(3, tracker.Count);
             Assert.IsFalse(tracker.Contains(key1));
@@ -84,7 +84,7 @@ namespace Datadog.Unity.Flags.Tests
             // Same everything except variation
             var e = new ExposureTracker.ExposureKey("user-1", "flag-A", "alloc-1", "var-2");
 
-            tracker.InsertIfAbsent(a);
+            tracker.TrackExposure(a);
 
             Assert.IsTrue(tracker.Contains(a));
             Assert.IsFalse(tracker.Contains(b));
@@ -94,14 +94,14 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void DuplicateInsertDoesNotIncrementCount()
+        public void DuplicateTrackDoesNotIncrementCount()
         {
             var tracker = new ExposureTracker();
             var key = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "variant-a");
 
-            tracker.InsertIfAbsent(key);
-            tracker.InsertIfAbsent(key);
-            tracker.InsertIfAbsent(key);
+            tracker.TrackExposure(key);
+            tracker.TrackExposure(key);
+            tracker.TrackExposure(key);
 
             Assert.AreEqual(1, tracker.Count);
         }

@@ -84,7 +84,7 @@ namespace Datadog.Unity.Flags
         /// Returns true if the key was newly inserted (caller should send the exposure).
         /// Returns false if the key already existed (duplicate, no action needed).
         /// </summary>
-        public bool InsertIfAbsent(ExposureKey exposure)
+        public bool TrackExposure(ExposureKey exposure)
         {
             lock (_lock)
             {

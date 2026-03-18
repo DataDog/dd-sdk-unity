@@ -12,18 +12,46 @@ namespace Datadog.Unity.Flags
     /// </summary>
     internal class FlagEvaluationEvent
     {
-        public long Timestamp { get; set; }
-        public string FlagKey { get; set; }
-        public long FirstEvaluation { get; set; }
-        public long LastEvaluation { get; set; }
-        public int EvaluationCount { get; set; }
-        public string VariantKey { get; set; }
-        public string AllocationKey { get; set; }
-        public string TargetingRuleKey { get; set; }
-        public string TargetingKey { get; set; }
-        public bool? RuntimeDefaultUsed { get; set; }
-        public string ErrorMessage { get; set; }
-        public IReadOnlyDictionary<string, object> EvaluationAttributes { get; set; }
+        public readonly long Timestamp;
+        public readonly string FlagKey;
+        public readonly long FirstEvaluation;
+        public readonly long LastEvaluation;
+        public readonly int EvaluationCount;
+        public readonly string VariantKey;
+        public readonly string AllocationKey;
+        public readonly string TargetingRuleKey;
+        public readonly string TargetingKey;
+        public readonly bool? RuntimeDefaultUsed;
+        public readonly string ErrorMessage;
+        public readonly IReadOnlyDictionary<string, object> EvaluationAttributes;
+
+        public FlagEvaluationEvent(
+            long timestamp,
+            string flagKey,
+            long firstEvaluation,
+            long lastEvaluation,
+            int evaluationCount,
+            string variantKey,
+            string allocationKey,
+            string targetingRuleKey,
+            string targetingKey,
+            bool? runtimeDefaultUsed,
+            string errorMessage,
+            IReadOnlyDictionary<string, object> evaluationAttributes)
+        {
+            Timestamp = timestamp;
+            FlagKey = flagKey;
+            FirstEvaluation = firstEvaluation;
+            LastEvaluation = lastEvaluation;
+            EvaluationCount = evaluationCount;
+            VariantKey = variantKey;
+            AllocationKey = allocationKey;
+            TargetingRuleKey = targetingRuleKey;
+            TargetingKey = targetingKey;
+            RuntimeDefaultUsed = runtimeDefaultUsed;
+            ErrorMessage = errorMessage;
+            EvaluationAttributes = evaluationAttributes;
+        }
 
         public string ToJson()
         {

@@ -4,7 +4,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Datadog.Unity.Core;
+using Datadog.Unity.Logs;
 
 namespace Datadog.Unity.Flags
 {
@@ -28,6 +30,7 @@ namespace Datadog.Unity.Flags
 
         private readonly FlagsConfiguration _configuration;
         private readonly EvpTelemetrySender _telemetrySender;
+        private readonly IInternalLogger _logger;
         private readonly Dictionary<string, FlagsClient> _clients = new();
         private readonly object _lock = new();
 
@@ -36,15 +39,17 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public static DdFlags Instance { get; private set; }
 
-        private DdFlags(FlagsConfiguration configuration, EvpTelemetrySender telemetrySender)
+        private DdFlags(FlagsConfiguration configuration, EvpTelemetrySender telemetrySender, IInternalLogger logger)
         {
             _configuration = configuration;
             _telemetrySender = telemetrySender;
+            _logger = logger;
         }
 
         /// <summary>
         /// Enables the Datadog Flags feature and initializes the singleton instance.
-        /// Must be called after Datadog SDK initialization. Subsequent calls are ignored.
+        /// Must be called from the Unity main thread after Datadog SDK initialization.
+        /// Subsequent calls are ignored.
         /// </summary>
         /// <param name="configuration">Configuration options for the Flags feature.</param>
         public static void Enable(FlagsConfiguration configuration = null)
@@ -53,8 +58,16 @@ namespace Datadog.Unity.Flags
             {
                 if (Instance != null)
                 {
-                    // Already enabled, ignoring
+                    DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
+                        "DdFlags.Enable() called more than once — ignoring.");
                     return;
+                }
+
+                if (SynchronizationContext.Current == null)
+                {
+                    DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
+                        "DdFlags.Enable() should be called from the Unity main thread; " +
+                        "automatic telemetry flushing will be disabled.");
                 }
 
                 configuration ??= new FlagsConfiguration();
@@ -76,7 +89,7 @@ namespace Datadog.Unity.Flags
                     env: options?.Env ?? string.Empty,
                     logger: logger);
 
-                Instance = new DdFlags(configuration, sender);
+                Instance = new DdFlags(configuration, sender, logger);
             }
         }
 
@@ -105,13 +118,11 @@ namespace Datadog.Unity.Flags
             {
                 if (_clients.TryGetValue(name, out var existingClient))
                 {
-                    // Client already exists, return existing
                     return existingClient;
                 }
 
                 var options = DatadogConfigurationOptions.Load();
 
-                // Determine precompute endpoint
                 string precomputeEndpoint;
                 if (!string.IsNullOrEmpty(_configuration.CustomFlagsEndpoint))
                 {
@@ -147,20 +158,19 @@ namespace Datadog.Unity.Flags
                     }
                 }
 
-                var logger = DatadogSdk.Instance?.InternalLogger;
                 var fetcher = new PrecomputeAssignmentsFetcher(
                     endpointUrl: precomputeEndpoint,
                     clientToken: options?.ClientToken ?? string.Empty,
                     applicationId: options?.RumApplicationId,
                     env: options?.Env ?? string.Empty,
-                    logger: logger);
+                    logger: _logger);
 
                 var client = new FlagsClient(
                     repository: repository,
                     exposureTracker: exposureTracker,
                     evaluationAggregator: evaluationAggregator,
                     fetcher: fetcher,
-                    logger: logger,
+                    logger: _logger,
                     trackExposures: _configuration.TrackExposures,
                     trackEvaluations: _configuration.TrackEvaluations,
                     onExposure: onExposure);
@@ -187,7 +197,6 @@ namespace Datadog.Unity.Flags
             {
                 if (!_clients.TryGetValue(clientName, out client))
                 {
-                    // No FlagsClient named '{clientName}'. Call CreateClient() first.
                     onComplete?.Invoke(false);
                     return;
                 }

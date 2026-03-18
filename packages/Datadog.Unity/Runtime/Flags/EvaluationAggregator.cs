@@ -16,6 +16,9 @@ namespace Datadog.Unity.Flags
     /// </summary>
     internal class EvaluationAggregator : IDisposable
     {
+        private const string ReasonDefault = "DEFAULT";
+        private const string ReasonError = "ERROR";
+
         internal struct AggregationKey : IEquatable<AggregationKey>
         {
             public readonly string FlagKey;
@@ -41,15 +44,19 @@ namespace Datadog.Unity.Flags
                 ErrorMessage = errorMessage;
                 Context = context;
 
-                // Deterministic hash of context attributes (sorted keys)
+                // Deterministic hash of context attributes (sorted keys).
+                // unchecked: integer overflow is intentional; hash wrapping is acceptable.
                 unchecked
                 {
+                    // 17 and 31 are standard primes for polynomial hash combining (Bloch, Effective Java).
                     var hash = 17;
                     if (context != null)
                     {
                         foreach (var key in context.Keys.OrderBy(k => k, StringComparer.Ordinal))
                         {
                             hash = hash * 31 + key.GetHashCode();
+                            // Note: context values are primitives in practice (string, bool, int, double),
+                            // so GetHashCode() here is stable even though object allows mutation.
                             hash = hash * 31 + (context[key]?.GetHashCode() ?? 0);
                         }
                     }
@@ -74,6 +81,8 @@ namespace Datadog.Unity.Flags
 
             public override int GetHashCode()
             {
+                // unchecked: integer overflow is intentional; hash wrapping is acceptable.
+                // 17 and 31 are standard primes for polynomial hash combining (Bloch, Effective Java).
                 unchecked
                 {
                     var hash = 17;
@@ -103,35 +112,59 @@ namespace Datadog.Unity.Flags
 
         internal class AggregatedEvaluation
         {
-            public string FlagKey;
-            public string VariantKey;
-            public string AllocationKey;
-            public string TargetingKey;
-            public string TargetingRuleKey;
-            public string ErrorMessage;
-            public IReadOnlyDictionary<string, object> Context;
-            public long FirstEvaluation;
+            public readonly string FlagKey;
+            public readonly string VariantKey;
+            public readonly string AllocationKey;
+            public readonly string TargetingKey;
+            public readonly string TargetingRuleKey;
+            public readonly string ErrorMessage;
+            public readonly IReadOnlyDictionary<string, object> Context;
+            public readonly long FirstEvaluation;
+            public readonly bool? RuntimeDefaultUsed;
+
+            // Mutable: updated on each subsequent evaluation for the same dimensions.
             public long LastEvaluation;
             public int EvaluationCount;
-            public bool? RuntimeDefaultUsed;
+
+            public AggregatedEvaluation(
+                string flagKey,
+                string variantKey,
+                string allocationKey,
+                string targetingKey,
+                string targetingRuleKey,
+                string errorMessage,
+                IReadOnlyDictionary<string, object> context,
+                long firstEvaluation,
+                bool? runtimeDefaultUsed)
+            {
+                FlagKey = flagKey;
+                VariantKey = variantKey;
+                AllocationKey = allocationKey;
+                TargetingKey = targetingKey;
+                TargetingRuleKey = targetingRuleKey;
+                ErrorMessage = errorMessage;
+                Context = context;
+                FirstEvaluation = firstEvaluation;
+                LastEvaluation = firstEvaluation;
+                EvaluationCount = 1;
+                RuntimeDefaultUsed = runtimeDefaultUsed;
+            }
 
             public FlagEvaluationEvent ToFlagEvaluationEvent()
             {
-                return new FlagEvaluationEvent
-                {
-                    Timestamp = FirstEvaluation,
-                    FlagKey = FlagKey,
-                    FirstEvaluation = FirstEvaluation,
-                    LastEvaluation = LastEvaluation,
-                    EvaluationCount = EvaluationCount,
-                    VariantKey = RuntimeDefaultUsed == true ? null : VariantKey,
-                    AllocationKey = RuntimeDefaultUsed == true ? null : AllocationKey,
-                    TargetingRuleKey = TargetingRuleKey,
-                    TargetingKey = TargetingKey,
-                    RuntimeDefaultUsed = RuntimeDefaultUsed,
-                    ErrorMessage = ErrorMessage,
-                    EvaluationAttributes = Context?.Count > 0 ? Context : null,
-                };
+                return new FlagEvaluationEvent(
+                    timestamp: FirstEvaluation,
+                    flagKey: FlagKey,
+                    firstEvaluation: FirstEvaluation,
+                    lastEvaluation: LastEvaluation,
+                    evaluationCount: EvaluationCount,
+                    variantKey: RuntimeDefaultUsed == true ? null : VariantKey,
+                    allocationKey: RuntimeDefaultUsed == true ? null : AllocationKey,
+                    targetingRuleKey: TargetingRuleKey,
+                    targetingKey: TargetingKey,
+                    runtimeDefaultUsed: RuntimeDefaultUsed,
+                    errorMessage: ErrorMessage,
+                    evaluationAttributes: Context?.Count > 0 ? Context : null);
             }
         }
 
@@ -173,9 +206,16 @@ namespace Datadog.Unity.Flags
             FlagsEvaluationContext evaluationContext,
             string flagError)
         {
+            // Quick non-locking check to skip expensive work if already disposed.
+            // The definitive check happens inside the lock below.
+            if (_disposed)
+            {
+                return;
+            }
+
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            // Defensive copy of context attributes
+            // Defensive copy of context attributes to snapshot the current state.
             IReadOnlyDictionary<string, object> contextCopy = evaluationContext?.Attributes != null
                 ? new Dictionary<string, object>(evaluationContext.Attributes)
                 : null;
@@ -196,6 +236,7 @@ namespace Datadog.Unity.Flags
                 {
                     return;
                 }
+
                 if (_aggregations.TryGetValue(key, out var existing))
                 {
                     existing.EvaluationCount += 1;
@@ -204,22 +245,18 @@ namespace Datadog.Unity.Flags
                 else
                 {
                     var reason = assignment?.Reason;
-                    var runtimeDefaultUsed = reason == "DEFAULT" || flagError != null;
+                    var runtimeDefaultUsed = reason == ReasonDefault || flagError != null;
 
-                    _aggregations[key] = new AggregatedEvaluation
-                    {
-                        FlagKey = flagKey,
-                        VariantKey = assignment?.VariationKey,
-                        AllocationKey = assignment?.AllocationKey,
-                        TargetingKey = evaluationContext?.TargetingKey,
-                        TargetingRuleKey = null,
-                        ErrorMessage = flagError,
-                        Context = contextCopy,
-                        FirstEvaluation = now,
-                        LastEvaluation = now,
-                        EvaluationCount = 1,
-                        RuntimeDefaultUsed = runtimeDefaultUsed ? true : (bool?)null,
-                    };
+                    _aggregations[key] = new AggregatedEvaluation(
+                        flagKey: flagKey,
+                        variantKey: assignment?.VariationKey,
+                        allocationKey: assignment?.AllocationKey,
+                        targetingKey: evaluationContext?.TargetingKey,
+                        targetingRuleKey: null,
+                        errorMessage: flagError,
+                        context: contextCopy,
+                        firstEvaluation: now,
+                        runtimeDefaultUsed: runtimeDefaultUsed ? true : (bool?)null);
                 }
 
                 if (_aggregations.Count >= _maxAggregations)
@@ -255,7 +292,7 @@ namespace Datadog.Unity.Flags
 
         public void Dispose()
         {
-            List<FlagEvaluationEvent> events = null;
+            List<FlagEvaluationEvent> events;
             lock (_lock)
             {
                 if (_disposed)
@@ -276,6 +313,7 @@ namespace Datadog.Unity.Flags
             }
         }
 
+        // Must be called within _lock.
         private List<FlagEvaluationEvent> CollectAndClearEvents()
         {
             if (_aggregations.Count == 0)

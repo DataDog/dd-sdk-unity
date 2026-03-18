@@ -12,6 +12,13 @@ namespace Datadog.Unity.Flags
     /// </summary>
     internal class ExposureEvent
     {
+        public readonly long Timestamp;
+        public readonly string FlagKey;
+        public readonly string AllocationKey;
+        public readonly string VariationKey;
+        public readonly string SubjectId;
+        public readonly IReadOnlyDictionary<string, object> SubjectAttributes;
+
         public ExposureEvent(long timestamp, string flagKey, string allocationKey, string variationKey, string subjectId, IReadOnlyDictionary<string, object> subjectAttributes)
         {
             Timestamp = timestamp;
@@ -21,13 +28,6 @@ namespace Datadog.Unity.Flags
             SubjectId = subjectId;
             SubjectAttributes = subjectAttributes ?? new Dictionary<string, object>();
         }
-
-        public long Timestamp { get; }
-        public string FlagKey { get; }
-        public string AllocationKey { get; }
-        public string VariationKey { get; }
-        public string SubjectId { get; }
-        public IReadOnlyDictionary<string, object> SubjectAttributes { get; }
 
         public string ToJson()
         {

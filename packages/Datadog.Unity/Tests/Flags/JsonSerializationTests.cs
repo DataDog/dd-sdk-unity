@@ -38,18 +38,19 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void FlagEvaluationEventSerializesCorrectly()
         {
-            var evt = new FlagEvaluationEvent
-            {
-                Timestamp = 1700000000000,
-                FlagKey = "my-flag",
-                FirstEvaluation = 1700000000000,
-                LastEvaluation = 1700000001000,
-                EvaluationCount = 5,
-                VariantKey = "treatment",
-                AllocationKey = "alloc-1",
-                TargetingKey = "user-789",
-                RuntimeDefaultUsed = null,
-            };
+            var evt = new FlagEvaluationEvent(
+                timestamp: 1700000000000,
+                flagKey: "my-flag",
+                firstEvaluation: 1700000000000,
+                lastEvaluation: 1700000001000,
+                evaluationCount: 5,
+                variantKey: "treatment",
+                allocationKey: "alloc-1",
+                targetingRuleKey: null,
+                targetingKey: "user-789",
+                runtimeDefaultUsed: null,
+                errorMessage: null,
+                evaluationAttributes: null);
 
             var json = evt.ToJson();
 
@@ -67,19 +68,19 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void RuntimeDefaultOmitsVariantAndAllocation()
         {
-            var evt = new FlagEvaluationEvent
-            {
-                Timestamp = 1700000000000,
-                FlagKey = "my-flag",
-                FirstEvaluation = 1700000000000,
-                LastEvaluation = 1700000000000,
-                EvaluationCount = 1,
-                VariantKey = "treatment",
-                AllocationKey = "alloc-1",
-                TargetingKey = "user-789",
-                RuntimeDefaultUsed = true,
-                ErrorMessage = "FLAG_NOT_FOUND",
-            };
+            var evt = new FlagEvaluationEvent(
+                timestamp: 1700000000000,
+                flagKey: "my-flag",
+                firstEvaluation: 1700000000000,
+                lastEvaluation: 1700000000000,
+                evaluationCount: 1,
+                variantKey: "treatment",
+                allocationKey: "alloc-1",
+                targetingRuleKey: null,
+                targetingKey: "user-789",
+                runtimeDefaultUsed: true,
+                errorMessage: "FLAG_NOT_FOUND",
+                evaluationAttributes: null);
 
             var json = evt.ToJson();
 

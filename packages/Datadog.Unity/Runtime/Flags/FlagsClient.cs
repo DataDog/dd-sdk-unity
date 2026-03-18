@@ -236,7 +236,7 @@ namespace Datadog.Unity.Flags
                     allocationKey: assignment.AllocationKey,
                     variationKey: assignment.VariationKey);
 
-                if (_exposureTracker.InsertIfAbsent(exposureKey))
+                if (_exposureTracker.TrackExposure(exposureKey))
                 {
                     var exposureEvent = new ExposureEvent(
                         timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),

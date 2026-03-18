@@ -52,34 +52,8 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
-            try
-            {
-                var json = exposure.ToJson() + "\n";
-                var bodyBytes = Encoding.UTF8.GetBytes(json);
-
-                var url = AppendDdSource(_exposureEndpoint);
-                var request = new UnityWebRequest(url, "POST");
-                request.uploadHandler = new UploadHandlerRaw(bodyBytes);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "text/plain; charset=utf-8");
-                request.SetRequestHeader("dd-api-key", _clientToken);
-                request.SetRequestHeader("dd-evp-origin", "unity");
-                request.SetRequestHeader("dd-evp-origin-version", DatadogSdk.SdkVersion);
-
-                var operation = request.SendWebRequest();
-                operation.completed += _ =>
-                {
-                    if (request.result != UnityWebRequest.Result.Success)
-                    {
-                        _logger?.Log(Logs.DdLogLevel.Debug, $"Failed to send exposure event: {request.error}");
-                    }
-                    request.Dispose();
-                };
-            }
-            catch (Exception e)
-            {
-                _logger?.TelemetryError("Error sending exposure event", e);
-            }
+            var json = exposure.ToJson() + "\n";
+            SendRequest(_exposureEndpoint, "text/plain; charset=utf-8", json, "exposure event");
         }
 
         /// <summary>
@@ -93,16 +67,20 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
+            var json = BuildBatchedEvaluationsJson(evaluations);
+            SendRequest(_evaluationEndpoint, "application/json", json, "evaluation events");
+        }
+
+        private void SendRequest(string endpoint, string contentType, string json, string eventDescription)
+        {
             try
             {
-                var json = BuildBatchedEvaluationsJson(evaluations);
                 var bodyBytes = Encoding.UTF8.GetBytes(json);
-
-                var url = AppendDdSource(_evaluationEndpoint);
+                var url = AppendDdSource(endpoint);
                 var request = new UnityWebRequest(url, "POST");
                 request.uploadHandler = new UploadHandlerRaw(bodyBytes);
                 request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Content-Type", contentType);
                 request.SetRequestHeader("dd-api-key", _clientToken);
                 request.SetRequestHeader("dd-evp-origin", "unity");
                 request.SetRequestHeader("dd-evp-origin-version", DatadogSdk.SdkVersion);
@@ -112,14 +90,14 @@ namespace Datadog.Unity.Flags
                 {
                     if (request.result != UnityWebRequest.Result.Success)
                     {
-                        _logger?.Log(Logs.DdLogLevel.Debug, $"Failed to send evaluation events: {request.error}");
+                        _logger?.Log(Logs.DdLogLevel.Warn, $"Failed to send {eventDescription}: {request.error}");
                     }
                     request.Dispose();
                 };
             }
             catch (Exception e)
             {
-                _logger?.TelemetryError("Error sending evaluation events", e);
+                _logger?.TelemetryError($"Error sending {eventDescription}", e);
             }
         }
 
