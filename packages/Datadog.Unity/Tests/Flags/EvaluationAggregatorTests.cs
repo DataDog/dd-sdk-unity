@@ -147,7 +147,7 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void DifferentContextAttributesProduceSeparateEvents()
+        public void DifferentContextAttributesSameKeyAggregates()
         {
             var assignment = new FlagAssignment("boolean", true, true, "alloc-1", "variant-a", "TARGETING_MATCH");
             var contextA = new FlagsEvaluationContext("user-123", new Dictionary<string, object> { ["plan"] = "free" });
@@ -157,28 +157,18 @@ namespace Datadog.Unity.Flags.Tests
             _aggregator.RecordEvaluation("my-flag", assignment, contextB, null);
             _aggregator.Flush();
 
-            Assert.AreEqual(2, _flushedEvents.Count);
+            Assert.AreEqual(1, _flushedEvents.Count);
+            Assert.AreEqual(2, _flushedEvents[0].EvaluationCount);
         }
 
         [Test]
-        public void SameContextAttributesDifferentInsertionOrderAggregates()
+        public void DifferentErrorMessagesSameKeyAggregates()
         {
             var assignment = new FlagAssignment("boolean", true, true, "alloc-1", "variant-a", "TARGETING_MATCH");
+            var context = new FlagsEvaluationContext("user-123");
 
-            // Same logical context built in different insertion order
-            var contextA = new FlagsEvaluationContext("user-123", new Dictionary<string, object>
-            {
-                ["alpha"] = "1",
-                ["beta"] = "2",
-            });
-            var contextB = new FlagsEvaluationContext("user-123", new Dictionary<string, object>
-            {
-                ["beta"] = "2",
-                ["alpha"] = "1",
-            });
-
-            _aggregator.RecordEvaluation("my-flag", assignment, contextA, null);
-            _aggregator.RecordEvaluation("my-flag", assignment, contextB, null);
+            _aggregator.RecordEvaluation("my-flag", assignment, context, null);
+            _aggregator.RecordEvaluation("my-flag", assignment, context, "FLAG_NOT_FOUND");
             _aggregator.Flush();
 
             Assert.AreEqual(1, _flushedEvents.Count);
@@ -191,60 +181,43 @@ namespace Datadog.Unity.Flags.Tests
                 string flagKey = "flag",
                 string variantKey = "variant",
                 string allocationKey = "alloc",
-                string targetingKey = "user",
-                string errorMessage = null,
-                Dictionary<string, object> context = null)
+                string targetingKey = "user")
             {
-                return new EvaluationAggregator.AggregationKey(
-                    flagKey, variantKey, allocationKey, targetingKey, errorMessage, context);
+                return new EvaluationAggregator.AggregationKey(flagKey, variantKey, allocationKey, targetingKey);
             }
 
             [Test]
-            public void NullAndEmptyContextAreEqual()
+            public void SameDimensionsAreEqual()
             {
-                var withNull = MakeKey(context: null);
-                var withEmpty = MakeKey(context: new Dictionary<string, object>());
-
-                Assert.AreEqual(withNull, withEmpty);
-                Assert.AreEqual(withNull.GetHashCode(), withEmpty.GetHashCode());
-            }
-
-            [Test]
-            public void SameAttributesDifferentInsertionOrderAreEqual()
-            {
-                var keyA = MakeKey(context: new Dictionary<string, object> { ["x"] = 1, ["y"] = 2 });
-                var keyB = MakeKey(context: new Dictionary<string, object> { ["y"] = 2, ["x"] = 1 });
+                var keyA = MakeKey();
+                var keyB = MakeKey();
 
                 Assert.AreEqual(keyA, keyB);
                 Assert.AreEqual(keyA.GetHashCode(), keyB.GetHashCode());
             }
 
             [Test]
-            public void DifferentAttributeValuesAreNotEqual()
+            public void DifferentFlagKeyIsNotEqual()
             {
-                var keyA = MakeKey(context: new Dictionary<string, object> { ["x"] = "a" });
-                var keyB = MakeKey(context: new Dictionary<string, object> { ["x"] = "b" });
-
-                Assert.AreNotEqual(keyA, keyB);
+                Assert.AreNotEqual(MakeKey(flagKey: "a"), MakeKey(flagKey: "b"));
             }
 
             [Test]
-            public void DifferentAttributeKeysAreNotEqual()
+            public void DifferentVariantKeyIsNotEqual()
             {
-                var keyA = MakeKey(context: new Dictionary<string, object> { ["x"] = 1 });
-                var keyB = MakeKey(context: new Dictionary<string, object> { ["y"] = 1 });
-
-                Assert.AreNotEqual(keyA, keyB);
+                Assert.AreNotEqual(MakeKey(variantKey: "a"), MakeKey(variantKey: "b"));
             }
 
             [Test]
-            public void DifferentFlagFieldsAreNotEqual()
+            public void DifferentAllocationKeyIsNotEqual()
             {
-                var keyA = MakeKey(flagKey: "flag-a");
-                var keyB = MakeKey(flagKey: "flag-b");
+                Assert.AreNotEqual(MakeKey(allocationKey: "a"), MakeKey(allocationKey: "b"));
+            }
 
-                Assert.AreNotEqual(keyA, keyB);
-                Assert.AreNotEqual(keyA.GetHashCode(), keyB.GetHashCode());
+            [Test]
+            public void DifferentTargetingKeyIsNotEqual()
+            {
+                Assert.AreNotEqual(MakeKey(targetingKey: "user-a"), MakeKey(targetingKey: "user-b"));
             }
         }
     }

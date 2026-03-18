@@ -11,8 +11,8 @@ namespace Datadog.Unity.Flags
 {
     /// <summary>
     /// Aggregates flag evaluation events and flushes them periodically or when the max count is reached.
-    /// Matching the iOS EvaluationAggregator pattern: dimensions = (flagKey, variantKey, allocationKey,
-    /// targetingKey, errorMessage, contextKey). Flush triggers: timer (10s default), max aggregations (1000).
+    /// Aggregation key dimensions: (flagKey, variantKey, allocationKey, targetingKey).
+    /// Flush triggers: timer (10s default), max aggregations (1000).
     /// </summary>
     internal class EvaluationAggregator : IDisposable
     {
@@ -25,25 +25,13 @@ namespace Datadog.Unity.Flags
             public readonly string VariantKey;
             public readonly string AllocationKey;
             public readonly string TargetingKey;
-            public readonly string ErrorMessage;
-            // Canonical sorted representation of context attributes used for equality and hashing.
-            // Keys and values are separated by \x00; pairs are separated by \x01.
-            public readonly string ContextKey;
 
-            public AggregationKey(
-                string flagKey,
-                string variantKey,
-                string allocationKey,
-                string targetingKey,
-                string errorMessage,
-                IReadOnlyDictionary<string, object> context)
+            public AggregationKey(string flagKey, string variantKey, string allocationKey, string targetingKey)
             {
                 FlagKey = flagKey;
                 VariantKey = variantKey;
                 AllocationKey = allocationKey;
                 TargetingKey = targetingKey;
-                ErrorMessage = errorMessage;
-                ContextKey = BuildContextKey(context);
             }
 
             public bool Equals(AggregationKey other)
@@ -51,30 +39,14 @@ namespace Datadog.Unity.Flags
                 return FlagKey == other.FlagKey
                     && VariantKey == other.VariantKey
                     && AllocationKey == other.AllocationKey
-                    && TargetingKey == other.TargetingKey
-                    && ErrorMessage == other.ErrorMessage
-                    && ContextKey == other.ContextKey;
+                    && TargetingKey == other.TargetingKey;
             }
 
             public override bool Equals(object obj)
-            {
-                return obj is AggregationKey other && Equals(other);
-            }
+                => obj is AggregationKey other && Equals(other);
 
             public override int GetHashCode()
-                => HashCode.Combine(FlagKey, VariantKey, AllocationKey, TargetingKey, ErrorMessage, ContextKey);
-
-            private static string BuildContextKey(IReadOnlyDictionary<string, object> context)
-            {
-                if (context == null || context.Count == 0)
-                {
-                    return string.Empty;
-                }
-
-                return string.Join("\x01", context.Keys
-                    .OrderBy(k => k, StringComparer.Ordinal)
-                    .Select(k => $"{k}\x00{context[k]}"));
-            }
+                => HashCode.Combine(FlagKey, VariantKey, AllocationKey, TargetingKey);
         }
 
         internal class AggregatedEvaluation
@@ -191,9 +163,7 @@ namespace Datadog.Unity.Flags
                 flagKey: flagKey,
                 variantKey: assignment?.VariationKey,
                 allocationKey: assignment?.AllocationKey,
-                targetingKey: evaluationContext?.TargetingKey,
-                errorMessage: flagError,
-                context: contextCopy);
+                targetingKey: evaluationContext?.TargetingKey);
 
             List<FlagEvaluationEvent> eventsToFlush = null;
 
