@@ -271,7 +271,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
             DdFlags.GetClient().GetBooleanValue("boolean-flag", false);
 
             // Change context to user-B (requires re-fetch)
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, PrecomputePayload);
+            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
             var done = false;
             DdFlags.SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
             yield return new WaitUntil(() => done);

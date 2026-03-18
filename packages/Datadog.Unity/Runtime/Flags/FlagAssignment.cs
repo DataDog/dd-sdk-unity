@@ -2,7 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
-using Newtonsoft.Json;
+using System;
 using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
@@ -74,7 +74,7 @@ namespace Datadog.Unity.Flags
                 value = VariationValue.ToObject<T>();
                 return true;
             }
-            catch (JsonException)
+            catch (Exception)
             {
                 value = default;
                 return false;
