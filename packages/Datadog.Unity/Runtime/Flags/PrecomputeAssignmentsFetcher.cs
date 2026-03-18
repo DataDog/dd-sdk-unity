@@ -8,7 +8,6 @@ using System.Text;
 using Datadog.Unity.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UnityEngine;
 using UnityEngine.Networking;
 
 namespace Datadog.Unity.Flags
@@ -101,34 +100,24 @@ namespace Datadog.Unity.Flags
 
         private string BuildRequestBody(FlagsEvaluationContext context)
         {
-            var subject = new JObject
+            var dto = new AssignmentsRequestDto
             {
-                ["targeting_key"] = context.TargetingKey,
-            };
-
-            if (context.Attributes.Count > 0)
-            {
-                subject["targeting_attributes"] = JObject.FromObject(context.Attributes);
-            }
-
-            var body = new JObject
-            {
-                ["data"] = new JObject
+                Data = new AssignmentsRequestDataDto
                 {
-                    ["type"] = "precompute-assignments-request",
-                    ["attributes"] = new JObject
+                    Attributes = new AssignmentsRequestAttributesDto
                     {
-                        ["env"] = new JObject
+                        Env = new AssignmentsEnvDto { Name = _env, DdEnv = _env },
+                        Subject = new AssignmentsSubjectDto
                         {
-                            ["name"] = _env,
-                            ["dd_env"] = _env,
+                            TargetingKey = context.TargetingKey,
+                            TargetingAttributes = context.Attributes.Count > 0
+                                ? new Dictionary<string, object>(context.Attributes)
+                                : null,
                         },
-                        ["subject"] = subject,
                     },
                 },
             };
-
-            return body.ToString(Formatting.None);
+            return JsonConvert.SerializeObject(dto);
         }
 
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
@@ -140,111 +129,116 @@ namespace Datadog.Unity.Flags
                 return flags;
             }
 
-            JObject parsed;
+            AssignmentsResponseDto response;
             try
             {
-                parsed = JObject.Parse(json);
+                response = JsonConvert.DeserializeObject<AssignmentsResponseDto>(json);
             }
             catch
             {
                 return flags;
             }
 
-            if (!(parsed["data"]?["attributes"]?["flags"] is JObject flagsObj))
+            var flagsDict = response?.Data?.Attributes?.Flags;
+            if (flagsDict == null)
             {
                 return flags;
             }
 
-            foreach (var prop in flagsObj.Properties())
+            foreach (var kvp in flagsDict)
             {
-                if (!(prop.Value is JObject flagData))
-                {
-                    continue;
-                }
-
-                var variationType = flagData["variationType"]?.ToString();
-                var variationValueToken = flagData["variationValue"];
-                var doLog = flagData["doLog"]?.Value<bool>() ?? false;
-                var allocationKey = flagData["allocationKey"]?.ToString();
-                var variationKey = flagData["variationKey"]?.ToString();
-                var reason = flagData["reason"]?.ToString();
-
-                var variationValue = ParseVariationValue(variationType, variationValueToken);
-
-                flags[prop.Name] = new FlagAssignment(
-                    variationType: variationType,
-                    variationValue: variationValue,
-                    doLog: doLog,
-                    allocationKey: allocationKey,
-                    variationKey: variationKey,
-                    reason: reason);
+                var dto = kvp.Value;
+                flags[kvp.Key] = new FlagAssignment(
+                    variationType: dto.VariationType,
+                    variationValue: dto.VariationValue,
+                    doLog: dto.DoLog,
+                    allocationKey: dto.AllocationKey,
+                    variationKey: dto.VariationKey,
+                    reason: dto.Reason);
             }
 
             return flags;
         }
 
-        private static object ConvertJToken(JToken token)
+        private class AssignmentsRequestDto
         {
-            switch (token.Type)
-            {
-                case JTokenType.Object:
-                    var dict = new Dictionary<string, object>();
-                    foreach (var prop in ((JObject)token).Properties())
-                    {
-                        dict[prop.Name] = ConvertJToken(prop.Value);
-                    }
-                    return dict;
-                case JTokenType.Array:
-                    var list = new List<object>();
-                    foreach (var item in (JArray)token)
-                    {
-                        list.Add(ConvertJToken(item));
-                    }
-                    return list;
-                case JTokenType.Integer:
-                    return token.Value<long>();
-                case JTokenType.Float:
-                    return token.Value<double>();
-                case JTokenType.String:
-                    return token.Value<string>();
-                case JTokenType.Boolean:
-                    return token.Value<bool>();
-                case JTokenType.Null:
-                case JTokenType.Undefined:
-                    return null;
-                default:
-                    return token.ToString();
-            }
+            [JsonProperty("data")]
+            public AssignmentsRequestDataDto Data { get; set; }
         }
 
-        private static object ParseVariationValue(string variationType, JToken token)
+        private class AssignmentsRequestDataDto
         {
-            if (token == null || token.Type == JTokenType.Null)
-            {
-                return null;
-            }
+            [JsonProperty("type")]
+            public string Type { get; set; } = "precompute-assignments-request";
 
-            switch (variationType?.ToLowerInvariant())
-            {
-                case "boolean":
-                    return token.Value<bool>();
+            [JsonProperty("attributes")]
+            public AssignmentsRequestAttributesDto Attributes { get; set; }
+        }
 
-                case "string":
-                    return token.Value<string>();
+        private class AssignmentsRequestAttributesDto
+        {
+            [JsonProperty("env")]
+            public AssignmentsEnvDto Env { get; set; }
 
-                case "integer":
-                    return token.Value<int>();
+            [JsonProperty("subject")]
+            public AssignmentsSubjectDto Subject { get; set; }
+        }
 
-                case "number":
-                case "float":
-                    return token.Value<double>();
+        private class AssignmentsEnvDto
+        {
+            [JsonProperty("name")]
+            public string Name { get; set; }
 
-                case "object":
-                    return ConvertJToken(token);
+            [JsonProperty("dd_env")]
+            public string DdEnv { get; set; }
+        }
 
-                default:
-                    return token.ToString();
-            }
+        private class AssignmentsSubjectDto
+        {
+            [JsonProperty("targeting_key")]
+            public string TargetingKey { get; set; }
+
+            [JsonProperty("targeting_attributes", NullValueHandling = NullValueHandling.Ignore)]
+            public Dictionary<string, object> TargetingAttributes { get; set; }
+        }
+
+        private class AssignmentsResponseDto
+        {
+            [JsonProperty("data")]
+            public AssignmentsResponseDataDto Data { get; set; }
+        }
+
+        private class AssignmentsResponseDataDto
+        {
+            [JsonProperty("attributes")]
+            public AssignmentsResponseAttributesDto Attributes { get; set; }
+        }
+
+        private class AssignmentsResponseAttributesDto
+        {
+            [JsonProperty("flags")]
+            public Dictionary<string, FlagAssignmentDto> Flags { get; set; }
+        }
+
+        private class FlagAssignmentDto
+        {
+            [JsonProperty("variationType")]
+            public string VariationType { get; set; }
+
+            [JsonProperty("variationValue")]
+            public JToken VariationValue { get; set; }
+
+            [JsonProperty("doLog")]
+            public bool DoLog { get; set; }
+
+            [JsonProperty("allocationKey")]
+            public string AllocationKey { get; set; }
+
+            [JsonProperty("variationKey")]
+            public string VariationKey { get; set; }
+
+            [JsonProperty("reason")]
+            public string Reason { get; set; }
         }
     }
 }

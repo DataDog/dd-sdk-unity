@@ -2,8 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
-using System;
-using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -14,7 +14,7 @@ namespace Datadog.Unity.Flags
     {
         public FlagAssignment(
             string variationType,
-            object variationValue,
+            JToken variationValue,
             bool doLog,
             string allocationKey,
             string variationKey,
@@ -34,9 +34,9 @@ namespace Datadog.Unity.Flags
         public string VariationType { get; }
 
         /// <summary>
-        /// Gets the parsed variation value.
+        /// Gets the raw variation value token.
         /// </summary>
-        public object VariationValue { get; }
+        public JToken VariationValue { get; }
 
         /// <summary>
         /// Gets whether to track exposure for this flag.
@@ -63,45 +63,18 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public bool TryGetValue<T>(out T value)
         {
-            try
+            if (VariationValue == null || VariationValue.Type == JTokenType.Null)
             {
-                if (VariationValue is T typedValue)
-                {
-                    value = typedValue;
-                    return true;
-                }
-
-                // Handle numeric conversions
-                if (typeof(T) == typeof(int) && VariationValue is long longVal)
-                {
-                    value = (T)(object)(int)longVal;
-                    return true;
-                }
-
-                if (typeof(T) == typeof(double) && VariationValue is long longVal2)
-                {
-                    value = (T)(object)(double)longVal2;
-                    return true;
-                }
-
-                if (typeof(T) == typeof(double) && VariationValue is int intVal)
-                {
-                    value = (T)(object)(double)intVal;
-                    return true;
-                }
-
-                if (typeof(T) == typeof(int) && VariationValue is double doubleVal
-                    && doubleVal == Math.Truncate(doubleVal)
-                    && doubleVal >= int.MinValue && doubleVal <= int.MaxValue)
-                {
-                    value = (T)(object)(int)doubleVal;
-                    return true;
-                }
-
                 value = default;
                 return false;
             }
-            catch (Exception e) when (e is InvalidCastException or OverflowException)
+
+            try
+            {
+                value = VariationValue.ToObject<T>();
+                return true;
+            }
+            catch (JsonException)
             {
                 value = default;
                 return false;

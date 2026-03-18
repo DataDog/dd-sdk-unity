@@ -3,7 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Datadog.Unity.Flags
 {
@@ -31,21 +31,52 @@ namespace Datadog.Unity.Flags
 
         public string ToJson()
         {
-            var subject = new JObject { ["id"] = SubjectId };
-            if (SubjectAttributes.Count > 0)
+            var dto = new ExposureEventDto
             {
-                subject["attributes"] = JObject.FromObject(SubjectAttributes);
-            }
-
-            var obj = new JObject
-            {
-                ["timestamp"] = Timestamp,
-                ["flag"] = new JObject { ["key"] = FlagKey },
-                ["allocation"] = new JObject { ["key"] = AllocationKey },
-                ["variant"] = new JObject { ["key"] = VariationKey },
-                ["subject"] = subject,
+                Timestamp = Timestamp,
+                Flag = new KeyDto { Key = FlagKey },
+                Allocation = new KeyDto { Key = AllocationKey },
+                Variant = new KeyDto { Key = VariationKey },
+                Subject = new SubjectDto
+                {
+                    Id = SubjectId,
+                    Attributes = SubjectAttributes.Count > 0 ? SubjectAttributes : null,
+                },
             };
-            return obj.ToString(Newtonsoft.Json.Formatting.None);
+            return JsonConvert.SerializeObject(dto);
+        }
+
+        private class ExposureEventDto
+        {
+            [JsonProperty("timestamp")]
+            public long Timestamp { get; set; }
+
+            [JsonProperty("flag")]
+            public KeyDto Flag { get; set; }
+
+            [JsonProperty("allocation")]
+            public KeyDto Allocation { get; set; }
+
+            [JsonProperty("variant")]
+            public KeyDto Variant { get; set; }
+
+            [JsonProperty("subject")]
+            public SubjectDto Subject { get; set; }
+        }
+
+        private class KeyDto
+        {
+            [JsonProperty("key")]
+            public string Key { get; set; }
+        }
+
+        private class SubjectDto
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+
+            [JsonProperty("attributes", NullValueHandling = NullValueHandling.Ignore)]
+            public IReadOnlyDictionary<string, object> Attributes { get; set; }
         }
     }
 }

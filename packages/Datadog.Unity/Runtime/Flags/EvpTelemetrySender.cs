@@ -23,6 +23,7 @@ namespace Datadog.Unity.Flags
         private readonly string _evaluationEndpoint;
         private readonly string _env;
         private readonly IInternalLogger _logger;
+        private readonly string _cachedBatchContextJson;
 
         public EvpTelemetrySender(
             string clientToken,
@@ -36,6 +37,7 @@ namespace Datadog.Unity.Flags
             _evaluationEndpoint = evaluationEndpoint;
             _env = env;
             _logger = logger;
+            _cachedBatchContextJson = BuildBatchContextJson();
         }
 
         /// <summary>
@@ -125,7 +127,7 @@ namespace Datadog.Unity.Flags
         {
             var sb = new StringBuilder();
             sb.Append("{\"context\":");
-            sb.Append(BuildBatchContextJson());
+            sb.Append(_cachedBatchContextJson);
             sb.Append(",\"flagEvaluations\":[");
 
             for (var i = 0; i < evaluations.Count; i++)

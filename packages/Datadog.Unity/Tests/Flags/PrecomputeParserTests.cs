@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Flags.Tests
@@ -35,7 +36,7 @@ namespace Datadog.Unity.Flags.Tests
 
             var flag = flags["enable-feature"];
             Assert.AreEqual("boolean", flag.VariationType);
-            Assert.AreEqual(true, flag.VariationValue);
+            Assert.AreEqual(true, flag.VariationValue.Value<bool>());
             Assert.IsTrue(flag.DoLog);
             Assert.AreEqual("alloc-abc", flag.AllocationKey);
             Assert.AreEqual("treatment", flag.VariationKey);
@@ -90,7 +91,7 @@ namespace Datadog.Unity.Flags.Tests
 
             Assert.AreEqual(4, flags.Count);
 
-            Assert.AreEqual(false, flags["flag-bool"].VariationValue);
+            Assert.AreEqual(false, flags["flag-bool"].VariationValue.Value<bool>());
             Assert.IsFalse(flags["flag-string"].DoLog);
 
             Assert.IsTrue(flags["flag-int"].TryGetValue<int>(out var intVal));

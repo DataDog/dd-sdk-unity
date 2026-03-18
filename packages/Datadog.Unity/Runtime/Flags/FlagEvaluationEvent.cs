@@ -3,7 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Datadog.Unity.Flags
 {
@@ -27,54 +27,84 @@ namespace Datadog.Unity.Flags
 
         public string ToJson()
         {
-            var obj = new JObject
+            var dto = new FlagEvaluationDto
             {
-                ["timestamp"] = Timestamp,
-                ["flag"] = new JObject { ["key"] = FlagKey },
-                ["first_evaluation"] = FirstEvaluation,
-                ["last_evaluation"] = LastEvaluation,
-                ["evaluation_count"] = EvaluationCount,
+                Timestamp = Timestamp,
+                Flag = new KeyDto { Key = FlagKey },
+                FirstEvaluation = FirstEvaluation,
+                LastEvaluation = LastEvaluation,
+                EvaluationCount = EvaluationCount,
+                Variant = (RuntimeDefaultUsed != true && VariantKey != null) ? new KeyDto { Key = VariantKey } : null,
+                Allocation = (RuntimeDefaultUsed != true && AllocationKey != null) ? new KeyDto { Key = AllocationKey } : null,
+                TargetingRule = TargetingRuleKey != null ? new KeyDto { Key = TargetingRuleKey } : null,
+                TargetingKey = TargetingKey,
+                RuntimeDefaultUsed = RuntimeDefaultUsed,
+                Error = ErrorMessage != null ? new ErrorDto { Message = ErrorMessage } : null,
+                Context = (EvaluationAttributes != null && EvaluationAttributes.Count > 0)
+                    ? new ContextDto { Evaluation = EvaluationAttributes }
+                    : null,
             };
-
-            if (RuntimeDefaultUsed != true && VariantKey != null)
+            return JsonConvert.SerializeObject(dto, new JsonSerializerSettings
             {
-                obj["variant"] = new JObject { ["key"] = VariantKey };
-            }
+                NullValueHandling = NullValueHandling.Ignore,
+            });
+        }
 
-            if (RuntimeDefaultUsed != true && AllocationKey != null)
-            {
-                obj["allocation"] = new JObject { ["key"] = AllocationKey };
-            }
+        private class FlagEvaluationDto
+        {
+            [JsonProperty("timestamp")]
+            public long Timestamp { get; set; }
 
-            if (TargetingRuleKey != null)
-            {
-                obj["targeting_rule"] = new JObject { ["key"] = TargetingRuleKey };
-            }
+            [JsonProperty("flag")]
+            public KeyDto Flag { get; set; }
 
-            if (TargetingKey != null)
-            {
-                obj["targeting_key"] = TargetingKey;
-            }
+            [JsonProperty("first_evaluation")]
+            public long FirstEvaluation { get; set; }
 
-            if (RuntimeDefaultUsed.HasValue)
-            {
-                obj["runtime_default_used"] = RuntimeDefaultUsed.Value;
-            }
+            [JsonProperty("last_evaluation")]
+            public long LastEvaluation { get; set; }
 
-            if (ErrorMessage != null)
-            {
-                obj["error"] = new JObject { ["message"] = ErrorMessage };
-            }
+            [JsonProperty("evaluation_count")]
+            public int EvaluationCount { get; set; }
 
-            if (EvaluationAttributes != null && EvaluationAttributes.Count > 0)
-            {
-                obj["context"] = new JObject
-                {
-                    ["evaluation"] = JObject.FromObject(EvaluationAttributes),
-                };
-            }
+            [JsonProperty("variant")]
+            public KeyDto Variant { get; set; }
 
-            return obj.ToString(Newtonsoft.Json.Formatting.None);
+            [JsonProperty("allocation")]
+            public KeyDto Allocation { get; set; }
+
+            [JsonProperty("targeting_rule")]
+            public KeyDto TargetingRule { get; set; }
+
+            [JsonProperty("targeting_key")]
+            public string TargetingKey { get; set; }
+
+            [JsonProperty("runtime_default_used")]
+            public bool? RuntimeDefaultUsed { get; set; }
+
+            [JsonProperty("error")]
+            public ErrorDto Error { get; set; }
+
+            [JsonProperty("context")]
+            public ContextDto Context { get; set; }
+        }
+
+        private class KeyDto
+        {
+            [JsonProperty("key")]
+            public string Key { get; set; }
+        }
+
+        private class ErrorDto
+        {
+            [JsonProperty("message")]
+            public string Message { get; set; }
+        }
+
+        private class ContextDto
+        {
+            [JsonProperty("evaluation")]
+            public IReadOnlyDictionary<string, object> Evaluation { get; set; }
         }
     }
 }
