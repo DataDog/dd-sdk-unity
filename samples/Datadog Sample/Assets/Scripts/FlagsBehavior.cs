@@ -24,7 +24,7 @@ public class FlagsBehavior : MonoBehaviour
         });
 
         // 2. Create a flags client
-        var client = DdFlags.CreateClient();
+        var client = DdFlags.Instance.CreateClient();
 
         // 3. Set the evaluation context with user/session information
         client.SetEvaluationContext(

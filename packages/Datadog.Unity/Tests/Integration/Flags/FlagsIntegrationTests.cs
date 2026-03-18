@@ -62,14 +62,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
                 precomputeBody ?? _precomputePayload);
 
             DdFlags.Enable(MakeConfig(flushInterval));
-            DdFlags.CreateClient();
+            DdFlags.Instance.CreateClient();
 
             var done = false;
             var context = attributes != null
                 ? new FlagsEvaluationContext(targetingKey, attributes)
                 : new FlagsEvaluationContext(targetingKey);
 
-            DdFlags.SetEvaluationContext(context, _ => done = true);
+            DdFlags.Instance.SetEvaluationContext(context, _ => done = true);
 
             var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
             yield return new WaitUntil(() => done || DateTime.Now > deadline);
@@ -154,7 +154,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var client = DdFlags.GetClient();
+            var client = DdFlags.Instance.GetClient();
             Assert.IsNotNull(client);
             Assert.AreEqual(FlagsClientState.Ready, client.State);
 
@@ -173,7 +173,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags(precomputeStatus: 500, precomputeBody: "{\"error\":\"server error\"}");
 
-            var client = DdFlags.GetClient();
+            var client = DdFlags.Instance.GetClient();
             Assert.IsNotNull(client);
             Assert.AreEqual(FlagsClientState.Error, client.State);
         }
@@ -184,14 +184,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             // First fetch succeeds
             yield return InitFlags("user-123");
-            var client = DdFlags.GetClient();
+            var client = DdFlags.Instance.GetClient();
             Assert.AreEqual(FlagsClientState.Ready, client.State);
 
             // Reconfigure mock to return 500
             yield return _mockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
 
             var done = false;
-            DdFlags.SetEvaluationContext(new FlagsEvaluationContext("user-456"), _ => done = true);
+            DdFlags.Instance.SetEvaluationContext(new FlagsEvaluationContext("user-456"), _ => done = true);
             yield return new WaitUntil(() => done);
 
             Assert.AreEqual(FlagsClientState.Stale, client.State);
@@ -207,7 +207,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            DdFlags.GetClient().GetBooleanValue("boolean-flag", false);
+            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
             var exposures = new List<ExposureEventDecoder>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -244,7 +244,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var flagsClient = DdFlags.GetClient();
+            var flagsClient = DdFlags.Instance.GetClient();
             for (var i = 0; i < 5; i++)
             {
                 flagsClient.GetBooleanValue("boolean-flag", false);
@@ -268,15 +268,15 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             // Evaluate for user-A
             yield return InitFlags("user-A");
-            DdFlags.GetClient().GetBooleanValue("boolean-flag", false);
+            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
             // Change context to user-B (requires re-fetch)
             yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
             var done = false;
-            DdFlags.SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
+            DdFlags.Instance.SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
             yield return new WaitUntil(() => done);
 
-            DdFlags.GetClient().GetBooleanValue("boolean-flag", false);
+            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
             var exposures = new List<ExposureEventDecoder>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -299,7 +299,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var flagsClient = DdFlags.GetClient();
+            var flagsClient = DdFlags.Instance.GetClient();
             flagsClient.GetStringValue("string-flag", "x");
             flagsClient.GetStringValue("string-flag", "x");
             flagsClient.GetStringValue("string-flag", "x");
@@ -336,7 +336,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var flagsClient = DdFlags.GetClient();
+            var flagsClient = DdFlags.Instance.GetClient();
             flagsClient.GetBooleanValue("boolean-flag", false);
             flagsClient.GetBooleanValue("boolean-flag", false);
             flagsClient.GetStringValue("string-flag", "x");
@@ -364,8 +364,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            DdFlags.GetClient().GetStringValue("nonexistent-flag", "default");
-            DdFlags.GetClient().Flush();
+            DdFlags.Instance.GetClient().GetStringValue("nonexistent-flag", "default");
+            DdFlags.Instance.GetClient().Flush();
 
             var records = new List<EvaluationRecord>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -389,7 +389,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123", flushInterval: 60f);
 
-            DdFlags.GetClient().GetStringValue("string-flag", "x");
+            DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
 
             // Shutdown should flush pending evaluations before destroying the aggregator
             DdFlags.Shutdown();
@@ -411,7 +411,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123", flushInterval: 1.0f);
 
-            DdFlags.GetClient().GetStringValue("string-flag", "x");
+            DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
 
             // Wait for the timer to fire (interval = 1s, wait a bit longer)
             yield return new WaitForSeconds(2.0f);
@@ -435,8 +435,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            DdFlags.GetClient().GetStringValue("string-flag", "x");
-            DdFlags.GetClient().Flush();
+            DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
+            DdFlags.Instance.GetClient().Flush();
 
             MockServerLog evalEndpoint = null;
             yield return _mockServer.PollRequests(PollTimeout, logs =>
