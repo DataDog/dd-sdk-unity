@@ -55,7 +55,7 @@ namespace Datadog.Unity.Flags
                 var evaluationEndpoint = !string.IsNullOrEmpty(_configuration.CustomEvaluationEndpoint)
                     ? _configuration.CustomEvaluationEndpoint
                     : FlagsEndpoints.GetEvaluationEndpoint(site);
-                var logger = options?.InternalLogger;
+                var logger = DatadogSdk.Instance?.InternalLogger;
 
                 _telemetrySender = new EvpTelemetrySender(
                     clientToken: options?.ClientToken ?? string.Empty,
@@ -130,14 +130,14 @@ namespace Datadog.Unity.Flags
                     clientToken: options?.ClientToken ?? string.Empty,
                     applicationId: options?.RumApplicationId,
                     env: options?.Env ?? string.Empty,
-                    logger: options?.InternalLogger);
+                    logger: DatadogSdk.Instance?.InternalLogger);
 
                 var client = new FlagsClient(
                     repository: repository,
                     exposureTracker: exposureTracker,
                     evaluationAggregator: evaluationAggregator,
                     fetcher: fetcher,
-                    logger: options?.InternalLogger,
+                    logger: DatadogSdk.Instance?.InternalLogger,
                     trackExposures: config.TrackExposures,
                     trackEvaluations: config.TrackEvaluations,
                     onExposure: onExposure);
