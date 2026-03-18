@@ -17,7 +17,7 @@ namespace Datadog.Unity.Flags
     /// // Setup
     /// DdFlags.Enable(new FlagsConfiguration());
     /// var client = DdFlags.Instance.CreateClient();
-    /// DdFlags.Instance.SetEvaluationContext(new FlagsEvaluationContext("user-123"), onComplete: success =>
+    /// client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), onComplete: success =>
     /// {
     ///     // Evaluate flags
     ///     var showFeature = client.GetBooleanValue("show-new-feature", false);
@@ -109,7 +109,7 @@ namespace Datadog.Unity.Flags
         }
 
         /// <summary>
-        /// Creates a flags client for the given name. Must be called before SetEvaluationContext.
+        /// Creates a flags client for the given name.
         /// </summary>
         /// <param name="name">A unique name for this client. Defaults to "default".</param>
         public FlagsClient CreateClient(string name = FlagsClient.DefaultName)
@@ -178,31 +178,6 @@ namespace Datadog.Unity.Flags
                 _clients[name] = client;
                 return client;
             }
-        }
-
-        /// <summary>
-        /// Sets the evaluation context and fetches precomputed flag assignments from the server.
-        /// After the callback fires with success, flags are available via the FlagsClient API.
-        /// </summary>
-        /// <param name="context">The evaluation context containing targeting key and attributes.</param>
-        /// <param name="onComplete">Optional callback invoked when the fetch completes (true = success).</param>
-        /// <param name="clientName">The client name. Defaults to "default".</param>
-        public void SetEvaluationContext(
-            FlagsEvaluationContext context,
-            Action<bool> onComplete = null,
-            string clientName = FlagsClient.DefaultName)
-        {
-            FlagsClient client;
-            lock (_lock)
-            {
-                if (!_clients.TryGetValue(clientName, out client))
-                {
-                    onComplete?.Invoke(false);
-                    return;
-                }
-            }
-
-            client.SetEvaluationContext(context, onComplete);
         }
 
         internal FlagsClient GetClient(string name = FlagsClient.DefaultName)

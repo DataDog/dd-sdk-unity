@@ -51,7 +51,7 @@ public class TestBehavior : MonoBehaviour
         // Feature Flags
         DdFlags.Enable();
         var flagsClient = DdFlags.Instance.CreateClient();
-        DdFlags.Instance.SetEvaluationContext(
+        flagsClient.SetEvaluationContext(
             new FlagsEvaluationContext("user-1234", new Dictionary<string, object>
             {
                 { "email", "test@example.com" },

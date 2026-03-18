@@ -62,14 +62,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
                 precomputeBody ?? _precomputePayload);
 
             DdFlags.Enable(MakeConfig(flushInterval));
-            DdFlags.Instance.CreateClient();
+            var client = DdFlags.Instance.CreateClient();
 
             var done = false;
             var context = attributes != null
                 ? new FlagsEvaluationContext(targetingKey, attributes)
                 : new FlagsEvaluationContext(targetingKey);
 
-            DdFlags.Instance.SetEvaluationContext(context, _ => done = true);
+            client.SetEvaluationContext(context, _ => done = true);
 
             var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
             yield return new WaitUntil(() => done || DateTime.Now > deadline);
@@ -191,7 +191,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
             yield return _mockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
 
             var done = false;
-            DdFlags.Instance.SetEvaluationContext(new FlagsEvaluationContext("user-456"), _ => done = true);
+            DdFlags.Instance.GetClient().SetEvaluationContext(new FlagsEvaluationContext("user-456"), _ => done = true);
             yield return new WaitUntil(() => done);
 
             Assert.AreEqual(FlagsClientState.Stale, client.State);
@@ -273,7 +273,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
             // Change context to user-B (requires re-fetch)
             yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
             var done = false;
-            DdFlags.Instance.SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
+            DdFlags.Instance.GetClient().SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
             yield return new WaitUntil(() => done);
 
             DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
