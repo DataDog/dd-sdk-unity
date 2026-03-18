@@ -55,13 +55,14 @@ namespace Datadog.Unity.Flags
                 var evaluationEndpoint = !string.IsNullOrEmpty(_configuration.CustomEvaluationEndpoint)
                     ? _configuration.CustomEvaluationEndpoint
                     : FlagsEndpoints.GetEvaluationEndpoint(site);
+                var logger = options?.InternalLogger;
 
                 _telemetrySender = new EvpTelemetrySender(
                     clientToken: options?.ClientToken ?? string.Empty,
                     exposureEndpoint: exposureEndpoint,
                     evaluationEndpoint: evaluationEndpoint,
                     env: options?.Env ?? string.Empty,
-                    logger: null);
+                    logger: logger);
             }
         }
 
@@ -79,10 +80,10 @@ namespace Datadog.Unity.Flags
                     return null;
                 }
 
-                if (_clients.ContainsKey(name))
+                if (_clients.TryGetValue(name, out var existingClient))
                 {
                     // Client already exists, return existing
-                    return _clients[name];
+                    return existingClient;
                 }
 
                 var options = DatadogConfigurationOptions.Load();
@@ -107,33 +108,36 @@ namespace Datadog.Unity.Flags
                 var exposureTracker = new ExposureTracker();
 
                 Action<ExposureEvent> onExposure = null;
-                if (config.TrackExposures && _telemetrySender != null)
-                {
-                    onExposure = _telemetrySender.SendExposure;
-                }
-
                 EvaluationAggregator evaluationAggregator = null;
-                if (config.TrackEvaluations && _telemetrySender != null)
+                if (_telemetrySender != null) 
                 {
-                    var sender = _telemetrySender;
-                    evaluationAggregator = new EvaluationAggregator(
-                        onFlush: events => sender.SendEvaluations(events),
-                        flushIntervalSeconds: config.EvaluationFlushIntervalSeconds);
-                }
+                    if (config.TrackExposures)
+                    {
+                        onExposure = _telemetrySender.SendExposure;
+                    }
+
+                    if (config.TrackEvaluations)
+                    {
+                        var sender = _telemetrySender;
+                        evaluationAggregator = new EvaluationAggregator(
+                            onFlush: events => sender.SendEvaluations(events),
+                            flushIntervalSeconds: config.EvaluationFlushIntervalSeconds);
+                   }
+               }
 
                 var fetcher = new PrecomputeAssignmentsFetcher(
                     endpointUrl: precomputeEndpoint,
                     clientToken: options?.ClientToken ?? string.Empty,
                     applicationId: options?.RumApplicationId,
                     env: options?.Env ?? string.Empty,
-                    logger: null);
+                    logger: options?.InternalLogger);
 
                 var client = new FlagsClient(
                     repository: repository,
                     exposureTracker: exposureTracker,
                     evaluationAggregator: evaluationAggregator,
                     fetcher: fetcher,
-                    logger: null,
+                    logger: options?.InternalLogger,
                     trackExposures: config.TrackExposures,
                     trackEvaluations: config.TrackEvaluations,
                     onExposure: onExposure);

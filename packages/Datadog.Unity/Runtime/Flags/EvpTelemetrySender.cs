@@ -43,7 +43,7 @@ namespace Datadog.Unity.Flags
         /// <summary>
         /// Sends a single exposure event to the exposure intake endpoint.
         /// Format: NDJSON (newline-delimited JSON), Content-Type: text/plain; charset=utf-8.
-        /// Each line must match the flagevaluation.json EVP schema.
+        /// Each line must match the exposure EVP schema documented by Datadog.
         /// </summary>
         public void SendExposure(ExposureEvent exposure)
         {

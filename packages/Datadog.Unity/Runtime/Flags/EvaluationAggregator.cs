@@ -293,14 +293,15 @@ namespace Datadog.Unity.Flags
 
         private void OnTimerElapsed(object state)
         {
-            if (_mainThreadContext != null)
+            if (_mainThreadContext == null)
             {
-                _mainThreadContext.Post(_ => Flush(), null);
+                // No main thread synchronization context is available; automatic flushing
+                // is disabled to avoid invoking Unity APIs from a timer thread. In this case,
+                // callers must invoke Flush() explicitly from the Unity main thread.
+                return;
             }
-            else
-            {
-                Flush();
-            }
+
+            _mainThreadContext.Post(_ => Flush(), null);
         }
     }
 }

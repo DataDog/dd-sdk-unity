@@ -165,6 +165,18 @@ namespace Datadog.Unity.Flags
 
             if (assignment == null)
             {
+                FlagsClientState state;
+                lock (_lock)
+                {
+                    state = _state;
+                }
+
+                if (state == FlagsClientState.NotReady || state == FlagsClientState.Reconciling)
+                {
+                    TrackEvaluation(key, null, "PROVIDER_NOT_READY");
+                    return new FlagDetails<T>(key, defaultValue, error: FlagEvaluationError.ProviderNotReady);
+                }
+
                 TrackEvaluation(key, null, "FLAG_NOT_FOUND");
                 return new FlagDetails<T>(key, defaultValue, error: FlagEvaluationError.FlagNotFound);
             }
