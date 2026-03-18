@@ -62,10 +62,44 @@ namespace Datadog.Unity.Flags
             }
         }
 
+        private event EventHandler<FlagsStateChange> _stateChanged;
+
         /// <summary>
-        /// Event raised when the client state changes.
+        /// Subscribes to client state changes. The handler is invoked immediately with the
+        /// current state (where <c>Old == New</c>) so that late subscribers never miss the
+        /// initial state, and then on every subsequent transition.
         /// </summary>
-        public event Action<FlagsClientState> StateChanged;
+        public event EventHandler<FlagsStateChange> StateChanged
+        {
+            add
+            {
+                FlagsClientState currentState;
+                lock (_lock)
+                {
+                    _stateChanged += value;
+                    currentState = _state;
+                }
+
+                // Replay current state to the new subscriber. Old == New signals this is a
+                // replay rather than a real transition.
+                try
+                {
+                    value?.Invoke(this, new FlagsStateChange(currentState, currentState));
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Log(Logs.DdLogLevel.Warn,
+                        $"StateChanged subscriber threw during initial replay: {ex.Message}");
+                }
+            }
+            remove
+            {
+                lock (_lock)
+                {
+                    _stateChanged -= value;
+                }
+            }
+        }
 
         /// <summary>
         /// Sets the evaluation context and fetches precomputed flag assignments from the server.
@@ -259,17 +293,38 @@ namespace Datadog.Unity.Flags
 
         private void TransitionState(FlagsClientState newState)
         {
-            Action<FlagsClientState> handler;
+            EventHandler<FlagsStateChange> handler;
+            FlagsClientState oldState;
             lock (_lock)
             {
                 if (_state == newState)
                 {
                     return;
                 }
+
+                oldState = _state;
                 _state = newState;
-                handler = StateChanged;
+                handler = _stateChanged;
             }
-            handler?.Invoke(newState);
+
+            if (handler == null)
+            {
+                return;
+            }
+
+            var args = new FlagsStateChange(oldState, newState);
+            foreach (var subscriber in handler.GetInvocationList())
+            {
+                try
+                {
+                    ((EventHandler<FlagsStateChange>)subscriber)(this, args);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Log(Logs.DdLogLevel.Warn,
+                        $"StateChanged subscriber threw: {ex.Message}");
+                }
+            }
         }
     }
 }
