@@ -5,7 +5,8 @@
 namespace Datadog.Unity.Flags
 {
     /// <summary>
-    /// Configuration options for the Datadog Flags feature.
+    /// Immutable configuration options for the Datadog Flags feature.
+    /// All parameters are optional; defaults are used for any omitted values.
     /// </summary>
     public class FlagsConfiguration
     {
@@ -13,34 +14,50 @@ namespace Datadog.Unity.Flags
         /// Enables exposure logging via the dedicated exposures intake endpoint.
         /// Default: true.
         /// </summary>
-        public bool TrackExposures { get; set; } = true;
+        public readonly bool TrackExposures;
 
         /// <summary>
         /// Enables evaluation logging via the dedicated evaluations intake endpoint.
         /// Default: true.
         /// </summary>
-        public bool TrackEvaluations { get; set; } = true;
+        public readonly bool TrackEvaluations;
 
         /// <summary>
         /// The interval in seconds at which aggregated evaluation data is flushed.
         /// Clamped to [1, 60]. Default: 10.
         /// </summary>
-        public float EvaluationFlushIntervalSeconds { get; set; } = 10.0f;
+        public readonly float EvaluationFlushIntervalSeconds;
 
         /// <summary>
         /// Custom server URL for retrieving flag assignments.
         /// If null, the SDK uses the default Datadog Flags endpoint for the configured site.
         /// </summary>
-        public string CustomFlagsEndpoint { get; set; }
+        public readonly string CustomFlagsEndpoint;
 
         /// <summary>
         /// Custom server URL for sending exposure events.
         /// </summary>
-        public string CustomExposureEndpoint { get; set; }
+        public readonly string CustomExposureEndpoint;
 
         /// <summary>
         /// Custom server URL for sending evaluation events.
         /// </summary>
-        public string CustomEvaluationEndpoint { get; set; }
+        public readonly string CustomEvaluationEndpoint;
+
+        public FlagsConfiguration(
+            bool trackExposures = true,
+            bool trackEvaluations = true,
+            float evaluationFlushIntervalSeconds = 10.0f,
+            string customFlagsEndpoint = null,
+            string customExposureEndpoint = null,
+            string customEvaluationEndpoint = null)
+        {
+            TrackExposures = trackExposures;
+            TrackEvaluations = trackEvaluations;
+            EvaluationFlushIntervalSeconds = evaluationFlushIntervalSeconds;
+            CustomFlagsEndpoint = customFlagsEndpoint;
+            CustomExposureEndpoint = customExposureEndpoint;
+            CustomEvaluationEndpoint = customEvaluationEndpoint;
+        }
     }
 }

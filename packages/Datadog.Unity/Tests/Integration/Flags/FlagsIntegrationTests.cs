@@ -38,15 +38,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
         // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-        private FlagsConfiguration MakeConfig(float flushInterval = 60f) => new FlagsConfiguration
-        {
-            TrackExposures = true,
-            TrackEvaluations = true,
-            EvaluationFlushIntervalSeconds = flushInterval,
-            CustomFlagsEndpoint = $"{_mockBase}/precompute-assignments",
-            CustomExposureEndpoint = $"{_mockBase}/api/v2/exposures",
-            CustomEvaluationEndpoint = $"{_mockBase}/api/v2/flagevaluation",
-        };
+        private FlagsConfiguration MakeConfig(float flushInterval = 60f) => new FlagsConfiguration(
+            evaluationFlushIntervalSeconds: flushInterval,
+            customFlagsEndpoint: $"{_mockBase}/precompute-assignments",
+            customExposureEndpoint: $"{_mockBase}/api/v2/exposures",
+            customEvaluationEndpoint: $"{_mockBase}/api/v2/flagevaluation");
 
         private IEnumerator InitFlags(
             string targetingKey = "user-123",

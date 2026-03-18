@@ -18,12 +18,7 @@ public class FlagsBehavior : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         // 1. Enable the Flags feature (after Datadog SDK is already initialized)
-        DdFlags.Enable(new FlagsConfiguration
-        {
-            TrackExposures = true,
-            TrackEvaluations = true,
-            EvaluationFlushIntervalSeconds = 10.0f,
-        });
+        DdFlags.Enable(new FlagsConfiguration(evaluationFlushIntervalSeconds: 10.0f));
 
         // 2. Create a flags client
         var client = DdFlags.Instance.CreateClient();
