@@ -20,31 +20,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
         private MockServerHelper _mockServer;
         private string _mockBase;
-
-        // Precompute payload the mock server returns for /precompute-assignments
-        private const string PrecomputePayload = @"{
-  ""data"": {
-    ""id"": ""test_subject"",
-    ""type"": ""precomputed-assignments"",
-    ""attributes"": {
-      ""createdAt"": 1731939805123,
-      ""environment"": { ""name"": ""prod"" },
-      ""flags"": {
-        ""string-flag"":  { ""allocationKey"": ""allocation-123"", ""variationKey"": ""variation-123"", ""variationType"": ""STRING"",  ""variationValue"": ""red"",  ""doLog"": true, ""reason"": ""TARGETING_MATCH"" },
-        ""boolean-flag"": { ""allocationKey"": ""allocation-124"", ""variationKey"": ""variation-124"", ""variationType"": ""BOOLEAN"", ""variationValue"": true,   ""doLog"": true, ""reason"": ""TARGETING_MATCH"" },
-        ""integer-flag"": { ""allocationKey"": ""allocation-125"", ""variationKey"": ""variation-125"", ""variationType"": ""NUMBER"",  ""variationValue"": 42,     ""doLog"": true, ""reason"": ""TARGETING_MATCH"" },
-        ""numeric-flag"": { ""allocationKey"": ""allocation-126"", ""variationKey"": ""variation-126"", ""variationType"": ""NUMBER"",  ""variationValue"": 3.14,   ""doLog"": true, ""reason"": ""TARGETING_MATCH"" },
-        ""json-flag"":    { ""allocationKey"": ""allocation-127"", ""variationKey"": ""variation-127"", ""variationType"": ""OBJECT"",  ""variationValue"": { ""key"": ""value"", ""prop"": 123 }, ""doLog"": true, ""reason"": ""TARGETING_MATCH"" }
-      }
-    }
-  }
-}";
+        private string _precomputePayload;
 
         [SetUp]
         public void SetUp()
         {
             _mockServer = new MockServerHelper();
             _mockBase = DatadogConfigurationOptions.Load().CustomEndpoint;
+            _precomputePayload = Resources.Load<TextAsset>("PrecomputePayload").text;
         }
 
         [TearDown]
@@ -76,7 +59,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
             yield return _mockServer.ConfigureResponse(
                 "/precompute-assignments",
                 precomputeStatus,
-                precomputeBody ?? PrecomputePayload);
+                precomputeBody ?? _precomputePayload);
 
             DdFlags.Enable(MakeConfig(flushInterval));
             DdFlags.CreateClient();
