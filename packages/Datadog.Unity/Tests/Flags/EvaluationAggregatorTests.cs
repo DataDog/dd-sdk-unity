@@ -38,9 +38,9 @@ namespace Datadog.Unity.Flags.Tests
             _aggregator.Flush();
 
             Assert.AreEqual(1, _flushedEvents.Count);
-            Assert.AreEqual("my-flag", _flushedEvents[0].FlagKey);
-            Assert.AreEqual("variant-a", _flushedEvents[0].VariantKey);
-            Assert.AreEqual("alloc-1", _flushedEvents[0].AllocationKey);
+            Assert.AreEqual("my-flag", _flushedEvents[0].Flag.Key);
+            Assert.AreEqual("variant-a", _flushedEvents[0].Variant.Key);
+            Assert.AreEqual("alloc-1", _flushedEvents[0].Allocation.Key);
             Assert.AreEqual(1, _flushedEvents[0].EvaluationCount);
             Assert.IsNull(_flushedEvents[0].RuntimeDefaultUsed);
         }
@@ -84,8 +84,8 @@ namespace Datadog.Unity.Flags.Tests
 
             Assert.AreEqual(1, _flushedEvents.Count);
             Assert.AreEqual(true, _flushedEvents[0].RuntimeDefaultUsed);
-            Assert.IsNull(_flushedEvents[0].VariantKey); // Null when runtime default
-            Assert.IsNull(_flushedEvents[0].AllocationKey);
+            Assert.IsNull(_flushedEvents[0].Variant);
+            Assert.IsNull(_flushedEvents[0].Allocation);
         }
 
         [Test]
@@ -99,7 +99,7 @@ namespace Datadog.Unity.Flags.Tests
 
             Assert.AreEqual(1, _flushedEvents.Count);
             Assert.AreEqual(true, _flushedEvents[0].RuntimeDefaultUsed);
-            Assert.AreEqual("FLAG_NOT_FOUND", _flushedEvents[0].ErrorMessage);
+            Assert.AreEqual("FLAG_NOT_FOUND", _flushedEvents[0].Error.Message);
         }
 
         [Test]

@@ -56,14 +56,14 @@ namespace Datadog.Unity.Flags
             public readonly string AllocationKey;
             public readonly string TargetingKey;
             public readonly string TargetingRuleKey;
-            public readonly string ErrorMessage;
-            public readonly IReadOnlyDictionary<string, object> Context;
+            public readonly IReadOnlyDictionary<string, string> Context;
             public readonly long FirstEvaluation;
             public readonly bool? RuntimeDefaultUsed;
 
             // Mutable: updated on each subsequent evaluation for the same dimensions.
             public long LastEvaluation;
             public int EvaluationCount;
+            public string ErrorMessage;
 
             public AggregatedEvaluation(
                 string flagKey,
@@ -72,7 +72,7 @@ namespace Datadog.Unity.Flags
                 string targetingKey,
                 string targetingRuleKey,
                 string errorMessage,
-                IReadOnlyDictionary<string, object> context,
+                IReadOnlyDictionary<string, string> context,
                 long firstEvaluation,
                 bool? runtimeDefaultUsed)
             {
@@ -91,19 +91,21 @@ namespace Datadog.Unity.Flags
 
             public FlagEvaluationEvent ToFlagEvaluationEvent()
             {
-                return new FlagEvaluationEvent(
-                    timestamp: FirstEvaluation,
-                    flagKey: FlagKey,
-                    firstEvaluation: FirstEvaluation,
-                    lastEvaluation: LastEvaluation,
-                    evaluationCount: EvaluationCount,
-                    variantKey: RuntimeDefaultUsed == true ? null : VariantKey,
-                    allocationKey: RuntimeDefaultUsed == true ? null : AllocationKey,
-                    targetingRuleKey: TargetingRuleKey,
-                    targetingKey: TargetingKey,
-                    runtimeDefaultUsed: RuntimeDefaultUsed,
-                    errorMessage: ErrorMessage,
-                    evaluationAttributes: Context?.Count > 0 ? Context : null);
+                return new FlagEvaluationEvent
+                {
+                    Timestamp = FirstEvaluation,
+                    Flag = new FlagRef { Key = FlagKey },
+                    FirstEvaluation = FirstEvaluation,
+                    LastEvaluation = LastEvaluation,
+                    EvaluationCount = EvaluationCount,
+                    Variant = RuntimeDefaultUsed != true && VariantKey != null ? new FlagRef { Key = VariantKey } : null,
+                    Allocation = RuntimeDefaultUsed != true && AllocationKey != null ? new FlagRef { Key = AllocationKey } : null,
+                    TargetingRule = TargetingRuleKey != null ? new FlagRef { Key = TargetingRuleKey } : null,
+                    TargetingKey = TargetingKey,
+                    RuntimeDefaultUsed = RuntimeDefaultUsed,
+                    Error = ErrorMessage != null ? new FlagErrorDetail { Message = ErrorMessage } : null,
+                    Context = Context?.Count > 0 ? new EvaluationContextPayload { Evaluation = Context } : null,
+                };
             }
         }
 
@@ -154,10 +156,9 @@ namespace Datadog.Unity.Flags
 
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            // Defensive copy of context attributes to snapshot the current state.
-            IReadOnlyDictionary<string, object> contextCopy = evaluationContext?.Attributes != null
-                ? new Dictionary<string, object>(evaluationContext.Attributes)
-                : null;
+            // FlagsEvaluationContext.Attributes is already an immutable ReadOnlyDictionary —
+            // no defensive copy needed.
+            var contextCopy = evaluationContext?.Attributes;
 
             var key = new AggregationKey(
                 flagKey: flagKey,
@@ -178,6 +179,7 @@ namespace Datadog.Unity.Flags
                 {
                     existing.EvaluationCount += 1;
                     existing.LastEvaluation = now;
+                    existing.ErrorMessage = flagError ?? existing.ErrorMessage;
                 }
                 else
                 {

@@ -7,76 +7,34 @@ using Newtonsoft.Json;
 
 namespace Datadog.Unity.Flags
 {
+    internal class ExposureSubject
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+
+        [JsonProperty("attributes", NullValueHandling = NullValueHandling.Ignore)]
+        public IReadOnlyDictionary<string, string> Attributes { get; set; }
+    }
+
     /// <summary>
-    /// Represents an exposure event sent to the /api/v2/exposures endpoint.
+    /// Exposure event sent to /api/v2/exposures (NDJSON, one object per line).
+    /// Serialise directly with <c>JsonConvert.SerializeObject</c>.
     /// </summary>
     internal class ExposureEvent
     {
-        public readonly long Timestamp;
-        public readonly string FlagKey;
-        public readonly string AllocationKey;
-        public readonly string VariationKey;
-        public readonly string SubjectId;
-        public readonly IReadOnlyDictionary<string, object> SubjectAttributes;
+        [JsonProperty("timestamp")]
+        public long Timestamp { get; set; }
 
-        public ExposureEvent(long timestamp, string flagKey, string allocationKey, string variationKey, string subjectId, IReadOnlyDictionary<string, object> subjectAttributes)
-        {
-            Timestamp = timestamp;
-            FlagKey = flagKey;
-            AllocationKey = allocationKey;
-            VariationKey = variationKey;
-            SubjectId = subjectId;
-            SubjectAttributes = subjectAttributes ?? new Dictionary<string, object>();
-        }
+        [JsonProperty("flag")]
+        public FlagRef Flag { get; set; }
 
-        public string ToJson()
-        {
-            var dto = new ExposureEventDto
-            {
-                Timestamp = Timestamp,
-                Flag = new KeyDto { Key = FlagKey },
-                Allocation = new KeyDto { Key = AllocationKey },
-                Variant = new KeyDto { Key = VariationKey },
-                Subject = new SubjectDto
-                {
-                    Id = SubjectId,
-                    Attributes = SubjectAttributes.Count > 0 ? SubjectAttributes : null,
-                },
-            };
-            return JsonConvert.SerializeObject(dto);
-        }
+        [JsonProperty("allocation")]
+        public FlagRef Allocation { get; set; }
 
-        private class ExposureEventDto
-        {
-            [JsonProperty("timestamp")]
-            public long Timestamp { get; set; }
+        [JsonProperty("variant")]
+        public FlagRef Variant { get; set; }
 
-            [JsonProperty("flag")]
-            public KeyDto Flag { get; set; }
-
-            [JsonProperty("allocation")]
-            public KeyDto Allocation { get; set; }
-
-            [JsonProperty("variant")]
-            public KeyDto Variant { get; set; }
-
-            [JsonProperty("subject")]
-            public SubjectDto Subject { get; set; }
-        }
-
-        private class KeyDto
-        {
-            [JsonProperty("key")]
-            public string Key { get; set; }
-        }
-
-        private class SubjectDto
-        {
-            [JsonProperty("id")]
-            public string Id { get; set; }
-
-            [JsonProperty("attributes", NullValueHandling = NullValueHandling.Ignore)]
-            public IReadOnlyDictionary<string, object> Attributes { get; set; }
-        }
+        [JsonProperty("subject")]
+        public ExposureSubject Subject { get; set; }
     }
 }

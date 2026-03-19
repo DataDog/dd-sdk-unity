@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Flags.Tests
@@ -12,19 +13,24 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void ExposureEventSerializesCorrectly()
         {
-            var evt = new ExposureEvent(
-                timestamp: 1700000000000,
-                flagKey: "show-feature",
-                allocationKey: "alloc-123",
-                variationKey: "variant-a",
-                subjectId: "user-456",
-                subjectAttributes: new Dictionary<string, object>
+            var evt = new ExposureEvent
+            {
+                Timestamp = 1700000000000,
+                Flag = new FlagRef { Key = "show-feature" },
+                Allocation = new FlagRef { Key = "alloc-123" },
+                Variant = new FlagRef { Key = "variant-a" },
+                Subject = new ExposureSubject
                 {
-                    { "email", "user@example.com" },
-                    { "plan", "premium" },
-                });
+                    Id = "user-456",
+                    Attributes = new Dictionary<string, string>
+                    {
+                        { "email", "user@example.com" },
+                        { "plan", "premium" },
+                    },
+                },
+            };
 
-            var json = evt.ToJson();
+            var json = JsonConvert.SerializeObject(evt);
 
             Assert.IsTrue(json.Contains("\"timestamp\":1700000000000"));
             Assert.IsTrue(json.Contains("\"flag\":{\"key\":\"show-feature\"}"));
@@ -36,23 +42,38 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
+        public void ExposureEventOmitsNullAttributes()
+        {
+            var evt = new ExposureEvent
+            {
+                Timestamp = 1700000000000,
+                Flag = new FlagRef { Key = "show-feature" },
+                Allocation = new FlagRef { Key = "alloc-123" },
+                Variant = new FlagRef { Key = "variant-a" },
+                Subject = new ExposureSubject { Id = "user-456", Attributes = null },
+            };
+
+            var json = JsonConvert.SerializeObject(evt);
+
+            Assert.IsFalse(json.Contains("\"attributes\""));
+        }
+
+        [Test]
         public void FlagEvaluationEventSerializesCorrectly()
         {
-            var evt = new FlagEvaluationEvent(
-                timestamp: 1700000000000,
-                flagKey: "my-flag",
-                firstEvaluation: 1700000000000,
-                lastEvaluation: 1700000001000,
-                evaluationCount: 5,
-                variantKey: "treatment",
-                allocationKey: "alloc-1",
-                targetingRuleKey: null,
-                targetingKey: "user-789",
-                runtimeDefaultUsed: null,
-                errorMessage: null,
-                evaluationAttributes: null);
+            var evt = new FlagEvaluationEvent
+            {
+                Timestamp = 1700000000000,
+                Flag = new FlagRef { Key = "my-flag" },
+                FirstEvaluation = 1700000000000,
+                LastEvaluation = 1700000001000,
+                EvaluationCount = 5,
+                Variant = new FlagRef { Key = "treatment" },
+                Allocation = new FlagRef { Key = "alloc-1" },
+                TargetingKey = "user-789",
+            };
 
-            var json = evt.ToJson();
+            var json = JsonConvert.SerializeObject(evt);
 
             Assert.IsTrue(json.Contains("\"timestamp\":1700000000000"));
             Assert.IsTrue(json.Contains("\"flag\":{\"key\":\"my-flag\"}"));
@@ -68,21 +89,19 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void RuntimeDefaultOmitsVariantAndAllocation()
         {
-            var evt = new FlagEvaluationEvent(
-                timestamp: 1700000000000,
-                flagKey: "my-flag",
-                firstEvaluation: 1700000000000,
-                lastEvaluation: 1700000000000,
-                evaluationCount: 1,
-                variantKey: "treatment",
-                allocationKey: "alloc-1",
-                targetingRuleKey: null,
-                targetingKey: "user-789",
-                runtimeDefaultUsed: true,
-                errorMessage: "FLAG_NOT_FOUND",
-                evaluationAttributes: null);
+            var evt = new FlagEvaluationEvent
+            {
+                Timestamp = 1700000000000,
+                Flag = new FlagRef { Key = "my-flag" },
+                FirstEvaluation = 1700000000000,
+                LastEvaluation = 1700000000000,
+                EvaluationCount = 1,
+                TargetingKey = "user-789",
+                RuntimeDefaultUsed = true,
+                Error = new FlagErrorDetail { Message = "FLAG_NOT_FOUND" },
+            };
 
-            var json = evt.ToJson();
+            var json = JsonConvert.SerializeObject(evt);
 
             Assert.IsFalse(json.Contains("\"variant\""));
             Assert.IsFalse(json.Contains("\"allocation\""));

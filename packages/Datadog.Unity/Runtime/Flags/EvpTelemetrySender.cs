@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Text;
 using Datadog.Unity.Core;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -21,9 +20,8 @@ namespace Datadog.Unity.Flags
         private readonly string _clientToken;
         private readonly string _exposureEndpoint;
         private readonly string _evaluationEndpoint;
-        private readonly string _env;
         private readonly IInternalLogger _logger;
-        private readonly string _cachedBatchContextJson;
+        private readonly BatchContext _batchContext;
 
         public EvpTelemetrySender(
             string clientToken,
@@ -35,15 +33,13 @@ namespace Datadog.Unity.Flags
             _clientToken = clientToken;
             _exposureEndpoint = exposureEndpoint;
             _evaluationEndpoint = evaluationEndpoint;
-            _env = env;
             _logger = logger;
-            _cachedBatchContextJson = BuildBatchContextJson();
+            _batchContext = BuildBatchContext(env);
         }
 
         /// <summary>
         /// Sends a single exposure event to the exposure intake endpoint.
         /// Format: NDJSON (newline-delimited JSON), Content-Type: text/plain; charset=utf-8.
-        /// Each line must match the exposure EVP schema documented by Datadog.
         /// </summary>
         public void SendExposure(ExposureEvent exposure)
         {
@@ -52,7 +48,7 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
-            var json = exposure.ToJson() + "\n";
+            var json = JsonConvert.SerializeObject(exposure) + "\n";
             SendRequest(_exposureEndpoint, "text/plain; charset=utf-8", json, "exposure event");
         }
 
@@ -67,7 +63,11 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
-            var json = BuildBatchedEvaluationsJson(evaluations);
+            var json = JsonConvert.SerializeObject(new BatchPayload
+            {
+                Context = _batchContext,
+                FlagEvaluations = evaluations,
+            });
             SendRequest(_evaluationEndpoint, "application/json", json, "evaluation events");
         }
 
@@ -101,47 +101,26 @@ namespace Datadog.Unity.Flags
             }
         }
 
-        private string BuildBatchedEvaluationsJson(List<FlagEvaluationEvent> evaluations)
+        private static BatchContext BuildBatchContext(string env)
         {
-            var sb = new StringBuilder();
-            sb.Append("{\"context\":");
-            sb.Append(_cachedBatchContextJson);
-            sb.Append(",\"flagEvaluations\":[");
-
-            for (var i = 0; i < evaluations.Count; i++)
+            return new BatchContext
             {
-                if (i > 0)
+                Device = new DeviceInfo
                 {
-                    sb.Append(',');
-                }
-                sb.Append(evaluations[i].ToJson());
-            }
-
-            sb.Append("]}");
-            return sb.ToString();
-        }
-
-        private string BuildBatchContextJson()
-        {
-            var context = new JObject
-            {
-                ["device"] = new JObject
-                {
-                    ["name"] = SystemInfo.deviceName,
-                    ["type"] = GetDeviceType(),
-                    ["brand"] = "Unity",
-                    ["model"] = SystemInfo.deviceModel,
+                    Name = SystemInfo.deviceName,
+                    Type = GetDeviceType(),
+                    Brand = "Unity",
+                    Model = SystemInfo.deviceModel,
                 },
-                ["os"] = new JObject
+                Os = new OsInfo
                 {
-                    ["name"] = SystemInfo.operatingSystemFamily.ToString(),
-                    ["version"] = SystemInfo.operatingSystem,
+                    Name = SystemInfo.operatingSystemFamily.ToString(),
+                    Version = SystemInfo.operatingSystem,
                 },
-                ["service"] = Application.identifier ?? Application.productName,
-                ["version"] = Application.version,
-                ["env"] = !string.IsNullOrEmpty(_env) ? _env : "prod",
+                Service = Application.identifier ?? Application.productName,
+                Version = Application.version,
+                Env = !string.IsNullOrEmpty(env) ? env : "prod",
             };
-            return context.ToString(Formatting.None);
         }
 
         private static string GetDeviceType()
@@ -163,6 +142,57 @@ namespace Datadog.Unity.Flags
             }
             var separator = url.Contains("?") ? "&" : "?";
             return url + separator + "ddsource=unity";
+        }
+
+        private class BatchPayload
+        {
+            [JsonProperty("context")]
+            public BatchContext Context { get; set; }
+
+            [JsonProperty("flagEvaluations")]
+            public List<FlagEvaluationEvent> FlagEvaluations { get; set; }
+        }
+
+        private class BatchContext
+        {
+            [JsonProperty("device")]
+            public DeviceInfo Device { get; set; }
+
+            [JsonProperty("os")]
+            public OsInfo Os { get; set; }
+
+            [JsonProperty("service")]
+            public string Service { get; set; }
+
+            [JsonProperty("version")]
+            public string Version { get; set; }
+
+            [JsonProperty("env")]
+            public string Env { get; set; }
+        }
+
+        private class DeviceInfo
+        {
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("type")]
+            public string Type { get; set; }
+
+            [JsonProperty("brand")]
+            public string Brand { get; set; }
+
+            [JsonProperty("model")]
+            public string Model { get; set; }
+        }
+
+        private class OsInfo
+        {
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("version")]
+            public string Version { get; set; }
         }
     }
 }
