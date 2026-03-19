@@ -13,22 +13,18 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void ExposureEventSerializesCorrectly()
         {
-            var evt = new ExposureEvent
-            {
-                Timestamp = 1700000000000,
-                Flag = new FlagRef { Key = "show-feature" },
-                Allocation = new FlagRef { Key = "alloc-123" },
-                Variant = new FlagRef { Key = "variant-a" },
-                Subject = new ExposureSubject
-                {
-                    Id = "user-456",
-                    Attributes = new Dictionary<string, string>
+            var evt = new ExposureEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("show-feature"),
+                allocation: new FlagRef("alloc-123"),
+                variant: new FlagRef("variant-a"),
+                subject: new ExposureSubject(
+                    id: "user-456",
+                    attributes: new Dictionary<string, string>
                     {
                         { "email", "user@example.com" },
                         { "plan", "premium" },
-                    },
-                },
-            };
+                    }));
 
             var json = JsonConvert.SerializeObject(evt);
 
@@ -44,14 +40,12 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void ExposureEventOmitsNullAttributes()
         {
-            var evt = new ExposureEvent
-            {
-                Timestamp = 1700000000000,
-                Flag = new FlagRef { Key = "show-feature" },
-                Allocation = new FlagRef { Key = "alloc-123" },
-                Variant = new FlagRef { Key = "variant-a" },
-                Subject = new ExposureSubject { Id = "user-456", Attributes = null },
-            };
+            var evt = new ExposureEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("show-feature"),
+                allocation: new FlagRef("alloc-123"),
+                variant: new FlagRef("variant-a"),
+                subject: new ExposureSubject(id: "user-456"));
 
             var json = JsonConvert.SerializeObject(evt);
 
@@ -61,17 +55,15 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void FlagEvaluationEventSerializesCorrectly()
         {
-            var evt = new FlagEvaluationEvent
-            {
-                Timestamp = 1700000000000,
-                Flag = new FlagRef { Key = "my-flag" },
-                FirstEvaluation = 1700000000000,
-                LastEvaluation = 1700000001000,
-                EvaluationCount = 5,
-                Variant = new FlagRef { Key = "treatment" },
-                Allocation = new FlagRef { Key = "alloc-1" },
-                TargetingKey = "user-789",
-            };
+            var evt = new FlagEvaluationEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("my-flag"),
+                firstEvaluation: 1700000000000,
+                lastEvaluation: 1700000001000,
+                evaluationCount: 5,
+                variant: new FlagRef("treatment"),
+                allocation: new FlagRef("alloc-1"),
+                targetingKey: "user-789");
 
             var json = JsonConvert.SerializeObject(evt);
 
@@ -89,17 +81,15 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void RuntimeDefaultOmitsVariantAndAllocation()
         {
-            var evt = new FlagEvaluationEvent
-            {
-                Timestamp = 1700000000000,
-                Flag = new FlagRef { Key = "my-flag" },
-                FirstEvaluation = 1700000000000,
-                LastEvaluation = 1700000000000,
-                EvaluationCount = 1,
-                TargetingKey = "user-789",
-                RuntimeDefaultUsed = true,
-                Error = new FlagErrorDetail { Message = "FLAG_NOT_FOUND" },
-            };
+            var evt = new FlagEvaluationEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("my-flag"),
+                firstEvaluation: 1700000000000,
+                lastEvaluation: 1700000000000,
+                evaluationCount: 1,
+                targetingKey: "user-789",
+                runtimeDefaultUsed: true,
+                error: new FlagErrorDetail("FLAG_NOT_FOUND"));
 
             var json = JsonConvert.SerializeObject(evt);
 

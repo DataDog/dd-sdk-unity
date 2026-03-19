@@ -10,10 +10,16 @@ namespace Datadog.Unity.Flags
     internal class ExposureSubject
     {
         [JsonProperty("id")]
-        public string Id { get; set; }
+        public readonly string Id;
 
         [JsonProperty("attributes", NullValueHandling = NullValueHandling.Ignore)]
-        public IReadOnlyDictionary<string, string> Attributes { get; set; }
+        public readonly IReadOnlyDictionary<string, string> Attributes;
+
+        public ExposureSubject(string id, IReadOnlyDictionary<string, string> attributes = null)
+        {
+            Id = id;
+            Attributes = attributes;
+        }
     }
 
     /// <summary>
@@ -23,18 +29,32 @@ namespace Datadog.Unity.Flags
     internal class ExposureEvent
     {
         [JsonProperty("timestamp")]
-        public long Timestamp { get; set; }
+        public readonly long Timestamp;
 
         [JsonProperty("flag")]
-        public FlagRef Flag { get; set; }
+        public readonly FlagRef Flag;
 
         [JsonProperty("allocation")]
-        public FlagRef Allocation { get; set; }
+        public readonly FlagRef Allocation;
 
         [JsonProperty("variant")]
-        public FlagRef Variant { get; set; }
+        public readonly FlagRef Variant;
 
         [JsonProperty("subject")]
-        public ExposureSubject Subject { get; set; }
+        public readonly ExposureSubject Subject;
+
+        public ExposureEvent(
+            long timestamp,
+            FlagRef flag,
+            FlagRef allocation,
+            FlagRef variant,
+            ExposureSubject subject)
+        {
+            Timestamp = timestamp;
+            Flag = flag;
+            Allocation = allocation;
+            Variant = variant;
+            Subject = subject;
+        }
     }
 }

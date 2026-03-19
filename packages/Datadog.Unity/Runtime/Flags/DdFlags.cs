@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
+using UnityEngine;
 
 namespace Datadog.Unity.Flags
 {
@@ -65,9 +66,18 @@ namespace Datadog.Unity.Flags
 
                 if (SynchronizationContext.Current == null)
                 {
-                    DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
-                        "DdFlags.Enable() should be called from the Unity main thread; " +
-                        "automatic telemetry flushing will be disabled.");
+                    const string message =
+                        "DdFlags.Enable() must be called from the Unity main thread. " +
+                        "Automatic telemetry flushing will be disabled.";
+
+                    if (Application.isEditor || Debug.isDebugBuild)
+                    {
+                        throw new InvalidOperationException(message);
+                    }
+                    else
+                    {
+                        DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Error, message);
+                    }
                 }
 
                 configuration ??= new FlagsConfiguration();

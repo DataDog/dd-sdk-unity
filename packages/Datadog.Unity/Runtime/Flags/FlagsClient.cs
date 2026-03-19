@@ -272,18 +272,14 @@ namespace Datadog.Unity.Flags
 
                 if (_exposureTracker.TrackExposure(exposureKey))
                 {
-                    var exposureEvent = new ExposureEvent
-                    {
-                        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                        Flag = new FlagRef { Key = key },
-                        Allocation = new FlagRef { Key = assignment.AllocationKey },
-                        Variant = new FlagRef { Key = assignment.VariationKey },
-                        Subject = new ExposureSubject
-                        {
-                            Id = context?.TargetingKey ?? string.Empty,
-                            Attributes = context?.Attributes?.Count > 0 ? context.Attributes : null,
-                        },
-                    };
+                    var exposureEvent = new ExposureEvent(
+                        timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                        flag: new FlagRef(key),
+                        allocation: new FlagRef(assignment.AllocationKey),
+                        variant: new FlagRef(assignment.VariationKey),
+                        subject: new ExposureSubject(
+                            id: context?.TargetingKey ?? string.Empty,
+                            attributes: context?.Attributes?.Count > 0 ? context.Attributes : null));
 
                     _onExposure?.Invoke(exposureEvent);
                 }

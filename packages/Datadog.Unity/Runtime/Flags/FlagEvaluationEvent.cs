@@ -13,19 +13,34 @@ namespace Datadog.Unity.Flags
     internal class FlagRef
     {
         [JsonProperty("key")]
-        public string Key { get; set; }
+        public readonly string Key;
+
+        public FlagRef(string key)
+        {
+            Key = key;
+        }
     }
 
     internal class FlagErrorDetail
     {
         [JsonProperty("message")]
-        public string Message { get; set; }
+        public readonly string Message;
+
+        public FlagErrorDetail(string message)
+        {
+            Message = message;
+        }
     }
 
     internal class EvaluationContextPayload
     {
         [JsonProperty("evaluation")]
-        public IReadOnlyDictionary<string, string> Evaluation { get; set; }
+        public readonly IReadOnlyDictionary<string, string> Evaluation;
+
+        public EvaluationContextPayload(IReadOnlyDictionary<string, string> evaluation)
+        {
+            Evaluation = evaluation;
+        }
     }
 
     /// <summary>
@@ -35,39 +50,67 @@ namespace Datadog.Unity.Flags
     internal class FlagEvaluationEvent
     {
         [JsonProperty("timestamp")]
-        public long Timestamp { get; set; }
+        public readonly long Timestamp;
 
         [JsonProperty("flag")]
-        public FlagRef Flag { get; set; }
+        public readonly FlagRef Flag;
 
         [JsonProperty("first_evaluation")]
-        public long FirstEvaluation { get; set; }
+        public readonly long FirstEvaluation;
 
         [JsonProperty("last_evaluation")]
-        public long LastEvaluation { get; set; }
+        public readonly long LastEvaluation;
 
         [JsonProperty("evaluation_count")]
-        public int EvaluationCount { get; set; }
+        public readonly int EvaluationCount;
 
         [JsonProperty("variant", NullValueHandling = NullValueHandling.Ignore)]
-        public FlagRef Variant { get; set; }
+        public readonly FlagRef Variant;
 
         [JsonProperty("allocation", NullValueHandling = NullValueHandling.Ignore)]
-        public FlagRef Allocation { get; set; }
+        public readonly FlagRef Allocation;
 
         [JsonProperty("targeting_rule", NullValueHandling = NullValueHandling.Ignore)]
-        public FlagRef TargetingRule { get; set; }
+        public readonly FlagRef TargetingRule;
 
         [JsonProperty("targeting_key", NullValueHandling = NullValueHandling.Ignore)]
-        public string TargetingKey { get; set; }
+        public readonly string TargetingKey;
 
         [JsonProperty("runtime_default_used", NullValueHandling = NullValueHandling.Ignore)]
-        public bool? RuntimeDefaultUsed { get; set; }
+        public readonly bool? RuntimeDefaultUsed;
 
         [JsonProperty("error", NullValueHandling = NullValueHandling.Ignore)]
-        public FlagErrorDetail Error { get; set; }
+        public readonly FlagErrorDetail Error;
 
         [JsonProperty("context", NullValueHandling = NullValueHandling.Ignore)]
-        public EvaluationContextPayload Context { get; set; }
+        public readonly EvaluationContextPayload Context;
+
+        public FlagEvaluationEvent(
+            long timestamp,
+            FlagRef flag,
+            long firstEvaluation,
+            long lastEvaluation,
+            int evaluationCount,
+            FlagRef variant = null,
+            FlagRef allocation = null,
+            FlagRef targetingRule = null,
+            string targetingKey = null,
+            bool? runtimeDefaultUsed = null,
+            FlagErrorDetail error = null,
+            EvaluationContextPayload context = null)
+        {
+            Timestamp = timestamp;
+            Flag = flag;
+            FirstEvaluation = firstEvaluation;
+            LastEvaluation = lastEvaluation;
+            EvaluationCount = evaluationCount;
+            Variant = variant;
+            Allocation = allocation;
+            TargetingRule = targetingRule;
+            TargetingKey = targetingKey;
+            RuntimeDefaultUsed = runtimeDefaultUsed;
+            Error = error;
+            Context = context;
+        }
     }
 }

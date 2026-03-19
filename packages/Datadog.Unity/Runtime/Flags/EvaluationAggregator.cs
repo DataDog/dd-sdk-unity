@@ -91,21 +91,19 @@ namespace Datadog.Unity.Flags
 
             public FlagEvaluationEvent ToFlagEvaluationEvent()
             {
-                return new FlagEvaluationEvent
-                {
-                    Timestamp = FirstEvaluation,
-                    Flag = new FlagRef { Key = FlagKey },
-                    FirstEvaluation = FirstEvaluation,
-                    LastEvaluation = LastEvaluation,
-                    EvaluationCount = EvaluationCount,
-                    Variant = RuntimeDefaultUsed != true && VariantKey != null ? new FlagRef { Key = VariantKey } : null,
-                    Allocation = RuntimeDefaultUsed != true && AllocationKey != null ? new FlagRef { Key = AllocationKey } : null,
-                    TargetingRule = TargetingRuleKey != null ? new FlagRef { Key = TargetingRuleKey } : null,
-                    TargetingKey = TargetingKey,
-                    RuntimeDefaultUsed = RuntimeDefaultUsed,
-                    Error = ErrorMessage != null ? new FlagErrorDetail { Message = ErrorMessage } : null,
-                    Context = Context?.Count > 0 ? new EvaluationContextPayload { Evaluation = Context } : null,
-                };
+            return new FlagEvaluationEvent(
+                timestamp: FirstEvaluation,
+                flag: new FlagRef(FlagKey),
+                firstEvaluation: FirstEvaluation,
+                lastEvaluation: LastEvaluation,
+                evaluationCount: EvaluationCount,
+                variant: RuntimeDefaultUsed != true && VariantKey != null ? new FlagRef(VariantKey) : null,
+                allocation: RuntimeDefaultUsed != true && AllocationKey != null ? new FlagRef(AllocationKey) : null,
+                targetingRule: TargetingRuleKey != null ? new FlagRef(TargetingRuleKey) : null,
+                targetingKey: TargetingKey,
+                runtimeDefaultUsed: RuntimeDefaultUsed,
+                error: ErrorMessage != null ? new FlagErrorDetail(ErrorMessage) : null,
+                context: Context?.Count > 0 ? new EvaluationContextPayload(Context) : null);
             }
         }
 
