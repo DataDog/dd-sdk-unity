@@ -11,7 +11,6 @@
     "precompiledReferences": [
         "Newtonsoft.Json.dll",
         "Microsoft.Bcl.AsyncInterfaces.dll",
-        "Microsoft.Bcl.HashCode.dll",
         "Microsoft.Extensions.DependencyInjection.Abstractions.dll",
         "Microsoft.Extensions.Logging.Abstractions.dll",
         "OpenFeature.dll",

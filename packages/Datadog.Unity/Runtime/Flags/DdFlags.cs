@@ -18,10 +18,14 @@ namespace Datadog.Unity.Flags
     /// // Setup
     /// DdFlags.Enable(new FlagsConfiguration());
     /// var client = DdFlags.Instance.CreateClient();
+    ///
+    /// // Register OpenFeature provider (optional — for OpenFeature-based evaluation)
+    /// await OpenFeature.Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider());
+    ///
     /// client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), onComplete: success =>
     /// {
-    ///     // Evaluate flags
-    ///     var showFeature = client.GetBooleanValue("show-new-feature", false);
+    ///     var ofClient = OpenFeature.Api.Instance.GetClient();
+    ///     var showFeature = await ofClient.GetBooleanValueAsync("show-new-feature", false);
     /// });
     /// </code>
     /// </summary>
@@ -187,6 +191,29 @@ namespace Datadog.Unity.Flags
 
                 _clients[name] = client;
                 return client;
+            }
+        }
+
+        /// <summary>
+        /// Creates an OpenFeature provider bound to the named flags client.
+        /// The client must have been created with <see cref="CreateClient"/> before calling this.
+        /// Register the returned provider with OpenFeature:
+        /// <code>
+        /// DdFlags.Instance.CreateClient();
+        /// await OpenFeature.Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider());
+        /// </code>
+        /// </summary>
+        /// <param name="clientName">The client to bind. Defaults to "default".</param>
+        /// <returns>A provider bound to the client, or null if the client does not exist.</returns>
+        public DatadogFeatureProvider CreateProvider(string clientName = FlagsClient.DefaultName)
+        {
+            lock (_lock)
+            {
+                if (!_clients.TryGetValue(clientName, out var client))
+                {
+                    return null;
+                }
+                return new DatadogFeatureProvider(client);
             }
         }
 
