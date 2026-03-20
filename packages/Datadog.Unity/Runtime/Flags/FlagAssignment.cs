@@ -3,6 +3,8 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
+using Datadog.Unity.Core;
+using Datadog.Unity.Logs;
 using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
@@ -61,7 +63,10 @@ namespace Datadog.Unity.Flags
         /// <summary>
         /// Attempts to get the variation value as the specified type.
         /// </summary>
-        public bool TryGetValue<T>(out T value)
+        /// <param name="value">The converted value, or default on failure.</param>
+        /// <param name="flagKey">The flag key, used in the warning log on type mismatch.</param>
+        /// <param name="logger">Optional logger; receives a warning when conversion fails.</param>
+        public bool TryGetValue<T>(out T value, string flagKey = null, IInternalLogger logger = null)
         {
             if (VariationValue == null || VariationValue.Type == JTokenType.Null)
             {
@@ -74,8 +79,10 @@ namespace Datadog.Unity.Flags
                 value = VariationValue.ToObject<T>();
                 return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                logger?.Log(DdLogLevel.Warn,
+                    $"Flag '{flagKey}': could not convert value to {typeof(T).Name}: {e.Message}");
                 value = default;
                 return false;
             }

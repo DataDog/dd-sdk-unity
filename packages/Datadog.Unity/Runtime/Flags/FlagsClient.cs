@@ -215,7 +215,7 @@ namespace Datadog.Unity.Flags
                 return new FlagDetails<T>(key, defaultValue, error: FlagEvaluationError.FlagNotFound);
             }
 
-            if (!assignment.TryGetValue<T>(out var value))
+            if (!assignment.TryGetValue<T>(out var value, flagKey: key, logger: _logger))
             {
                 TrackEvaluation(key, assignment, "TYPE_MISMATCH");
                 return new FlagDetails<T>(key, defaultValue, error: FlagEvaluationError.TypeMismatch);

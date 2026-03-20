@@ -34,10 +34,8 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
                 var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
 
-                // Wait until we see the EmptyScene view that's loaded after "First Screen",
-                // which guarantees "First Screen" has been closed and its events flushed.
-                return sessions.Count >= 1 && sessions[0].Visits.Any(v => v.Name == "First Screen")
-                    && sessions[0].Visits.Any(v => v.Name == "EmptyScene");
+                // Second view makes sure the first one has been closed
+                return sessions.Count >= 1 && sessions[0].Visits.Count >= 4;
             });
 
             var sessions = RumDecoderHelpers.RumSessionsFromEvents(
@@ -47,17 +45,15 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             var session = sessions.First();
 
-            // Log all visit names to aid diagnosis of unexpected extra views.
-            var allVisitNames = string.Join(", ", session.Visits.Select(v => $"\"{v.Name}\""));
-            Debug.Log($"[TrackedWebRequest] All visits in session: [{allVisitNames}]");
+            // Discard visits that are automatically recorded parts of integration testing
+            var visits = session.Visits.Where(
+                visit => visit.Name != string.Empty && !visit.Name.Contains("InitTestScene")).ToArray();
+            Assert.AreEqual(2, visits.Length);
 
-            // Find the "First Screen" visit by name. Other views may appear in the session from
-            // test framework scenes or views left open by preceding tests (e.g. EmptyScene from
-            // RumIntegrationScenario), so we do not assert on the exact visit count.
-            var firstVisit = session.Visits.FirstOrDefault(v => v.Name == "First Screen");
-            Assert.IsNotNull(firstVisit, "Expected a 'First Screen' visit in the RUM session");
-            var getResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("non_first_party"));
-            Assert.IsNotNull(getResource, "Expected a non-first-party resource event");
+            var firstVisit = visits[0];
+            var getResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("httpbin"));
+            Assert.IsNotNull(getResource);
+            Assert.AreEqual("https://httpbin.org/status/200", getResource.Url);
             Assert.IsNull(getResource.TraceId);
             Assert.IsNull(getResource.SpanId);
 
@@ -97,24 +93,19 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var rum = DatadogSdk.Instance.Rum;
             rum?.StartView("FirstScreen", name: "First Screen");
 
-            // Make a tracked web request that is NOT first-party. We use 10.0.2.2 (the Android
-            // emulator's special alias for the host machine) with the mock server port. The mock
-            // server binds to 0.0.0.0 so it accepts these connections, but the first-party hosts
-            // list only includes the LAN IP, so the RUM SDK won't inject tracing headers here.
-            var datadogSettings = DatadogConfigurationOptions.Load();
-            var endpoint = datadogSettings.CustomEndpoint;
-            var mockPort = new Uri(endpoint).Port;
-            var nonFirstPartyUrl = $"http://10.0.2.2:{mockPort}/non_first_party_get";
-            var getRequest = new DatadogTrackedWebRequest(nonFirstPartyUrl);
+            // Make a tracked web request, not first party
+            var getRequest = new DatadogTrackedWebRequest("https://httpbin.org/status/200");
             yield return getRequest.SendWebRequest();
 
             if (getRequest.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
             {
-                Debug.Log($"Non-first-party web request failed: {getRequest.error}");
+                Debug.Log($"Web request failed: {getRequest.error}");
             }
 
             // Make a tracked web request, first party. This must be configured in the settings as first party --
             // see `scripts/dev_setup.py` which will set the proper first party hosts
+            var datadogSettings = DatadogConfigurationOptions.Load();
+            var endpoint = datadogSettings.CustomEndpoint;
             var firstPartyGetRequest = new DatadogTrackedWebRequest($"{endpoint}/integration_get");
             yield return firstPartyGetRequest.SendWebRequest();
 

@@ -140,8 +140,15 @@ namespace Datadog.Unity.Flags
             {
                 return url;
             }
-            var separator = url.Contains("?") ? "&" : "?";
-            return url + separator + "ddsource=unity";
+
+            var builder = new UriBuilder(url);
+            var query = builder.Query?.TrimStart('?') ?? string.Empty;
+            if (!query.Contains("ddsource"))
+            {
+                builder.Query = query.Length > 0 ? query + "&ddsource=unity" : "ddsource=unity";
+            }
+
+            return builder.ToString();
         }
 
         private class BatchPayload

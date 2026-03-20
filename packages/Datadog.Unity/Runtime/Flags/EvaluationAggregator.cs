@@ -46,7 +46,19 @@ namespace Datadog.Unity.Flags
                 => obj is AggregationKey other && Equals(other);
 
             public override int GetHashCode()
-                => HashCode.Combine(FlagKey, VariantKey, AllocationKey, TargetingKey);
+            {
+                // Polynomial hash combining using primes 17/31 (Bloch, Effective Java).
+                // unchecked intentional: overflow is safe and expected for hash codes.
+                unchecked
+                {
+                    var hash = 17;
+                    hash = hash * 31 + (FlagKey?.GetHashCode() ?? 0);
+                    hash = hash * 31 + (VariantKey?.GetHashCode() ?? 0);
+                    hash = hash * 31 + (AllocationKey?.GetHashCode() ?? 0);
+                    hash = hash * 31 + (TargetingKey?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
         }
 
         internal class AggregatedEvaluation

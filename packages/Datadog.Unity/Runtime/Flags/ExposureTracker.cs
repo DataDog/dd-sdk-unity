@@ -44,6 +44,8 @@ namespace Datadog.Unity.Flags
 
             public override int GetHashCode()
             {
+                // Polynomial hash combining using primes 17/31 (Bloch, Effective Java).
+                // unchecked intentional: overflow is safe and expected for hash codes.
                 unchecked
                 {
                     var hash = 17;

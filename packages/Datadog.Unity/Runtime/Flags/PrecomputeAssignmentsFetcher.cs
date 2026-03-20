@@ -111,7 +111,7 @@ namespace Datadog.Unity.Flags
                         {
                             TargetingKey = context.TargetingKey,
                             TargetingAttributes = context.Attributes.Count > 0
-                                ? new Dictionary<string, string>(context.Attributes)
+                                ? context.Attributes
                                 : null,
                         },
                     },
@@ -199,7 +199,7 @@ namespace Datadog.Unity.Flags
             public string TargetingKey { get; set; }
 
             [JsonProperty("targeting_attributes", NullValueHandling = NullValueHandling.Ignore)]
-            public Dictionary<string, string> TargetingAttributes { get; set; }
+            public IReadOnlyDictionary<string, string> TargetingAttributes { get; set; }
         }
 
         private class AssignmentsResponseDto

@@ -14,10 +14,10 @@ namespace Datadog.Unity.Flags
         public readonly FlagsClientState Old;
         public readonly FlagsClientState New;
 
-        public FlagsStateChange(FlagsClientState old, FlagsClientState @new)
+        public FlagsStateChange(FlagsClientState oldState, FlagsClientState newState)
         {
-            Old = old;
-            New = @new;
+            Old = oldState;
+            New = newState;
         }
     }
 }
