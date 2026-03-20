@@ -11,3 +11,4 @@ test_scaffolds/6000 LTS/.utmp
 unit-test*
 integration-test*
 .claire/
+.claude/
