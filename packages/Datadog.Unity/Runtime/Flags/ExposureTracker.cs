@@ -43,19 +43,7 @@ namespace Datadog.Unity.Flags
             }
 
             public override int GetHashCode()
-            {
-                // Polynomial hash combining using primes 17/31 (Bloch, Effective Java).
-                // unchecked intentional: overflow is safe and expected for hash codes.
-                unchecked
-                {
-                    var hash = 17;
-                    hash = hash * 31 + (TargetingKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (FlagKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (AllocationKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (VariationKey?.GetHashCode() ?? 0);
-                    return hash;
-                }
-            }
+                => HashCode.Combine(TargetingKey, FlagKey, AllocationKey, VariationKey);
         }
 
         public const int DefaultCountLimit = 1_000;

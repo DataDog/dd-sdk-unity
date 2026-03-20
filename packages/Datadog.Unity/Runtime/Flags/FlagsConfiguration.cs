@@ -24,7 +24,7 @@ namespace Datadog.Unity.Flags
 
         /// <summary>
         /// The interval in seconds at which aggregated evaluation data is flushed.
-        /// Clamped to [1, 60]. Default: 10.
+        /// When used by the evaluation aggregator, this value is clamped to [1, 60]. Default: 10.
         /// </summary>
         public readonly float EvaluationFlushIntervalSeconds;
 

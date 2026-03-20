@@ -46,19 +46,7 @@ namespace Datadog.Unity.Flags
                 => obj is AggregationKey other && Equals(other);
 
             public override int GetHashCode()
-            {
-                // Polynomial hash combining using primes 17/31 (Bloch, Effective Java).
-                // unchecked intentional: overflow is safe and expected for hash codes.
-                unchecked
-                {
-                    var hash = 17;
-                    hash = hash * 31 + (FlagKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (VariantKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (AllocationKey?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (TargetingKey?.GetHashCode() ?? 0);
-                    return hash;
-                }
-            }
+                => HashCode.Combine(FlagKey, VariantKey, AllocationKey, TargetingKey);
         }
 
         internal class AggregatedEvaluation
@@ -147,8 +135,13 @@ namespace Datadog.Unity.Flags
             // and SystemInfo APIs are main-thread-only).
             _mainThreadContext = SynchronizationContext.Current;
 
-            var intervalMs = (int)(_flushIntervalSeconds * 1000);
-            _flushTimer = new Timer(OnTimerElapsed, null, intervalMs, intervalMs);
+            // Only start the timer when a main-thread context is available.
+            // When null, automatic flushing is disabled and callers must invoke Flush() explicitly.
+            if (_mainThreadContext != null)
+            {
+                var intervalMs = (int)(_flushIntervalSeconds * 1000);
+                _flushTimer = new Timer(OnTimerElapsed, null, intervalMs, intervalMs);
+            }
         }
 
         public void RecordEvaluation(
