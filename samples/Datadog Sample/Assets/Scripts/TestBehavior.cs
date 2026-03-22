@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using Datadog.Unity;
+using Datadog.Unity.Flags;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
 using UnityEngine;
@@ -46,5 +47,18 @@ public class TestBehavior : MonoBehaviour
         });
 
         DatadogSdk.Instance.Rum.StopResource("key", RumResourceType.Native);
+
+        // Feature Flags
+        DdFlags.Enable();
+        DdFlags.CreateClient();
+        DdFlags.SetEvaluationContext(
+            new FlagsEvaluationContext("user-1234", new Dictionary<string, object>
+            {
+                { "email", "test@example.com" },
+            }),
+            onComplete: success =>
+            {
+                logger.Info($"Feature flags ready: {success}");
+            });
     }
 }
