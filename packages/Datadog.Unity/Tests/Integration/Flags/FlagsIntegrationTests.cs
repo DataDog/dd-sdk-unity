@@ -6,9 +6,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Flags;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using OpenFeature;
+using OpenFeature.Model;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -65,6 +68,9 @@ namespace Datadog.Unity.Tests.Integration.Flags
             DdFlags.Enable(MakeConfig(flushInterval));
             var client = DdFlags.Instance.CreateClient();
 
+            // Register provider with OpenFeature (user's responsibility in production)
+            yield return AwaitTask(Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider()));
+
             var done = false;
             var context = attributes != null
                 ? new FlagsEvaluationContext(targetingKey, attributes)
@@ -74,6 +80,33 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
             yield return new WaitUntil(() => done || DateTime.Now > deadline);
+        }
+
+        /// <summary>Bridges an async Task into a Unity coroutine.</summary>
+        private IEnumerator AwaitTask(Task task)
+        {
+            while (!task.IsCompleted)
+            {
+                yield return null;
+            }
+            if (task.IsFaulted)
+            {
+                throw task.Exception.GetBaseException();
+            }
+        }
+
+        /// <summary>Bridges an async Task&lt;T&gt; into a Unity coroutine, capturing the result.</summary>
+        private IEnumerator AwaitTask<T>(Task<T> task, Action<T> onResult)
+        {
+            while (!task.IsCompleted)
+            {
+                yield return null;
+            }
+            if (task.IsFaulted)
+            {
+                throw task.Exception.GetBaseException();
+            }
+            onResult(task.Result);
         }
 
         // ─── Group 1: Precompute request shape ───────────────────────────────────────
@@ -151,20 +184,35 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
         [UnityTest]
         [Category("integration")]
-        public IEnumerator SetEvaluationContext_Success_FlagsAvailableViaClient()
+        public IEnumerator SetEvaluationContext_Success_FlagsAvailableViaOpenFeature()
         {
             yield return InitFlags("user-123");
 
-            var client = DdFlags.Instance.GetClient();
-            Assert.IsNotNull(client);
-            Assert.AreEqual(FlagsClientState.Ready, client.State);
+            // Internal state assertions
+            var internalClient = DdFlags.Instance.GetClient();
+            Assert.IsNotNull(internalClient);
+            Assert.AreEqual(FlagsClientState.Ready, internalClient.State);
 
-            Assert.IsTrue(client.GetBooleanValue("boolean-flag", false));
-            Assert.AreEqual("red", client.GetStringValue("string-flag", "x"));
-            Assert.AreEqual(42, client.GetIntegerValue("integer-flag", 0));
-            Assert.AreEqual(3.14, client.GetDoubleValue("numeric-flag", 0.0), 0.001);
+            var ofClient = Api.Instance.GetClient();
 
-            var jsonDetails = client.GetDetails<object>("json-flag", null);
+            bool boolResult = false;
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false), v => boolResult = v);
+            Assert.IsTrue(boolResult);
+
+            string stringResult = null;
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"), v => stringResult = v);
+            Assert.AreEqual("red", stringResult);
+
+            int intResult = 0;
+            yield return AwaitTask(ofClient.GetIntegerValueAsync("integer-flag", 0), v => intResult = v);
+            Assert.AreEqual(42, intResult);
+
+            double doubleResult = 0.0;
+            yield return AwaitTask(ofClient.GetDoubleValueAsync("numeric-flag", 0.0), v => doubleResult = v);
+            Assert.AreEqual(3.14, doubleResult, 0.001);
+
+            FlagEvaluationDetails<Value> jsonDetails = null;
+            yield return AwaitTask(ofClient.GetObjectDetailsAsync("json-flag", null), v => jsonDetails = v);
             Assert.AreEqual("variation-127", jsonDetails.Variant);
         }
 
@@ -196,8 +244,12 @@ namespace Datadog.Unity.Tests.Integration.Flags
             yield return new WaitUntil(() => done);
 
             Assert.AreEqual(FlagsClientState.Stale, client.State);
-            // Old flags still evaluable
-            Assert.AreEqual("red", client.GetStringValue("string-flag", "default"));
+
+            // Old flags still evaluable via OpenFeature
+            var ofClient = Api.Instance.GetClient();
+            string stringResult = null;
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "default"), v => stringResult = v);
+            Assert.AreEqual("red", stringResult);
         }
 
         // ─── Group 3: Exposure telemetry ─────────────────────────────────────────────
@@ -208,7 +260,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
 
             var exposures = new List<ExposureEventDecoder>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -224,7 +277,6 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual("variation-124", exp.VariantKey);
             Assert.AreEqual("user-123", exp.SubjectId);
 
-            // Check headers on exposure request
             MockServerLog expEndpoint = null;
             yield return _mockServer.PollRequests(PollTimeout, logs =>
             {
@@ -245,10 +297,10 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var flagsClient = DdFlags.Instance.GetClient();
+            var ofClient = Api.Instance.GetClient();
             for (var i = 0; i < 5; i++)
             {
-                flagsClient.GetBooleanValue("boolean-flag", false);
+                yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
             }
 
             yield return new WaitForSeconds(2f);
@@ -267,17 +319,17 @@ namespace Datadog.Unity.Tests.Integration.Flags
         [Category("integration")]
         public IEnumerator ContextChange_SendsFreshExposure()
         {
-            // Evaluate for user-A
-            yield return InitFlags("user-A");
-            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
+            var ofClient = Api.Instance.GetClient();
 
-            // Change context to user-B (requires re-fetch)
+            yield return InitFlags("user-A");
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
+
             yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
             var done = false;
             DdFlags.Instance.GetClient().SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
             yield return new WaitUntil(() => done);
 
-            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
 
             var exposures = new List<ExposureEventDecoder>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -300,11 +352,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var flagsClient = DdFlags.Instance.GetClient();
-            flagsClient.GetStringValue("string-flag", "x");
-            flagsClient.GetStringValue("string-flag", "x");
-            flagsClient.GetStringValue("string-flag", "x");
-            flagsClient.Flush();
+            var ofClient = Api.Instance.GetClient();
+            for (var i = 0; i < 3; i++)
+            {
+                yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"));
+            }
+
+            // Flush via internal client (OpenFeature doesn't expose flush)
+            DdFlags.Instance.GetClient().Flush();
 
             List<BatchedEvaluations> batches = null;
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -337,11 +392,12 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            var flagsClient = DdFlags.Instance.GetClient();
-            flagsClient.GetBooleanValue("boolean-flag", false);
-            flagsClient.GetBooleanValue("boolean-flag", false);
-            flagsClient.GetStringValue("string-flag", "x");
-            flagsClient.Flush();
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"));
+
+            DdFlags.Instance.GetClient().Flush();
 
             var records = new List<EvaluationRecord>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -365,7 +421,9 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123");
 
-            DdFlags.Instance.GetClient().GetStringValue("nonexistent-flag", "default");
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetStringValueAsync("nonexistent-flag", "default"));
+
             DdFlags.Instance.GetClient().Flush();
 
             var records = new List<EvaluationRecord>();
@@ -390,9 +448,9 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123", flushInterval: 60f);
 
-            DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"));
 
-            // Shutdown should flush pending evaluations before destroying the aggregator
             DdFlags.Shutdown();
 
             var records = new List<EvaluationRecord>();
@@ -412,9 +470,9 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags("user-123", flushInterval: 1.0f);
 
-            DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"));
 
-            // Wait for the timer to fire (interval = 1s, wait a bit longer)
             yield return new WaitForSeconds(2.0f);
 
             var records = new List<EvaluationRecord>();
@@ -430,14 +488,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
         // ─── Group 5: Evaluation EVP headers ─────────────────────────────────────────
 
-
         [UnityTest]
         [Category("integration")]
         public IEnumerator EvaluationBatch_HasCorrectEvpHeaders()
         {
             yield return InitFlags("user-123");
 
-            DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"));
             DdFlags.Instance.GetClient().Flush();
 
             MockServerLog evalEndpoint = null;
@@ -463,9 +521,9 @@ namespace Datadog.Unity.Tests.Integration.Flags
         {
             yield return InitFlags();
 
-            DdFlags.Instance.GetClient().GetBooleanValue("no-log-flag", false);
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("no-log-flag", false));
 
-            // Brief wait then a single-shot check — no exposure should arrive.
             yield return new WaitForSeconds(2f);
 
             var exposures = new List<ExposureEventDecoder>();
@@ -490,7 +548,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
                 { "age", 30 },
             });
 
-            DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
 
             var exposures = new List<ExposureEventDecoder>();
             yield return _mockServer.PollRequests(PollTimeout, logs =>
@@ -551,6 +610,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             DdFlags.Enable(MakeConfig());
             var client = DdFlags.Instance.CreateClient();
+            yield return AwaitTask(Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider()));
 
             var transitions = new List<FlagsStateChange>();
             client.StateChanged += (_, change) => transitions.Add(change);
@@ -560,7 +620,6 @@ namespace Datadog.Unity.Tests.Integration.Flags
             client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
             yield return new WaitUntil(() => done || DateTime.Now > deadline);
 
-            // Expect: initial replay (NotReady→NotReady), then NotReady→Reconciling, Reconciling→Ready
             Assert.GreaterOrEqual(transitions.Count, 3, "Expected replay + 2 real transitions");
 
             var replay = transitions[0];
@@ -585,6 +644,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             DdFlags.Enable(MakeConfig());
             var client = DdFlags.Instance.CreateClient();
+            yield return AwaitTask(Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider()));
 
             var transitions = new List<FlagsStateChange>();
             client.StateChanged += (_, change) => transitions.Add(change);
@@ -602,7 +662,6 @@ namespace Datadog.Unity.Tests.Integration.Flags
         [Category("integration")]
         public IEnumerator StateChanged_LateSubscriberReceivesCurrentStateReplay()
         {
-            // Fully initialise first, then subscribe
             yield return InitFlags("user-123");
 
             var client = DdFlags.Instance.GetClient();
@@ -611,7 +670,6 @@ namespace Datadog.Unity.Tests.Integration.Flags
             FlagsStateChange replayEvent = null;
             client.StateChanged += (_, change) => replayEvent = change;
 
-            // Replay fires synchronously in the add accessor — no yield needed
             Assert.IsNotNull(replayEvent, "Late subscriber should receive an immediate replay");
             Assert.AreEqual(FlagsClientState.Ready, replayEvent.Old);
             Assert.AreEqual(FlagsClientState.Ready, replayEvent.New, "Replay should have Old == New");
@@ -629,12 +687,15 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             DdFlags.Enable(MakeConfig());
             var client = DdFlags.Instance.CreateClient();
+            yield return AwaitTask(Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider()));
 
             // Evaluate immediately — no SetEvaluationContext has been called yet
-            var details = client.GetBooleanDetails("boolean-flag", false);
+            var ofClient = Api.Instance.GetClient();
+            FlagEvaluationDetails<bool> details = null;
+            yield return AwaitTask(ofClient.GetBooleanDetailsAsync("boolean-flag", false), v => details = v);
 
             Assert.AreEqual(false, details.Value, "Should return default value");
-            Assert.AreEqual(FlagEvaluationError.ProviderNotReady, details.Error);
+            Assert.AreEqual(OpenFeature.Constant.ErrorType.ProviderNotReady, details.ErrorType);
 
             yield return null;
         }
@@ -650,11 +711,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             DdFlags.Enable(MakeConfig(trackExposures: false));
             var client = DdFlags.Instance.CreateClient();
+            yield return AwaitTask(Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider()));
+
             var done = false;
             client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
             yield return new WaitUntil(() => done);
 
-            client.GetBooleanValue("boolean-flag", false);
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false));
 
             yield return new WaitForSeconds(2f);
 
@@ -677,12 +741,15 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             DdFlags.Enable(MakeConfig(trackEvaluations: false));
             var client = DdFlags.Instance.CreateClient();
+            yield return AwaitTask(Api.Instance.SetProviderAsync(DdFlags.Instance.CreateProvider()));
+
             var done = false;
             client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
             yield return new WaitUntil(() => done);
 
-            client.GetStringValue("string-flag", "x");
-            client.Flush();
+            var ofClient = Api.Instance.GetClient();
+            yield return AwaitTask(ofClient.GetStringValueAsync("string-flag", "x"));
+            DdFlags.Instance.GetClient().Flush();
 
             yield return new WaitForSeconds(2f);
 
