@@ -30,6 +30,8 @@ from urllib.parse import urlparse
 app = Flask(__name__)
 CORS(app)
 
+configured_responses = {}  # path -> { status, body, content_type }
+
 @dataclass()
 class GenericRequest:
     method: str
@@ -145,6 +147,22 @@ def write_to_file(endpoint: GenericEndpoint):
         with open(f'fixtures/replay/{no}', 'wb') as f:
             f.write(request.get_data())
 
+@app.route('/configure_response', methods=['POST'])
+def configure_response():
+    """
+    POST /configure_response
+
+    Store a per-path response override so that subsequent POST requests to
+    that path return the configured status/body instead of the default 202.
+    """
+    global configured_responses
+    data = request.get_json()
+    configured_responses[data['path']] = data
+    resp = flask.Response('OK', status=200)
+    add_cors_headers(resp)
+    return resp
+
+
 @app.route('/', methods=['POST'])
 @app.route('/<path:rest>', methods=['POST'])
 def generic_post(rest = ''):
@@ -157,11 +175,9 @@ def generic_post(rest = ''):
 
     gr = GenericRequest(r=request)
 
-    response_text = ''
+    # Record the request regardless of whether we return a configured response
     if existing := next((e for e in endpoints if e.hash() == gr.endpoint_hash()), None):
         existing.requests.append(gr)
-        # write_to_file(endpoint=existing)
-        response_text = 'OK - request recorded to known endpoint\n'
     else:
         endpoints.append(
             GenericEndpoint(
@@ -171,9 +187,16 @@ def generic_post(rest = ''):
                 schemas=gr.schemas
             )
         )
-        response_text = 'OK - request recorded to new endpoint\n'
 
-    resp = flask.Response(response_text, status=202)
+    # Return a configured response if one was registered for this path
+    if gr.path in configured_responses:
+        cfg = configured_responses[gr.path]
+        resp = flask.Response(cfg['body'], status=cfg.get('status', 200))
+        resp.headers['Content-Type'] = cfg.get('content_type', 'application/json')
+        add_cors_headers(resp)
+        return resp
+
+    resp = flask.Response('OK - request recorded\n', status=202)
     add_cors_headers(resp)
     return resp
 
@@ -246,8 +269,9 @@ def reset():
 
     Clear currently logged requests on all endpoints
     """
-    global endpoints
+    global endpoints, configured_responses
     endpoints.clear()
+    configured_responses.clear()
     resp = flask.Response('OK', status=200)
     add_cors_headers(resp)
     return resp
