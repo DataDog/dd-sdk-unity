@@ -9,17 +9,7 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "Newtonsoft.Json.dll",
-        "Microsoft.Bcl.AsyncInterfaces.dll",
-        "Microsoft.Bcl.HashCode.dll",
-        "Microsoft.Extensions.DependencyInjection.Abstractions.dll",
-        "Microsoft.Extensions.Logging.Abstractions.dll",
-        "OpenFeature.dll",
-        "System.Collections.Immutable.dll",
-        "System.Diagnostics.DiagnosticSource.dll",
-        "System.Text.Encodings.Web.dll",
-        "System.Text.Json.dll",
-        "System.Threading.Channels.dll"
+        "Newtonsoft.Json.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
