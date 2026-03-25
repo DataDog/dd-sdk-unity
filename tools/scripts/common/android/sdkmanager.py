@@ -50,10 +50,10 @@ def _parse_sdkmanager_list_output(output: str) -> List[AndroidPackage]:
     # Grab each line of the table that appears beneath 'Installed packages' in the output
     section_header = 'Installed packages:'
     section_header_line_index = next((i for i, s in enumerate(lines) if s.startswith(section_header)), None)
-    if not section_header_line_index:
-        raise RuntimeError(f'Unexpected sdkmanager output: "{section_header}" did not appear')        
+    if section_header_line_index is None:
+        raise RuntimeError(f'Unexpected sdkmanager output: "{section_header}" did not appear')
     next_blank_line_index = next((i for i, s in enumerate(lines) if i > section_header_line_index and s.strip() == ''), None)
-    if not next_blank_line_index:
+    if next_blank_line_index is None:
         raise RuntimeError(f'Unexpected sdkmanager output: found no blank line after "{section_header}"')
     section_lines = lines[section_header_line_index+1:next_blank_line_index]
 
