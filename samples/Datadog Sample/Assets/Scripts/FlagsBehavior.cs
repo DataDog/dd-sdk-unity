@@ -46,7 +46,7 @@ public class FlagsBehavior : MonoBehaviour
             });
     }
 
-    private void EvaluateFlags(FlagsClient client)
+    private void EvaluateFlags(IFlagsClient client)
     {
         // Simple value accessors
         var showNewUI = client.GetBooleanValue("show-new-ui", false);

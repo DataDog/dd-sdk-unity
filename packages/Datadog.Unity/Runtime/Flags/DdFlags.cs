@@ -15,12 +15,10 @@ namespace Datadog.Unity.Flags
     /// Entry point for the Datadog Flags feature in Unity.
     ///
     /// <code>
-    /// // Setup
     /// DdFlags.Enable(new FlagsConfiguration());
     /// var client = DdFlags.Instance.CreateClient();
     /// client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), onComplete: success =>
     /// {
-    ///     // Evaluate flags
     ///     var showFeature = client.GetBooleanValue("show-new-feature", false);
     /// });
     /// </code>
@@ -29,101 +27,106 @@ namespace Datadog.Unity.Flags
     {
         private static readonly object _enableLock = new();
 
-        private readonly FlagsConfiguration _configuration;
-        private readonly EvpTelemetrySender _telemetrySender;
-        private readonly IInternalLogger _logger;
-        private readonly Dictionary<string, FlagsClient> _clients = new();
+        /// <summary>
+        /// The singleton. Always non-null. Call <see cref="Enable"/> to configure it.
+        /// Before <see cref="Enable"/> succeeds, <see cref="CreateClient"/> returns a
+        /// <see cref="NoopFlagsClient"/> with reason <c>"DISABLED"</c>.
+        /// </summary>
+        public static readonly DdFlags Instance = new();
+
+        private FlagsConfiguration _configuration;
+        private EvpTelemetrySender _telemetrySender;
+        private IInternalLogger _logger;
+        private volatile bool _isEnabled;
+        private readonly Dictionary<string, IFlagsClient> _clients = new();
         private readonly object _lock = new();
 
-        /// <summary>
-        /// Gets the singleton instance of DdFlags. Null until <see cref="Enable"/> is called.
-        /// </summary>
-        public static DdFlags Instance { get; private set; }
-
-        private DdFlags(FlagsConfiguration configuration, EvpTelemetrySender telemetrySender, IInternalLogger logger)
-        {
-            _configuration = configuration;
-            _telemetrySender = telemetrySender;
-            _logger = logger;
-        }
+        private DdFlags() { }
 
         /// <summary>
-        /// Enables the Datadog Flags feature and initializes the singleton instance.
-        /// Must be called from the Unity main thread after Datadog SDK initialization.
-        /// Subsequent calls are ignored.
+        /// Enables the Datadog Flags feature. Must be called from the Unity main thread
+        /// after Datadog SDK initialization. Subsequent calls are ignored.
         /// </summary>
-        /// <param name="configuration">Configuration options for the Flags feature.</param>
         public static void Enable(FlagsConfiguration configuration = null)
         {
+            if (Instance._isEnabled)
+            {
+                DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
+                    "DdFlags.Enable() called more than once — ignoring.");
+                return;
+            }
+
             lock (_enableLock)
             {
-                if (Instance != null)
+                // Re-check inside the lock in case two threads raced.
+                if (Instance._isEnabled)
                 {
-                    DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
-                        "DdFlags.Enable() called more than once — ignoring.");
                     return;
                 }
 
+                var logger = DatadogSdk.Instance?.InternalLogger;
+
                 if (SynchronizationContext.Current == null)
                 {
-                    const string message =
+                    ThrowOrLog(logger,
                         "DdFlags.Enable() must be called from the Unity main thread. " +
-                        "Automatic telemetry flushing will be disabled.";
-
-                    if (Application.isEditor || Debug.isDebugBuild)
-                    {
-                        throw new InvalidOperationException(message);
-                    }
-                    else
-                    {
-                        DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Error, message);
-                    }
+                        "Automatic telemetry flushing will be disabled.");
+                    // Non-fatal: continue in degraded mode without automatic flushing.
                 }
 
                 configuration ??= new FlagsConfiguration();
 
                 var options = DatadogConfigurationOptions.Load();
-                var site = options?.Site ?? DatadogSite.Us1;
-                var exposureEndpoint = !string.IsNullOrEmpty(configuration.CustomExposureEndpoint)
-                    ? configuration.CustomExposureEndpoint
-                    : FlagsEndpoints.GetExposureEndpoint(site);
-                var evaluationEndpoint = !string.IsNullOrEmpty(configuration.CustomEvaluationEndpoint)
-                    ? configuration.CustomEvaluationEndpoint
-                    : FlagsEndpoints.GetEvaluationEndpoint(site);
-                var logger = DatadogSdk.Instance?.InternalLogger;
 
-                var sender = new EvpTelemetrySender(
-                    clientToken: options?.ClientToken ?? string.Empty,
-                    exposureEndpoint: exposureEndpoint,
-                    evaluationEndpoint: evaluationEndpoint,
-                    env: options?.Env ?? string.Empty,
-                    logger: logger);
+                if (string.IsNullOrEmpty(options?.Env))
+                {
+                    ThrowOrLog(logger,
+                        "DdFlags.Enable() requires the Datadog 'Env' setting to be configured. " +
+                        "Set Env in your DatadogSettings asset. " +
+                        "Flag evaluations will return default values.");
+                    return;
+                }
 
-                Instance = new DdFlags(configuration, sender, logger);
+                if (string.IsNullOrEmpty(options?.ClientToken))
+                {
+                    ThrowOrLog(logger,
+                        "DdFlags.Enable() requires the Datadog 'ClientToken' setting to be configured. " +
+                        "Set ClientToken in your DatadogSettings asset. " +
+                        "Flag evaluations will return default values.");
+                    return;
+                }
+
+                Instance.Configure(configuration, logger);
             }
         }
 
         /// <summary>
-        /// Shuts down the Flags feature, disposes all clients, and clears the singleton instance.
+        /// Shuts down the Flags feature, disposes all clients, and resets to pre-Enable state.
         /// </summary>
         public static void Shutdown()
         {
-            DdFlags instance;
             lock (_enableLock)
             {
-                instance = Instance;
-                Instance = null;
+                Instance._isEnabled = false;
+                Instance._configuration = null;
+                Instance._telemetrySender = null;
+                Instance._logger = null;
             }
 
-            instance?.ShutdownInternal();
+            Instance.ShutdownInternal();
         }
 
         /// <summary>
-        /// Creates a flags client for the given name.
+        /// Creates a flags client for the given name. Returns a <see cref="NoopFlagsClient"/>
+        /// if the SDK has not been enabled yet.
         /// </summary>
-        /// <param name="name">A unique name for this client. Defaults to "default".</param>
-        public FlagsClient CreateClient(string name = FlagsClient.DefaultName)
+        public IFlagsClient CreateClient(string name = FlagsClient.DefaultName)
         {
+            if (!_isEnabled)
+            {
+                return new NoopFlagsClient("DISABLED", DatadogSdk.Instance?.InternalLogger);
+            }
+
             lock (_lock)
             {
                 if (_clients.TryGetValue(name, out var existingClient))
@@ -147,25 +150,20 @@ namespace Datadog.Unity.Flags
                     precomputeEndpoint = FlagsEndpoints.GetPrecomputeEndpoint(DatadogSite.Us1);
                 }
 
-                var repository = new FlagsRepository();
-                var exposureTracker = new ExposureTracker();
+                var sender = GetOrCreateSender(options);
 
                 Action<ExposureEvent> onExposure = null;
                 EvaluationAggregator evaluationAggregator = null;
-                if (_telemetrySender != null)
+                if (_configuration.TrackExposures)
                 {
-                    if (_configuration.TrackExposures)
-                    {
-                        onExposure = _telemetrySender.SendExposure;
-                    }
+                    onExposure = sender.SendExposure;
+                }
 
-                    if (_configuration.TrackEvaluations)
-                    {
-                        var sender = _telemetrySender;
-                        evaluationAggregator = new EvaluationAggregator(
-                            onFlush: events => sender.SendEvaluations(events),
-                            flushIntervalSeconds: _configuration.EvaluationFlushIntervalSeconds);
-                    }
+                if (_configuration.TrackEvaluations)
+                {
+                    evaluationAggregator = new EvaluationAggregator(
+                        onFlush: events => sender.SendEvaluations(events),
+                        flushIntervalSeconds: _configuration.EvaluationFlushIntervalSeconds);
                 }
 
                 var fetcher = new PrecomputeAssignmentsFetcher(
@@ -176,8 +174,8 @@ namespace Datadog.Unity.Flags
                     logger: _logger);
 
                 var client = new FlagsClient(
-                    repository: repository,
-                    exposureTracker: exposureTracker,
+                    repository: new FlagsRepository(),
+                    exposureTracker: new ExposureTracker(),
                     evaluationAggregator: evaluationAggregator,
                     fetcher: fetcher,
                     logger: _logger,
@@ -190,7 +188,7 @@ namespace Datadog.Unity.Flags
             }
         }
 
-        internal FlagsClient GetClient(string name = FlagsClient.DefaultName)
+        internal IFlagsClient GetClient(string name = FlagsClient.DefaultName)
         {
             lock (_lock)
             {
@@ -199,12 +197,57 @@ namespace Datadog.Unity.Flags
             }
         }
 
+        // Sets configuration and marks the instance as enabled.
+        private void Configure(FlagsConfiguration configuration, IInternalLogger logger)
+        {
+            _configuration = configuration;
+            _logger = logger;
+            _isEnabled = true;
+        }
+
+        // Lazily creates the shared telemetry sender; reuses it on subsequent calls.
+        private EvpTelemetrySender GetOrCreateSender(DatadogConfigurationOptions options)
+        {
+            if (_telemetrySender != null)
+            {
+                return _telemetrySender;
+            }
+
+            var site = options?.Site ?? DatadogSite.Us1;
+            var exposureEndpoint = !string.IsNullOrEmpty(_configuration.CustomExposureEndpoint)
+                ? _configuration.CustomExposureEndpoint
+                : FlagsEndpoints.GetExposureEndpoint(site);
+            var evaluationEndpoint = !string.IsNullOrEmpty(_configuration.CustomEvaluationEndpoint)
+                ? _configuration.CustomEvaluationEndpoint
+                : FlagsEndpoints.GetEvaluationEndpoint(site);
+
+            _telemetrySender = new EvpTelemetrySender(
+                clientToken: options?.ClientToken ?? string.Empty,
+                exposureEndpoint: exposureEndpoint,
+                evaluationEndpoint: evaluationEndpoint,
+                env: options?.Env ?? string.Empty,
+                logger: _logger);
+
+            return _telemetrySender;
+        }
+
+        // Throws in editor/debug builds; logs at error level in production.
+        private static void ThrowOrLog(IInternalLogger logger, string message)
+        {
+            if (Application.isEditor || Debug.isDebugBuild)
+            {
+                throw new InvalidOperationException(message);
+            }
+
+            logger?.Log(DdLogLevel.Error, message);
+        }
+
         private void ShutdownInternal()
         {
-            List<FlagsClient> clientsToDispose;
+            List<IFlagsClient> clientsToDispose;
             lock (_lock)
             {
-                clientsToDispose = new List<FlagsClient>(_clients.Values);
+                clientsToDispose = new List<IFlagsClient>(_clients.Values);
                 _clients.Clear();
             }
 
