@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "profileId": "4wj2v650hnm7qr8cnvhbaxrazf",
+  "scope": {
+    "projects": {
+      "mode": "allowlist",
+      "allowedSlugs": [
+        "CT"
+      ]
+    },
+    "storage": {
+      "mode": "sd-scoped"
+    }
+  },
+  "sharedSecret": "05ba1978417875b37fbe4a7be36a951f4a09d30ab93a03dfa7a9dad1312cff30"
+}

@@ -69,7 +69,11 @@ namespace Datadog.Unity.Flags
                     {
                         if (request.result != UnityWebRequest.Result.Success)
                         {
-                            _logger?.Log(Logs.DdLogLevel.Warn, $"Failed to fetch flag assignments: {request.error}");
+                            var body = request.downloadHandler?.text;
+                            var message = string.IsNullOrEmpty(body)
+                                ? $"Failed to fetch flag assignments: {request.error}"
+                                : $"Failed to fetch flag assignments: {request.error} \u2014 {body}";
+                            _logger?.Log(Logs.DdLogLevel.Warn, message);
                             onComplete?.Invoke(null);
                             return;
                         }

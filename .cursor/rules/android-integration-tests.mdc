@@ -1,0 +1,70 @@
+---
+description: How to launch, monitor, and interpret Android integration test runs for dd-sdk-unity
+alwaysApply: false
+---
+
+# Android Integration Tests
+
+## Running
+
+```bash
+cd /Users/tyler.potter/go/src/github.com/DataDog/dd-sdk-unity
+bash ./run-script integration_test --platform android
+```
+
+The script manages the emulator, mock server, and Unity build automatically.
+
+## Monitoring
+
+1. **Check if running**: `ps aux | grep integration_test | grep -v grep`
+2. **Find the active terminal**: check `terminals/` for the most recently modified `.txt` file (`ls -t *.txt | head -1`)
+3. **Tail output**: `tail -20 terminals/<id>.txt`
+
+### Build phases (read from tail)
+
+| Output signature | Phase |
+|---|---|
+| `IL2CPP_CodeGen` / `il2cpp --convert-to-cpp` | IL2CPP compile — ~3–5 min, nothing to do |
+| `POST /precompute-assignments` | Tests running — flags tests |
+| `POST /api/v2/rum` | Tests running — RUM tests |
+| `Tests failed.` / `JUnit results written to:` | **Done** — parse XML |
+
+## Parsing Results
+
+```bash
+python3 -c "
+import xml.etree.ElementTree as ET
+tree = ET.parse('integration-test-android.xml')
+failures = [tc.get('name') for tc in tree.findall('.//testcase') if tc.find('failure') is not None]
+total = len(tree.findall('.//testcase'))
+print(f'{total - len(failures)}/{total} passing')
+for n in failures: print(f'  ❌ {n}')
+"
+```
+
+## Interpreting Failures
+
+**`UnityLogCheckDelegatingCommand` in stack trace** — an unexpected `LogError` or `LogWarning` was emitted during the test. Common causes:
+- Server error tests that don't have `LogAssert.Expect(LogType.Error, ...)` to declare expected error logs
+- Cross-test contamination: a late-firing async callback from a previous test logs an error into the next test's window
+
+**IL2CPP strips line numbers** — stack frames show `[0x00000]` with no file info. Diagnose from the test name + the code, not the trace.
+
+**No assertion message in `<failure>`** — usually a timeout (`WaitUntil` deadline exceeded) or an unexpected log (same as above).
+
+## Known Flaky Tests
+
+- `TrackedWebRequestScenario` — pre-existing RUM flake; intermittent network timing in the emulator. Not a regression.
+
+## Mock Server Endpoints
+
+The Python mock server runs on the host at the address the emulator uses to reach it (typically `10.0.0.54` → host).
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /precompute-assignments` | Flag assignment fetch |
+| `POST /api/v2/exposures` | Exposure telemetry |
+| `POST /api/v2/flagevaluation` | Evaluation telemetry |
+| `POST /api/v2/rum` | RUM events |
+| `GET /inspect_requests/` | Test polling — expected noise |
+| `GET /reset` | Test setup — expected noise |
