@@ -69,11 +69,9 @@ namespace Datadog.Unity.Flags
                     {
                         if (request.result != UnityWebRequest.Result.Success)
                         {
-                            var body = request.downloadHandler?.text;
-                            var message = string.IsNullOrEmpty(body)
-                                ? $"Failed to fetch flag assignments: {request.error}"
-                                : $"Failed to fetch flag assignments: {request.error} \u2014 {body}";
-                            _logger?.Log(Logs.DdLogLevel.Warn, message);
+                            var errorDetail = ExtractServerError(request.downloadHandler?.text, request.responseCode);
+                            _logger?.Log(Logs.DdLogLevel.Warn,
+                                $"Failed to fetch flag assignments (HTTP {request.responseCode}): {errorDetail}");
                             onComplete?.Invoke(null);
                             return;
                         }
@@ -122,6 +120,51 @@ namespace Datadog.Unity.Flags
                 },
             };
             return JsonConvert.SerializeObject(dto);
+        }
+
+        /// <summary>
+        /// Extracts a human-readable error message from a server response body.
+        /// Handles the two response shapes returned by the edge-assignments server:
+        ///   - JSON:API:  {"errors":[{"title":"...","detail":"..."}]}
+        ///   - Flat:      {"error":"..."} (Fastly-level panics / 405 handler)
+        /// Falls through to a generic message if the body is absent or unparseable.
+        /// </summary>
+        internal static string ExtractServerError(string body, long httpCode)
+        {
+            if (!string.IsNullOrEmpty(body))
+            {
+                try
+                {
+                    var obj = JObject.Parse(body);
+
+                    // JSON:API format: {"errors":[{"title":"...","detail":"..."}]}
+                    var errors = obj["errors"] as JArray;
+                    if (errors != null && errors.Count > 0)
+                    {
+                        var first = errors[0];
+                        var title = first["title"]?.Value<string>();
+                        var detail = first["detail"]?.Value<string>();
+
+                        if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(detail))
+                            return $"{title}: {detail}";
+                        if (!string.IsNullOrEmpty(title))
+                            return title;
+                        if (!string.IsNullOrEmpty(detail))
+                            return detail;
+                    }
+
+                    // Flat format: {"error":"..."} (Fastly catch-all / 405 handler)
+                    var error = obj["error"]?.Value<string>();
+                    if (!string.IsNullOrEmpty(error))
+                        return error;
+                }
+                catch
+                {
+                    // Body is not valid JSON — fall through.
+                }
+            }
+
+            return $"unreadable error response (HTTP {httpCode})";
         }
 
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
