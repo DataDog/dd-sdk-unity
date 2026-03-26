@@ -117,12 +117,6 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
-            if (_fetcher == null)
-            {
-                onComplete?.Invoke(false);
-                return;
-            }
-
             TransitionState(FlagsClientState.Reconciling);
 
             _fetcher.Fetch(context, flags =>

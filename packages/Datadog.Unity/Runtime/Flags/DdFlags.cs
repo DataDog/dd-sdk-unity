@@ -30,7 +30,7 @@ namespace Datadog.Unity.Flags
         /// <summary>
         /// The singleton. Always non-null. Call <see cref="Enable"/> to configure it.
         /// Before <see cref="Enable"/> succeeds, <see cref="CreateClient"/> returns a
-        /// <see cref="NoopFlagsClient"/> with reason <c>"DISABLED"</c>.
+        /// <see cref="NoopFlagsClient"/> with reason <c>"DEFAULT"</c>.
         /// </summary>
         public static readonly DdFlags Instance = new();
 
@@ -49,18 +49,12 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public static void Enable(FlagsConfiguration configuration = null)
         {
-            if (Instance._isEnabled)
-            {
-                DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
-                    "DdFlags.Enable() called more than once — ignoring.");
-                return;
-            }
-
             lock (_enableLock)
             {
-                // Re-check inside the lock in case two threads raced.
                 if (Instance._isEnabled)
                 {
+                    DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
+                        "DdFlags.Enable() called more than once — ignoring.");
                     return;
                 }
 
@@ -68,7 +62,7 @@ namespace Datadog.Unity.Flags
 
                 if (SynchronizationContext.Current == null)
                 {
-                    ThrowOrLog(logger,
+                    ReportMisconfiguration(logger,
                         "DdFlags.Enable() must be called from the Unity main thread. " +
                         "Automatic telemetry flushing will be disabled.");
                     // Non-fatal: continue in degraded mode without automatic flushing.
@@ -80,7 +74,7 @@ namespace Datadog.Unity.Flags
 
                 if (string.IsNullOrEmpty(options?.Env))
                 {
-                    ThrowOrLog(logger,
+                    ReportMisconfiguration(logger,
                         "DdFlags.Enable() requires the Datadog 'Env' setting to be configured. " +
                         "Set Env in your DatadogSettings asset. " +
                         "Flag evaluations will return default values.");
@@ -89,7 +83,7 @@ namespace Datadog.Unity.Flags
 
                 if (string.IsNullOrEmpty(options?.ClientToken))
                 {
-                    ThrowOrLog(logger,
+                    ReportMisconfiguration(logger,
                         "DdFlags.Enable() requires the Datadog 'ClientToken' setting to be configured. " +
                         "Set ClientToken in your DatadogSettings asset. " +
                         "Flag evaluations will return default values.");
@@ -107,10 +101,11 @@ namespace Datadog.Unity.Flags
         {
             lock (_enableLock)
             {
+                // Only flip _isEnabled — do not null out _configuration/_telemetrySender/_logger.
+                // Nulling those fields under a different lock than CreateClient() uses (_lock)
+                // creates a race where a concurrent CreateClient() could observe _isEnabled == true
+                // and then hit NullReferenceException on _configuration.
                 Instance._isEnabled = false;
-                Instance._configuration = null;
-                Instance._telemetrySender = null;
-                Instance._logger = null;
             }
 
             Instance.ShutdownInternal();
@@ -124,7 +119,7 @@ namespace Datadog.Unity.Flags
         {
             if (!_isEnabled)
             {
-                return new NoopFlagsClient("DISABLED", DatadogSdk.Instance?.InternalLogger);
+                return new NoopFlagsClient("DEFAULT", DatadogSdk.Instance?.InternalLogger);
             }
 
             lock (_lock)
@@ -231,8 +226,9 @@ namespace Datadog.Unity.Flags
             return _telemetrySender;
         }
 
-        // Throws in editor/debug builds; logs at error level in production.
-        private static void ThrowOrLog(IInternalLogger logger, string message)
+        // Reports a misconfiguration: throws in editor/debug builds so developers catch it
+        // immediately; logs at error level in production so the app never crashes.
+        private static void ReportMisconfiguration(IInternalLogger logger, string message)
         {
             if (Application.isEditor || Debug.isDebugBuild)
             {

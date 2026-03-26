@@ -20,7 +20,7 @@ namespace Datadog.Unity.Flags.Tests
         public void SetUp()
         {
             _logger = Substitute.For<IInternalLogger>();
-            _client = new NoopFlagsClient("DISABLED", _logger);
+            _client = new NoopFlagsClient("DEFAULT", _logger);
         }
 
         [TearDown]
@@ -30,9 +30,9 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void State_IsAlwaysDisabled()
+        public void State_IsNotReady()
         {
-            Assert.AreEqual(FlagsClientState.Disabled, _client.State);
+            Assert.AreEqual(FlagsClientState.NotReady, _client.State);
         }
 
         [Test]
@@ -66,7 +66,7 @@ namespace Datadog.Unity.Flags.Tests
             var details = _client.GetBooleanDetails("flag", false);
 
             Assert.AreEqual(false, details.Value);
-            Assert.AreEqual("DISABLED", details.Reason);
+            Assert.AreEqual("DEFAULT", details.Reason);
             Assert.IsNull(details.Error);
         }
 
@@ -88,7 +88,7 @@ namespace Datadog.Unity.Flags.Tests
 
             _logger.Received(1).Log(
                 DdLogLevel.Debug,
-                Arg.Is<string>(s => s.Contains("my-flag") && s.Contains("DISABLED")));
+                Arg.Is<string>(s => s.Contains("my-flag") && s.Contains("DEFAULT")));
         }
 
         [Test]
@@ -108,14 +108,28 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void StateChanged_NeverFires()
+        public void StateChanged_FiresImmediateReplay_WithNotReadyState()
         {
-            var fired = false;
-            _client.StateChanged += (_, _) => fired = true;
+            FlagsStateChange received = default;
+            _client.StateChanged += (_, change) => received = change;
+
+            Assert.AreEqual(FlagsClientState.NotReady, received.Old,
+                "Replay should fire synchronously with Old == NotReady");
+            Assert.AreEqual(FlagsClientState.NotReady, received.New,
+                "Replay should fire synchronously with New == NotReady (Old == New signals replay)");
+        }
+
+        [Test]
+        public void StateChanged_DoesNotFireOnContextChange()
+        {
+            var fireCount = 0;
+            _client.StateChanged += (_, _) => fireCount++;
+            // Reset counter after the subscription replay
+            fireCount = 0;
 
             _client.SetEvaluationContext(new FlagsEvaluationContext("user-1"));
 
-            Assert.IsFalse(fired);
+            Assert.AreEqual(0, fireCount, "No transitions should fire after initial subscription replay");
         }
     }
 }

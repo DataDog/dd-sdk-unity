@@ -25,8 +25,5 @@ namespace Datadog.Unity.Flags
 
         /// <summary>An unrecoverable error occurred.</summary>
         Error,
-
-        /// <summary>The client is disabled (e.g. SDK not yet enabled, or ENV not configured). All evaluations return defaults.</summary>
-        Disabled,
     }
 }

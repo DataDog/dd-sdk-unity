@@ -25,11 +25,17 @@ namespace Datadog.Unity.Flags
             _logger = logger;
         }
 
-        public FlagsClientState State => FlagsClientState.Disabled;
+        public FlagsClientState State => FlagsClientState.NotReady;
 
         public event EventHandler<FlagsStateChange> StateChanged
         {
-            add { }
+            add
+            {
+                // Replay current (NotReady) state immediately, matching IFlagsClient contract.
+                // No further transitions will ever fire on a noop client.
+                if (value == null) return;
+                value(this, new FlagsStateChange(FlagsClientState.NotReady, FlagsClientState.NotReady));
+            }
             remove { }
         }
 
@@ -52,7 +58,7 @@ namespace Datadog.Unity.Flags
         public FlagDetails<T> GetDetails<T>(string key, T defaultValue)
         {
             _logger?.Log(DdLogLevel.Debug,
-                $"[DdFlags] Returning default value for '{key}' — {_reason}");
+                $"[DdFlags] '{key}' — returning developer default ({_reason}: client not configured)");
             return new FlagDetails<T>(key, defaultValue, reason: _reason);
         }
 
