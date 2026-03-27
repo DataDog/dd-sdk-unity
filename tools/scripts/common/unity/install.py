@@ -244,12 +244,13 @@ class UnityInstall:
 
 def restore_nuget_packages(project_path: str, log) -> None:
     """
-    Downloads NuGet packages declared in Assets/packages.config directly from nuget.org
-    and extracts them into Assets/Packages/, mirroring what NuGetForUnity does when the
-    project is opened in the editor.
+    Downloads NuGet packages declared in Assets/packages.config directly from
+    nuget.org and extracts them into Assets/Packages/, mirroring what
+    NuGetForUnity does when the project is opened in the editor.
 
-    NuGetForUnity does not expose a public static batchmode entry point in its current
-    version, so we replicate the download step in Python rather than invoking Unity.
+    NuGetForUnity's batchmode entry point varies across versions and is not
+    reliably callable via -executeMethod, so we replicate the download step
+    in Python rather than invoking Unity.
     """
     import urllib.request
     import zipfile

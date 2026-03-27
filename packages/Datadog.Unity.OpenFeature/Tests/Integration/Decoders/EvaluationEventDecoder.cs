@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags.OpenFeature.Tests.Integration.Decoders
@@ -56,47 +57,124 @@ namespace Datadog.Unity.Flags.OpenFeature.Tests.Integration.Decoders
                         {
                             continue;
                         }
-                        result.Add(ParseBatch(JObject.Parse(data)));
+                        result.Add(ParseBatch(data));
                     }
                 }
             }
             return result;
         }
 
-        private static BatchedEvaluations ParseBatch(JObject root)
+        private static BatchedEvaluations ParseBatch(string data)
         {
-            var ctx = root["context"] as JObject;
-            var context = ctx == null ? null : new BatchContext
+            var dto = JsonConvert.DeserializeObject<BatchDto>(data);
+            if (dto == null)
             {
-                Env = ctx["env"]?.Value<string>(),
-                Service = ctx["service"]?.Value<string>(),
-                Version = ctx["version"]?.Value<string>(),
-                Device = ctx["device"] as JObject,
-                Os = ctx["os"] as JObject,
-            };
+                return new BatchedEvaluations { Context = null, FlagEvaluations = new List<EvaluationRecord>() };
+            }
+
+            BatchContext context = null;
+            if (dto.Context != null)
+            {
+                context = new BatchContext
+                {
+                    Env = dto.Context.Env,
+                    Service = dto.Context.Service,
+                    Version = dto.Context.Version,
+                    Device = dto.Context.Device,
+                    Os = dto.Context.Os,
+                };
+            }
 
             var evals = new List<EvaluationRecord>();
-            if (root["flagEvaluations"] is JArray arr)
+            if (dto.FlagEvaluations != null)
             {
-                foreach (var item in arr)
+                foreach (var item in dto.FlagEvaluations)
                 {
-                    var obj = (JObject)item;
                     evals.Add(new EvaluationRecord
                     {
-                        FlagKey = obj["flag"]?["key"]?.Value<string>(),
-                        VariantKey = obj["variant"]?["key"]?.Value<string>(),
-                        AllocationKey = obj["allocation"]?["key"]?.Value<string>(),
-                        TargetingKey = obj["targeting_key"]?.Value<string>(),
-                        ErrorMessage = obj["error"]?["message"]?.Value<string>(),
-                        FirstEvaluation = obj["first_evaluation"]?.Value<long>() ?? 0,
-                        LastEvaluation = obj["last_evaluation"]?.Value<long>() ?? 0,
-                        EvaluationCount = obj["evaluation_count"]?.Value<int>() ?? 0,
-                        RuntimeDefaultUsed = obj["runtime_default_used"]?.Value<bool?>(),
+                        FlagKey = item.Flag?.Key,
+                        VariantKey = item.Variant?.Key,
+                        AllocationKey = item.Allocation?.Key,
+                        TargetingKey = item.TargetingKey,
+                        ErrorMessage = item.Error?.Message,
+                        FirstEvaluation = item.FirstEvaluation,
+                        LastEvaluation = item.LastEvaluation,
+                        EvaluationCount = item.EvaluationCount,
+                        RuntimeDefaultUsed = item.RuntimeDefaultUsed,
                     });
                 }
             }
 
             return new BatchedEvaluations { Context = context, FlagEvaluations = evals };
+        }
+
+        private class BatchDto
+        {
+            [JsonProperty("context")]
+            public ContextDto Context { get; set; }
+
+            [JsonProperty("flagEvaluations")]
+            public List<FlagEvaluationDto> FlagEvaluations { get; set; }
+        }
+
+        private class ContextDto
+        {
+            [JsonProperty("env")]
+            public string Env { get; set; }
+
+            [JsonProperty("service")]
+            public string Service { get; set; }
+
+            [JsonProperty("version")]
+            public string Version { get; set; }
+
+            [JsonProperty("device")]
+            public JObject Device { get; set; }
+
+            [JsonProperty("os")]
+            public JObject Os { get; set; }
+        }
+
+        private class FlagEvaluationDto
+        {
+            [JsonProperty("flag")]
+            public KeyedDto Flag { get; set; }
+
+            [JsonProperty("variant")]
+            public KeyedDto Variant { get; set; }
+
+            [JsonProperty("allocation")]
+            public KeyedDto Allocation { get; set; }
+
+            [JsonProperty("targeting_key")]
+            public string TargetingKey { get; set; }
+
+            [JsonProperty("error")]
+            public ErrorDto Error { get; set; }
+
+            [JsonProperty("first_evaluation")]
+            public long FirstEvaluation { get; set; }
+
+            [JsonProperty("last_evaluation")]
+            public long LastEvaluation { get; set; }
+
+            [JsonProperty("evaluation_count")]
+            public int EvaluationCount { get; set; }
+
+            [JsonProperty("runtime_default_used")]
+            public bool? RuntimeDefaultUsed { get; set; }
+        }
+
+        private class KeyedDto
+        {
+            [JsonProperty("key")]
+            public string Key { get; set; }
+        }
+
+        private class ErrorDto
+        {
+            [JsonProperty("message")]
+            public string Message { get; set; }
         }
 
         public static List<EvaluationRecord> AllRecords(List<MockServerLog> logs)

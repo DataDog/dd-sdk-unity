@@ -2,11 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Datadog.Unity.Flags;
-using Newtonsoft.Json.Linq;
 using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
@@ -15,7 +13,7 @@ namespace Datadog.Unity.Flags.OpenFeature
 {
     /// <summary>
     /// OpenFeature provider backed by a Datadog <see cref="IFlagsClient"/>.
-    /// Flag evaluation is a synchronous in-memory lookup — no network calls on the hot path.
+    /// Flag evaluation is a synchronous in-memory lookup — no network calls during execution.
     ///
     /// Obtain a client via <see cref="DdFlags.CreateClient"/> and register
     /// the provider with OpenFeature:
@@ -97,7 +95,7 @@ namespace Datadog.Unity.Flags.OpenFeature
                     reason: flagDetails.Reason, variant: flagDetails.Variant));
             }
 
-            var value = ToOpenFeatureValue(flagDetails.Value) ?? defaultValue;
+            var value = FlagValueConverter.ToOpenFeatureValue(flagDetails.Value) ?? defaultValue;
             return Task.FromResult(new ResolutionDetails<Value>(
                 flagKey, value, variant: flagDetails.Variant, reason: flagDetails.Reason));
         }
@@ -129,65 +127,6 @@ namespace Datadog.Unity.Flags.OpenFeature
                 default:
                     return ErrorType.General;
             }
-        }
-
-        private static Value ToOpenFeatureValue(object obj)
-        {
-            if (obj == null) return null;
-            if (obj is bool b) return new Value(b);
-            if (obj is int i) return new Value(i);
-            if (obj is long l) return new Value((double)l);
-            if (obj is double d) return new Value(d);
-            if (obj is float f) return new Value((double)f);
-            if (obj is string s) return new Value(s);
-            if (obj is JObject jObj)
-            {
-                var converted = new Dictionary<string, Value>();
-                foreach (var prop in jObj.Properties())
-                {
-                    var val = ToOpenFeatureValue(prop.Value);
-                    if (val != null) converted[prop.Name] = val;
-                }
-                return new Value(new Structure(converted));
-            }
-            if (obj is JArray jArr)
-            {
-                var values = new List<Value>(jArr.Count);
-                foreach (var item in jArr)
-                {
-                    var val = ToOpenFeatureValue(item);
-                    if (val != null) values.Add(val);
-                }
-                return new Value(values);
-            }
-            if (obj is JValue jVal) return ToOpenFeatureValue(jVal.Value);
-            if (obj is Dictionary<string, object> dict)
-            {
-                var converted = new Dictionary<string, Value>();
-                foreach (var kvp in dict)
-                {
-                    var val = ToOpenFeatureValue(kvp.Value);
-                    if (val != null)
-                    {
-                        converted[kvp.Key] = val;
-                    }
-                }
-                return new Value(new Structure(converted));
-            }
-            if (obj is IList<object> list)
-            {
-                var values = new List<Value>(list.Count);
-                foreach (var item in list)
-                {
-                    var val = ToOpenFeatureValue(item);
-                    if (val != null)
-                    {
-                        values.Add(val);
-                    }
-                }
-                return new Value(values);
-            }
-            return new Value(obj.ToString());
         }
     }
 }
