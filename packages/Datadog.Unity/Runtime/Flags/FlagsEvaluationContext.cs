@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Datadog.Unity.Logs;
 
 namespace Datadog.Unity.Flags
 {
@@ -38,6 +39,16 @@ namespace Datadog.Unity.Flags
         {
             TargetingKey = targetingKey ?? string.Empty;
 
+            if (string.IsNullOrEmpty(TargetingKey))
+            {
+                DatadogSdk.Instance?.InternalLogger?.Log(DdLogLevel.Warn,
+                    "FlagsEvaluationContext created with a null or empty targeting key. " +
+                    "The targeting key is the bucketing key for flag assignments and must be a stable, " +
+                    "unique identifier per user (e.g. user ID). An empty key will produce a 400 " +
+                    "from the assignments endpoint.");
+            }
+
+            // Always initialize Attributes — never null, even when no attributes are provided.
             var flat = new Dictionary<string, string>();
             if (attributes != null)
             {

@@ -117,6 +117,14 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
+            if (string.IsNullOrEmpty(context.TargetingKey))
+            {
+                _logger?.Log(Logs.DdLogLevel.Warn,
+                    "SetEvaluationContext called with an empty targeting key. " +
+                    "Proceeding with the fetch, but the assignments endpoint will likely return an error. " +
+                    "Provide a stable, unique targeting key per user (e.g. user ID).");
+            }
+
             TransitionState(FlagsClientState.Reconciling);
 
             _fetcher.Fetch(context, flags =>
