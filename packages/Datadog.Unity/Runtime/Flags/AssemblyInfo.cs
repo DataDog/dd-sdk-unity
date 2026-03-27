@@ -5,3 +5,4 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.flags.openfeature.tests")]

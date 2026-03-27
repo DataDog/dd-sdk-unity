@@ -16,7 +16,7 @@ from typing import List
 from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, modified_ios_target_settings
+from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, modified_ios_target_settings, restore_nuget_packages
 from common.ddconfig import DatadogRuntimeConfig, FirstPartyHost, modified_datadog_settings
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import prepare_mock_server_venv, run_mock_server
@@ -76,6 +76,8 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     unity_install = resolve_unity_install(unity_installs, unity_version_prefix)
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {unity_version_prefix} is installed')
+
+    restore_nuget_packages(project_path, log)
 
     # Ensure that our output path has a 'platform' placeholder
     if r'%(platform)s' not in out_junit_path_pattern:

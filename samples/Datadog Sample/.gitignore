@@ -75,3 +75,7 @@ crashlytics-build.properties
 /[Aa]ssets/initTestScene*
 
 /tmp/*
+
+# NuGet packages installed by NuGetForUnity (managed at runtime, not committed)
+Assets/Packages/*
+!Assets/Packages/*.meta

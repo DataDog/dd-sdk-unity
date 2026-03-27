@@ -5,8 +5,10 @@
 using System.Collections.Generic;
 using Datadog.Unity;
 using Datadog.Unity.Flags;
+using Datadog.Unity.Flags.OpenFeature;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
+using OpenFeature;
 using UnityEngine;
 
 public class TestBehavior : MonoBehaviour
@@ -51,6 +53,7 @@ public class TestBehavior : MonoBehaviour
         // Feature Flags
         DdFlags.Enable();
         var flagsClient = DdFlags.Instance.CreateClient();
+        _ = Api.Instance.SetProviderAsync(new DatadogFeatureProvider(flagsClient));
         flagsClient.SetEvaluationContext(
             new FlagsEvaluationContext("user-1234", new Dictionary<string, object>
             {
@@ -60,8 +63,9 @@ public class TestBehavior : MonoBehaviour
             {
                 if (success)
                 {
-                    var featureEnabled = flagsClient.GetBooleanValue("new-feature", false);
-                    logger.Info($"Feature flag 'new-feature' = {featureEnabled}");
+                    var ofClient = Api.Instance.GetClient();
+                    _ = ofClient.GetBooleanValueAsync("new-feature", false).ContinueWith(t =>
+                        logger.Info($"Feature flag 'new-feature' = {t.Result}"));
                 }
                 else
                 {

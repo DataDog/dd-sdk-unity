@@ -8,6 +8,7 @@ from .install import (
     UnityLicenseStatus,
     UnityBatchModeResult,
     UnityInstall,
+    restore_nuget_packages,
     resolve_unity_install,
     match_unity_version,
 )
@@ -20,6 +21,7 @@ __all__ = [
     'UnityLicenseStatus',
     'UnityBatchModeResult',
     'UnityInstall',
+    'restore_nuget_packages',
     'resolve_unity_install',
     'match_unity_version',
     'UnityHub',

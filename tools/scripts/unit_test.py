@@ -13,7 +13,7 @@ from typing import List
 from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus
+from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, restore_nuget_packages
 from common.xslt import transform_nunit_to_junit
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -45,6 +45,8 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
     unity_install = resolve_unity_install(unity_installs, version_prefix)
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {version_prefix} is installed')
+
+    restore_nuget_packages(project_path, log)
 
     for platform in platforms:
         # Compute paths to artifact files

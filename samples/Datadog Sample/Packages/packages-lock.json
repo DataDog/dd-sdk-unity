@@ -9,12 +9,21 @@
         "com.google.external-dependency-manager": "1.2.186"
       }
     },
+    "com.datadoghq.unity.flags.openfeature": {
+      "version": "file:../../../packages/Datadog.Unity.OpenFeature",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.datadoghq.unity": "0.8.0",
+        "com.github-glitchenzo.nugetforunity": "*"
+      }
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "1360823f15ed590204b960472df505357c1bb929"
+      "hash": "c2af83c9d4f8cdaada9d4a0e94de2f195d8e1d01"
     },
     "com.google.external-dependency-manager": {
       "version": "1.2.186",

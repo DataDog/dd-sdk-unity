@@ -1,0 +1,32 @@
+{
+    "name": "com.datadoghq.unity.flags.openfeature.tests",
+    "rootNamespace": "Datadog.Unity.Flags.OpenFeature.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "com.datadog.unity",
+        "com.datadoghq.unity.flags",
+        "com.datadoghq.unity.flags.openfeature",
+        "com.datadoghq.unity.tests"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "Newtonsoft.Json.dll",
+        "OpenFeature.dll",
+        "Microsoft.Extensions.Logging.Abstractions.dll",
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "System.Threading.Channels.dll",
+        "NSubstitute.dll",
+        "Castle.Core.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

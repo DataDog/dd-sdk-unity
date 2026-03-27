@@ -1,0 +1,14 @@
+{
+  "name": "com.datadoghq.unity.flags.openfeature",
+  "version": "0.1.0",
+  "displayName": "Datadog Unity Flags - OpenFeature",
+  "description": "OpenFeature provider for the Datadog Flags SDK",
+  "unity": "2022.3",
+  "license": "Apache 2.0",
+  "keywords": ["flags", "openfeature", "feature flags"],
+  "type": "library",
+  "dependencies": {
+    "com.datadoghq.unity": "0.8.0",
+    "com.github-glitchenzo.nugetforunity": "*"
+  }
+}
