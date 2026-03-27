@@ -11,7 +11,7 @@ namespace Datadog.Unity.Flags
     /// Client for evaluating feature flags. Use <c>DdFlags.CreateClient()</c> to create
     /// an instance after calling <c>DdFlags.Enable()</c>.
     /// </summary>
-    public class FlagsClient : IDisposable
+    public class FlagsClient : IFlagsClient
     {
         public const string DefaultName = "default";
 
@@ -25,7 +25,7 @@ namespace Datadog.Unity.Flags
         private readonly bool _trackEvaluations;
         private readonly Action<ExposureEvent> _onExposure;
 
-        private FlagsClientState _state = FlagsClientState.NotReady;
+        private FlagsClientState _state;
         private bool _disposed;
 
         internal FlagsClient(
@@ -36,7 +36,8 @@ namespace Datadog.Unity.Flags
             Core.IInternalLogger logger,
             bool trackExposures,
             bool trackEvaluations,
-            Action<ExposureEvent> onExposure)
+            Action<ExposureEvent> onExposure,
+            FlagsClientState initialState = FlagsClientState.NotReady)
         {
             _repository = repository;
             _exposureTracker = exposureTracker;
@@ -46,6 +47,7 @@ namespace Datadog.Unity.Flags
             _trackExposures = trackExposures;
             _trackEvaluations = trackEvaluations;
             _onExposure = onExposure;
+            _state = initialState;
         }
 
         /// <summary>
