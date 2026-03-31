@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Add Feature Flags SDK. Remotely control feature availability in your Unity app using `DdFlags.Enable()`, `IFlagsClient`, and typed flag accessors (`GetBooleanValue`, `GetStringValue`, `GetIntegerValue`, `GetDoubleValue`, `GetObjectValue`). Flags are fetched once per evaluation context and evaluated locally with no network calls at read time.
+
 ## 1.6.4
 
 * Fixed a missing `using` statement that could cause Android builds to fail.
