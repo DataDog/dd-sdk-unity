@@ -9,6 +9,6 @@
   "type": "library",
   "dependencies": {
     "com.datadoghq.unity": "0.8.0",
-    "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity#a7c6b49a0141a5bff9b1983e38137522ef61977d"
+    "com.github-glitchenzo.nugetforunity": "4.5.0"
   }
 }

@@ -13,7 +13,7 @@ namespace Datadog.Unity.Flags.OpenFeature
 {
     /// <summary>
     /// OpenFeature provider backed by a Datadog <see cref="IFlagsClient"/>.
-    /// Flag evaluation is a synchronous in-memory lookup — no network calls during execution.
+    /// Flag evaluation is a synchronous in-memory lookup with no network calls during execution.
     ///
     /// Obtain a client via <see cref="DdFlags.CreateClient"/> and register
     /// the provider with OpenFeature:
@@ -95,7 +95,7 @@ namespace Datadog.Unity.Flags.OpenFeature
                     reason: flagDetails.Reason, variant: flagDetails.Variant));
             }
 
-            var value = FlagValueConverter.ToOpenFeatureValue(flagDetails.Value) ?? defaultValue;
+            var value = flagDetails.AsOpenFeatureValue() ?? defaultValue;
             return Task.FromResult(new ResolutionDetails<Value>(
                 flagKey, value, variant: flagDetails.Variant, reason: flagDetails.Reason));
         }

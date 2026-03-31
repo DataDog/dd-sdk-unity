@@ -242,58 +242,23 @@ class UnityInstall:
         return None
 
 
-def restore_nuget_packages(project_path: str, log) -> None:
+def restore_nuget_packages(unity_install: 'UnityInstall', project_path: str, log) -> None:
     """
-    Downloads NuGet packages declared in Assets/packages.config directly from
-    nuget.org and extracts them into Assets/Packages/, mirroring what
-    NuGetForUnity does when the project is opened in the editor.
-
-    NuGetForUnity's batchmode entry point varies across versions and is not
-    reliably callable via -executeMethod, so we replicate the download step
-    in Python rather than invoking Unity.
+    Restores NuGet packages declared in Assets/packages.config by invoking
+    NuGetForUnity's batchmode entry point via Unity.
     """
-    import urllib.request
-    import zipfile
-    import xml.etree.ElementTree as ET
-
     packages_config = os.path.join(project_path, 'Assets', 'packages.config')
     if not os.path.isfile(packages_config):
         log.info('No Assets/packages.config found — skipping NuGet restore.')
         return
 
-    install_dir = os.path.join(project_path, 'Assets', 'Packages')
-    os.makedirs(install_dir, exist_ok=True)
-
-    tree = ET.parse(packages_config)
-    packages = [
-        (pkg.get('id'), pkg.get('version'))
-        for pkg in tree.findall('package')
-        if pkg.get('id') and pkg.get('version')
-    ]
-
-    log.info(f'Restoring {len(packages)} NuGet package(s) for {os.path.basename(project_path)}...')
-
-    for pkg_id, pkg_version in packages:
-        dest_dir = os.path.join(install_dir, f'{pkg_id}.{pkg_version}')
-        if os.path.isdir(dest_dir):
-            log.info(f'  {pkg_id} {pkg_version} — already installed, skipping.')
-            continue
-
-        url = f'https://api.nuget.org/v3-flatcontainer/{pkg_id.lower()}/{pkg_version}/{pkg_id.lower()}.{pkg_version}.nupkg'
-        nupkg_path = dest_dir + '.nupkg'
-        log.info(f'  Downloading {pkg_id} {pkg_version}...')
-        try:
-            urllib.request.urlretrieve(url, nupkg_path)
-            os.makedirs(dest_dir, exist_ok=True)
-            with zipfile.ZipFile(nupkg_path, 'r') as zf:
-                zf.extractall(dest_dir)
-            log.info(f'  {pkg_id} {pkg_version} — installed.')
-        except Exception as e:
-            log.warning(f'  {pkg_id} {pkg_version} — failed to download: {e}')
-        finally:
-            if os.path.isfile(nupkg_path):
-                os.remove(nupkg_path)
-
+    log.info(f'Restoring NuGet packages for {os.path.basename(project_path)}...')
+    result = unity_install.run_batchmode(
+        project_path,
+        '-executeMethod', 'Datadog.Unity.Editor.NugetRestoreHelper.RestorePackages',
+    )
+    if result.exitcode != 0:
+        raise RuntimeError(f'NuGet restore failed with exit code {result.exitcode}')
     log.info('NuGet restore complete.')
 
 

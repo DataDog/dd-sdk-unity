@@ -46,7 +46,7 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {version_prefix} is installed')
 
-    restore_nuget_packages(project_path, log)
+    restore_nuget_packages(unity_install, project_path, log)
 
     for platform in platforms:
         # Compute paths to artifact files

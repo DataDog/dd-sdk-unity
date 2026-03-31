@@ -77,7 +77,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {unity_version_prefix} is installed')
 
-    restore_nuget_packages(project_path, log)
+    restore_nuget_packages(unity_install, project_path, log)
 
     # Ensure that our output path has a 'platform' placeholder
     if r'%(platform)s' not in out_junit_path_pattern:
