@@ -3,8 +3,6 @@
 ## Unreleased
 
 * Add Feature Flags SDK. Remotely control feature availability in your Unity app using `DdFlags.Enable()`, `IFlagsClient`, and typed flag accessors (`GetBooleanValue`, `GetStringValue`, `GetIntegerValue`, `GetDoubleValue`, `GetObjectValue`). Flags are fetched once per evaluation context and evaluated locally with no network calls at read time.
-* `DdFlags.Enable()` now logs a clear error (or throws in Editor/debug builds) when the Datadog environment is not configured, instead of silently failing.
-* `SetEvaluationContext()` now logs a warning when called with an empty targeting key, which would otherwise cause a server-side 400 error with no actionable feedback.
 
 ## 1.6.4
 
