@@ -15,15 +15,15 @@
       "source": "local",
       "dependencies": {
         "com.datadoghq.unity": "0.8.0",
-        "com.github-glitchenzo.nugetforunity": "*"
+        "com.github-glitchenzo.nugetforunity": "4.5.0"
       }
     },
     "com.github-glitchenzo.nugetforunity": {
-      "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
+      "version": "4.5.0",
       "depth": 0,
-      "source": "git",
+      "source": "registry",
       "dependencies": {},
-      "hash": "c2af83c9d4f8cdaada9d4a0e94de2f195d8e1d01"
+      "url": "https://package.openupm.com"
     },
     "com.google.external-dependency-manager": {
       "version": "1.2.186",

@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Datadog.Unity.Flags;
@@ -33,6 +34,8 @@ namespace Datadog.Unity.Flags.OpenFeature
         internal const string ProviderName = "Datadog";
 
         private readonly IFlagsClient _client;
+        private readonly SemaphoreSlim _contextLock = new SemaphoreSlim(1, 1);
+        private string _lastContextFingerprint;
 
         public DatadogFeatureProvider(IFlagsClient client)
         {
@@ -44,60 +47,66 @@ namespace Datadog.Unity.Flags.OpenFeature
             return new Metadata(ProviderName);
         }
 
-        public override Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
+        public override async Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
             string flagKey,
             bool defaultValue,
             EvaluationContext? context = null,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Resolve(flagKey, defaultValue));
+            await EnsureContextAsync(context, cancellationToken).ConfigureAwait(false);
+            return Resolve(flagKey, defaultValue);
         }
 
-        public override Task<ResolutionDetails<string>> ResolveStringValueAsync(
+        public override async Task<ResolutionDetails<string>> ResolveStringValueAsync(
             string flagKey,
             string defaultValue,
             EvaluationContext? context = null,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Resolve(flagKey, defaultValue));
+            await EnsureContextAsync(context, cancellationToken).ConfigureAwait(false);
+            return Resolve(flagKey, defaultValue);
         }
 
-        public override Task<ResolutionDetails<int>> ResolveIntegerValueAsync(
+        public override async Task<ResolutionDetails<int>> ResolveIntegerValueAsync(
             string flagKey,
             int defaultValue,
             EvaluationContext? context = null,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Resolve(flagKey, defaultValue));
+            await EnsureContextAsync(context, cancellationToken).ConfigureAwait(false);
+            return Resolve(flagKey, defaultValue);
         }
 
-        public override Task<ResolutionDetails<double>> ResolveDoubleValueAsync(
+        public override async Task<ResolutionDetails<double>> ResolveDoubleValueAsync(
             string flagKey,
             double defaultValue,
             EvaluationContext? context = null,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Resolve(flagKey, defaultValue));
+            await EnsureContextAsync(context, cancellationToken).ConfigureAwait(false);
+            return Resolve(flagKey, defaultValue);
         }
 
-        public override Task<ResolutionDetails<Value>> ResolveStructureValueAsync(
+        public override async Task<ResolutionDetails<Value>> ResolveStructureValueAsync(
             string flagKey,
             Value defaultValue,
             EvaluationContext? context = null,
             CancellationToken cancellationToken = default)
         {
+            await EnsureContextAsync(context, cancellationToken).ConfigureAwait(false);
+
             var flagDetails = _client.GetDetails<object>(flagKey, null);
 
             if (flagDetails.Error.HasValue)
             {
-                return Task.FromResult(new ResolutionDetails<Value>(
+                return new ResolutionDetails<Value>(
                     flagKey, defaultValue, MapErrorType(flagDetails.Error.Value),
-                    reason: flagDetails.Reason, variant: flagDetails.Variant));
+                    reason: flagDetails.Reason, variant: flagDetails.Variant);
             }
 
             var value = flagDetails.AsOpenFeatureValue() ?? defaultValue;
-            return Task.FromResult(new ResolutionDetails<Value>(
-                flagKey, value, variant: flagDetails.Variant, reason: flagDetails.Reason));
+            return new ResolutionDetails<Value>(
+                flagKey, value, variant: flagDetails.Variant, reason: flagDetails.Reason);
         }
 
         private ResolutionDetails<T> Resolve<T>(string flagKey, T defaultValue)
@@ -116,6 +125,86 @@ namespace Datadog.Unity.Flags.OpenFeature
                 reason: flagDetails.Reason);
         }
 
+        /// <summary>
+        /// If <paramref name="context"/> is non-null and its fingerprint differs from the last
+        /// fetched context, triggers a <see cref="IFlagsClient.SetEvaluationContext"/> fetch and
+        /// awaits completion before returning.
+        /// </summary>
+        private async Task EnsureContextAsync(EvaluationContext context, CancellationToken cancellationToken)
+        {
+            if (context == null || string.IsNullOrEmpty(context.TargetingKey))
+            {
+                return;
+            }
+
+            var fingerprint = ComputeFingerprint(context);
+            if (fingerprint == _lastContextFingerprint)
+            {
+                return;
+            }
+
+            await _contextLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // Double-check after acquiring the lock
+                if (fingerprint == _lastContextFingerprint)
+                {
+                    return;
+                }
+
+                var tcs = new TaskCompletionSource<bool>();
+                _client.SetEvaluationContext(ToFlagsContext(context), success =>
+                {
+                    tcs.TrySetResult(success);
+                });
+                await tcs.Task.ConfigureAwait(false);
+
+                _lastContextFingerprint = fingerprint;
+            }
+            finally
+            {
+                _contextLock.Release();
+            }
+        }
+
+        private static string ComputeFingerprint(EvaluationContext context)
+        {
+            // Use manual iteration via GetEnumerator() to avoid a compile-time dependency on
+            // System.Collections.Immutable (returned by EvaluationContext.AsDictionary()).
+            var sorted = new SortedDictionary<string, string>();
+            using var enumerator = context.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                sorted[enumerator.Current.Key] = enumerator.Current.Value?.ToString() ?? string.Empty;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append(context.TargetingKey).Append(':');
+            foreach (var kvp in sorted)
+            {
+                sb.Append(kvp.Key).Append('=').Append(kvp.Value).Append(';');
+            }
+            return sb.ToString();
+        }
+
+        private static FlagsEvaluationContext ToFlagsContext(EvaluationContext context)
+        {
+            var attrs = new Dictionary<string, object>();
+            using var enumerator = context.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                var v = enumerator.Current.Value;
+                attrs[enumerator.Current.Key] = v?.AsString ?? v?.ToString();
+            }
+
+            if (attrs.Count == 0)
+            {
+                return new FlagsEvaluationContext(context.TargetingKey);
+            }
+
+            return new FlagsEvaluationContext(context.TargetingKey, attrs);
+        }
+
         private static ErrorType MapErrorType(FlagEvaluationError error)
         {
             switch (error)
@@ -124,6 +213,8 @@ namespace Datadog.Unity.Flags.OpenFeature
                     return ErrorType.FlagNotFound;
                 case FlagEvaluationError.TypeMismatch:
                     return ErrorType.TypeMismatch;
+                case FlagEvaluationError.ProviderNotReady:
+                    return ErrorType.ProviderNotReady;
                 default:
                     return ErrorType.General;
             }

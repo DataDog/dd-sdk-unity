@@ -14,7 +14,8 @@
         "OpenFeature.dll",
         "Microsoft.Extensions.Logging.Abstractions.dll",
         "Microsoft.Bcl.AsyncInterfaces.dll",
-        "System.Threading.Channels.dll"
+        "System.Threading.Channels.dll",
+        "System.Collections.Immutable.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],

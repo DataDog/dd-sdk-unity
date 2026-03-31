@@ -9,6 +9,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Datadog.Unity.Flags;
 using Datadog.Unity.Flags.OpenFeature.Tests.Integration.Decoders;
+using Datadog.Unity.Tests.Integration;
+using OpenFeature.Constant;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using OpenFeature;
@@ -679,6 +681,35 @@ namespace Datadog.Unity.Flags.OpenFeature.Tests.Integration
             yield return null;
         }
 
+        // ─── Group 9a: Context via OpenFeature API (hybrid workaround) ───────────────
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator SetContextViaOpenFeatureApi_FlagsAvailableAfterEvaluation()
+        {
+            // Configure mock server but do NOT call InitFlags (which sets context directly on IFlagsClient)
+            yield return _mockServer.Clear();
+            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+
+            DdFlags.Enable(MakeConfig());
+            var ddClient = DdFlags.Instance.CreateClient();
+            yield return AwaitTask(Api.Instance.SetProviderAsync(new DatadogFeatureProvider(ddClient)));
+
+            // Set context through the OpenFeature API, NOT via ddClient.SetEvaluationContext
+            var ofContext = EvaluationContext.Builder()
+                .SetTargetingKey("user-123")
+                .Build();
+            Api.Instance.SetContext(ofContext);
+
+            // Evaluating a flag should trigger the context fetch via the hybrid workaround
+            // and return the correct value from the precomputed payload
+            var ofClient = Api.Instance.GetClient();
+            bool boolResult = false;
+            yield return AwaitTask(ofClient.GetBooleanValueAsync("boolean-flag", false), v => boolResult = v);
+
+            Assert.IsTrue(boolResult);
+        }
+
         // ─── Group 9: ProviderNotReady error before fetch ─────────────────────────────
 
         [UnityTest]
@@ -697,7 +728,7 @@ namespace Datadog.Unity.Flags.OpenFeature.Tests.Integration
             yield return AwaitTask(ofClient.GetBooleanDetailsAsync("boolean-flag", false), v => details = v);
 
             Assert.AreEqual(false, details.Value, "Should return default value");
-            Assert.AreEqual(OpenFeature.Constant.ErrorType.ProviderNotReady, details.ErrorType);
+            Assert.AreEqual(ErrorType.ProviderNotReady, details.ErrorType);
 
             yield return null;
         }

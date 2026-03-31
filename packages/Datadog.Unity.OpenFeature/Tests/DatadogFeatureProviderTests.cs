@@ -2,9 +2,11 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Datadog.Unity.Flags;
+using NSubstitute;
 using NUnit.Framework;
 using OpenFeature;
 using OpenFeature.Constant;
@@ -228,6 +230,94 @@ namespace Datadog.Unity.Flags.OpenFeature.Tests
             foreach (var t in threads) t.Join();
 
             Assert.IsEmpty(errors, "Thread safety violation detected");
+        }
+
+        // ─── Context-aware resolution (hybrid workaround) ─────────────────────────
+
+        [Test]
+        public void ResolveBooleanValue_WithNewContext_CallsSetEvaluationContext()
+        {
+            var mockClient = Substitute.For<IFlagsClient>();
+            mockClient.When(c => c.SetEvaluationContext(
+                    Arg.Any<FlagsEvaluationContext>(),
+                    Arg.Any<Action<bool>>()))
+                .Do(ci => ci.ArgAt<Action<bool>>(1)?.Invoke(true));
+            mockClient.GetDetails("my-flag", false)
+                .Returns(new FlagDetails<bool>("my-flag", true, variant: "on", reason: "TARGETING_MATCH"));
+
+            var provider = new DatadogFeatureProvider(mockClient);
+            var context = EvaluationContext.Builder().SetTargetingKey("user-123").Build();
+
+            var result = provider.ResolveBooleanValueAsync("my-flag", false, context).GetAwaiter().GetResult();
+
+            mockClient.Received(1).SetEvaluationContext(
+                Arg.Is<FlagsEvaluationContext>(c => c.TargetingKey == "user-123"),
+                Arg.Any<Action<bool>>());
+            Assert.IsTrue(result.Value);
+        }
+
+        [Test]
+        public void ResolveBooleanValue_WithSameContextTwice_CallsSetEvaluationContextOnce()
+        {
+            var mockClient = Substitute.For<IFlagsClient>();
+            mockClient.When(c => c.SetEvaluationContext(
+                    Arg.Any<FlagsEvaluationContext>(),
+                    Arg.Any<Action<bool>>()))
+                .Do(ci => ci.ArgAt<Action<bool>>(1)?.Invoke(true));
+            mockClient.GetDetails("my-flag", false)
+                .Returns(new FlagDetails<bool>("my-flag", true, variant: "on", reason: "TARGETING_MATCH"));
+
+            var provider = new DatadogFeatureProvider(mockClient);
+            var context = EvaluationContext.Builder().SetTargetingKey("user-123").Build();
+
+            provider.ResolveBooleanValueAsync("my-flag", false, context).GetAwaiter().GetResult();
+            provider.ResolveBooleanValueAsync("my-flag", false, context).GetAwaiter().GetResult();
+
+            mockClient.Received(1).SetEvaluationContext(
+                Arg.Any<FlagsEvaluationContext>(),
+                Arg.Any<Action<bool>>());
+        }
+
+        [Test]
+        public void ResolveBooleanValue_WithChangedContext_CallsSetEvaluationContextAgain()
+        {
+            var mockClient = Substitute.For<IFlagsClient>();
+            mockClient.When(c => c.SetEvaluationContext(
+                    Arg.Any<FlagsEvaluationContext>(),
+                    Arg.Any<Action<bool>>()))
+                .Do(ci => ci.ArgAt<Action<bool>>(1)?.Invoke(true));
+            mockClient.GetDetails("my-flag", false)
+                .Returns(new FlagDetails<bool>("my-flag", true, variant: "on", reason: "TARGETING_MATCH"));
+
+            var provider = new DatadogFeatureProvider(mockClient);
+            var ctx1 = EvaluationContext.Builder().SetTargetingKey("user-A").Build();
+            var ctx2 = EvaluationContext.Builder().SetTargetingKey("user-B").Build();
+
+            provider.ResolveBooleanValueAsync("my-flag", false, ctx1).GetAwaiter().GetResult();
+            provider.ResolveBooleanValueAsync("my-flag", false, ctx2).GetAwaiter().GetResult();
+
+            mockClient.Received(1).SetEvaluationContext(
+                Arg.Is<FlagsEvaluationContext>(c => c.TargetingKey == "user-A"),
+                Arg.Any<Action<bool>>());
+            mockClient.Received(1).SetEvaluationContext(
+                Arg.Is<FlagsEvaluationContext>(c => c.TargetingKey == "user-B"),
+                Arg.Any<Action<bool>>());
+        }
+
+        [Test]
+        public void ResolveBooleanValue_WithNullContext_DoesNotCallSetEvaluationContext()
+        {
+            var mockClient = Substitute.For<IFlagsClient>();
+            mockClient.GetDetails("my-flag", false)
+                .Returns(new FlagDetails<bool>("my-flag", false, error: FlagEvaluationError.ProviderNotReady));
+
+            var provider = new DatadogFeatureProvider(mockClient);
+
+            provider.ResolveBooleanValueAsync("my-flag", false, null).GetAwaiter().GetResult();
+
+            mockClient.DidNotReceive().SetEvaluationContext(
+                Arg.Any<FlagsEvaluationContext>(),
+                Arg.Any<Action<bool>>());
         }
 
         // ─── Helpers ───────────────────────────────────────────────────────────────

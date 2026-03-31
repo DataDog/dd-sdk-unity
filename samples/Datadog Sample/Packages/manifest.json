@@ -46,7 +46,8 @@
     "com.unity.modules.xr": "1.0.0"
   },
   "testables": [
-    "com.datadoghq.unity"
+    "com.datadoghq.unity",
+    "com.datadoghq.unity.flags.openfeature"
   ],
   "scopedRegistries": [
     {

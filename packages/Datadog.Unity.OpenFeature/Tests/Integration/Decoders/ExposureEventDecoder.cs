@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Datadog.Unity.Tests.Integration;
 using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags.OpenFeature.Tests.Integration.Decoders
