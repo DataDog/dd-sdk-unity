@@ -228,7 +228,7 @@ namespace Datadog.Unity.Editor.iOS
         }
 
         [Test]
-        public void GenerateOptionsFileRemovesVitalsUpdateFrequencyWhenNone()
+        public void GenerateOptionsFileWritesNilForVitalsUpdateFrequencyNone()
         {
             var options = new DatadogConfigurationOptions()
             {
@@ -240,7 +240,8 @@ namespace Datadog.Unity.Editor.iOS
 
             var lines = File.ReadAllLines(_initializationFilePath);
             var uploadFrequencyLines = lines.Where(l => l.Contains("vitalsUpdateFrequency =")).ToArray();
-            Assert.AreEqual(0, uploadFrequencyLines.Length);
+            Assert.AreEqual(1, uploadFrequencyLines.Length);
+            Assert.AreEqual("rumConfig.vitalsUpdateFrequency = nil", uploadFrequencyLines.First().Trim());
         }
 
         [TestCase(VitalsUpdateFrequency.Rare, ".rare")]
