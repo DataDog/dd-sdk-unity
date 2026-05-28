@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Setting `VitalsUpdateFrequency` to `None` now properly takes effect in iOS builds.
+
 ## 1.7.0
 
 * Add Feature Flags SDK. Remotely control feature availability in your Unity app using `DdFlags.Enable()`, `IFlagsClient`, and typed flag accessors (`GetBooleanValue`, `GetStringValue`, `GetIntegerValue`, `GetDoubleValue`, `GetObjectValue`). Flags are fetched once per evaluation context and evaluated locally with no network calls at read time.

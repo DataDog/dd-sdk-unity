@@ -170,10 +170,7 @@ func initializeDatadog() {{
                     sb.AppendLine($@"    rumConfig.customEndpoint = URL(string: ""{options.CustomEndpoint}/api/v2/rum"")");
                 }
 
-                if (options.VitalsUpdateFrequency != VitalsUpdateFrequency.None)
-                {
-                    sb.AppendLine($"    rumConfig.vitalsUpdateFrequency = {GetSwiftVitalsUpdateFrequency(options.VitalsUpdateFrequency)}");
-                }
+                sb.AppendLine($"    rumConfig.vitalsUpdateFrequency = {GetSwiftVitalsUpdateFrequency(options.VitalsUpdateFrequency)}");
 
                 sb.AppendLine($"    rumConfig.sessionSampleRate = {options.SessionSampleRate}");
                 sb.AppendLine($"    rumConfig.telemetrySampleRate = {options.TelemetrySampleRate}");
