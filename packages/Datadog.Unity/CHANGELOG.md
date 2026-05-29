@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 1.7.1
 
 * Setting `VitalsUpdateFrequency` to `None` now properly takes effect in iOS builds.
 
