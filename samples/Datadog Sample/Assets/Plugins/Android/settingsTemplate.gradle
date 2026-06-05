@@ -17,7 +17,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
 // Android Resolver Repos Start
-        def unityProjectPath = $/file:///**DIR_UNITYPROJECT**/$.replace("\\", "/")
         mavenLocal()
 // Android Resolver Repos End
         flatDir {

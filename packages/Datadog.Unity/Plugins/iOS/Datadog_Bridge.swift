@@ -59,7 +59,9 @@ func Datadog_SetUserInfo(
     email: CString?,
     extraInfo: CString?
 ) {
-    let idString = decodeCString(cString: id)
+    guard let idString = decodeCString(cString: id) else {
+        return
+    }
     let nameString = decodeCString(cString: name)
     let emailString = decodeCString(cString: email)
     let decodedExtraInfo = decodeJsonAttributes(fromCString: extraInfo)

@@ -119,11 +119,16 @@ namespace Datadog.Unity
         /// <param name="email">The user's email.</param>
         /// <param name="extraInfo">A map of any extra information about the user.</param>
         public void SetUserInfo(
-            string id = null,
+            string id,
             string name = null,
             string email = null,
             Dictionary<string, object> extraInfo = null)
         {
+            if (id == null)
+            {
+                _internalLogger.Log(DdLogLevel.Warn, "SetUserInfo requires a non-null id. Ignoring.");
+                return;
+            }
             InternalHelpers.Wrap("SetUserInfo", () =>
             {
                 _worker?.AddMessage(new DdSdkProcessor.SetUserInfoMessage(id, name, email, extraInfo));
