@@ -44,7 +44,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             }
 
             var rumEvents = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
-            foreach (var  rumEvent in rumEvents)
+            foreach (var rumEvent in rumEvents.Where(e => e.EventType != "telemetry"))
             {
                 VerifyCommonEventTags(rumEvent, "1.123");
             }

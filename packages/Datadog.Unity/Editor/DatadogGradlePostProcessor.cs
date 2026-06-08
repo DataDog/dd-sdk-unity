@@ -32,22 +32,23 @@ namespace Datadog.Unity.Editor
                 return;
             }
 
-            // Modify the generated build.gradle file; abort silently if it doesn't exist
+            // Modify the unityLibrary build.gradle; abort silently if it doesn't exist
             string gradlePath = Path.Combine(path, "build.gradle");
-            if (!File.Exists(gradlePath))
+            if (File.Exists(gradlePath))
             {
-                return;
+                string[] lines = File.ReadAllLines(gradlePath);
+                lines = ApplyAndroidxMetricsCompatibilityFix(lines);
+                File.WriteAllLines(gradlePath, lines);
             }
 
-            // Read the existing contents of build.gradle, normalizing line endings
-            string[] lines = File.ReadAllLines(gradlePath);
-
-            // Ensure that our dependency on dd-sdk-android-rum is declared in such a way that all transitive
-            // dependencies are resolved to versions that are compatible with this version of Unity
-            lines = ApplyAndroidxMetricsCompatibilityFix(lines);
-
-            // Write our modifications to the file
-            File.WriteAllLines(gradlePath, lines);
+            // Modify the root build.gradle to force AGP 7-compatible androidx.core versions
+            string rootGradlePath = Path.Combine(path, "..", "build.gradle");
+            if (File.Exists(rootGradlePath))
+            {
+                string[] lines = File.ReadAllLines(rootGradlePath);
+                lines = ApplyAndroidxCoreCompatibilityFix(lines);
+                File.WriteAllLines(rootGradlePath, lines);
+            }
         }
 
         /// <summary>
@@ -167,6 +168,36 @@ namespace Datadog.Unity.Editor
                 indentStr + "implementation 'androidx.metrics:metrics-performance:1.0.0-beta01'",
             };
             return lines.Take(found.Index).Concat(newDeclarationLines).Concat(lines.Skip(found.Index + 1)).ToArray();
+        }
+
+        /// <summary>
+        /// Appends a subprojects block to the root build.gradle that forces AGP 7-compatible versions of
+        /// androidx.core. androidx.core 1.15.0+ ships Java 21 bytecode that D8 in AGP 7.x cannot process.
+        /// </summary>
+        /// <param name="lines">Lines from the root build.gradle.</param>
+        /// <returns>The same lines with the force block appended, or unchanged if already applied.</returns>
+        public static string[] ApplyAndroidxCoreCompatibilityFix(string[] lines)
+        {
+            if (Array.Exists(lines, l => l.Contains("androidx.core:core:1.13.1")))
+            {
+                return lines;
+            }
+
+            string[] block =
+            {
+                "",
+                "// DatadogGradlePostProcessor: Force AGP 7-compatible androidx.core versions",
+                "// androidx.core 1.15.0+ ships Java 21 bytecode that D8 in AGP 7.x cannot process",
+                "subprojects {",
+                "    configurations.all {",
+                "        resolutionStrategy {",
+                "            force 'androidx.core:core:1.13.1'",
+                "            force 'androidx.core:core-ktx:1.13.1'",
+                "        }",
+                "    }",
+                "}",
+            };
+            return lines.Concat(block).ToArray();
         }
     }
 }

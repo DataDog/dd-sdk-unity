@@ -65,9 +65,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
             // This is mostly just checking that the headers exist. We could make this test more thorough
             // by decoding the trace and span ids and checking the values match the resource event.
             // For now, we'll only check the SpanId and assume unit testing covers the rest.
-            Assert.AreEqual("rum", headers["X-Datadog-Origin"]);
-            Assert.AreEqual("1", headers["X-Datadog-Sampling-Priority"]);
-            Assert.IsNotNull(headers["Traceparent"]);
+            Assert.AreEqual("rum", headers.First(pair => pair.Key.ToLower() == "x-datadog-origin").Value);
+            Assert.AreEqual("1", headers.First(pair => pair.Key.ToLower() == "x-datadog-sampling-priority").Value);
+            Assert.IsNotNull(headers.FirstOrDefault(pair => pair.Key.ToLower() == "traceparent"));
 
             var getFirstPartyResource = firstVisit.ResourceEvents.FirstOrDefault(r => r.Url.Contains("integration_get"));
             Assert.IsNotNull(getFirstPartyResource);

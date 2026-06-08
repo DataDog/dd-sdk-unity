@@ -109,7 +109,7 @@ namespace Datadog.Unity.Android
             using var logsConfigBuilder = new AndroidJavaObject("com.datadog.android.log.LogsConfiguration$Builder");
             if (options.CustomEndpoint != string.Empty)
             {
-                logsConfigBuilder.Call<AndroidJavaObject>("useCustomEndpoint", options.CustomEndpoint);
+                logsConfigBuilder.Call<AndroidJavaObject>("useCustomEndpoint", $"{options.CustomEndpoint}/api/v2/logs");
             }
 
             using var logsConfig = logsConfigBuilder.Call<AndroidJavaObject>("build");
@@ -122,7 +122,7 @@ namespace Datadog.Unity.Android
                 rumConfigBuilder.Call<AndroidJavaObject>("disableUserInteractionTracking");
                 if (options.CustomEndpoint != string.Empty)
                 {
-                    rumConfigBuilder.Call<AndroidJavaObject>("useCustomEndpoint", options.CustomEndpoint);
+                    rumConfigBuilder.Call<AndroidJavaObject>("useCustomEndpoint", $"{options.CustomEndpoint}/api/v2/rum");
                 }
 
                 rumConfigBuilder.Call<AndroidJavaObject>("useViewTrackingStrategy", new object[] { null });

@@ -200,7 +200,7 @@ namespace Datadog.Unity.Android
             return errorSourceClass.GetStatic<AndroidJavaObject>(errorSourceName);
         }
 
-        internal static string GetHttpMethod(RumHttpMethod httpMethod)
+        internal static AndroidJavaObject GetHttpMethod(RumHttpMethod httpMethod)
         {
             string httpMethodName = httpMethod switch
             {
@@ -212,7 +212,8 @@ namespace Datadog.Unity.Android
                 RumHttpMethod.Patch => "PATCH",
                 _ => "GET"
             };
-            return httpMethodName;
+            using var resourceMethodClass = new AndroidJavaClass("com.datadog.android.rum.RumResourceMethod");
+            return resourceMethodClass.GetStatic<AndroidJavaObject>(httpMethodName);
         }
 
         internal static AndroidJavaObject GetResourceType(RumResourceType resourceType)

@@ -185,6 +185,68 @@ android {
 }
 ";
 
+        [Test]
+        public void AddsSubprojectsCoreForceToRootBuildGradle()
+        {
+            string[] lines = RootGradleFileAsGenerated.Split("\n");
+            string[] gotLines = DatadogGradlePostProcessor.ApplyAndroidxCoreCompatibilityFix(lines);
+            string got = string.Join("\n", gotLines);
+            Assert.AreEqual(RootGradleFileWithCoreForce, got);
+        }
+
+        [Test]
+        public void CoreFixHasNoEffectWhenRunAgain()
+        {
+            string[] lines = RootGradleFileWithCoreForce.Split("\n");
+            string[] gotLines = DatadogGradlePostProcessor.ApplyAndroidxCoreCompatibilityFix(lines);
+            Assert.AreEqual(lines, gotLines);
+        }
+
+        private const string RootGradleFileAsGenerated = @"buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'com.android.application' version '7.4.2' apply false
+    id 'com.android.library' version '7.4.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.8.22' apply false
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}";
+
+        private const string RootGradleFileWithCoreForce = @"buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'com.android.application' version '7.4.2' apply false
+    id 'com.android.library' version '7.4.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.8.22' apply false
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+// DatadogGradlePostProcessor: Force AGP 7-compatible androidx.core versions
+// androidx.core 1.15.0+ ships Java 21 bytecode that D8 in AGP 7.x cannot process
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+        }
+    }
+}";
+
         private const string GradleFileWithoutEdmDependencies = @"apply plugin: 'com.android.library'
 
 dependencies {
