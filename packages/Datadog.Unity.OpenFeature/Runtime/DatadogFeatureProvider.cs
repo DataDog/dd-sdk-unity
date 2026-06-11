@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Datadog.Unity.Flags;
@@ -105,8 +106,10 @@ namespace Datadog.Unity.Flags.OpenFeature
             }
 
             var value = flagDetails.AsOpenFeatureValue() ?? defaultValue;
+            var flagMetadata = ToFlagMetadata(flagDetails.Metadata);
             return new ResolutionDetails<Value>(
-                flagKey, value, variant: flagDetails.Variant, reason: flagDetails.Reason);
+                flagKey, value, variant: flagDetails.Variant, reason: flagDetails.Reason,
+                flagMetadata: flagMetadata);
         }
 
         private ResolutionDetails<T> Resolve<T>(string flagKey, T defaultValue)
@@ -120,9 +123,26 @@ namespace Datadog.Unity.Flags.OpenFeature
                     reason: flagDetails.Reason, variant: flagDetails.Variant);
             }
 
+            var flagMetadata = ToFlagMetadata(flagDetails.Metadata);
             return new ResolutionDetails<T>(
                 flagKey, flagDetails.Value, variant: flagDetails.Variant,
-                reason: flagDetails.Reason);
+                reason: flagDetails.Reason, flagMetadata: flagMetadata);
+        }
+
+        private static ImmutableDictionary<string, object> ToFlagMetadata(
+            System.Collections.Generic.IReadOnlyDictionary<string, object> metadata)
+        {
+            if (metadata == null || metadata.Count == 0)
+            {
+                return null;
+            }
+
+            var builder = ImmutableDictionary.CreateBuilder<string, object>();
+            foreach (var kvp in metadata)
+            {
+                builder.Add(kvp.Key, kvp.Value);
+            }
+            return builder.ToImmutable();
         }
 
         /// <summary>
