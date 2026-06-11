@@ -3,7 +3,6 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Datadog.Unity.Flags;
@@ -129,7 +128,7 @@ namespace Datadog.Unity.Flags.OpenFeature
                 reason: flagDetails.Reason, flagMetadata: flagMetadata);
         }
 
-        private static ImmutableDictionary<string, object> ToFlagMetadata(
+        private static ImmutableMetadata ToFlagMetadata(
             System.Collections.Generic.IReadOnlyDictionary<string, object> metadata)
         {
             if (metadata == null || metadata.Count == 0)
@@ -137,12 +136,8 @@ namespace Datadog.Unity.Flags.OpenFeature
                 return null;
             }
 
-            var builder = ImmutableDictionary.CreateBuilder<string, object>();
-            foreach (var kvp in metadata)
-            {
-                builder.Add(kvp.Key, kvp.Value);
-            }
-            return builder.ToImmutable();
+            var dict = new Dictionary<string, object>(metadata);
+            return new ImmutableMetadata(dict);
         }
 
         /// <summary>

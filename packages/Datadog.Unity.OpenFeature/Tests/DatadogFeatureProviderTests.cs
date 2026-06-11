@@ -320,6 +320,49 @@ namespace Datadog.Unity.Flags.OpenFeature.Tests
                 Arg.Any<Action<bool>>());
         }
 
+        // ─── FlagMetadata threading ────────────────────────────────────────────────
+
+        [Test]
+        public void ResolveBooleanValue_WithMetadata_ThreadsMetadataIntoFlagMetadata()
+        {
+            var extraLogging = new Newtonsoft.Json.Linq.JObject
+            {
+                ["experiment"] = "exp-1",
+                ["sampleRate"] = 0.5,
+            };
+            SetFlags(new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, true, "alloc-42", "variant-on", "TARGETING_MATCH", extraLogging),
+            });
+
+            var result = _provider.ResolveBooleanValueAsync("my-flag", false).GetAwaiter().GetResult();
+
+            Assert.AreEqual("alloc-42", result.FlagMetadata?.GetValue<string>("allocationKey"));
+            Assert.AreEqual("exp-1", result.FlagMetadata?.GetValue<string>("experiment"));
+        }
+
+        [Test]
+        public void ResolveBooleanValue_WithNoExtraLoggingAndBlankAllocationKey_HasNullFlagMetadata()
+        {
+            SetFlags(new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, true, "", "variant-on", "TARGETING_MATCH"),
+            });
+
+            var result = _provider.ResolveBooleanValueAsync("my-flag", false).GetAwaiter().GetResult();
+
+            Assert.IsNull(result.FlagMetadata);
+        }
+
+        [Test]
+        public void ResolveBooleanValue_ErrorPath_HasNullFlagMetadata()
+        {
+            // Error paths do not populate FlagMetadata
+            var result = _provider.ResolveBooleanValueAsync("missing-flag", false).GetAwaiter().GetResult();
+
+            Assert.IsNull(result.FlagMetadata);
+        }
+
         // ─── Helpers ───────────────────────────────────────────────────────────────
 
         private void SetFlags(Dictionary<string, FlagAssignment> flags)
