@@ -95,6 +95,10 @@ namespace Datadog.Unity.Flags.OpenFeature
         {
             await EnsureContextAsync(context, cancellationToken).ConfigureAwait(false);
 
+            // GetDetails<object> is intentional: OpenFeature Value has no direct Datadog equivalent,
+            // so we fetch as object and convert via AsOpenFeatureValue(). The trade-off is that
+            // type mismatches are not caught here — a non-object flag will convert silently.
+            // TODO: add a structural type check and return ErrorType.TypeMismatch for non-object flags.
             var flagDetails = _client.GetDetails<object>(flagKey, null);
 
             if (flagDetails.Error.HasValue)
@@ -172,9 +176,15 @@ namespace Datadog.Unity.Flags.OpenFeature
                 {
                     tcs.TrySetResult(success);
                 });
-                await tcs.Task.ConfigureAwait(false);
+                var success = await tcs.Task.ConfigureAwait(false);
 
-                _lastContextFingerprint = fingerprint;
+                // Only commit the fingerprint on success. On fetch failure the fingerprint is
+                // intentionally left unchanged so subsequent calls with the same context will
+                // retry the fetch rather than being silently suppressed.
+                if (success)
+                {
+                    _lastContextFingerprint = fingerprint;
+                }
             }
             finally
             {
