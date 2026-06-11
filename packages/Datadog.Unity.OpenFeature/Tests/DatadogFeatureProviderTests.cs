@@ -337,8 +337,9 @@ namespace Datadog.Unity.Flags.OpenFeature.Tests
 
             var result = _provider.ResolveBooleanValueAsync("my-flag", false).GetAwaiter().GetResult();
 
-            Assert.AreEqual("alloc-42", result.FlagMetadata?.GetValue<string>("allocationKey"));
-            Assert.AreEqual("exp-1", result.FlagMetadata?.GetValue<string>("experiment"));
+            Assert.AreEqual("alloc-42", result.FlagMetadata?.GetString("allocationKey"));
+            Assert.AreEqual("exp-1", result.FlagMetadata?.GetString("experiment"));
+            Assert.AreEqual(0.5, result.FlagMetadata?.GetDouble("sampleRate"));
         }
 
         [Test]
