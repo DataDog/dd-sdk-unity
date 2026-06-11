@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -231,11 +233,14 @@ namespace Datadog.Unity.Flags
                 return new FlagDetails<T>(key, defaultValue, error: FlagEvaluationError.TypeMismatch);
             }
 
+            var metadata = BuildMetadata(assignment);
             var details = new FlagDetails<T>(
                 key: key,
                 value: value,
                 variant: assignment.VariationKey,
-                reason: assignment.Reason);
+                reason: assignment.Reason,
+                allocationKey: assignment.AllocationKey,
+                metadata: metadata);
 
             TrackEvaluation(key, assignment, null);
             return details;
@@ -265,6 +270,41 @@ namespace Datadog.Unity.Flags
         private T GetValue<T>(string key, T defaultValue)
         {
             return GetDetails(key, defaultValue).Value;
+        }
+
+        private static IReadOnlyDictionary<string, object> BuildMetadata(FlagAssignment assignment)
+        {
+            var dict = new Dictionary<string, object>();
+
+            // Write extraLogging primitives first; skip any "allocationKey" key here
+            // because the typed AllocationKey field is written last and must win.
+            foreach (var prop in assignment.ExtraLogging.Properties())
+            {
+                if (prop.Name == "allocationKey") continue;
+                switch (prop.Value.Type)
+                {
+                    case JTokenType.String:
+                        dict[prop.Name] = prop.Value.Value<string>();
+                        break;
+                    case JTokenType.Boolean:
+                        dict[prop.Name] = prop.Value.Value<bool>();
+                        break;
+                    case JTokenType.Integer:
+                        dict[prop.Name] = prop.Value.Value<long>();
+                        break;
+                    case JTokenType.Float:
+                        dict[prop.Name] = prop.Value.Value<double>();
+                        break;
+                }
+            }
+
+            // allocationKey written last so it always wins over any extraLogging value
+            if (!string.IsNullOrEmpty(assignment.AllocationKey))
+            {
+                dict["allocationKey"] = assignment.AllocationKey;
+            }
+
+            return new ReadOnlyDictionary<string, object>(dict);
         }
 
         private void TrackEvaluation(string key, FlagAssignment assignment, string flagError)

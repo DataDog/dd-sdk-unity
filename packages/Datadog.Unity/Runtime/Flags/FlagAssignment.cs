@@ -20,7 +20,8 @@ namespace Datadog.Unity.Flags
             bool doLog,
             string allocationKey,
             string variationKey,
-            string reason)
+            string reason,
+            JObject extraLogging = null)
         {
             VariationType = variationType ?? string.Empty;
             VariationValue = variationValue;
@@ -28,6 +29,7 @@ namespace Datadog.Unity.Flags
             AllocationKey = allocationKey ?? string.Empty;
             VariationKey = variationKey ?? string.Empty;
             Reason = reason ?? string.Empty;
+            ExtraLogging = extraLogging ?? new JObject();
         }
 
         /// <summary>
@@ -59,6 +61,11 @@ namespace Datadog.Unity.Flags
         /// Gets the resolution reason (DEFAULT, TARGETING_MATCH, RULE_MATCH, etc.).
         /// </summary>
         public string Reason { get; }
+
+        /// <summary>
+        /// Gets the extra logging metadata for this flag.
+        /// </summary>
+        public JObject ExtraLogging { get; }
 
         /// <summary>
         /// Attempts to get the variation value as the specified type.
