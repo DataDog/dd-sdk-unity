@@ -2,6 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+
 namespace Datadog.Unity.Flags
 {
     /// <summary>
@@ -25,13 +28,22 @@ namespace Datadog.Unity.Flags
     /// <typeparam name="T">The type of the flag value.</typeparam>
     public class FlagDetails<T>
     {
-        internal FlagDetails(string key, T value, string variant = null, string reason = null, FlagEvaluationError? error = null)
+        internal FlagDetails(
+            string key,
+            T value,
+            string variant = null,
+            string reason = null,
+            FlagEvaluationError? error = null,
+            string allocationKey = null,
+            IReadOnlyDictionary<string, object> metadata = null)
         {
             Key = key;
             Value = value;
             Variant = variant;
             Reason = reason;
             Error = error;
+            AllocationKey = allocationKey ?? string.Empty;
+            Metadata = metadata ?? new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
         }
 
         /// <summary>Gets the flag key.</summary>
@@ -48,5 +60,11 @@ namespace Datadog.Unity.Flags
 
         /// <summary>Gets the evaluation error (null if successful).</summary>
         public FlagEvaluationError? Error { get; }
+
+        /// <summary>Gets the allocation key for this evaluation.</summary>
+        public string AllocationKey { get; }
+
+        /// <summary>Gets the evaluation metadata including allocationKey and extraLogging fields.</summary>
+        public IReadOnlyDictionary<string, object> Metadata { get; }
     }
 }

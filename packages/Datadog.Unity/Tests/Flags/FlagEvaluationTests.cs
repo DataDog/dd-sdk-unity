@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Flags.Tests
@@ -15,6 +16,22 @@ namespace Datadog.Unity.Flags.Tests
         public void SetUp()
         {
             _repository = new FlagsRepository();
+        }
+
+        // Helper: build a minimal FlagsClient backed by an in-memory repository.
+        // trackExposures and trackEvaluations are false so null trackers are safe.
+        private FlagsClient MakeClient(FlagsRepository repo)
+        {
+            return new FlagsClient(
+                repository: repo,
+                exposureTracker: null,
+                evaluationAggregator: null,
+                fetcher: null,
+                logger: null,
+                trackExposures: false,
+                trackEvaluations: false,
+                onExposure: null,
+                initialState: FlagsClientState.Ready);
         }
 
         [Test]
@@ -131,6 +148,106 @@ namespace Datadog.Unity.Flags.Tests
             _repository.SetFlagsAndContext(new FlagsEvaluationContext("u1"), flags2);
             Assert.IsNull(_repository.GetFlagAssignment("flag-a"));
             Assert.IsNotNull(_repository.GetFlagAssignment("flag-b"));
+        }
+
+        // ─── GetDetails: AllocationKey threading ─────────────────────────────────────
+
+        [Test]
+        public void GetDetails_ReturnsAllocationKey()
+        {
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, false, "alloc-xyz", "treatment", "TARGETING_MATCH"),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.AreEqual("alloc-xyz", details.AllocationKey);
+        }
+
+        [Test]
+        public void GetDetails_MetadataContainsAllocationKey()
+        {
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, false, "alloc-abc", "treatment", "TARGETING_MATCH"),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.IsTrue(details.Metadata.ContainsKey("allocationKey"),
+                "Metadata must contain 'allocationKey'");
+            Assert.AreEqual("alloc-abc", details.Metadata["allocationKey"]);
+        }
+
+        [Test]
+        public void GetDetails_MetadataContainsExtraLoggingPrimitives()
+        {
+            var extraLogging = new JObject
+            {
+                ["experiment"] = "exp-42",
+                ["score"] = 99L,
+                ["active"] = true,
+                ["ratio"] = 0.75,
+            };
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment(
+                    "boolean", true, false, "alloc-1", "treatment", "TARGETING_MATCH",
+                    extraLogging: extraLogging),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.AreEqual("exp-42", details.Metadata["experiment"]);
+            Assert.AreEqual(99L, details.Metadata["score"]);
+            Assert.AreEqual(true, details.Metadata["active"]);
+            Assert.AreEqual(0.75, details.Metadata["ratio"]);
+        }
+
+        [Test]
+        public void GetDetails_MetadataAllocationKeyWinsOverExtraLoggingAllocationKey()
+        {
+            // If extraLogging contains an "allocationKey" key, the typed AllocationKey
+            // from the assignment must win (written last, so it overwrites).
+            var extraLogging = new JObject
+            {
+                ["allocationKey"] = "should-be-overwritten",
+            };
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment(
+                    "boolean", true, false, "real-alloc", "treatment", "TARGETING_MATCH",
+                    extraLogging: extraLogging),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.AreEqual("real-alloc", details.Metadata["allocationKey"]);
+        }
+
+        [Test]
+        public void GetDetails_EmptyAllocationKey_MetadataOmitsAllocationKeyEntry()
+        {
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, false, "", "treatment", "DEFAULT"),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.IsFalse(details.Metadata.ContainsKey("allocationKey"),
+                "allocationKey must not appear in Metadata when the assignment has no allocation key");
         }
     }
 }
