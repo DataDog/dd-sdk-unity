@@ -290,10 +290,17 @@ namespace Datadog.Unity.Flags
                         dict[prop.Name] = prop.Value.Value<bool>();
                         break;
                     case JTokenType.Integer:
-                        dict[prop.Name] = prop.Value.Value<long>();
+                        // Convert.ToInt64 can throw OverflowException for BigInteger values that
+                        // exceed Int64 range. Fall back to the string representation so the value
+                        // is preserved in metadata rather than dropped entirely.
+                        try { dict[prop.Name] = Convert.ToInt64(prop.Value); }
+                        catch { dict[prop.Name] = prop.Value.ToString(); }
                         break;
                     case JTokenType.Float:
-                        dict[prop.Name] = prop.Value.Value<double>();
+                        // Convert.ToDouble can throw for decimal values outside double range.
+                        // Fall back to string so the value is preserved rather than dropped.
+                        try { dict[prop.Name] = Convert.ToDouble(prop.Value); }
+                        catch { dict[prop.Name] = prop.Value.ToString(); }
                         break;
                 }
             }

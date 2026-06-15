@@ -7,6 +7,12 @@ using System.Collections.ObjectModel;
 
 namespace Datadog.Unity.Flags
 {
+    internal static class EmptyMetadata
+    {
+        internal static readonly IReadOnlyDictionary<string, object> Instance =
+            new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+    }
+
     /// <summary>
     /// Error codes for flag evaluation failures.
     /// </summary>
@@ -43,7 +49,7 @@ namespace Datadog.Unity.Flags
             Reason = reason;
             Error = error;
             AllocationKey = allocationKey ?? string.Empty;
-            Metadata = metadata ?? new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+            Metadata = metadata ?? EmptyMetadata.Instance;
         }
 
         /// <summary>Gets the flag key.</summary>
