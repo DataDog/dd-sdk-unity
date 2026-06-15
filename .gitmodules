@@ -1,0 +1,3 @@
+[submodule "modules/dd-sdk-cpp"]
+	path = modules/dd-sdk-cpp
+	url = https://github.com/DataDog/dd-sdk-cpp

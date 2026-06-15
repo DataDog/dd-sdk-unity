@@ -29,17 +29,38 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
                             return;
                         }
 
-                        foreach (var line in lines)
+                        if (lines.Length == 1 && lines[0].StartsWith("["))
                         {
-                            var jsonRum = JObject.Parse(line);
-                            var rumEvent = RumEventDecoder.fromJson(jsonRum);
-                            if (rumEvent != null)
+                            // Sent as an array instead of JSONL
+                            var jsonArray = JArray.Parse(lines[0]);
+                            foreach (var jsonRum in jsonArray)
                             {
-                                rumEvents.Add(rumEvent);
+                                var rumEvent = RumEventDecoder.fromJson(jsonRum as JObject);
+                                if (rumEvent != null)
+                                {
+                                    rumEvents.Add(rumEvent);
+                                }
+                                else
+                                {
+                                    Debug.LogWarning("Failed to decode RUMEvent from MockServerLog");
+                                }
                             }
-                            else
+                        }
+                        else
+                        {
+                            // Sent as JSONL
+                            foreach (var line in lines)
                             {
-                                Debug.LogWarning("Failed to decode RUMEvent from MockServerLog");
+                                var jsonRum = JObject.Parse(line);
+                                var rumEvent = RumEventDecoder.fromJson(jsonRum);
+                                if (rumEvent != null)
+                                {
+                                    rumEvents.Add(rumEvent);
+                                }
+                                else
+                                {
+                                    Debug.LogWarning("Failed to decode RUMEvent from MockServerLog");
+                                }
                             }
                         }
                     }));

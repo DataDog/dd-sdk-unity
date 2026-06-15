@@ -84,17 +84,17 @@ namespace Datadog.Unity.Tests.Integration.Logging
 
         public string UserId
         {
-            get { return GetNestedProperty<string>("usr.id"); }
+            get { return GetNestedProperty<string>("usr.id", true); }
         }
 
         public string UserName
         {
-            get { return GetNestedProperty<string>("usr.name"); }
+            get { return GetNestedProperty<string>("usr.name", true); }
         }
 
         public string UserEmail
         {
-            get { return GetNestedProperty<string>("usr.email"); }
+            get { return GetNestedProperty<string>("usr.email", true); }
         }
 
         public Dictionary<string, object> UserExtraInfo
@@ -136,30 +136,44 @@ namespace Datadog.Unity.Tests.Integration.Logging
             return logs;
         }
 
-        private T GetNestedProperty<T>(string key)
+        // The `isNested` property overrides the default behavior for getting the
+        // requested property. For Android and WebGL, dot notated properties
+        // are nested as objects. On iOS and Standalone, dot notated are held as
+        // a string. But, some properties on standalone builds (usr) are nested.
+        private T GetNestedProperty<T>(string key, bool? isNested = null)
         {
 #if UNITY_ANDROID || UNITY_WEBGL
-            var parts = key.Split('.');
-            var lookupMap = _rawJson;
-            for (int i = 0; i < (parts.Length - 1); i++)
-            {
-                lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
-            }
-
-            if (lookupMap.TryGetValue(parts.Last(), out var value))
-            {
-                return (T)value;
-            }
-
-            return default(T);
+            isNested ??= true
+#elif UNITY_IOS
+            // iOS is always unnessted
+            isNested = false;
 #else
-            if (_rawJson.TryGetValue(key, out var value))
+            // False by default
+            isNested ??= false;
+#endif
+            if (isNested.Value)
             {
-                return (T)value;
+                var parts = key.Split('.');
+                var lookupMap = _rawJson;
+                for (int i = 0; i < (parts.Length - 1); i++)
+                {
+                    lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
+                }
+
+                if (lookupMap.TryGetValue(parts.Last(), out var value))
+                {
+                    return (T)value;
+                }
+            }
+            else
+            {
+                if (_rawJson.TryGetValue(key, out var value))
+                {
+                    return (T)value;
+                }
             }
 
             return default(T);
-#endif
         }
     }
 }

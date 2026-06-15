@@ -12,3 +12,10 @@ unit-test*
 integration-test*
 .claire/
 .claude/
+
+# Desktop native libraries (built locally)
+packages/Datadog.Unity/Plugins/Desktop/**/*.dylib
+packages/Datadog.Unity/Plugins/Desktop/**/*.dll
+packages/Datadog.Unity/Plugins/Desktop/**/*.so
+build/desktop/
+.plans/
