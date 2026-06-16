@@ -131,7 +131,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("error message", userInfoLog.UserExtraInfo["saw_error"].ToString());
 
             var exceptionLog = logs[5];
-            Assert.AreEqual("error", exceptionLog.Status);
+            Assert.AreEqual("warn", exceptionLog.Status);
             Assert.AreEqual("Warning: this error occurred", exceptionLog.Message);
 #if !UNITY_WEBGL
             Assert.AreEqual("logging.service", exceptionLog.ServiceName);
@@ -144,9 +144,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual(1000, (long)exceptionLog.RawJson["logger-attribute2"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
             Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
-#if !UNITY_STANDALONE
             Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
-#endif
             Assert.NotNull(exceptionLog.ErrorStack);
 
             foreach (var log in logs)
@@ -229,7 +227,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 }
                 catch (Exception e)
                 {
-                    logger.Error("Warning: this error occurred", error: e);
+                    logger.Warn("Warning: this error occurred", error: e);
                 }
 
                 _didSendLog = true;

@@ -16,8 +16,9 @@ namespace Datadog.Unity.Desktop
     [StructLayout(LayoutKind.Sequential)]
     internal struct DdLogError
     {
-        public IntPtr kind;  // error.kind
-        public IntPtr stack; // error.stack
+        public IntPtr message; // error.message
+        public IntPtr kind;    // error.kind
+        public IntPtr stack;   // error.stack
     }
 
     internal class DatadogDesktopLogger : DdLogger
@@ -76,15 +77,17 @@ namespace Datadog.Unity.Desktop
             {
                 if (error != null)
                 {
-                    var kindPtr = DatadogDesktopPlatform.AllocUtf8(error.Type);
-                    var stackPtr = DatadogDesktopPlatform.AllocUtf8(error.StackTrace);
-                    var logError = new DdLogError { kind = kindPtr, stack = stackPtr };
+                    var messagePtr = DatadogDesktopPlatform.AllocUtf8(error.Message);
+                    var kindPtr    = DatadogDesktopPlatform.AllocUtf8(error.Type);
+                    var stackPtr   = DatadogDesktopPlatform.AllocUtf8(error.StackTrace);
+                    var logError = new DdLogError { message = messagePtr, kind = kindPtr, stack = stackPtr };
                     try
                     {
                         dd_logger_log(_logger, (int)level, message, ref logError, ref attrs);
                     }
                     finally
                     {
+                        Marshal.FreeHGlobal(messagePtr);
                         Marshal.FreeHGlobal(kindPtr);
                         Marshal.FreeHGlobal(stackPtr);
                     }

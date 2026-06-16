@@ -143,7 +143,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
         private T GetNestedProperty<T>(string key, bool? isNested = null)
         {
 #if UNITY_ANDROID || UNITY_WEBGL
-            isNested ??= true
+            isNested ??= true;
 #elif UNITY_IOS
             // iOS is always unnessted
             isNested = false;

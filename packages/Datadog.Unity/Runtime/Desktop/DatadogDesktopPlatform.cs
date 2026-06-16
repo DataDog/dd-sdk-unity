@@ -200,16 +200,28 @@ namespace Datadog.Unity.Desktop
         [AOT.MonoPInvokeCallback(typeof(DdDiagnosticHandler))]
         private static void OnDiagnosticMessage(ref DdDiagnosticMessage message, IntPtr userdata)
         {
-            var text = message.Text != IntPtr.Zero
-                ? Marshal.PtrToStringUTF8(message.Text) ?? string.Empty
-                : string.Empty;
+            var text = message.Text;
+            if (text == IntPtr.Zero)
+            {
+                return;
+            }
+
             var logType = message.Level switch
             {
                 2 => LogType.Warning,  // DD_DIAGNOSTIC_LEVEL_WARNING
                 3 => LogType.Error,    // DD_DIAGNOSTIC_LEVEL_ERROR
                 _ => LogType.Log,      // DD_DIAGNOSTIC_LEVEL_DEBUG, DD_DIAGNOSTIC_LEVEL_STATUS
             };
-            Debug.unityLogger.Log(logType, IInternalLogger.DatadogTag, text);
+
+            try
+            {
+                var stringValue = Marshal.PtrToStringUTF8(text);
+                Debug.unityLogger.Log(logType, IInternalLogger.DatadogTag, stringValue);
+            }
+            catch (ExecutionEngineException e)
+            {
+                // Telemetry
+            }
         }
 
         // Allocates a null-terminated UTF-8 string in unmanaged memory. Caller must free with Marshal.FreeHGlobal.
@@ -257,12 +269,13 @@ namespace Datadog.Unity.Desktop
             var envPtr = AllocUtf8(options.Env);
             var versionPtr = AllocUtf8(Application.version);
             var storagePtr = AllocUtf8(Application.persistentDataPath);
-            var endpointPtr = AllocUtf8(options.CustomEndpoint);
             var sourcePtr = AllocUtf8("unity");
+            var sdkVersionPtr = AllocUtf8(DatadogSdk.SdkVersion);
 
             // Over-allocate generously; dd_core_config_init writes ~650 bytes of defaults.
             var configPtr = Marshal.AllocHGlobal(4096);
             IntPtr core;
+            IntPtr customEndpointPtr = IntPtr.Zero;
             try
             {
                 dd_core_config_init(configPtr, tokenPtr, servicePtr, envPtr);
@@ -274,30 +287,27 @@ namespace Datadog.Unity.Desktop
                 dd_core_config_set_batch_processing_level(configPtr, (int)options.BatchProcessingLevel);
                 dd_core_config_set_diagnostic_threshold(configPtr, MapDiagnosticLevel(options.SdkVerbosity));
                 dd_core_config_set_diagnostic_handler(configPtr, _diagnosticHandler);
-
-                // dd_core_config_t has no public setters for internal_options fields,
-                // so write pointers directly at their byte offsets within the struct.
-                // Layout on 64-bit: version(4)+pad(4)+handler(8)+userdata(8)+threshold(4)+
-                // consent(4)+storagePath[512]+site(4)+pad(4)+5×ptr(40)+3×enum(12)+pad(4)
-                // = 608 to internal_options, then bool(1)+pad(7)+custom_endpoint_url(8) = offsets below.
-                if (endpointPtr != IntPtr.Zero)
+                dd_core_config_internal_set_source(configPtr, sourcePtr);
+                dd_core_config_internal_set_sdk_version(configPtr, sdkVersionPtr);
+                if (!string.IsNullOrEmpty(options.CustomEndpoint))
                 {
-                    Marshal.WriteIntPtr(configPtr, 616, endpointPtr); // internal_options.custom_endpoint_url
+                    customEndpointPtr = AllocUtf8(options.CustomEndpoint);
+                    dd_core_config_internal_set_custom_endpoint_url(configPtr, customEndpointPtr);
                 }
-                Marshal.WriteIntPtr(configPtr, 624, sourcePtr);       // internal_options.source
 
                 core = dd_core_create(configPtr, (int)TrackingConsent.Pending);
             }
             finally
             {
+                Marshal.FreeHGlobal(customEndpointPtr);
                 Marshal.FreeHGlobal(configPtr);
                 Marshal.FreeHGlobal(tokenPtr);
                 Marshal.FreeHGlobal(servicePtr);
                 Marshal.FreeHGlobal(envPtr);
                 Marshal.FreeHGlobal(versionPtr);
                 Marshal.FreeHGlobal(storagePtr);
-                Marshal.FreeHGlobal(endpointPtr);
                 Marshal.FreeHGlobal(sourcePtr);
+                Marshal.FreeHGlobal(sdkVersionPtr);
             }
 
             return core;
@@ -353,6 +363,15 @@ namespace Datadog.Unity.Desktop
 
         [DllImport("dd_native")]
         private static extern void dd_core_config_set_diagnostic_handler(IntPtr config, DdDiagnosticHandler handler);
+
+        [DllImport("dd_native")]
+        private static extern void dd_core_config_internal_set_source(IntPtr config, IntPtr value);
+
+        [DllImport("dd_native")]
+        private static extern void dd_core_config_internal_set_custom_endpoint_url(IntPtr config, IntPtr value);
+
+        [DllImport("dd_native")]
+        private static extern void dd_core_config_internal_set_sdk_version(IntPtr config, IntPtr value);
 
         #endregion
 
