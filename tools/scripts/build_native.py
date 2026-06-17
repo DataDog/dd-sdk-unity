@@ -57,6 +57,8 @@ def build(target_platform):
         '-B', BUILD_DIR,
         '-DCMAKE_BUILD_TYPE=Release',
     ]
+    if target_platform == 'windows':
+        cmake_args.append('-DDD_HTTP_USE_SYSTEM_LIBCURL=OFF')
     run(cmake_args)
     run(['cmake', '--build', BUILD_DIR, '--config', 'Release'])
 
