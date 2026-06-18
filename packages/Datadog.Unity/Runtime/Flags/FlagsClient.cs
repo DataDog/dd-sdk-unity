@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using Newtonsoft.Json.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -275,42 +274,10 @@ namespace Datadog.Unity.Flags
         private static IReadOnlyDictionary<string, object> BuildMetadata(FlagAssignment assignment)
         {
             var dict = new Dictionary<string, object>();
-
-            // Write extraLogging primitives first; skip any "allocationKey" key here
-            // because the typed AllocationKey field is written last and must win.
-            foreach (var prop in assignment.ExtraLogging.Properties())
-            {
-                if (prop.Name == "allocationKey") continue;
-                switch (prop.Value.Type)
-                {
-                    case JTokenType.String:
-                        dict[prop.Name] = prop.Value.Value<string>();
-                        break;
-                    case JTokenType.Boolean:
-                        dict[prop.Name] = prop.Value.Value<bool>();
-                        break;
-                    case JTokenType.Integer:
-                        // Convert.ToInt64 can throw OverflowException for BigInteger values that
-                        // exceed Int64 range. Fall back to the string representation so the value
-                        // is preserved in metadata rather than dropped entirely.
-                        try { dict[prop.Name] = Convert.ToInt64(prop.Value); }
-                        catch { dict[prop.Name] = prop.Value.ToString(); }
-                        break;
-                    case JTokenType.Float:
-                        // Convert.ToDouble can throw for decimal values outside double range.
-                        // Fall back to string so the value is preserved rather than dropped.
-                        try { dict[prop.Name] = Convert.ToDouble(prop.Value); }
-                        catch { dict[prop.Name] = prop.Value.ToString(); }
-                        break;
-                }
-            }
-
-            // allocationKey written last so it always wins over any extraLogging value
             if (!string.IsNullOrEmpty(assignment.AllocationKey))
             {
                 dict["allocationKey"] = assignment.AllocationKey;
             }
-
             return new ReadOnlyDictionary<string, object>(dict);
         }
 

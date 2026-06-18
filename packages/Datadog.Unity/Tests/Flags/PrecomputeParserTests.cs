@@ -2,7 +2,6 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Flags.Tests
@@ -123,67 +122,6 @@ namespace Datadog.Unity.Flags.Tests
             var flags = PrecomputeAssignmentsFetcher.ParseResponse(null);
             Assert.IsNotNull(flags);
             Assert.AreEqual(0, flags.Count);
-        }
-
-        [Test]
-        public void ParsesExtraLoggingField()
-        {
-            var json = @"{
-                ""data"": {
-                    ""attributes"": {
-                        ""flags"": {
-                            ""my-flag"": {
-                                ""variationType"": ""boolean"",
-                                ""variationValue"": true,
-                                ""doLog"": true,
-                                ""allocationKey"": ""alloc-1"",
-                                ""variationKey"": ""treatment"",
-                                ""reason"": ""TARGETING_MATCH"",
-                                ""extraLogging"": {
-                                    ""experiment"": ""exp-99"",
-                                    ""score"": 42
-                                }
-                            }
-                        }
-                    }
-                }
-            }";
-
-            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
-
-            Assert.IsTrue(flags.ContainsKey("my-flag"));
-            var flag = flags["my-flag"];
-            Assert.IsNotNull(flag.ExtraLogging);
-            Assert.AreEqual("exp-99", flag.ExtraLogging["experiment"]?.Value<string>());
-            Assert.AreEqual(42, flag.ExtraLogging["score"]?.Value<int>());
-        }
-
-        [Test]
-        public void ParsesMissingExtraLoggingAsEmptyObject()
-        {
-            var json = @"{
-                ""data"": {
-                    ""attributes"": {
-                        ""flags"": {
-                            ""my-flag"": {
-                                ""variationType"": ""boolean"",
-                                ""variationValue"": true,
-                                ""doLog"": true,
-                                ""allocationKey"": ""alloc-1"",
-                                ""variationKey"": ""treatment"",
-                                ""reason"": ""TARGETING_MATCH""
-                            }
-                        }
-                    }
-                }
-            }";
-
-            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
-
-            Assert.IsTrue(flags.ContainsKey("my-flag"));
-            var flag = flags["my-flag"];
-            Assert.IsNotNull(flag.ExtraLogging, "ExtraLogging must be non-null when absent from response");
-            Assert.AreEqual(0, flag.ExtraLogging.Count, "ExtraLogging must be empty when absent from response");
         }
     }
 }

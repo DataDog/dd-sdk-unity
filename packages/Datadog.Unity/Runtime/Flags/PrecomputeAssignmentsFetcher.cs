@@ -201,8 +201,7 @@ namespace Datadog.Unity.Flags
                     doLog: dto.DoLog,
                     allocationKey: dto.AllocationKey,
                     variationKey: dto.VariationKey,
-                    reason: dto.Reason,
-                    extraLogging: dto.ExtraLogging);
+                    reason: dto.Reason);
             }
 
             return flags;
@@ -288,8 +287,6 @@ namespace Datadog.Unity.Flags
             [JsonProperty("reason")]
             public string Reason { get; set; }
 
-            [JsonProperty("extraLogging")]
-            public JObject ExtraLogging { get; set; }
         }
     }
 }
