@@ -1,7 +1,8 @@
 <linker>
-  <!-- Open question A4: assembly fullname must match the compiled DLL name, not necessarily the asmdef
-       filename. "com.datadoghq.unity.flags" is the asmdef name and first attempt. If IL2CPP build
-       validation shows stripping still occurs, try fullname="Datadog.Unity.Flags" instead. -->
+  <!-- Assembly fullname matches the asmdef "name" field in com.datadoghq.unity.flags.asmdef,
+       which Unity uses as the compiled DLL name. Confirmed: "com.datadoghq.unity.flags" is correct.
+       If IL2CPP build validation ever shows stripping still occurs, the alternative to try is
+       fullname="Datadog.Unity.Flags" (the rootNamespace value), though this should not be needed. -->
   <assembly fullname="com.datadoghq.unity.flags">
     <type fullname="Datadog.Unity.Flags.FlagsCacheEnvelopeDto" preserve="all"/>
   </assembly>
