@@ -148,12 +148,93 @@ namespace Datadog.Unity.Flags.Tests
                 "CachedAt must be non-null after write→read round-trip (LIFE-02)");
         }
 
+        // ── Context restoration after bootstrap ───────────────────────────
+
+        [Test]
+        public void Bootstrap_EnvelopeWithContext_RepositoryContextIsRestored()
+        {
+            var repo = new FlagsRepository();
+            var reader = new FakeReader(new FlagsCacheEnvelopeDto
+            {
+                CachedAt = "2025-01-01T00:00:00Z",
+                Payload = MinimalValidPayloadEmpty,
+                Context = new FlagsCacheEnvelopeDto.FlagsEvaluationContextDto
+                {
+                    TargetingKey = "user-5",
+                },
+            });
+
+            MakeClient(cacheReader: reader, repository: repo);
+
+            Assert.IsNotNull(repo.Context, "Context must be non-null after bootstrap with envelope context");
+            Assert.AreEqual("user-5", repo.Context.TargetingKey,
+                "TargetingKey must be restored from envelope context");
+        }
+
+        [Test]
+        public void Bootstrap_EnvelopeWithContext_EmptyTargetingKey_RepositoryContextIsNull()
+        {
+            var repo = new FlagsRepository();
+            var reader = new FakeReader(new FlagsCacheEnvelopeDto
+            {
+                CachedAt = "2025-01-01T00:00:00Z",
+                Payload = MinimalValidPayloadEmpty,
+                Context = new FlagsCacheEnvelopeDto.FlagsEvaluationContextDto
+                {
+                    TargetingKey = string.Empty,
+                },
+            });
+
+            MakeClient(cacheReader: reader, repository: repo);
+
+            Assert.IsNull(repo.Context, "Context must be null when envelope has empty TargetingKey");
+        }
+
+        [Test]
+        public void Bootstrap_EnvelopeWithNullContext_RepositoryContextIsNull()
+        {
+            var repo = new FlagsRepository();
+            var reader = new FakeReader(new FlagsCacheEnvelopeDto
+            {
+                CachedAt = "2025-01-01T00:00:00Z",
+                Payload = MinimalValidPayloadEmpty,
+                Context = null,
+            });
+
+            MakeClient(cacheReader: reader, repository: repo);
+
+            Assert.IsNull(repo.Context, "Context must be null when envelope.Context is null");
+        }
+
+        [Test]
+        public void Bootstrap_EnvelopeWithContextAndAttributes_AttributesSurvive()
+        {
+            var repo = new FlagsRepository();
+            var reader = new FakeReader(new FlagsCacheEnvelopeDto
+            {
+                CachedAt = "2025-01-01T00:00:00Z",
+                Payload = MinimalValidPayloadEmpty,
+                Context = new FlagsCacheEnvelopeDto.FlagsEvaluationContextDto
+                {
+                    TargetingKey = "user-5",
+                    Attributes = new System.Collections.Generic.Dictionary<string, string> { { "plan", "pro" } },
+                },
+            });
+
+            MakeClient(cacheReader: reader, repository: repo);
+
+            Assert.IsNotNull(repo.Context, "Context must be non-null after bootstrap");
+            Assert.AreEqual("user-5", repo.Context.TargetingKey, "TargetingKey must survive bootstrap");
+            Assert.AreEqual("pro", repo.Context.Attributes["plan"],
+                "Attributes must survive bootstrap from envelope context");
+        }
+
         // ── Helpers ───────────────────────────────────────────────────────
 
-        private static FlagsClient MakeClient(IFlagsCacheReader cacheReader = null)
+        private static FlagsClient MakeClient(IFlagsCacheReader cacheReader = null, FlagsRepository repository = null)
         {
             return new FlagsClient(
-                repository: new FlagsRepository(),
+                repository: repository ?? new FlagsRepository(),
                 exposureTracker: null,
                 evaluationAggregator: null,
                 fetcher: null,
