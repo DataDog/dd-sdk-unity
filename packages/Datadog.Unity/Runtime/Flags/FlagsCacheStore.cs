@@ -78,7 +78,7 @@ namespace Datadog.Unity.Flags
                 if (byteCount >= SkipThresholdBytes)
                 {
                     _logger?.Log(DdLogLevel.Warn,
-                        $"[Flags] Cache write skipped: payload {byteCount} bytes exceeds {SkipThresholdBytes} byte limit.");
+                        $"[Flags] Cache write skipped: serialized envelope {byteCount} bytes exceeds {SkipThresholdBytes} byte limit.");
                     return;
                 }
 
