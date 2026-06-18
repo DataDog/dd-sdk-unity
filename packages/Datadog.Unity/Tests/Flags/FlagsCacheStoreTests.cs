@@ -193,6 +193,84 @@ namespace Datadog.Unity.Flags.Tests
             Assert.IsTrue(logSink.LastWarnMessage.Contains("skipped"), "Warn message must contain 'skipped'");
         }
 
+        // ── Read: populated store returns correct envelope ─────────────────
+
+        [Test]
+        public void Read_PopulatedStore_ReturnsEnvelopeWithCorrectFields()
+        {
+            var store = new DictionaryKeyValueStore();
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "abcdefghij", null);
+            var context = new FlagsEvaluationContext("user-1");
+            cacheStore.Write("{\"data\":\"test\"}", context);
+
+            var envelope = ((IFlagsCacheReader)cacheStore).Read(null);
+
+            Assert.IsNotNull(envelope, "Read must return a non-null envelope when cache is populated");
+            Assert.IsFalse(string.IsNullOrEmpty(envelope.CachedAt), "CachedAt must be set");
+            Assert.AreEqual("{\"data\":\"test\"}", envelope.Payload, "Payload must match the written raw JSON");
+        }
+
+        // ── Read: empty store returns null ──────────────────────────────────
+
+        [Test]
+        public void Read_EmptyStore_ReturnsNull()
+        {
+            var store = new DictionaryKeyValueStore();
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "abcdefghij", null);
+
+            var envelope = ((IFlagsCacheReader)cacheStore).Read(null);
+
+            Assert.IsNull(envelope, "Read must return null when no cached data exists");
+        }
+
+        // ── Read: corrupt JSON returns null and does not throw ─────────────
+
+        [Test]
+        public void Read_CorruptJson_ReturnsNullAndDoesNotThrow()
+        {
+            var store = new DictionaryKeyValueStore();
+            var key = FlagsCacheStore.ComputeKey("us1", "prod", "abcdefghij");
+            store.SetString(key, "not-valid-json{{{{");
+            var logSink = new FakeLogger();
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "abcdefghij", logSink);
+
+            FlagsCacheEnvelopeDto envelope = null;
+            Assert.DoesNotThrow(() => envelope = ((IFlagsCacheReader)cacheStore).Read(null));
+            Assert.IsNull(envelope, "Read must return null for corrupt JSON");
+        }
+
+        // ── Read: uses same key as Write ────────────────────────────────────
+
+        [Test]
+        public void Read_UsesSameKeyAsWrite()
+        {
+            var store = new DictionaryKeyValueStore();
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "abcdefghij", null);
+            var context = new FlagsEvaluationContext("user-1");
+            cacheStore.Write("{}", context);
+
+            // The key used by Read must be the same computed key used by Write.
+            var expectedKey = FlagsCacheStore.ComputeKey("us1", "prod", "abcdefghij");
+            Assert.IsTrue(store.Store.ContainsKey(expectedKey), "Write must have stored under ComputeKey");
+
+            var envelope = ((IFlagsCacheReader)cacheStore).Read(null);
+            Assert.IsNotNull(envelope, "Read must retrieve the value stored by Write");
+        }
+
+        // ── Read: null logger does not throw ───────────────────────────────
+
+        [Test]
+        public void Read_NullLogger_DoesNotThrow()
+        {
+            var store = new DictionaryKeyValueStore();
+            // Write corrupt data to trigger the catch/log branch
+            var key = FlagsCacheStore.ComputeKey("us1", "prod", "token");
+            store.SetString(key, "{{bad");
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "token", null);
+
+            Assert.DoesNotThrow(() => ((IFlagsCacheReader)cacheStore).Read(null));
+        }
+
         // ── Helpers ────────────────────────────────────────────────────────
 
         private class FakeKeyValueStore : IKeyValueStore
