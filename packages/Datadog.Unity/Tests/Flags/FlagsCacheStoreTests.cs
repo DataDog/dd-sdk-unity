@@ -17,7 +17,7 @@ namespace Datadog.Unity.Flags.Tests
         public void ComputeKey_LongToken_TakesLastEightChars()
         {
             var key = FlagsCacheStore.ComputeKey("us1", "prod", "abcdefghij");
-            Assert.AreEqual("dd_flags_v1_us1_prod_ghij", key);
+            Assert.AreEqual("dd_flags_v1_us1_prod_cdefghij", key);
         }
 
         [Test]
@@ -112,7 +112,7 @@ namespace Datadog.Unity.Flags.Tests
 
             cacheStore.Write("{}", context);
 
-            Assert.AreEqual("dd_flags_v1_us1_prod_ghij", store.LastSetStringKey);
+            Assert.AreEqual("dd_flags_v1_us1_prod_cdefghij", store.LastSetStringKey);
         }
 
         // ── Write: null logger does not throw ──────────────────────────────
