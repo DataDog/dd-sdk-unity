@@ -7,6 +7,7 @@ using System.Text;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Newtonsoft.Json;
+using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Flags
 {
@@ -89,6 +90,21 @@ namespace Datadog.Unity.Flags
             {
                 _logger?.Log(DdLogLevel.Warn, $"[Flags] Cache write failed: {e.Message}");
             }
+        }
+
+        /// <summary>
+        /// Forces AOT compilation of the FlagsCacheEnvelopeDto deserialization path used by Phase 2
+        /// bootstrap. Without this hint, IL2CPP strips DeserializeObject&lt;FlagsCacheEnvelopeDto&gt;
+        /// on tvOS/iOS because no reachable call site is visible at link time.
+        /// This method is never called at runtime — [Preserve] prevents the tree-shaker from
+        /// removing the generated generic deserialization code.
+        /// </summary>
+        [Preserve]
+        private static void EnsureTypes()
+        {
+            // Force AOT compilation of the envelope deserialization path used by Phase 2 bootstrap.
+            // Without this, IL2CPP strips DeserializeObject<FlagsCacheEnvelopeDto> on tvOS/iOS.
+            _ = Newtonsoft.Json.JsonConvert.DeserializeObject<FlagsCacheEnvelopeDto>(string.Empty);
         }
     }
 }
