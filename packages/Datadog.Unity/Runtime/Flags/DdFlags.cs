@@ -168,6 +168,15 @@ namespace Datadog.Unity.Flags
                     env: options?.Env ?? string.Empty,
                     logger: _logger);
 
+                // site: DatadogSite.Us1.ToString() → "Us1"; .ToLowerInvariant() → "us1".
+                // Us1Fed → "us1fed" (no underscore). Phase 2 bootstrap uses the same conversion.
+                var cacheStore = new FlagsCacheStore(
+                    store: new PlayerPrefsKeyValueStore(),
+                    site: (options?.Site ?? DatadogSite.Us1).ToString().ToLowerInvariant(),
+                    env: options?.Env ?? string.Empty,
+                    clientToken: options?.ClientToken ?? string.Empty,
+                    logger: _logger);
+
                 var client = new FlagsClient(
                     repository: new FlagsRepository(),
                     exposureTracker: new ExposureTracker(),
@@ -176,7 +185,8 @@ namespace Datadog.Unity.Flags
                     logger: _logger,
                     trackExposures: _configuration.TrackExposures,
                     trackEvaluations: _configuration.TrackEvaluations,
-                    onExposure: onExposure);
+                    onExposure: onExposure,
+                    cacheWriter: cacheStore);
 
                 _clients[name] = client;
                 return client;

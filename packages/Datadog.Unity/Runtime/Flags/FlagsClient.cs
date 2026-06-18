@@ -24,6 +24,7 @@ namespace Datadog.Unity.Flags
         private readonly bool _trackExposures;
         private readonly bool _trackEvaluations;
         private readonly Action<ExposureEvent> _onExposure;
+        private readonly IFlagsCacheWriter _cacheWriter;
 
         private FlagsClientState _state;
         private bool _disposed;
@@ -37,6 +38,7 @@ namespace Datadog.Unity.Flags
             bool trackExposures,
             bool trackEvaluations,
             Action<ExposureEvent> onExposure,
+            IFlagsCacheWriter cacheWriter = null,
             FlagsClientState initialState = FlagsClientState.NotReady)
         {
             _repository = repository;
@@ -47,6 +49,7 @@ namespace Datadog.Unity.Flags
             _trackExposures = trackExposures;
             _trackEvaluations = trackEvaluations;
             _onExposure = onExposure;
+            _cacheWriter = cacheWriter;
             _state = initialState;
         }
 
@@ -127,10 +130,11 @@ namespace Datadog.Unity.Flags
 
             TransitionState(FlagsClientState.Reconciling);
 
-            _fetcher.Fetch(context, flags =>
+            _fetcher.Fetch(context, (rawJson, flags) =>
             {
                 if (flags != null)
                 {
+                    _cacheWriter?.Write(rawJson, context);
                     _repository.SetFlagsAndContext(context, flags);
                     TransitionState(FlagsClientState.Ready);
                     onComplete?.Invoke(true);
