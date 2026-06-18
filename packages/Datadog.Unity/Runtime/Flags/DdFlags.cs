@@ -197,7 +197,8 @@ namespace Datadog.Unity.Flags
                     trackExposures: _configuration.TrackExposures,
                     trackEvaluations: _configuration.TrackEvaluations,
                     onExposure: onExposure,
-                    cacheWriter: cacheStore);
+                    cacheWriter: cacheStore,
+                    cacheReader: cacheStore);
 
                 _clients[name] = client;
                 return client;

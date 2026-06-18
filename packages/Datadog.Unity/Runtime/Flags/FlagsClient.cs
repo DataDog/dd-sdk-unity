@@ -25,6 +25,7 @@ namespace Datadog.Unity.Flags
         private readonly bool _trackEvaluations;
         private readonly Action<ExposureEvent> _onExposure;
         private readonly IFlagsCacheWriter _cacheWriter;
+        private readonly IFlagsCacheReader _cacheReader;
 
         private FlagsClientState _state;
         private bool _disposed;
@@ -39,6 +40,7 @@ namespace Datadog.Unity.Flags
             bool trackEvaluations,
             Action<ExposureEvent> onExposure,
             IFlagsCacheWriter cacheWriter = null,
+            IFlagsCacheReader cacheReader = null,
             FlagsClientState initialState = FlagsClientState.NotReady)
         {
             _repository = repository;
@@ -50,7 +52,9 @@ namespace Datadog.Unity.Flags
             _trackEvaluations = trackEvaluations;
             _onExposure = onExposure;
             _cacheWriter = cacheWriter;
+            _cacheReader = cacheReader;
             _state = initialState;
+            BootstrapFromCache();
         }
 
         /// <summary>
@@ -304,6 +308,40 @@ namespace Datadog.Unity.Flags
             {
                 _evaluationAggregator?.RecordEvaluation(key, assignment, context, flagError);
             }
+        }
+
+        private void BootstrapFromCache()
+        {
+            if (_cacheReader == null) return;
+
+            var envelope = _cacheReader.Read(null);
+            if (envelope == null)
+            {
+                _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] No cached flags found.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(envelope.Payload))
+            {
+                _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Cached payload is empty — skipping bootstrap.");
+                return;
+            }
+
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(envelope.Payload);
+            if (flags == null)
+            {
+                _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Cached payload parse failed — skipping bootstrap.");
+                return;
+            }
+
+            // Seed repository with null context. Real context is set when SetEvaluationContext is called.
+            // Bootstrap result wins over initialState — this is intentional (see RESEARCH.md Pitfall 2).
+            _repository.SetFlagsAndContext(null, flags);
+
+            // Direct field write, not TransitionState — no subscribers yet at construction time
+            // (see RESEARCH.md Pitfall 1).
+            _state = FlagsClientState.Ready;
+            _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Bootstrapped from cache.");
         }
 
         private void TransitionState(FlagsClientState newState)
