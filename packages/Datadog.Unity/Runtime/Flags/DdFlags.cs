@@ -35,6 +35,7 @@ namespace Datadog.Unity.Flags
         public static readonly DdFlags Instance = new();
 
         private FlagsConfiguration _configuration;
+        private DatadogConfigurationOptions _options;
         private EvpTelemetrySender _telemetrySender;
         private IInternalLogger _logger;
         private volatile bool _isEnabled;
@@ -90,7 +91,7 @@ namespace Datadog.Unity.Flags
                     return;
                 }
 
-                Instance.Configure(configuration, logger);
+                Instance.Configure(configuration, options, logger);
             }
         }
 
@@ -140,7 +141,7 @@ namespace Datadog.Unity.Flags
                     return existingClient;
                 }
 
-                var options = DatadogConfigurationOptions.Load();
+                var options = _options;
 
                 string precomputeEndpoint;
                 if (!string.IsNullOrEmpty(_configuration.CustomFlagsEndpoint))
@@ -215,9 +216,13 @@ namespace Datadog.Unity.Flags
         }
 
         // Sets configuration and marks the instance as enabled.
-        private void Configure(FlagsConfiguration configuration, IInternalLogger logger)
+        // options is captured here so CreateClient() always uses the same values
+        // that Enable() validated — preventing a cache-key mismatch if the asset
+        // is reloaded between Enable() and CreateClient() calls (e.g., in tests).
+        private void Configure(FlagsConfiguration configuration, DatadogConfigurationOptions options, IInternalLogger logger)
         {
             _configuration = configuration;
+            _options = options;
             _logger = logger;
             _isEnabled = true;
         }
