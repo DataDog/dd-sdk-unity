@@ -280,7 +280,10 @@ namespace Datadog.Unity.Flags
             var context = _repository.Context;
 
             // Exposure tracking
-            if (_trackExposures && assignment != null && assignment.DoLog && flagError == null)
+            // Guard: skip exposure dispatch when context is null (e.g., bootstrapped from cache
+            // before SetEvaluationContext is called). Firing an exposure with an empty subject ID
+            // would corrupt server-side attribution data.
+            if (_trackExposures && context != null && assignment != null && assignment.DoLog && flagError == null)
             {
                 var exposureKey = new ExposureTracker.ExposureKey(
                     targetingKey: context?.TargetingKey ?? string.Empty,
