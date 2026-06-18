@@ -17,7 +17,7 @@ namespace Datadog.Unity.Flags
     /// Payload is wrapped in a <see cref="FlagsCacheEnvelopeDto"/> before serialization.
     /// Size gate: payloads >= 500 KB are skipped (warn log); payloads >= 400 KB log a warn but write.
     /// </summary>
-    internal class FlagsCacheStore : IFlagsCacheWriter
+    internal class FlagsCacheStore : IFlagsCacheWriter, IFlagsCacheReader
     {
         internal const string KeyPrefix = "dd_flags_v1";
         internal const int WarnThresholdBytes = 400 * 1024;
@@ -95,6 +95,32 @@ namespace Datadog.Unity.Flags
             catch (Exception e)
             {
                 _logger?.Log(DdLogLevel.Warn, $"[Flags] Cache write failed: {e.Message}");
+            }
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// The <paramref name="context"/> parameter is received to satisfy the
+        /// <see cref="IFlagsCacheReader"/> interface contract. It is reserved for future use
+        /// (e.g., per-context cache scoping in a later phase). The current implementation
+        /// derives the storage key from the static site/env/clientToken fields only.
+        /// </remarks>
+        public FlagsCacheEnvelopeDto Read(FlagsEvaluationContext context)
+        {
+            try
+            {
+                var key = ComputeKey(_site, _env, _clientToken);
+                var json = _store.GetString(key, null);
+                if (string.IsNullOrEmpty(json))
+                {
+                    return null;
+                }
+                return JsonConvert.DeserializeObject<FlagsCacheEnvelopeDto>(json);
+            }
+            catch (Exception e)
+            {
+                _logger?.Log(DdLogLevel.Warn, $"[Flags] Cache read failed: {e.Message}");
+                return null;
             }
         }
 
