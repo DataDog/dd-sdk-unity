@@ -361,8 +361,12 @@ namespace Datadog.Unity.Flags
             _repository.SetFlagsAndContext(restoredContext, flags);
 
             // Direct field write, not TransitionState — no subscribers yet at construction time
-            // (see RESEARCH.md Pitfall 1).
-            _state = FlagsClientState.Ready;
+            // (see RESEARCH.md Pitfall 1). Lock for memory model consistency with every other
+            // _state write.
+            lock (_lock)
+            {
+                _state = FlagsClientState.Ready;
+            }
             _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Bootstrapped from cache.");
         }
 
