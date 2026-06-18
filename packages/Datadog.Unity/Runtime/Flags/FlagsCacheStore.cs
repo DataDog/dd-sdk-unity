@@ -56,6 +56,12 @@ namespace Datadog.Unity.Flags
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// The <paramref name="context"/> parameter is received to satisfy the
+        /// <see cref="IFlagsCacheWriter"/> interface contract. It is reserved for future use
+        /// (e.g., per-context cache scoping in a later phase). The current implementation
+        /// derives the storage key from the static site/env/clientToken fields only.
+        /// </remarks>
         public void Write(string rawJson, FlagsEvaluationContext context)
         {
             try
