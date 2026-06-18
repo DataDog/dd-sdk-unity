@@ -351,6 +351,13 @@ namespace Datadog.Unity.Flags
             FlagsEvaluationContext restoredContext = null;
             if (envelope.Context != null && !string.IsNullOrEmpty(envelope.Context.TargetingKey))
             {
+                // The DTO stores attributes as Dictionary<string,string> (already flattened by Write).
+                // The public constructor accepts Dictionary<string,object>, so we cast each value to
+                // object. The constructor then calls Flatten which immediately calls .ToString() on each
+                // object value — a no-op round-trip for strings. The data is correct: the cached
+                // attributes were already flattened at write time, and the re-flatten on a dict with
+                // no nested objects is harmless. An internal bypass constructor was considered but
+                // deferred to keep the change scope narrow.
                 var attrs = envelope.Context.Attributes?.Count > 0
                     ? envelope.Context.Attributes
                           .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
