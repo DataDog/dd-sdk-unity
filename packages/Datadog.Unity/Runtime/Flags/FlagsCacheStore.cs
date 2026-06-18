@@ -105,7 +105,7 @@ namespace Datadog.Unity.Flags
         /// (e.g., per-context cache scoping in a later phase). The current implementation
         /// derives the storage key from the static site/env/clientToken fields only.
         /// </remarks>
-        public FlagsCacheEnvelopeDto Read(FlagsEvaluationContext context)
+        public FlagsCacheEnvelopeDto? Read(FlagsEvaluationContext context)
         {
             try
             {

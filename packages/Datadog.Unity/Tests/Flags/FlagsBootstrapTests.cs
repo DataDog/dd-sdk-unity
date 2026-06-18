@@ -173,7 +173,7 @@ namespace Datadog.Unity.Flags.Tests
                 _envelope = envelope;
             }
 
-            public FlagsCacheEnvelopeDto Read(FlagsEvaluationContext context) => _envelope;
+            public FlagsCacheEnvelopeDto? Read(FlagsEvaluationContext context) => _envelope;
         }
     }
 }

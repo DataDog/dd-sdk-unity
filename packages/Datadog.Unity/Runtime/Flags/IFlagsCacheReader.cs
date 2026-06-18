@@ -14,6 +14,6 @@ namespace Datadog.Unity.Flags
         /// The evaluation context at read time. Reserved for future use
         /// (e.g., per-context cache scoping). Not used by the current implementation.
         /// </param>
-        FlagsCacheEnvelopeDto Read(FlagsEvaluationContext context);
+        FlagsCacheEnvelopeDto? Read(FlagsEvaluationContext context);
     }
 }
