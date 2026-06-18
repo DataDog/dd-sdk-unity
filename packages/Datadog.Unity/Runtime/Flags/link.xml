@@ -5,5 +5,6 @@
        fullname="Datadog.Unity.Flags" (the rootNamespace value), though this should not be needed. -->
   <assembly fullname="com.datadoghq.unity.flags">
     <type fullname="Datadog.Unity.Flags.FlagsCacheEnvelopeDto" preserve="all"/>
+    <type fullname="Datadog.Unity.Flags.FlagsCacheEnvelopeDto+FlagsEvaluationContextDto" preserve="all"/>
   </assembly>
 </linker>

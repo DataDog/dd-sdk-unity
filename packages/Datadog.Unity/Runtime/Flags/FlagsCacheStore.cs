@@ -57,19 +57,29 @@ namespace Datadog.Unity.Flags
 
         /// <inheritdoc/>
         /// <remarks>
-        /// The <paramref name="context"/> parameter is received to satisfy the
-        /// <see cref="IFlagsCacheWriter"/> interface contract. It is reserved for future use
-        /// (e.g., per-context cache scoping in a later phase). The current implementation
-        /// derives the storage key from the static site/env/clientToken fields only.
+        /// The <paramref name="context"/> parameter is serialized into the envelope alongside the
+        /// payload, enabling bootstrap to restore the evaluation context on the next startup.
+        /// The storage key is derived from the static site/env/clientToken fields only.
         /// </remarks>
         public void Write(string rawJson, FlagsEvaluationContext context)
         {
             try
             {
+                FlagsCacheEnvelopeDto.FlagsEvaluationContextDto contextDto = null;
+                if (context != null)
+                {
+                    contextDto = new FlagsCacheEnvelopeDto.FlagsEvaluationContextDto
+                    {
+                        TargetingKey = context.TargetingKey,
+                        Attributes = new System.Collections.Generic.Dictionary<string, string>(context.Attributes),
+                    };
+                }
+
                 var envelope = new FlagsCacheEnvelopeDto
                 {
                     CachedAt = DateTimeOffset.UtcNow.ToString("o"),
                     Payload = rawJson,
+                    Context = contextDto,
                 };
 
                 var serialized = JsonConvert.SerializeObject(envelope);
@@ -140,6 +150,8 @@ namespace Datadog.Unity.Flags
             // throwing, while string.Empty throws JsonReaderException. Both force the AOT
             // compiler to emit the generic deserialization stub for IL2CPP.
             _ = Newtonsoft.Json.JsonConvert.DeserializeObject<FlagsCacheEnvelopeDto>(null);
+            // Force AOT compilation for the nested context DTO added in Phase 3.
+            _ = Newtonsoft.Json.JsonConvert.DeserializeObject<FlagsCacheEnvelopeDto.FlagsEvaluationContextDto>(null);
         }
     }
 }
