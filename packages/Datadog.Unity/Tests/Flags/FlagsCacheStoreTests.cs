@@ -271,6 +271,43 @@ namespace Datadog.Unity.Flags.Tests
             Assert.DoesNotThrow(() => ((IFlagsCacheReader)cacheStore).Read(null));
         }
 
+        // ── Context round-trip ─────────────────────────────────────────────
+
+        [Test]
+        public void Write_WithContext_ContextSurvivesRoundTrip()
+        {
+            var store = new DictionaryKeyValueStore();
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "abcdefghij", null);
+            var context = new FlagsEvaluationContext(
+                "user-42",
+                new Dictionary<string, object> { { "plan", "pro" } });
+
+            cacheStore.Write("{}", context);
+
+            var envelope = ((IFlagsCacheReader)cacheStore).Read(null);
+
+            Assert.IsNotNull(envelope, "Read must return a non-null envelope");
+            Assert.IsNotNull(envelope.Context, "Context must be non-null after round-trip");
+            Assert.AreEqual("user-42", envelope.Context.TargetingKey,
+                "TargetingKey must survive write→read round-trip");
+            Assert.AreEqual("pro", envelope.Context.Attributes["plan"],
+                "Attributes must survive write→read round-trip");
+        }
+
+        [Test]
+        public void Write_WithNullContext_ContextIsNull()
+        {
+            var store = new DictionaryKeyValueStore();
+            var cacheStore = new FlagsCacheStore(store, "us1", "prod", "abcdefghij", null);
+
+            cacheStore.Write("{}", null);
+
+            var envelope = ((IFlagsCacheReader)cacheStore).Read(null);
+
+            Assert.IsNotNull(envelope, "Read must return a non-null envelope");
+            Assert.IsNull(envelope.Context, "Context must be null when written with null context");
+        }
+
         // ── Helpers ────────────────────────────────────────────────────────
 
         private class FakeKeyValueStore : IKeyValueStore
