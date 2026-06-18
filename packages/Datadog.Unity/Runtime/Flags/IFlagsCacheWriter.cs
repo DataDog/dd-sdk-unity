@@ -11,8 +11,9 @@ namespace Datadog.Unity.Flags
         /// </summary>
         /// <param name="rawJson">The raw JSON string from the server response.</param>
         /// <param name="context">
-        /// The evaluation context in effect at write time. Reserved for future use
-        /// (e.g., per-context cache scoping). Not used by the current implementation.
+        /// The evaluation context to serialize alongside the flag payload. Used to restore
+        /// context after bootstrap so exposure tracking works without requiring a
+        /// SetEvaluationContext call. May be null if no context has been established yet.
         /// </param>
         void Write(string rawJson, FlagsEvaluationContext context);
     }
