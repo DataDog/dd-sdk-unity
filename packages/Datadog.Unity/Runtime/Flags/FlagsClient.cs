@@ -43,6 +43,12 @@ namespace Datadog.Unity.Flags
             IFlagsCacheReader cacheReader = null,
             FlagsClientState initialState = FlagsClientState.NotReady)
         {
+            if (trackExposures && exposureTracker == null)
+            {
+                throw new ArgumentNullException(nameof(exposureTracker),
+                    "exposureTracker must not be null when trackExposures is true.");
+            }
+
             _repository = repository;
             _exposureTracker = exposureTracker;
             _evaluationAggregator = evaluationAggregator;
