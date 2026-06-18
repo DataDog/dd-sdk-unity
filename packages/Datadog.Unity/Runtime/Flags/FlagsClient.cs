@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -343,9 +345,20 @@ namespace Datadog.Unity.Flags
                 return;
             }
 
-            // Seed repository with null context. Real context is set when SetEvaluationContext is called.
-            // Bootstrap result wins over initialState — this is intentional (see RESEARCH.md Pitfall 2).
-            _repository.SetFlagsAndContext(null, flags);
+            // Seed repository with restored context from cache envelope. Context is non-null when the
+            // envelope was written by a previous SetEvaluationContext call, enabling exposure tracking
+            // immediately after bootstrap.
+            FlagsEvaluationContext restoredContext = null;
+            if (envelope.Context != null && !string.IsNullOrEmpty(envelope.Context.TargetingKey))
+            {
+                var attrs = envelope.Context.Attributes?.Count > 0
+                    ? envelope.Context.Attributes
+                          .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+                    : null;
+                restoredContext = new FlagsEvaluationContext(envelope.Context.TargetingKey, attrs);
+            }
+
+            _repository.SetFlagsAndContext(restoredContext, flags);
 
             // Direct field write, not TransitionState — no subscribers yet at construction time
             // (see RESEARCH.md Pitfall 1).
