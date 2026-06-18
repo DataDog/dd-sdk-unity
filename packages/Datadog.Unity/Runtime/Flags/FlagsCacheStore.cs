@@ -136,7 +136,10 @@ namespace Datadog.Unity.Flags
         {
             // Force AOT compilation of the envelope deserialization path used by Phase 2 bootstrap.
             // Without this, IL2CPP strips DeserializeObject<FlagsCacheEnvelopeDto> on tvOS/iOS.
-            _ = Newtonsoft.Json.JsonConvert.DeserializeObject<FlagsCacheEnvelopeDto>(string.Empty);
+            // Pass null (not string.Empty) — DeserializeObject<T>(null) returns null without
+            // throwing, while string.Empty throws JsonReaderException. Both force the AOT
+            // compiler to emit the generic deserialization stub for IL2CPP.
+            _ = Newtonsoft.Json.JsonConvert.DeserializeObject<FlagsCacheEnvelopeDto>(null);
         }
     }
 }
