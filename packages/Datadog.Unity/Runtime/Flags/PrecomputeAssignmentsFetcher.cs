@@ -169,11 +169,9 @@ namespace Datadog.Unity.Flags
 
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
         {
-            var flags = new Dictionary<string, FlagAssignment>();
-
             if (string.IsNullOrEmpty(json))
             {
-                return flags;
+                return null; // treat as parse failure so caller skips cache write
             }
 
             AssignmentsResponseDto response;
@@ -183,15 +181,16 @@ namespace Datadog.Unity.Flags
             }
             catch
             {
-                return flags;
+                return null; // malformed JSON — signal failure to caller
             }
 
             var flagsDict = response?.Data?.Attributes?.Flags;
             if (flagsDict == null)
             {
-                return flags;
+                return null; // structurally invalid response — signal failure
             }
 
+            var flags = new Dictionary<string, FlagAssignment>();
             foreach (var kvp in flagsDict)
             {
                 var dto = kvp.Value;
