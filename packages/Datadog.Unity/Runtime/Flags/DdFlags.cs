@@ -124,6 +124,17 @@ namespace Datadog.Unity.Flags
 
             lock (_lock)
             {
+                // Re-check _isEnabled inside _lock to close the Shutdown / CreateClient race:
+                // Shutdown flips _isEnabled = false under _enableLock and then calls
+                // ShutdownInternal under _lock. Without this check, a CreateClient call that
+                // observed _isEnabled == true before Shutdown ran can enter _lock after
+                // ShutdownInternal clears _clients, add a new client, and return it to the
+                // caller — who then holds a reference to a client disposed by ShutdownInternal.
+                if (!_isEnabled)
+                {
+                    return new NoopFlagsClient("DEFAULT", DatadogSdk.Instance?.InternalLogger);
+                }
+
                 if (_clients.TryGetValue(name, out var existingClient))
                 {
                     return existingClient;
