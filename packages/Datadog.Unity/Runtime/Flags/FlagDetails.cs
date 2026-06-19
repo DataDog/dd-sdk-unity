@@ -70,7 +70,7 @@ namespace Datadog.Unity.Flags
         /// <summary>Gets the allocation key for this evaluation.</summary>
         public string AllocationKey { get; }
 
-        /// <summary>Gets the evaluation metadata including allocationKey and extraLogging fields.</summary>
+        /// <summary>Gets the evaluation metadata including allocationKey.</summary>
         public IReadOnlyDictionary<string, object> Metadata { get; }
     }
 }
