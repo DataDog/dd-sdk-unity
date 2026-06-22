@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Datadog.Unity.Flags
 {
@@ -24,6 +26,8 @@ namespace Datadog.Unity.Flags
         private readonly bool _trackExposures;
         private readonly bool _trackEvaluations;
         private readonly Action<ExposureEvent> _onExposure;
+        private readonly IFlagsCacheWriter _cacheWriter;
+        private readonly IFlagsCacheReader _cacheReader;
 
         private FlagsClientState _state;
         private bool _disposed;
@@ -37,8 +41,16 @@ namespace Datadog.Unity.Flags
             bool trackExposures,
             bool trackEvaluations,
             Action<ExposureEvent> onExposure,
+            IFlagsCacheWriter cacheWriter = null,
+            IFlagsCacheReader cacheReader = null,
             FlagsClientState initialState = FlagsClientState.NotReady)
         {
+            if (trackExposures && exposureTracker == null)
+            {
+                throw new ArgumentNullException(nameof(exposureTracker),
+                    "exposureTracker must not be null when trackExposures is true.");
+            }
+
             _repository = repository;
             _exposureTracker = exposureTracker;
             _evaluationAggregator = evaluationAggregator;
@@ -47,7 +59,10 @@ namespace Datadog.Unity.Flags
             _trackExposures = trackExposures;
             _trackEvaluations = trackEvaluations;
             _onExposure = onExposure;
+            _cacheWriter = cacheWriter;
+            _cacheReader = cacheReader;
             _state = initialState;
+            BootstrapFromCache();
         }
 
         /// <summary>
@@ -127,10 +142,11 @@ namespace Datadog.Unity.Flags
 
             TransitionState(FlagsClientState.Reconciling);
 
-            _fetcher.Fetch(context, flags =>
+            _fetcher.Fetch(context, (rawJson, flags) =>
             {
                 if (flags != null)
                 {
+                    _cacheWriter?.Write(rawJson, context);
                     _repository.SetFlagsAndContext(context, flags);
                     TransitionState(FlagsClientState.Ready);
                     onComplete?.Invoke(true);
@@ -272,7 +288,10 @@ namespace Datadog.Unity.Flags
             var context = _repository.Context;
 
             // Exposure tracking
-            if (_trackExposures && assignment != null && assignment.DoLog && flagError == null)
+            // Guard: skip exposure dispatch when context is null (e.g., bootstrapped from cache
+            // before SetEvaluationContext is called). Firing an exposure with an empty subject ID
+            // would corrupt server-side attribution data.
+            if (_trackExposures && context != null && assignment != null && assignment.DoLog && flagError == null)
             {
                 var exposureKey = new ExposureTracker.ExposureKey(
                     targetingKey: context?.TargetingKey ?? string.Empty,
@@ -300,6 +319,62 @@ namespace Datadog.Unity.Flags
             {
                 _evaluationAggregator?.RecordEvaluation(key, assignment, context, flagError);
             }
+        }
+
+        private void BootstrapFromCache()
+        {
+            if (_cacheReader == null) return;
+
+            var envelope = _cacheReader.Read(null);
+            if (envelope == null)
+            {
+                _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] No cached flags found.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(envelope.Payload))
+            {
+                _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Cached payload is empty — skipping bootstrap.");
+                return;
+            }
+
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(envelope.Payload);
+            if (flags == null)
+            {
+                _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Cached payload parse failed — skipping bootstrap.");
+                return;
+            }
+
+            // Seed repository with restored context from cache envelope. Context is non-null when the
+            // envelope was written by a previous SetEvaluationContext call, enabling exposure tracking
+            // immediately after bootstrap.
+            FlagsEvaluationContext restoredContext = null;
+            if (envelope.Context != null && !string.IsNullOrEmpty(envelope.Context.TargetingKey))
+            {
+                // The DTO stores attributes as Dictionary<string,string> (already flattened by Write).
+                // The public constructor accepts Dictionary<string,object>, so we cast each value to
+                // object. The constructor then calls Flatten which immediately calls .ToString() on each
+                // object value — a no-op round-trip for strings. The data is correct: the cached
+                // attributes were already flattened at write time, and the re-flatten on a dict with
+                // no nested objects is harmless. An internal bypass constructor was considered but
+                // deferred to keep the change scope narrow.
+                var attrs = envelope.Context.Attributes?.Count > 0
+                    ? envelope.Context.Attributes
+                          .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+                    : null;
+                restoredContext = new FlagsEvaluationContext(envelope.Context.TargetingKey, attrs);
+            }
+
+            _repository.SetFlagsAndContext(restoredContext, flags);
+
+            // Direct field write, not TransitionState — no subscribers yet at construction time
+            // (see RESEARCH.md Pitfall 1). Lock for memory model consistency with every other
+            // _state write.
+            lock (_lock)
+            {
+                _state = FlagsClientState.Ready;
+            }
+            _logger?.Log(Logs.DdLogLevel.Debug, "[Flags] Bootstrapped from cache.");
         }
 
         private void TransitionState(FlagsClientState newState)

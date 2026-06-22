@@ -43,7 +43,7 @@ namespace Datadog.Unity.Flags
         /// Fetches precomputed assignments for the given evaluation context.
         /// Uses a callback since UnityWebRequest can be used from coroutines.
         /// </summary>
-        public void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
+        public void Fetch(FlagsEvaluationContext context, Action<string, Dictionary<string, FlagAssignment>> onComplete)
         {
             try
             {
@@ -72,19 +72,19 @@ namespace Datadog.Unity.Flags
                             var errorDetail = ExtractServerError(request.downloadHandler?.text, request.responseCode);
                             _logger?.Log(Logs.DdLogLevel.Warn,
                                 $"Failed to fetch flag assignments (HTTP {request.responseCode}): {errorDetail}");
-                            onComplete?.Invoke(null);
+                            onComplete?.Invoke(null, null);
                             return;
                         }
 
                         var responseText = request.downloadHandler.text;
                         var flags = ParseResponse(responseText);
-                        onComplete?.Invoke(flags);
+                        onComplete?.Invoke(responseText, flags);
                     }
                     catch (Exception e)
                     {
                         _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
                         _logger?.TelemetryError("Error parsing flag assignments", e);
-                        onComplete?.Invoke(null);
+                        onComplete?.Invoke(null, null);
                     }
                     finally
                     {
@@ -96,7 +96,7 @@ namespace Datadog.Unity.Flags
             {
                 _logger?.Log(Logs.DdLogLevel.Warn, $"Error fetching flag assignments: {e.Message}");
                 _logger?.TelemetryError("Error fetching flag assignments", e);
-                onComplete?.Invoke(null);
+                onComplete?.Invoke(null, null);
             }
         }
 
@@ -169,11 +169,9 @@ namespace Datadog.Unity.Flags
 
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
         {
-            var flags = new Dictionary<string, FlagAssignment>();
-
             if (string.IsNullOrEmpty(json))
             {
-                return flags;
+                return null; // treat as parse failure so caller skips cache write
             }
 
             AssignmentsResponseDto response;
@@ -183,15 +181,16 @@ namespace Datadog.Unity.Flags
             }
             catch
             {
-                return flags;
+                return null; // malformed JSON — signal failure to caller
             }
 
             var flagsDict = response?.Data?.Attributes?.Flags;
             if (flagsDict == null)
             {
-                return flags;
+                return null; // structurally invalid response — signal failure
             }
 
+            var flags = new Dictionary<string, FlagAssignment>();
             foreach (var kvp in flagsDict)
             {
                 var dto = kvp.Value;

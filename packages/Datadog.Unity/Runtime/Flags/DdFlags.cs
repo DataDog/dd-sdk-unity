@@ -35,6 +35,7 @@ namespace Datadog.Unity.Flags
         public static readonly DdFlags Instance = new();
 
         private FlagsConfiguration _configuration;
+        private DatadogConfigurationOptions _options;
         private EvpTelemetrySender _telemetrySender;
         private IInternalLogger _logger;
         private volatile bool _isEnabled;
@@ -90,7 +91,7 @@ namespace Datadog.Unity.Flags
                     return;
                 }
 
-                Instance.Configure(configuration, logger);
+                Instance.Configure(configuration, options, logger);
             }
         }
 
@@ -124,12 +125,23 @@ namespace Datadog.Unity.Flags
 
             lock (_lock)
             {
+                // Re-check _isEnabled inside _lock to close the Shutdown / CreateClient race:
+                // Shutdown flips _isEnabled = false under _enableLock and then calls
+                // ShutdownInternal under _lock. Without this check, a CreateClient call that
+                // observed _isEnabled == true before Shutdown ran can enter _lock after
+                // ShutdownInternal clears _clients, add a new client, and return it to the
+                // caller — who then holds a reference to a client disposed by ShutdownInternal.
+                if (!_isEnabled)
+                {
+                    return new NoopFlagsClient("DEFAULT", DatadogSdk.Instance?.InternalLogger);
+                }
+
                 if (_clients.TryGetValue(name, out var existingClient))
                 {
                     return existingClient;
                 }
 
-                var options = DatadogConfigurationOptions.Load();
+                var options = _options;
 
                 string precomputeEndpoint;
                 if (!string.IsNullOrEmpty(_configuration.CustomFlagsEndpoint))
@@ -168,6 +180,15 @@ namespace Datadog.Unity.Flags
                     env: options?.Env ?? string.Empty,
                     logger: _logger);
 
+                // site: DatadogSite.Us1.ToString() → "Us1"; .ToLowerInvariant() → "us1".
+                // Us1Fed → "us1fed" (no underscore). Phase 2 bootstrap uses the same conversion.
+                var cacheStore = new FlagsCacheStore(
+                    store: new PlayerPrefsKeyValueStore(),
+                    site: (options?.Site ?? DatadogSite.Us1).ToString().ToLowerInvariant(),
+                    env: options?.Env ?? string.Empty,
+                    clientToken: options?.ClientToken ?? string.Empty,
+                    logger: _logger);
+
                 var client = new FlagsClient(
                     repository: new FlagsRepository(),
                     exposureTracker: new ExposureTracker(),
@@ -176,7 +197,9 @@ namespace Datadog.Unity.Flags
                     logger: _logger,
                     trackExposures: _configuration.TrackExposures,
                     trackEvaluations: _configuration.TrackEvaluations,
-                    onExposure: onExposure);
+                    onExposure: onExposure,
+                    cacheWriter: cacheStore,
+                    cacheReader: cacheStore);
 
                 _clients[name] = client;
                 return client;
@@ -193,9 +216,13 @@ namespace Datadog.Unity.Flags
         }
 
         // Sets configuration and marks the instance as enabled.
-        private void Configure(FlagsConfiguration configuration, IInternalLogger logger)
+        // options is captured here so CreateClient() always uses the same values
+        // that Enable() validated — preventing a cache-key mismatch if the asset
+        // is reloaded between Enable() and CreateClient() calls (e.g., in tests).
+        private void Configure(FlagsConfiguration configuration, DatadogConfigurationOptions options, IInternalLogger logger)
         {
             _configuration = configuration;
+            _options = options;
             _logger = logger;
             _isEnabled = true;
         }
