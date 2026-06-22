@@ -3,8 +3,6 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 
 namespace Datadog.Unity.Flags
 {
@@ -232,14 +230,12 @@ namespace Datadog.Unity.Flags
                 return new FlagDetails<T>(key, defaultValue, error: FlagEvaluationError.TypeMismatch);
             }
 
-            var metadata = BuildMetadata(assignment);
             var details = new FlagDetails<T>(
                 key: key,
                 value: value,
                 variant: assignment.VariationKey,
                 reason: assignment.Reason,
-                allocationKey: assignment.AllocationKey,
-                metadata: metadata);
+                allocationKey: assignment.AllocationKey);
 
             TrackEvaluation(key, assignment, null);
             return details;
@@ -270,17 +266,6 @@ namespace Datadog.Unity.Flags
         {
             return GetDetails(key, defaultValue).Value;
         }
-
-        private static IReadOnlyDictionary<string, object> BuildMetadata(FlagAssignment assignment)
-        {
-            var dict = new Dictionary<string, object>();
-            if (!string.IsNullOrEmpty(assignment.AllocationKey))
-            {
-                dict["allocationKey"] = assignment.AllocationKey;
-            }
-            return new ReadOnlyDictionary<string, object>(dict);
-        }
-
         private void TrackEvaluation(string key, FlagAssignment assignment, string flagError)
         {
             var context = _repository.Context;

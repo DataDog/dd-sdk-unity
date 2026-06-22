@@ -2,17 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-
 namespace Datadog.Unity.Flags
 {
-    internal static class EmptyMetadata
-    {
-        internal static readonly IReadOnlyDictionary<string, object> Instance =
-            new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
-    }
-
     /// <summary>
     /// Error codes for flag evaluation failures.
     /// </summary>
@@ -40,8 +31,7 @@ namespace Datadog.Unity.Flags
             string variant = null,
             string reason = null,
             FlagEvaluationError? error = null,
-            string allocationKey = null,
-            IReadOnlyDictionary<string, object> metadata = null)
+            string allocationKey = null)
         {
             Key = key;
             Value = value;
@@ -49,7 +39,6 @@ namespace Datadog.Unity.Flags
             Reason = reason;
             Error = error;
             AllocationKey = allocationKey ?? string.Empty;
-            Metadata = metadata ?? EmptyMetadata.Instance;
         }
 
         /// <summary>Gets the flag key.</summary>
@@ -69,8 +58,5 @@ namespace Datadog.Unity.Flags
 
         /// <summary>Gets the allocation key for this evaluation.</summary>
         public string AllocationKey { get; }
-
-        /// <summary>Gets the evaluation metadata including allocationKey.</summary>
-        public IReadOnlyDictionary<string, object> Metadata { get; }
     }
 }

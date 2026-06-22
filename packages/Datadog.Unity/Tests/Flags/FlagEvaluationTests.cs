@@ -167,24 +167,7 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void GetDetails_MetadataContainsAllocationKey()
-        {
-            var flags = new Dictionary<string, FlagAssignment>
-            {
-                ["my-flag"] = new FlagAssignment("boolean", true, false, "alloc-abc", "treatment", "TARGETING_MATCH"),
-            };
-            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
-
-            var client = MakeClient(_repository);
-            var details = client.GetDetails("my-flag", false);
-
-            Assert.IsTrue(details.Metadata.ContainsKey("allocationKey"),
-                "Metadata must contain 'allocationKey'");
-            Assert.AreEqual("alloc-abc", details.Metadata["allocationKey"]);
-        }
-
-        [Test]
-        public void GetDetails_EmptyAllocationKey_MetadataOmitsAllocationKeyEntry()
+        public void GetDetails_EmptyAllocationKey_ReturnsEmptyString()
         {
             var flags = new Dictionary<string, FlagAssignment>
             {
@@ -195,8 +178,8 @@ namespace Datadog.Unity.Flags.Tests
             var client = MakeClient(_repository);
             var details = client.GetDetails("my-flag", false);
 
-            Assert.IsFalse(details.Metadata.ContainsKey("allocationKey"),
-                "allocationKey must not appear in Metadata when the assignment has no allocation key");
+            Assert.AreEqual(string.Empty, details.AllocationKey,
+                "AllocationKey must be empty string when the assignment has no allocation key");
         }
     }
 }
