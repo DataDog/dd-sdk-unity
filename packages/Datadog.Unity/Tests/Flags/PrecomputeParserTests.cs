@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Flags.Tests
