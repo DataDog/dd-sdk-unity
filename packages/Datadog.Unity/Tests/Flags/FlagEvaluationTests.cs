@@ -17,6 +17,22 @@ namespace Datadog.Unity.Flags.Tests
             _repository = new FlagsRepository();
         }
 
+        // Helper: build a minimal FlagsClient backed by an in-memory repository.
+        // trackExposures and trackEvaluations are false so null trackers are safe.
+        private FlagsClient MakeClient(FlagsRepository repo)
+        {
+            return new FlagsClient(
+                repository: repo,
+                exposureTracker: null,
+                evaluationAggregator: null,
+                fetcher: null,
+                logger: null,
+                trackExposures: false,
+                trackEvaluations: false,
+                onExposure: null,
+                initialState: FlagsClientState.Ready);
+        }
+
         [Test]
         public void BooleanFlagReturnsCorrectValue()
         {
@@ -131,6 +147,39 @@ namespace Datadog.Unity.Flags.Tests
             _repository.SetFlagsAndContext(new FlagsEvaluationContext("u1"), flags2);
             Assert.IsNull(_repository.GetFlagAssignment("flag-a"));
             Assert.IsNotNull(_repository.GetFlagAssignment("flag-b"));
+        }
+
+        // ─── GetDetails: AllocationKey threading ─────────────────────────────────────
+
+        [Test]
+        public void GetDetails_ReturnsAllocationKey()
+        {
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, false, "alloc-xyz", "treatment", "TARGETING_MATCH"),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.AreEqual("alloc-xyz", details.AllocationKey);
+        }
+
+        [Test]
+        public void GetDetails_NullAllocationKey_ReturnsNull()
+        {
+            var flags = new Dictionary<string, FlagAssignment>
+            {
+                ["my-flag"] = new FlagAssignment("boolean", true, false, null, "treatment", "DEFAULT"),
+            };
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
+
+            var client = MakeClient(_repository);
+            var details = client.GetDetails("my-flag", false);
+
+            Assert.IsNull(details.AllocationKey,
+                "AllocationKey must be null when the assignment has no allocation key");
         }
     }
 }

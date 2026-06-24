@@ -286,6 +286,7 @@ namespace Datadog.Unity.Flags
 
             [JsonProperty("reason")]
             public string Reason { get; set; }
+
         }
     }
 }

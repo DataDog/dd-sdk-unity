@@ -25,13 +25,20 @@ namespace Datadog.Unity.Flags
     /// <typeparam name="T">The type of the flag value.</typeparam>
     public class FlagDetails<T>
     {
-        internal FlagDetails(string key, T value, string variant = null, string reason = null, FlagEvaluationError? error = null)
+        internal FlagDetails(
+            string key,
+            T value,
+            string variant = null,
+            string reason = null,
+            FlagEvaluationError? error = null,
+            string allocationKey = null)
         {
             Key = key;
             Value = value;
             Variant = variant;
             Reason = reason;
             Error = error;
+            AllocationKey = allocationKey;
         }
 
         /// <summary>Gets the flag key.</summary>
@@ -48,5 +55,8 @@ namespace Datadog.Unity.Flags
 
         /// <summary>Gets the evaluation error (null if successful).</summary>
         public FlagEvaluationError? Error { get; }
+
+        /// <summary>Gets the allocation key for this evaluation.</summary>
+        public string AllocationKey { get; }
     }
 }

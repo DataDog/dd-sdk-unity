@@ -3,7 +3,6 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
-using System.Collections.Generic;
 
 namespace Datadog.Unity.Flags
 {
@@ -235,7 +234,8 @@ namespace Datadog.Unity.Flags
                 key: key,
                 value: value,
                 variant: assignment.VariationKey,
-                reason: assignment.Reason);
+                reason: assignment.Reason,
+                allocationKey: assignment.AllocationKey);
 
             TrackEvaluation(key, assignment, null);
             return details;
@@ -266,7 +266,6 @@ namespace Datadog.Unity.Flags
         {
             return GetDetails(key, defaultValue).Value;
         }
-
         private void TrackEvaluation(string key, FlagAssignment assignment, string flagError)
         {
             var context = _repository.Context;
@@ -285,7 +284,7 @@ namespace Datadog.Unity.Flags
                     var exposureEvent = new ExposureEvent(
                         timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                         flag: new FlagRef(key),
-                        allocation: new FlagRef(assignment.AllocationKey),
+                        allocation: assignment.AllocationKey != null ? new FlagRef(assignment.AllocationKey) : null,
                         variant: new FlagRef(assignment.VariationKey),
                         subject: new ExposureSubject(
                             id: context?.TargetingKey ?? string.Empty,
