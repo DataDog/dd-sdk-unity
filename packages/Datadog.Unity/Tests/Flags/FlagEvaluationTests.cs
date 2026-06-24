@@ -167,19 +167,19 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void GetDetails_EmptyAllocationKey_ReturnsEmptyString()
+        public void GetDetails_NullAllocationKey_ReturnsNull()
         {
             var flags = new Dictionary<string, FlagAssignment>
             {
-                ["my-flag"] = new FlagAssignment("boolean", true, false, "", "treatment", "DEFAULT"),
+                ["my-flag"] = new FlagAssignment("boolean", true, false, null, "treatment", "DEFAULT"),
             };
             _repository.SetFlagsAndContext(new FlagsEvaluationContext("user-1"), flags);
 
             var client = MakeClient(_repository);
             var details = client.GetDetails("my-flag", false);
 
-            Assert.AreEqual(string.Empty, details.AllocationKey,
-                "AllocationKey must be empty string when the assignment has no allocation key");
+            Assert.IsNull(details.AllocationKey,
+                "AllocationKey must be null when the assignment has no allocation key");
         }
     }
 }

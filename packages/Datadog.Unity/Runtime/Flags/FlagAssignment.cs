@@ -25,7 +25,7 @@ namespace Datadog.Unity.Flags
             VariationType = variationType ?? string.Empty;
             VariationValue = variationValue;
             DoLog = doLog;
-            AllocationKey = allocationKey ?? string.Empty;
+            AllocationKey = allocationKey;
             VariationKey = variationKey ?? string.Empty;
             Reason = reason ?? string.Empty;
         }

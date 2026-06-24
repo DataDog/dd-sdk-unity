@@ -284,7 +284,7 @@ namespace Datadog.Unity.Flags
                     var exposureEvent = new ExposureEvent(
                         timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                         flag: new FlagRef(key),
-                        allocation: new FlagRef(assignment.AllocationKey),
+                        allocation: assignment.AllocationKey != null ? new FlagRef(assignment.AllocationKey) : null,
                         variant: new FlagRef(assignment.VariationKey),
                         subject: new ExposureSubject(
                             id: context?.TargetingKey ?? string.Empty,

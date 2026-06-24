@@ -38,7 +38,7 @@ namespace Datadog.Unity.Flags
             Variant = variant;
             Reason = reason;
             Error = error;
-            AllocationKey = allocationKey ?? string.Empty;
+            AllocationKey = allocationKey;
         }
 
         /// <summary>Gets the flag key.</summary>
