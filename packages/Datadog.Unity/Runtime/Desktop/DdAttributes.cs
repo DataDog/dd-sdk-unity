@@ -41,14 +41,8 @@ namespace Datadog.Unity.Desktop
                 float f => dd_attribute_double(f),
                 bool b => dd_attribute_bool(b),
                 Dictionary<string, object> dict => BuildAttributeObject(dict, logger),
-                _ => UnknownAttribute(value, logger),
+                _ => dd_attribute_string(value.ToString()),
             };
-        }
-
-        private static DdAttribute UnknownAttribute(object value, IInternalLogger logger)
-        {
-            logger.Log(DdLogLevel.Warn, $"Unsupported attribute type '{value.GetType().Name}' — value will be dropped.");
-            return dd_attribute_null();
         }
 
         internal static DdAttribute BuildAttributeObject(Dictionary<string, object> attrs, IInternalLogger logger)
