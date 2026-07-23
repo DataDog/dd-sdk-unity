@@ -420,6 +420,47 @@ namespace Datadog.Unity.Editor.iOS
         }
 
         [Test]
+        public void GenerateOptionsFileDoesNotWriteTimeseriesWhenDisabled()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                EnableTimeseries = false,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var enableTimeseriesLines = lines.Where(l => l.Contains("enableTimeseries")).ToArray();
+            var batchSizeLines = lines.Where(l => l.Contains("timeseriesBatchSize")).ToArray();
+            Assert.IsEmpty(enableTimeseriesLines);
+            Assert.IsEmpty(batchSizeLines);
+        }
+
+        [TestCase(1)]
+        [TestCase(120)]
+        [TestCase(500)]
+        public void GenerateOptionsFileWritesTimeseriesWhenEnabled(int batchSize)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                EnableTimeseries = true,
+                TimeseriesBatchSize = batchSize,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var enableTimeseriesLines = lines.Where(l => l.Contains("enableTimeseries")).ToArray();
+            var batchSizeLines = lines.Where(l => l.Contains("timeseriesBatchSize")).ToArray();
+            Assert.AreEqual(1, enableTimeseriesLines.Length);
+            Assert.AreEqual("rumConfig.enableTimeseries = true", enableTimeseriesLines.First().Trim());
+            Assert.AreEqual(1, batchSizeLines.Length);
+            Assert.AreEqual($"rumConfig.timeseriesBatchSize = {batchSize}", batchSizeLines.First().Trim());
+        }
+
+        [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {
             var importString = "#import";
