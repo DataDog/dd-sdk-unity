@@ -179,6 +179,12 @@ func initializeDatadog() {{
                 sb.AppendLine(
                     $"    rumConfig.appHangThreshold = {appHangThreshold}");
 
+                if (options.EnableTimeseries)
+                {
+                    sb.AppendLine("    rumConfig.enableTimeseries = true");
+                    sb.AppendLine($"    rumConfig.timeseriesBatchSize = {options.TimeseriesBatchSize}");
+                }
+
                 // Uncomment to enable RUM Configuration Telemetry
                 // sb.AppendLine(@"    rumConfig._internal_mutation {
                 //     $0.configurationTelemetrySampleRate = 100.0
