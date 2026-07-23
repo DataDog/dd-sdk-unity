@@ -248,6 +248,8 @@ namespace Datadog.Unity
         public NonFatalAnrDetectionOption TrackNonFatalAnrs = NonFatalAnrDetectionOption.Disabled;
         public bool TrackNonFatalAppHangs = false;
         public float NonFatalAppHangThreshold = 0.25f;
+        public bool EnableTimeseries;
+        public int TimeseriesBatchSize = 120;
 
         // Advanced RUM
         public float TelemetrySampleRate;

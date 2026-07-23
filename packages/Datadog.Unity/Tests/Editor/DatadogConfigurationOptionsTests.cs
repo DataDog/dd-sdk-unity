@@ -74,6 +74,8 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(NonFatalAnrDetectionOption.Disabled, options.TrackNonFatalAnrs);
             Assert.AreEqual(false, options.TrackNonFatalAppHangs);
             Assert.AreEqual(0.25f, options.NonFatalAppHangThreshold);
+            Assert.IsFalse(options.EnableTimeseries);
+            Assert.AreEqual(120, options.TimeseriesBatchSize);
         }
     }
 }
