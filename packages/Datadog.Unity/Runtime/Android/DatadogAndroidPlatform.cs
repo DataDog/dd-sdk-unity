@@ -132,6 +132,14 @@ namespace Datadog.Unity.Android
                 using var updateFrequency = DatadogConfigurationHelpers.GetVitalsUpdateFrequency(options.VitalsUpdateFrequency);
                 rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
 
+                if (options.EnableTimeseries)
+                {
+                    using var timeseriesConfigBuilder = new AndroidJavaObject("com.datadog.android.rum.timeseries.TimeseriesConfiguration$Builder");
+                    timeseriesConfigBuilder.Call<AndroidJavaObject>("setBufferSize", options.TimeseriesBatchSize);
+                    using var timeseriesConfig = timeseriesConfigBuilder.Call<AndroidJavaObject>("build");
+                    rumConfigBuilder.Call<AndroidJavaObject>("setTimeseriesConfiguration", timeseriesConfig);
+                }
+
                 switch (options.TrackNonFatalAnrs)
                 {
                     case NonFatalAnrDetectionOption.Disabled:
