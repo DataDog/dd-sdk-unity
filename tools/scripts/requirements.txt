@@ -1,5 +1,5 @@
 aiofiles==24.1.0
-GitPython==3.1.50
+GitPython==3.1.59
 PyGithub==2.5.0
 saxonche==13.0.0
 mypy==1.16.0
