@@ -260,8 +260,9 @@ namespace Datadog.Unity.Desktop
 
         private static IntPtr CreateCore(DatadogConfigurationOptions options)
         {
-            // All pointer-typed string fields in dd_core_config_t store raw const char* without copying.
-            // We must keep unmanaged copies alive from config_init through dd_core_create.
+            // dd_core_config_t's string fields are fixed-size inline char[] buffers; each setter
+            // copies (and truncates) the value immediately, so these unmanaged buffers don't strictly
+            // need to outlive their setter calls. We free them all together below for simplicity.
             var tokenPtr = AllocUtf8(options.ClientToken);
             var servicePtr = AllocUtf8(string.IsNullOrEmpty(options.ServiceName)
                 ? Application.productName
@@ -272,14 +273,15 @@ namespace Datadog.Unity.Desktop
             var sourcePtr = AllocUtf8("unity");
             var sdkVersionPtr = AllocUtf8(DatadogSdk.SdkVersion);
 
-            // Over-allocate generously; dd_core_config_init writes ~650 bytes of defaults.
+            // Over-allocate generously; dd_core_config_t is currently ~1450 bytes (mostly its
+            // fixed-size string buffers), leaving headroom for it to grow across SDK versions.
             var configPtr = Marshal.AllocHGlobal(4096);
             IntPtr core;
             IntPtr customEndpointPtr = IntPtr.Zero;
             try
             {
                 dd_core_config_init(configPtr, tokenPtr, servicePtr, envPtr);
-                dd_core_config_set_application_version(configPtr, versionPtr);
+                dd_core_config_set_version(configPtr, versionPtr);
                 dd_core_config_set_application_storage_path(configPtr, storagePtr);
                 dd_core_config_set_site(configPtr, MapSite(options.Site));
                 dd_core_config_set_batch_size(configPtr, (int)options.BatchSize);
@@ -341,7 +343,7 @@ namespace Datadog.Unity.Desktop
         private static extern void dd_core_config_init(IntPtr config, IntPtr clientToken, IntPtr service, IntPtr env);
 
         [DllImport("dd_native")]
-        private static extern void dd_core_config_set_application_version(IntPtr config, IntPtr value);
+        private static extern void dd_core_config_set_version(IntPtr config, IntPtr value);
 
         [DllImport("dd_native")]
         private static extern void dd_core_config_set_application_storage_path(IntPtr config, IntPtr value);

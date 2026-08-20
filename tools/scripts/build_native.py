@@ -84,7 +84,7 @@ def copy_output(target_platform):
 
     os.makedirs(dst_dir, exist_ok=True)
     shutil.copy2(src, dst)
-    print(f'Copied {src} → {dst}')
+    print(f'Copied {src} -> {dst}')
 
 
 def main():

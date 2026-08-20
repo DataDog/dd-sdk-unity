@@ -32,7 +32,7 @@ namespace Datadog.Unity.Desktop
             var attrs = GetAttrs(attributes);
             try
             {
-                dd_rum_start_view_obj(_rum, key, name ?? key, ref attrs);
+                dd_rum_start_view(_rum, key, name ?? key, ref attrs);
             }
             finally
             {
@@ -50,7 +50,7 @@ namespace Datadog.Unity.Desktop
             var attrs = GetAttrs(attributes);
             try
             {
-                dd_rum_stop_view_obj(_rum, key, ref attrs);
+                dd_rum_stop_view(_rum, key, ref attrs);
             }
             finally
             {
@@ -324,11 +324,11 @@ namespace Datadog.Unity.Desktop
         private static extern void dd_rum_stop_session(IntPtr rum);
 
         [DllImport("dd_native")]
-        private static extern void dd_rum_start_view_obj(IntPtr rum, [MarshalAs(UnmanagedType.LPUTF8Str)] string key,
+        private static extern void dd_rum_start_view(IntPtr rum, [MarshalAs(UnmanagedType.LPUTF8Str)] string key,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ref DdAttribute attributes);
 
         [DllImport("dd_native")]
-        private static extern void dd_rum_stop_view_obj(IntPtr rum, [MarshalAs(UnmanagedType.LPUTF8Str)] string key,
+        private static extern void dd_rum_stop_view(IntPtr rum, [MarshalAs(UnmanagedType.LPUTF8Str)] string key,
             ref DdAttribute attributes);
 
         [DllImport("dd_native")]
