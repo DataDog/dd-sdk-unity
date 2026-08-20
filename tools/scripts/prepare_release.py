@@ -20,7 +20,7 @@ from typing import List, Tuple, Set
 import git
 
 from common.log import init_logger, get_default_logger
-from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, write_external_dependency_versions, ExternalDependencyVersions
+from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, write_external_dependency_versions, ExternalDependencyVersions, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH
 from common.commit import CommitInfo
 from common.github import resolve_latest_release_version, get_file_contents, get_releases_between
 
@@ -132,6 +132,34 @@ def _needs_dependency_upgrade(repo_name: str, target_ver: Version, prev_release_
         return False
     
     raise RuntimeError(f'Target {repo_name} version {target_ver} is a downgrade from version used in previous release ({prev_release_ver})')
+
+
+def _read_prev_release_ios_version(prev_release_version: Version, prev_release_dependency_versions: ExternalDependencyVersions) -> Version:
+    """
+    Resolves the dd-sdk-ios version pinned in the previous release. Reads from the
+    new Editor/iOS/IosDependencyVersion.json config first (Phase 2 and later
+    releases); falls back to the legacy Editor/DatadogDependencies.xml <iosPod>
+    entries (via the already-parsed prev_release_dependency_versions argument's iOS
+    field) for releases published before that config existed, since those releases
+    have no JSON pin to read.
+    """
+    log = get_default_logger()
+    try:
+        prev_release_ios_pin_json = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/iOS/IosDependencyVersion.json')
+        pin = read_ios_xcframework_pin(prev_release_ios_pin_json)
+        log.info(f'Read previous release dd-sdk-ios version {pin.version} from Editor/iOS/IosDependencyVersion.json.')
+        return pin.version
+    except Exception as json_error:
+        legacy_dd_sdk_ios_version = prev_release_dependency_versions.dd_sdk_ios
+        if legacy_dd_sdk_ios_version is None:
+            raise RuntimeError(
+                f'Failed to resolve dd-sdk-ios version used in previous release {prev_release_version}: '
+                f'could not read Editor/iOS/IosDependencyVersion.json ({json_error}), and '
+                f'Editor/DatadogDependencies.xml has no <iosPod> entries to fall back to.'
+            )
+        log.warning(f'Could not read Editor/iOS/IosDependencyVersion.json from previous release {prev_release_version}: {json_error}')
+        log.warning(f'Falling back to legacy Editor/DatadogDependencies.xml <iosPod> entries: dd-sdk-ios {legacy_dd_sdk_ios_version}.')
+        return legacy_dd_sdk_ios_version
 
 
 def _prepare_ios_changelog(prev_version: Version, target_version: Version) -> str:
@@ -323,6 +351,9 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     dev_datadog_dependencies_xml_path = _dev_package_path('Editor', 'DatadogDependencies.xml')
     if not os.path.isfile(dev_datadog_dependencies_xml_path):
         raise RuntimeError(f'File not found: {dev_datadog_dependencies_xml_path}')
+    dev_ios_dependency_version_json_path = os.path.join(dev_repo_root, IOS_DEPENDENCY_VERSION_RELPATH)
+    if not os.path.isfile(dev_ios_dependency_version_json_path):
+        raise RuntimeError(f'File not found: {dev_ios_dependency_version_json_path}')
     
     # Read the snippet that gets pasted into the release repo's README, then find the
     # source README.md file, find the '[//]: # (Repo Note)' line, and replace it with
@@ -438,7 +469,10 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     # used in that release
     prev_release_dependencies_xml = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/DatadogDependencies.xml')
     prev_release_dependency_versions = read_external_dependency_versions(prev_release_dependencies_xml)
-    needs_dd_sdk_ios_upgrade = _needs_dependency_upgrade('dd-sdk-ios', dd_sdk_ios_version, prev_release_dependency_versions.dd_sdk_ios)
+    # Resolve the previous release's dd-sdk-ios version via _read_prev_release_ios_version's
+    # JSON-primary/XML-fallback logic (see the helper above for the two attempted paths).
+    prev_release_ios_version = _read_prev_release_ios_version(prev_release_version, prev_release_dependency_versions)
+    needs_dd_sdk_ios_upgrade = _needs_dependency_upgrade('dd-sdk-ios', dd_sdk_ios_version, prev_release_ios_version)
     needs_dd_sdk_android_upgrade = _needs_dependency_upgrade('dd-sdk-android', dd_sdk_android_version, prev_release_dependency_versions.dd_sdk_android)
 
     # If we're upgrading the iOS or Android dependencies, get a list of all the
@@ -446,7 +480,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     # the list of changes published in each of those releases
     ios_changelog_text = ''
     if needs_dd_sdk_ios_upgrade:
-        ios_changelog_text = _prepare_ios_changelog(prev_release_dependency_versions.dd_sdk_ios, dd_sdk_ios_version)
+        ios_changelog_text = _prepare_ios_changelog(prev_release_ios_version, dd_sdk_ios_version)
     android_changelog_text = ''
     if needs_dd_sdk_android_upgrade:
         android_changelog_text = _prepare_android_changelog(prev_release_dependency_versions.dd_sdk_android, dd_sdk_android_version)
@@ -547,17 +581,46 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     modify_assemblyinfo(dev_assemblyinfo_cs_path, new_version)
     dev_repo.git.add(dev_assemblyinfo_cs_path)
 
-    # Bake the latest explicit dd-sdk-ios and dd-sdk-android versions into
-    # DatadogDependencies.xml, which configures EDM4U
+    # Bake the latest explicit dd-sdk-android version into DatadogDependencies.xml,
+    # which configures EDM4U for Android only; dd-sdk-ios is no longer written here
+    # (dd_sdk_ios=None) since EDM4U no longer resolves iOS pods — its version pin is
+    # written to IosDependencyVersion.json below instead.
     log.info(f'Updating EDM4U dependency versions in: {dev_datadog_dependencies_xml_path}')
     write_external_dependency_versions(
         dev_datadog_dependencies_xml_path,
         ExternalDependencyVersions(
-            dd_sdk_ios=dd_sdk_ios_version,
+            dd_sdk_ios=None,
             dd_sdk_android=dd_sdk_android_version,
         ),
     )
     dev_repo.git.add(dev_datadog_dependencies_xml_path)
+
+    # Bake the latest explicit dd-sdk-ios version into IosDependencyVersion.json
+    # instead of DatadogDependencies.xml. Note: committing the vendored
+    # Plugins/iOS/*.xcframework bundles into the release payload (those paths are
+    # .gitignore'd in this dev repo, so a Phase 4 release job will need `git add -f`
+    # or equivalent) remains Phase 4 scope; this step only updates the version pin.
+    log.info(f'Updating dd-sdk-ios version pin in: {dev_ios_dependency_version_json_path}')
+    with open(dev_ios_dependency_version_json_path) as fp:
+        existing_ios_pin = read_ios_xcframework_pin(fp.read())
+    new_ios_sha256 = existing_ios_pin.sha256
+    if existing_ios_pin.version != dd_sdk_ios_version:
+        new_ios_sha256 = None
+        log.warning(
+            f'dd-sdk-ios version changed from {existing_ios_pin.version} to {dd_sdk_ios_version}; '
+            f'clearing the pinned sha256 rather than leaving a stale digest for a different version. '
+            f'Run `./run-script update_ios_version {dd_sdk_ios_version}` to fetch a fresh digest and '
+            f're-verify the module list before this release ships.'
+        )
+    write_ios_xcframework_pin(
+        dev_ios_dependency_version_json_path,
+        IosXcframeworkPin(
+            version=dd_sdk_ios_version,
+            sha256=new_ios_sha256,
+            modules=existing_ios_pin.modules,
+        ),
+    )
+    dev_repo.git.add(dev_ios_dependency_version_json_path)
 
     # Commit these changes to the local branch
     _log_section(f'Committing changes to {dev_release_branch_name}...')
