@@ -1,0 +1,8 @@
+{
+  "version": "3.10.0",
+  "artifacts": [
+    "dd-sdk-android-rum",
+    "dd-sdk-android-logs",
+    "dd-sdk-android-ndk"
+  ]
+}
