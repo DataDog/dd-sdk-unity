@@ -1,0 +1,28 @@
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2023-Present Datadog, Inc.
+
+using UnityEngine;
+using UnityEngine.Scripting;
+
+[assembly: UnityEngine.Scripting.Preserve]
+[assembly: UnityEngine.Scripting.AlwaysLinkAssembly]
+
+namespace Datadog.Unity.Desktop
+{
+    [Preserve]
+    public static class DatadogInitialization
+    {
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void InitializeDatadog()
+        {
+            var options = DatadogConfigurationOptions.Load();
+            if (options.Enabled)
+            {
+                var platform = new DatadogDesktopPlatform();
+                platform.Init(options);
+                DatadogSdk.InitWithPlatform(platform, options);
+            }
+        }
+    }
+}

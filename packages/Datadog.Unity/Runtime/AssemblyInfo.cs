@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("com.datadoghq.unity.android")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.ios")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.webgl")]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.desktop")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.Editor")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.flags")]
 

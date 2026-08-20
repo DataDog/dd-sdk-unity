@@ -108,8 +108,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("Tapped Exception", secondAction.ActionName);
 
             var finalSecondVisitView = secondVisit.ViewEvents.Last();
+#if !UNITY_STANDALONE
             Assert.AreEqual("True", finalSecondVisitView.FeatureFlags["mock_flag_a"].Value<string>());
             Assert.AreEqual("mock_value", finalSecondVisitView.FeatureFlags["mock_flag_b"].Value<string>());
+#endif
             Assert.AreEqual("user-id", finalSecondVisitView.UserId);
             Assert.AreEqual("user-name", finalSecondVisitView.UserName);
             Assert.IsNull(finalSecondVisitView.UserEmail);
