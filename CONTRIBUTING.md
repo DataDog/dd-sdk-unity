@@ -66,6 +66,7 @@ The pinned dd-sdk-ios version, its expected SHA-256, and its expected module lis
 [xcode]: https://developer.apple.com/xcode/
 [xcbeautify]: https://github.com/cpisciotta/xcbeautify
 [ios-dependency-version-json]: ./packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json
+[android-dependency-version-json]: ./packages/Datadog.Unity/Editor/Android/AndroidDependencyVersion.json
 
 #### Troubleshooting iOS dependencies
 
@@ -75,7 +76,7 @@ If an iOS build fails with a message from `IosXcframeworkPreprocessBuild` naming
 ./run-script ios_xcframework stage
 ```
 
-EDM4U (`com.google.external-dependency-manager`) still exists in `packages/Datadog.Unity/package.json` and still manages the Android dependency until Phase 3. Seeing an EDM4U window appear during an Android build is expected; seeing CocoaPods/`pod` resolution attempted during an iOS build is not — Datadog's iOS dependency no longer goes through EDM4U or CocoaPods at all.
+EDM4U (Google's External Dependency Manager for Unity) has been removed from the package entirely. Neither an iOS nor an Android build invokes EDM4U or CocoaPods for Datadog's own dependencies. If an EDM4U window appears during any build, that indicates a stale EDM4U install left over in the local Unity project — it is not something this package requires or installs.
 
 #### Updating the pinned dd-sdk-ios version
 
@@ -93,6 +94,38 @@ This fetches the target version's XCFramework, re-verifies that all currently-ve
 `NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow, not by this script.
 
 Committing the vendored XCFramework into the `unity-package` release payload is release-automation work owned by Phase 4 — no release step is documented here.
+
+### Android dependencies
+
+The pinned dd-sdk-android version and its artifact IDs are the single source of truth in
+[`packages/Datadog.Unity/Editor/Android/AndroidDependencyVersion.json`][android-dependency-version-json].
+
+`DatadogGradlePostProcessor` (an `IPostGenerateGradleAndroidProject` hook) writes
+`implementation 'com.datadoghq:dd-sdk-android-{rum,logs,ndk}:<version>'` into the generated
+`unityLibrary/build.gradle`, bounded by `// Datadog Dependencies Start` / `// Datadog Dependencies End`
+markers. Gradle resolves the transitive dependency graph from `mavenCentral()`, which Unity's own
+`settingsTemplate.gradle` already declares — no repository configuration is needed.
+
+Unlike iOS, nothing is vendored into the package: the AARs are referenced by Maven coordinate and
+fetched by Gradle at build time, so there is no fetch/stage step and no `Plugins/Android` payload.
+
+#### Updating the pinned dd-sdk-android version
+
+Bumping the pinned dd-sdk-android version is a deliberate, manual maintainer action:
+
+```bash
+./run-script update_android_version <version>
+```
+
+This verifies that the three AARs are reachable on Maven Central and re-checks the transitive
+`kotlin-stdlib`/`okhttp` versions for drift before rewriting the pin, leaving the pin untouched on
+any failure. Useful flags:
+
+- `--dry-run` — verify and print the pin that would be written, without writing it.
+- `--force` — re-run the bump even if the target version already matches the current pin.
+- `--allow-transitive-drift` — proceed after a detected transitive version change has been reviewed.
+
+`NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow, not by this script.
 
 ## Repository overview
 
