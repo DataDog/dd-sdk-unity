@@ -191,6 +191,34 @@ namespace Datadog.Unity
         Rare,
     }
 
+    /// <summary>
+    /// Experimental: The timeseries types that can be collected during a RUM session.
+    /// This API is experimental and may change without notice.
+    /// </summary>
+    [Flags]
+    public enum TimeseriesTypes
+    {
+        /// <summary>
+        /// Collect no timeseries types.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Collect memory footprint and percentage of total device RAM.
+        /// </summary>
+        Memory = 1 << 0,
+
+        /// <summary>
+        /// Collect CPU usage as a percentage.
+        /// </summary>
+        Cpu = 1 << 1,
+
+        /// <summary>
+        /// Collect all available timeseries types. This is the default when timeseries collection is enabled.
+        /// </summary>
+        All = Memory | Cpu,
+    }
+
     [Serializable]
     public class FirstPartyHostOption
     {
@@ -248,6 +276,9 @@ namespace Datadog.Unity
         public NonFatalAnrDetectionOption TrackNonFatalAnrs = NonFatalAnrDetectionOption.Disabled;
         public bool TrackNonFatalAppHangs = false;
         public float NonFatalAppHangThreshold = 0.25f;
+        // Experimental: Timeseries collection. This API is experimental and may change without notice.
+        public bool EnableTimeseries;
+        public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.All;
 
         // Advanced RUM
         public float TelemetrySampleRate;

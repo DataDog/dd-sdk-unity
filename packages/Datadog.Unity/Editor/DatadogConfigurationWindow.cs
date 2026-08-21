@@ -113,6 +113,18 @@ namespace Datadog.Unity.Editor
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
+            EditorGUILayout.BeginHorizontal();
+            _options.EnableTimeseries = EditorGUILayout.ToggleLeft(
+                new GUIContent("Enable Timeseries (Experimental)", DatadogHelpStrings.EnableTimeseriesTooltip),
+                _options.EnableTimeseries);
+            EditorGUI.BeginDisabledGroup(!_options.EnableTimeseries);
+            _options.TimeseriesTypes = (TimeseriesTypes)EditorGUILayout.EnumFlagsField(
+                new GUIContent("Collect Types", DatadogHelpStrings.TimeseriesTypesTooltip),
+                _options.TimeseriesTypes);
+            EditorGUI.EndDisabledGroup();
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
             GUILayout.Space(12.0f);
 
             GUILayout.Label(new GUIContent("First Party Hosts", DatadogHelpStrings.FirstPartyHostsTooltip), EditorStyles.boldLabel);

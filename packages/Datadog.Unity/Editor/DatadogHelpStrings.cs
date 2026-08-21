@@ -97,5 +97,12 @@ namespace Datadog.Unity.Editor
 
         public const string TelemetrySampleRateTooltip =
             "The percentage rate at which Datadog sends internal telemetry data. A value of 100 means all telemetry data is sampled and sent to Datadog.";
+
+        public const string EnableTimeseriesTooltip =
+            "Experimental: Enables collection of memory and CPU timeseries events, sampled every second and uploaded scoped to " +
+            "the RUM session. This API is experimental and may change without notice.";
+
+        public const string TimeseriesTypesTooltip =
+            "Experimental: The specific timeseries types to collect. Defaults to collecting all available types.";
     }
 }

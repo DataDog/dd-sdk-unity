@@ -420,6 +420,44 @@ namespace Datadog.Unity.Editor.iOS
         }
 
         [Test]
+        public void GenerateOptionsFileDoesNotWriteTimeseriesWhenDisabled()
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                EnableTimeseries = false,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var timeseriesLines = lines.Where(l => l.Contains("rumConfig.timeseries")).ToArray();
+            Assert.IsEmpty(timeseriesLines);
+        }
+
+        [TestCase(TimeseriesTypes.All, "nil")]
+        [TestCase(TimeseriesTypes.Memory, "[.memory]")]
+        [TestCase(TimeseriesTypes.Cpu, "[.cpu]")]
+        public void GenerateOptionsFileWritesTimeseriesWhenEnabled(TimeseriesTypes collectTypes, string expectedCollectTypes)
+        {
+            var options = new DatadogConfigurationOptions()
+            {
+                Enabled = true,
+                RumEnabled = true,
+                EnableTimeseries = true,
+                TimeseriesTypes = collectTypes,
+            };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
+
+            var lines = File.ReadAllLines(_initializationFilePath);
+            var timeseriesLines = lines.Where(l => l.Contains("rumConfig.timeseries")).ToArray();
+            Assert.AreEqual(1, timeseriesLines.Length);
+            Assert.AreEqual(
+                $"rumConfig.timeseries = RUM.Configuration.Timeseries(collectTypes: {expectedCollectTypes})",
+                timeseriesLines.First().Trim());
+        }
+
+        [Test]
         public void AddInitializationToMainAddsDatadogBlocks()
         {
             var importString = "#import";

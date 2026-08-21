@@ -8,9 +8,9 @@
     </androidPackage>
   </androidPackages>
   <iosPods>
-    <iosPod name="DatadogCore" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-    <iosPod name="DatadogLogs" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-    <iosPod name="DatadogRUM" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-    <iosPod name="DatadogCrashReporting" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
+    <iosPod name="DatadogCore" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
+    <iosPod name="DatadogLogs" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
+    <iosPod name="DatadogRUM" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
+    <iosPod name="DatadogCrashReporting" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
   </iosPods>
 </dependencies>

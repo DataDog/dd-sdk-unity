@@ -132,6 +132,14 @@ namespace Datadog.Unity.Android
                 using var updateFrequency = DatadogConfigurationHelpers.GetVitalsUpdateFrequency(options.VitalsUpdateFrequency);
                 rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
 
+                // Experimental: Timeseries is not yet released on Android (still on feature/timeseries in dd-sdk-android).
+                // The wiring below is left unimplemented until the native API ships and its shape (expected to mirror
+                // iOS's `collectTypes`-based RUM.Configuration.Timeseries) is confirmed.
+                if (options.EnableTimeseries)
+                {
+                    Debug.LogWarning("Datadog: EnableTimeseries is not yet supported on Android.");
+                }
+
                 switch (options.TrackNonFatalAnrs)
                 {
                     case NonFatalAnrDetectionOption.Disabled:
