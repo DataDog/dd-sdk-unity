@@ -115,12 +115,12 @@ namespace Datadog.Unity.Editor
 
             EditorGUILayout.BeginHorizontal();
             _options.EnableTimeseries = EditorGUILayout.ToggleLeft(
-                new GUIContent("Enable Timeseries", DatadogHelpStrings.EnableTimeseriesTooltip),
+                new GUIContent("Enable Timeseries (Experimental)", DatadogHelpStrings.EnableTimeseriesTooltip),
                 _options.EnableTimeseries);
             EditorGUI.BeginDisabledGroup(!_options.EnableTimeseries);
-            _options.TimeseriesBatchSize = EditorGUILayout.IntField(
-                new GUIContent("Batch Size", DatadogHelpStrings.TimeseriesBatchSizeTooltip),
-                _options.TimeseriesBatchSize);
+            _options.TimeseriesTypes = (TimeseriesTypes)EditorGUILayout.EnumFlagsField(
+                new GUIContent("Collect Types", DatadogHelpStrings.TimeseriesTypesTooltip),
+                _options.TimeseriesTypes);
             EditorGUI.EndDisabledGroup();
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();

@@ -431,33 +431,30 @@ namespace Datadog.Unity.Editor.iOS
             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
 
             var lines = File.ReadAllLines(_initializationFilePath);
-            var enableTimeseriesLines = lines.Where(l => l.Contains("enableTimeseries")).ToArray();
-            var batchSizeLines = lines.Where(l => l.Contains("timeseriesBatchSize")).ToArray();
-            Assert.IsEmpty(enableTimeseriesLines);
-            Assert.IsEmpty(batchSizeLines);
+            var timeseriesLines = lines.Where(l => l.Contains("rumConfig.timeseries")).ToArray();
+            Assert.IsEmpty(timeseriesLines);
         }
 
-        [TestCase(1)]
-        [TestCase(120)]
-        [TestCase(500)]
-        public void GenerateOptionsFileWritesTimeseriesWhenEnabled(int batchSize)
+        [TestCase(TimeseriesTypes.All, "nil")]
+        [TestCase(TimeseriesTypes.Memory, "[.memory]")]
+        [TestCase(TimeseriesTypes.Cpu, "[.cpu]")]
+        public void GenerateOptionsFileWritesTimeseriesWhenEnabled(TimeseriesTypes collectTypes, string expectedCollectTypes)
         {
             var options = new DatadogConfigurationOptions()
             {
                 Enabled = true,
                 RumEnabled = true,
                 EnableTimeseries = true,
-                TimeseriesBatchSize = batchSize,
+                TimeseriesTypes = collectTypes,
             };
             PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null);
 
             var lines = File.ReadAllLines(_initializationFilePath);
-            var enableTimeseriesLines = lines.Where(l => l.Contains("enableTimeseries")).ToArray();
-            var batchSizeLines = lines.Where(l => l.Contains("timeseriesBatchSize")).ToArray();
-            Assert.AreEqual(1, enableTimeseriesLines.Length);
-            Assert.AreEqual("rumConfig.enableTimeseries = true", enableTimeseriesLines.First().Trim());
-            Assert.AreEqual(1, batchSizeLines.Length);
-            Assert.AreEqual($"rumConfig.timeseriesBatchSize = {batchSize}", batchSizeLines.First().Trim());
+            var timeseriesLines = lines.Where(l => l.Contains("rumConfig.timeseries")).ToArray();
+            Assert.AreEqual(1, timeseriesLines.Length);
+            Assert.AreEqual(
+                $"rumConfig.timeseries = RUM.Configuration.Timeseries(collectTypes: {expectedCollectTypes})",
+                timeseriesLines.First().Trim());
         }
 
         [Test]
