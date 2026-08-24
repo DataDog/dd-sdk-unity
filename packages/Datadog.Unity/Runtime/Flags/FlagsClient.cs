@@ -277,7 +277,8 @@ namespace Datadog.Unity.Flags
                     targetingKey: context?.TargetingKey ?? string.Empty,
                     flagKey: key,
                     allocationKey: assignment.AllocationKey,
-                    variationKey: assignment.VariationKey);
+                    variationKey: assignment.VariationKey,
+                    serialId: assignment.SerialId);
 
                 if (_exposureTracker.TrackExposure(exposureKey))
                 {
@@ -288,7 +289,8 @@ namespace Datadog.Unity.Flags
                         variant: new FlagRef(assignment.VariationKey),
                         subject: new ExposureSubject(
                             id: context?.TargetingKey ?? string.Empty,
-                            attributes: context?.Attributes?.Count > 0 ? context.Attributes : null));
+                            attributes: context?.Attributes?.Count > 0 ? context.Attributes : null),
+                        serialId: assignment.SerialId);
 
                     _onExposure?.Invoke(exposureEvent);
                 }

@@ -105,5 +105,36 @@ namespace Datadog.Unity.Flags.Tests
 
             Assert.AreEqual(1, tracker.Count);
         }
+
+        [Test]
+        public void SerialIdDistinguishesExposureKeys()
+        {
+            var tracker = new ExposureTracker();
+
+            var absent = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "var-1");
+            var zero = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "var-1", 0);
+            var one = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "var-1", 1);
+
+            tracker.TrackExposure(absent);
+
+            Assert.IsTrue(tracker.Contains(absent));
+            Assert.IsFalse(tracker.Contains(zero));
+            Assert.IsFalse(tracker.Contains(one));
+
+            Assert.IsTrue(tracker.TrackExposure(zero));
+            Assert.IsTrue(tracker.TrackExposure(one));
+            Assert.AreEqual(3, tracker.Count);
+        }
+
+        [Test]
+        public void SameSerialIdDeduplicates()
+        {
+            var tracker = new ExposureTracker();
+            var key = new ExposureTracker.ExposureKey("user-1", "flag-1", "alloc-1", "var-1", 0);
+
+            Assert.IsTrue(tracker.TrackExposure(key));
+            Assert.IsFalse(tracker.TrackExposure(key));
+            Assert.AreEqual(1, tracker.Count);
+        }
     }
 }
