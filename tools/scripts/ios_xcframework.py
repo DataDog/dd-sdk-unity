@@ -36,6 +36,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PIN_PATH = os.path.join(REPO_ROOT, IOS_DEPENDENCY_VERSION_RELPATH)
 PLUGINS_IOS_DIR = os.path.join(REPO_ROOT, 'packages', 'Datadog.Unity', 'Plugins', 'iOS')
 WORK_DIR = os.path.join(REPO_ROOT, 'build', 'ios-xcframework')
+DOWNLOAD_DIR = os.path.join(WORK_DIR, 'downloads')
 EXTRACT_DIR = os.path.join(WORK_DIR, 'extracted')
 
 # Name of the top-level directory inside dd-sdk-ios's release zip (holds one
@@ -43,7 +44,11 @@ EXTRACT_DIR = os.path.join(WORK_DIR, 'extracted')
 _XCFRAMEWORK_ZIP_ROOT = 'Datadog.xcframework'
 _XCFRAMEWORK_ZIP_FILENAME = f'{_XCFRAMEWORK_ZIP_ROOT}.zip'
 
-ZIP_PATH = os.path.join(WORK_DIR, _XCFRAMEWORK_ZIP_FILENAME)
+
+def zip_path_for(version):
+    # Cached per-version so a stale zip from a previously staged version is never
+    # mistaken for the one currently requested (see fetch()/cmd_stage()).
+    return os.path.join(DOWNLOAD_DIR, str(version), _XCFRAMEWORK_ZIP_FILENAME)
 
 RELEASE_URL_TEMPLATE = (
     'https://github.com/DataDog/dd-sdk-ios/releases/download/{version}/' + _XCFRAMEWORK_ZIP_FILENAME
@@ -101,11 +106,12 @@ def list_zip_modules(zip_path):
 
 def fetch(log, version, expected_sha256, force, allow_unknown_sha256):
     check_tools()
-    os.makedirs(WORK_DIR, exist_ok=True)
+    zip_path = zip_path_for(version)
+    os.makedirs(os.path.dirname(zip_path), exist_ok=True)
     url = RELEASE_URL_TEMPLATE.format(version=version)
 
-    if os.path.exists(ZIP_PATH) and not force:
-        log.info(f'{ZIP_PATH} already exists; skipping download (use --force to re-download).')
+    if os.path.exists(zip_path) and not force:
+        log.info(f'{zip_path} already exists; skipping download (use --force to re-download).')
     else:
         # No shell involved; '=https' restricts curl to exactly the https:// protocol.
         run([
@@ -116,16 +122,16 @@ def fetch(log, version, expected_sha256, force, allow_unknown_sha256):
             '--location',
             '--silent',
             '--show-error',
-            '-o', ZIP_PATH,
+            '-o', zip_path,
             url,
         ])
 
-    digest = sha256_of(ZIP_PATH)
+    digest = sha256_of(zip_path)
     log.info(f'sha256={digest}')
 
     if expected_sha256:
         if digest != expected_sha256:
-            os.remove(ZIP_PATH)
+            os.remove(zip_path)
             sys.exit(
                 f'SHA-256 mismatch for {url}: expected {expected_sha256}, got {digest}. '
                 'The downloaded zip was deleted; nothing was staged.'
@@ -142,23 +148,24 @@ def fetch(log, version, expected_sha256, force, allow_unknown_sha256):
     return digest
 
 
-def stage(log, modules):
-    if not os.path.exists(ZIP_PATH):
-        sys.exit(f'{ZIP_PATH} not found. Run "fetch" first.')
+def stage(log, version, modules):
+    zip_path = zip_path_for(version)
+    if not os.path.exists(zip_path):
+        sys.exit(f'{zip_path} not found. Run "fetch" first.')
 
     if os.path.isdir(EXTRACT_DIR):
         shutil.rmtree(EXTRACT_DIR)
     os.makedirs(EXTRACT_DIR, exist_ok=True)
 
-    with zipfile.ZipFile(ZIP_PATH) as zf:
+    with zipfile.ZipFile(zip_path) as zf:
         namelist = zf.namelist()
-        bundle_inventory = list_zip_modules(ZIP_PATH)
+        bundle_inventory = list_zip_modules(zip_path)
         for module in modules:
             prefix = f'{_XCFRAMEWORK_ZIP_ROOT}/{module}.xcframework/'
             members = [name for name in namelist if name.startswith(prefix)]
             if not members:
                 sys.exit(
-                    f'Module {module} not found in {ZIP_PATH}; bundle contains: {", ".join(bundle_inventory)}.'
+                    f'Module {module} not found in {zip_path}; bundle contains: {", ".join(bundle_inventory)}.'
                 )
             for member in members:
                 zf.extract(member, EXTRACT_DIR)
@@ -235,9 +242,9 @@ def cmd_stage(args, log):
     pin = load_pin()
     version = args.version or str(pin.version)
     expected_sha256 = pin.sha256 if not args.version or args.version == str(pin.version) else None
-    if not os.path.exists(ZIP_PATH) or args.force:
+    if not os.path.exists(zip_path_for(version)) or args.force:
         fetch(log, version, expected_sha256, args.force, args.allow_unknown_sha256)
-    stage(log, pin.modules)
+    stage(log, version, pin.modules)
     verify(log, pin.modules)
 
 

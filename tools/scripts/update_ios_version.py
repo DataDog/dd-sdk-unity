@@ -85,7 +85,7 @@ def main():
     # Step 4: re-verify the module set against the bundle's actual inventory. A dd-sdk-ios
     # release that drops or renames a module must stop the bump loudly, not silently pin
     # a broken version.
-    bundle_inventory = ios_xcframework.list_zip_modules(ios_xcframework.ZIP_PATH)
+    bundle_inventory = ios_xcframework.list_zip_modules(ios_xcframework.zip_path_for(target_version))
     missing = find_missing_modules(requested_modules, bundle_inventory)
     if missing:
         sys.exit(
@@ -101,7 +101,7 @@ def main():
         )
 
     # Step 5: stage into Plugins/iOS and structurally verify before the pin moves.
-    ios_xcframework.stage(log, requested_modules)
+    ios_xcframework.stage(log, str(target_version), requested_modules)
     ios_xcframework.verify(log, requested_modules)
 
     new_pin = IosXcframeworkPin(version=target_version, sha256=digest, modules=requested_modules)

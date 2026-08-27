@@ -203,7 +203,7 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
     # ios_xcframework's stage + verify (network fetch only, never Editor-side).
     pin = ios_xcframework.load_pin()
     ios_xcframework.fetch(log, str(pin.version), pin.sha256, force=False, allow_unknown_sha256=False)
-    ios_xcframework.stage(log, pin.modules)
+    ios_xcframework.stage(log, str(pin.version), pin.modules)
     ios_xcframework.verify(log, pin.modules)
 
     # 4. Delete any stale Build/iOS directory and log files before building. Unity
