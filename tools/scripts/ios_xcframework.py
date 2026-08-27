@@ -148,7 +148,8 @@ def fetch(log, version, expected_sha256, force, allow_unknown_sha256):
     return digest
 
 
-def stage(log, version, modules):
+def stage(log, version, modules, plugins_ios_dir=None):
+    plugins_ios_dir = plugins_ios_dir or PLUGINS_IOS_DIR
     zip_path = zip_path_for(version)
     if not os.path.exists(zip_path):
         sys.exit(f'{zip_path} not found. Run "fetch" first.')
@@ -182,17 +183,17 @@ def stage(log, version, modules):
             shutil.move(src, dst)
         shutil.rmtree(extracted_root)
 
-    os.makedirs(PLUGINS_IOS_DIR, exist_ok=True)
+    os.makedirs(plugins_ios_dir, exist_ok=True)
 
     # Remove any previously staged module no longer in the requested set (e.g. after
     # `update_ios_version --modules` drops one). Unity discovers native plugins by
     # scanning this directory, independent of the JSON pin, so a stale bundle left here
     # would still be linked/embedded into iOS builds.
     wanted = {f'{module}.xcframework' for module in modules}
-    for entry in os.listdir(PLUGINS_IOS_DIR):
+    for entry in os.listdir(plugins_ios_dir):
         if not entry.endswith('.xcframework') or entry in wanted:
             continue
-        stale_path = os.path.join(PLUGINS_IOS_DIR, entry)
+        stale_path = os.path.join(plugins_ios_dir, entry)
         shutil.rmtree(stale_path)
         log.info(f'Removed stale module no longer in the requested set: {stale_path}')
         meta_path = f'{stale_path}.meta'
@@ -204,17 +205,18 @@ def stage(log, version, modules):
         staged_src = os.path.join(EXTRACT_DIR, f'{module}.xcframework')
         if not os.path.isdir(staged_src):
             sys.exit(f'Expected staged module not found: {staged_src}')
-        dst = os.path.join(PLUGINS_IOS_DIR, f'{module}.xcframework')
+        dst = os.path.join(plugins_ios_dir, f'{module}.xcframework')
         if os.path.exists(dst):
             shutil.rmtree(dst)
         shutil.copytree(staged_src, dst)
         log.info(f'Staged {dst}')
 
 
-def verify(log, modules):
+def verify(log, modules, plugins_ios_dir=None):
+    plugins_ios_dir = plugins_ios_dir or PLUGINS_IOS_DIR
     failures = []
     for module in modules:
-        module_path = os.path.join(PLUGINS_IOS_DIR, f'{module}.xcframework')
+        module_path = os.path.join(plugins_ios_dir, f'{module}.xcframework')
         if not os.path.isdir(module_path):
             failures.append(f'{module}: missing directory {module_path}')
             continue

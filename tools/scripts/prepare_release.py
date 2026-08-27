@@ -614,8 +614,12 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     new_ios_sha256 = ios_xcframework.fetch(
         log, str(dd_sdk_ios_version), expected_ios_sha256, force=False, allow_unknown_sha256=True,
     )
-    ios_xcframework.stage(log, str(dd_sdk_ios_version), existing_ios_pin.modules)
-    ios_xcframework.verify(log, existing_ios_pin.modules)
+    # Stage into the selected --local-dev-repo checkout, not ios_xcframework's own
+    # module-level PLUGINS_IOS_DIR (which is relative to this script's own location and
+    # may be a different checkout entirely).
+    dev_plugins_ios_dir = _dev_package_path('Plugins', 'iOS')
+    ios_xcframework.stage(log, str(dd_sdk_ios_version), existing_ios_pin.modules, plugins_ios_dir=dev_plugins_ios_dir)
+    ios_xcframework.verify(log, existing_ios_pin.modules, plugins_ios_dir=dev_plugins_ios_dir)
     write_ios_xcframework_pin(
         dev_ios_dependency_version_json_path,
         IosXcframeworkPin(
@@ -691,7 +695,6 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     # Plugins/iOS/*.xcframework (and its .meta) is intentionally .gitignore'd in this
     # dev repo, so `git ls-files` above never lists them; copy them explicitly here, by
     # the module list just fetched/staged/verified above.
-    dev_plugins_ios_dir = _dev_package_path('Plugins', 'iOS')
     release_plugins_ios_dir = os.path.join(release_repo_root, 'Plugins', 'iOS')
     for module in existing_ios_pin.modules:
         module_dirname = f'{module}.xcframework'
