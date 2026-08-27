@@ -19,6 +19,7 @@ from typing import List, Tuple, Set
 
 import git
 
+import ios_xcframework
 from common.log import init_logger, get_default_logger
 from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, write_external_dependency_versions, ExternalDependencyVersions, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH
 from common.commit import CommitInfo
@@ -595,23 +596,26 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     )
     dev_repo.git.add(dev_datadog_dependencies_xml_path)
 
-    # Bake the latest explicit dd-sdk-ios version into IosDependencyVersion.json
-    # instead of DatadogDependencies.xml. Note: committing the vendored
-    # Plugins/iOS/*.xcframework bundles into the release payload (those paths are
-    # .gitignore'd in this dev repo, so a Phase 4 release job will need `git add -f`
-    # or equivalent) remains Phase 4 scope; this step only updates the version pin.
+    # Bake the latest explicit dd-sdk-ios version into IosDependencyVersion.json instead
+    # of DatadogDependencies.xml, and fetch/stage/verify that exact version now so the
+    # release payload ships with a validated XCFramework bundle rather than merely an
+    # updated pin. Plugins/iOS/*.xcframework is .gitignore'd in this dev repo, so the
+    # file-copy step below stages these modules into the release repo explicitly, by
+    # module name, rather than relying on `git ls-files`.
     log.info(f'Updating dd-sdk-ios version pin in: {dev_ios_dependency_version_json_path}')
     with open(dev_ios_dependency_version_json_path) as fp:
         existing_ios_pin = read_ios_xcframework_pin(fp.read())
-    new_ios_sha256 = existing_ios_pin.sha256
+    expected_ios_sha256 = existing_ios_pin.sha256 if existing_ios_pin.version == dd_sdk_ios_version else None
     if existing_ios_pin.version != dd_sdk_ios_version:
-        new_ios_sha256 = None
         log.warning(
             f'dd-sdk-ios version changed from {existing_ios_pin.version} to {dd_sdk_ios_version}; '
-            f'clearing the pinned sha256 rather than leaving a stale digest for a different version. '
-            f'Run `./run-script update_ios_version {dd_sdk_ios_version}` to fetch a fresh digest and '
-            f're-verify the module list before this release ships.'
+            'fetching and verifying it now rather than leaving a stale digest for a different version.'
         )
+    new_ios_sha256 = ios_xcframework.fetch(
+        log, str(dd_sdk_ios_version), expected_ios_sha256, force=False, allow_unknown_sha256=True,
+    )
+    ios_xcframework.stage(log, str(dd_sdk_ios_version), existing_ios_pin.modules)
+    ios_xcframework.verify(log, existing_ios_pin.modules)
     write_ios_xcframework_pin(
         dev_ios_dependency_version_json_path,
         IosXcframeworkPin(
@@ -682,6 +686,34 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
         # For all other files, copy them normally
         shutil.copy(src_abspath, dst_abspath)
         log.info(f'Copied {package_relpath}.')
+
+    # Copy the vendored dd-sdk-ios XCFramework modules into the release payload.
+    # Plugins/iOS/*.xcframework (and its .meta) is intentionally .gitignore'd in this
+    # dev repo, so `git ls-files` above never lists them; copy them explicitly here, by
+    # the module list just fetched/staged/verified above.
+    dev_plugins_ios_dir = _dev_package_path('Plugins', 'iOS')
+    release_plugins_ios_dir = os.path.join(release_repo_root, 'Plugins', 'iOS')
+    for module in existing_ios_pin.modules:
+        module_dirname = f'{module}.xcframework'
+        src_module_dir = os.path.join(dev_plugins_ios_dir, module_dirname)
+        if not os.path.isdir(src_module_dir):
+            raise RuntimeError(
+                f'{src_module_dir} not found after staging dd-sdk-ios {dd_sdk_ios_version}; '
+                'cannot publish a release without the vendored XCFramework it depends on.'
+            )
+        dst_module_dir = os.path.join(release_plugins_ios_dir, module_dirname)
+        shutil.copytree(src_module_dir, dst_module_dir)
+        log.info(f'Copied {module_dirname}.')
+
+        src_meta_path = f'{src_module_dir}.meta'
+        if os.path.exists(src_meta_path):
+            shutil.copy(src_meta_path, f'{dst_module_dir}.meta')
+            log.info(f'Copied {module_dirname}.meta.')
+        else:
+            log.warning(
+                f'{src_meta_path} not found; the release repo will get a fresh .meta '
+                f'(new GUID) for {module_dirname} the next time it is opened in Unity.'
+            )
 
     # Stage all file changes
     release_repo.git.add('--all')

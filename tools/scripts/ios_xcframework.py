@@ -183,6 +183,23 @@ def stage(log, version, modules):
         shutil.rmtree(extracted_root)
 
     os.makedirs(PLUGINS_IOS_DIR, exist_ok=True)
+
+    # Remove any previously staged module no longer in the requested set (e.g. after
+    # `update_ios_version --modules` drops one). Unity discovers native plugins by
+    # scanning this directory, independent of the JSON pin, so a stale bundle left here
+    # would still be linked/embedded into iOS builds.
+    wanted = {f'{module}.xcframework' for module in modules}
+    for entry in os.listdir(PLUGINS_IOS_DIR):
+        if not entry.endswith('.xcframework') or entry in wanted:
+            continue
+        stale_path = os.path.join(PLUGINS_IOS_DIR, entry)
+        shutil.rmtree(stale_path)
+        log.info(f'Removed stale module no longer in the requested set: {stale_path}')
+        meta_path = f'{stale_path}.meta'
+        if os.path.exists(meta_path):
+            os.remove(meta_path)
+            log.info(f'Removed {meta_path}')
+
     for module in modules:
         staged_src = os.path.join(EXTRACT_DIR, f'{module}.xcframework')
         if not os.path.isdir(staged_src):
@@ -242,8 +259,10 @@ def cmd_stage(args, log):
     pin = load_pin()
     version = args.version or str(pin.version)
     expected_sha256 = pin.sha256 if not args.version or args.version == str(pin.version) else None
-    if not os.path.exists(zip_path_for(version)) or args.force:
-        fetch(log, version, expected_sha256, args.force, args.allow_unknown_sha256)
+    # Always call fetch(): it rehashes and re-verifies the digest of a cached zip even
+    # when it skips the network download, so a truncated or corrupted cache is never
+    # staged silently.
+    fetch(log, version, expected_sha256, args.force, args.allow_unknown_sha256)
     stage(log, version, pin.modules)
     verify(log, pin.modules)
 
