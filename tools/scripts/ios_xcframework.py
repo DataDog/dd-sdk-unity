@@ -19,6 +19,7 @@ Usage (via the repo's run-script wrapper):
 import argparse
 import hashlib
 import os
+import plistlib
 import re
 import shutil
 import subprocess
@@ -224,12 +225,18 @@ def verify(log, modules, plugins_ios_dir=None):
         if not os.path.exists(info_plist):
             failures.append(f'{module}: missing {info_plist}')
             continue
-        slices = [
-            name for name in os.listdir(module_path)
-            if name.startswith('ios-arm64') and os.path.isdir(os.path.join(module_path, name))
-        ]
-        if not slices:
-            failures.append(f'{module}: no ios-arm64* slice directory found under {module_path}')
+
+        # Read supported platforms and ensure this supports both device and simulator builds
+        with open(info_plist, 'rb') as fp:
+            libraries = plistlib.load(fp).get('AvailableLibraries', [])
+        ios_libraries = [lib for lib in libraries if lib.get('SupportedPlatform') == 'ios']
+        has_device = any(lib.get('SupportedPlatformVariant') != 'simulator' for lib in ios_libraries)
+        has_simulator = any(lib.get('SupportedPlatformVariant') == 'simulator' for lib in ios_libraries)
+        if not has_device:
+            failures.append(f'{module}: no ios device library found in {info_plist}')
+            continue
+        if not has_simulator:
+            failures.append(f'{module}: no ios simulator library found in {info_plist}')
             continue
         log.info(f'{module}: OK ({module_path})')
 

@@ -21,6 +21,7 @@ import argparse
 import fcntl
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -111,8 +112,14 @@ def _check_pbxproj(pbxproj_path: str, module_names: List[str]) -> Dict[str, bool
         contents = infile.read()
 
     modules_referenced = all(f'{name}.xcframework' in contents for name in module_names)
-    embed_phase_present = 'Embed Frameworks' in contents or 'PBXCopyFilesBuildPhase' in contents
-    framework_search_paths_present = 'FRAMEWORK_SEARCH_PATHS' in contents
+    # Check Datadog all frameworks are being embedded and that the framework search paths check for Datadog specifically
+    embed_phase_present = all(
+        f'{name}.xcframework in Embed Frameworks' in contents for name in module_names
+    )
+    search_path_blocks = re.findall(r'FRAMEWORK_SEARCH_PATHS\s*=\s*\(([^)]*)\);', contents, re.DOTALL)
+    framework_search_paths_present = any(
+        'Plugins/iOS' in block for block in search_path_blocks
+    )
 
     checks = {
         'modules_referenced': modules_referenced,
