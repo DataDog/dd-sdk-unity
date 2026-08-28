@@ -184,6 +184,9 @@ def stage(log, version, modules, plugins_ios_dir=None):
             shutil.move(src, dst)
         shutil.rmtree(extracted_root)
 
+    # Verify the freshly extracted modules in place before touching plugins_ios_dir
+    verify(log, modules, plugins_ios_dir=EXTRACT_DIR)
+
     os.makedirs(plugins_ios_dir, exist_ok=True)
 
     # Remove any previously staged module no longer in the requested set (e.g. after
