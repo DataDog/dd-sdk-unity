@@ -4,11 +4,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Datadog.Unity.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UnityEngine.Networking;
 
 namespace Datadog.Unity.Flags
 {
@@ -17,87 +17,99 @@ namespace Datadog.Unity.Flags
     /// </summary>
     internal class PrecomputeAssignmentsFetcher
     {
-        public const int FetchTimeoutSeconds = 30;
-
         private readonly string _endpointUrl;
         private readonly string _clientToken;
         private readonly string _applicationId;
         private readonly string _env;
         private readonly IInternalLogger _logger;
+        private readonly IAssignmentRequestTransport _transport;
 
         public PrecomputeAssignmentsFetcher(
             string endpointUrl,
             string clientToken,
             string applicationId,
             string env,
-            IInternalLogger logger)
+            IInternalLogger logger,
+            int requestTimeoutSeconds = AssignmentRequestRetryPolicy.DisabledTimeoutSeconds,
+            int requestRetryCount = AssignmentRequestRetryPolicy.DefaultRetryCount,
+            Func<double> randomValue = null,
+            Func<DateTimeOffset> utcNow = null,
+            Func<int, CancellationToken, Task> delay = null,
+            IAssignmentRequestTransport assignmentRequestTransport = null)
         {
             _endpointUrl = endpointUrl;
             _clientToken = clientToken;
             _applicationId = applicationId;
             _env = env;
             _logger = logger;
+            if (assignmentRequestTransport != null)
+            {
+                // A caller-supplied transport is a complete assignment-only
+                // override. Do not add the scalar convenience policy again.
+                _transport = assignmentRequestTransport;
+            }
+            else
+            {
+                var timeout = AssignmentRequestRetryPolicy.NormalizeTimeoutSeconds(requestTimeoutSeconds);
+                var retries = AssignmentRequestRetryPolicy.NormalizeRetryCount(requestRetryCount);
+                var timedTransport = AssignmentRequestTransports.Default.WithTimeout(timeout);
+                _transport = AssignmentRequestTransports.BuildRetryTransport(
+                    timedTransport,
+                    retries,
+                    randomValue,
+                    utcNow,
+                    delay);
+            }
         }
 
         /// <summary>
         /// Fetches precomputed assignments for the given evaluation context.
         /// Uses a callback since UnityWebRequest can be used from coroutines.
         /// </summary>
-        public void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
+        public async void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
         {
+            Dictionary<string, FlagAssignment> flags = null;
             try
             {
                 var requestBody = BuildRequestBody(context);
-                var bodyBytes = Encoding.UTF8.GetBytes(requestBody);
+                var response = await _transport.SendAsync(CreateRequest(requestBody), CancellationToken.None);
+                if (response == null)
+                    throw new InvalidOperationException("Assignment transport returned a null response.");
 
-                var request = new UnityWebRequest(_endpointUrl, "POST");
-                request.uploadHandler = new UploadHandlerRaw(bodyBytes);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.timeout = FetchTimeoutSeconds;
-                request.SetRequestHeader("Content-Type", "application/vnd.api+json");
-                request.SetRequestHeader("dd-client-token", _clientToken);
-
-                if (!string.IsNullOrEmpty(_applicationId))
+                if (response.Result == AssignmentRequestResult.Success &&
+                    response.StatusCode >= 200 &&
+                    response.StatusCode <= 299)
                 {
-                    request.SetRequestHeader("dd-application-id", _applicationId);
+                    flags = ParseResponse(response.Body);
                 }
-
-                var operation = request.SendWebRequest();
-                operation.completed += _ =>
+                else
                 {
-                    try
-                    {
-                        if (request.result != UnityWebRequest.Result.Success)
-                        {
-                            var errorDetail = ExtractServerError(request.downloadHandler?.text, request.responseCode);
-                            _logger?.Log(Logs.DdLogLevel.Warn,
-                                $"Failed to fetch flag assignments (HTTP {request.responseCode}): {errorDetail}");
-                            onComplete?.Invoke(null);
-                            return;
-                        }
-
-                        var responseText = request.downloadHandler.text;
-                        var flags = ParseResponse(responseText);
-                        onComplete?.Invoke(flags);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
-                        _logger?.TelemetryError("Error parsing flag assignments", e);
-                        onComplete?.Invoke(null);
-                    }
-                    finally
-                    {
-                        request.Dispose();
-                    }
-                };
+                    var errorDetail = ExtractServerError(response.Body, response.StatusCode);
+                    _logger?.Log(Logs.DdLogLevel.Warn,
+                        $"Failed to fetch flag assignments (HTTP {response.StatusCode}): {errorDetail}");
+                }
             }
             catch (Exception e)
             {
                 _logger?.Log(Logs.DdLogLevel.Warn, $"Error fetching flag assignments: {e.Message}");
                 _logger?.TelemetryError("Error fetching flag assignments", e);
-                onComplete?.Invoke(null);
             }
+            finally
+            {
+                onComplete?.Invoke(flags);
+            }
+        }
+
+        internal AssignmentRequest CreateRequest(string body)
+        {
+            var headers = new Dictionary<string, string>
+            {
+                ["Content-Type"] = "application/vnd.api+json",
+                ["dd-client-token"] = _clientToken,
+            };
+            if (!string.IsNullOrEmpty(_applicationId))
+                headers["dd-application-id"] = _applicationId;
+            return new AssignmentRequest("POST", _endpointUrl, body, headers);
         }
 
         private string BuildRequestBody(FlagsEvaluationContext context)

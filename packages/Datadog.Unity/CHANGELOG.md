@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* Add opt-in timeout and retry configuration for Flags assignment requests with bounded jittered backoff and short HTTP 503 `Retry-After` hints. Timeout and retry defaults are both zero, so the SDK makes one initial request without an SDK-added timeout; timeout values above 2,147,483 seconds are capped for compatibility across Unity runtimes.
+* Add an assignment-only transport override with composable timeout and retry
+  helpers. The transport API uses immutable, fully formed request values and
+  fully buffered response values while the SDK owns and disposes native
+  `UnityWebRequest` instances.
 * Upgraded iOS SDK dependency to 3.11.1 and Android SDK dependency to 3.10.0.
 * **Breaking:** `SetUserInfo` now requires a non-null `id`. Calls with a null `id` are rejected with a warning log.
 * Fixed Android builds on Unity 2022 and older: `androidx.core 1.15.0+` ships Java 21 bytecode that D8 in AGP 7.x cannot process; the Gradle post-processor now pins `androidx.core` to 1.13.1 in the root build.gradle for affected Unity versions.
