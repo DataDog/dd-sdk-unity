@@ -55,6 +55,9 @@ unit-test:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
+    - pushd /Applications/Unity/Hub/Editor/2021.3.58f1/Unity.app/Contents/Frameworks/UnityLicensingClient.app/Contents/MacOS
+    - ./Unity.Licensing.Client --acquire-floating --debug
+    - popd
     - ./run-script unit_test --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
   artifacts:
     when: always
