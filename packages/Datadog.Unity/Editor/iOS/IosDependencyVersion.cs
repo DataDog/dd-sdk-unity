@@ -10,6 +10,10 @@ using UnityEngine;
 
 namespace Datadog.Unity.Editor.iOS
 {
+    /// <summary>
+    /// Deserialized shape of IosDependencyVersion.json: the pinned dd-sdk-ios version, its
+    /// XCFramework zip's SHA-256 digest, and the vendored module name list.
+    /// </summary>
     [Serializable]
     internal class IosDependencyPinData
     {
@@ -18,6 +22,10 @@ namespace Datadog.Unity.Editor.iOS
         public string[] modules;
     }
 
+    /// <summary>
+    /// Resolves this package's install location and reads its pinned dd-sdk-ios
+    /// XCFramework version/module list from IosDependencyVersion.json.
+    /// </summary>
     internal static class IosDependencyVersion
     {
         internal const string PackageName = "com.datadoghq.unity";

@@ -10,6 +10,11 @@ using UnityEditor.Build.Reporting;
 
 namespace Datadog.Unity.Editor.iOS
 {
+    /// <summary>
+    /// Fails an iOS build early, with a clear message, if any of the pinned dd-sdk-ios
+    /// XCFramework modules are missing from Plugins/iOS -- rather than letting the build
+    /// proceed and fail deep inside Xcode's link step with a much less helpful error.
+    /// </summary>
     public class IosXcframeworkPreprocessBuild : IPreprocessBuildWithReport
     {
         public int callbackOrder => 0;

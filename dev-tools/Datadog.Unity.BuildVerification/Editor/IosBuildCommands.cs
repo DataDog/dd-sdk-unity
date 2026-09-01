@@ -17,6 +17,10 @@ using UnityEngine;
 
 namespace Datadog.Unity.BuildVerification
 {
+    /// <summary>
+    /// Batch-mode entry point invoked via -executeMethod by tools/scripts/verify_ios_build.py
+    /// to build the active Unity project for iOS and report a machine-parseable result.
+    /// </summary>
     public class IosBuildCommands
     {
         private const string DefaultOutputDirectory = "Build/iOS";

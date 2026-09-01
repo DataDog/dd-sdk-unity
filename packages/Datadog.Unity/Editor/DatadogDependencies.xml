@@ -2,7 +2,7 @@
   <!-- iOS dependencies are no longer declared here. The dd-sdk-ios version pin now
        lives in Editor/iOS/IosDependencyVersion.json and is vendored as a prebuilt
        XCFramework; EDM4U no longer resolves any CocoaPods for iOS. The Android
-       entries below remain EDM4U-managed pending Phase 3. -->
+       entries below remain EDM4U-managed. -->
   <androidPackages>
     <androidPackage spec="com.datadoghq:dd-sdk-android-rum:3.10.0">
     </androidPackage>
