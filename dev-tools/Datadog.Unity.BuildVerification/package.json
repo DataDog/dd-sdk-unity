@@ -1,0 +1,9 @@
+{
+  "name": "com.datadoghq.unity.buildverification",
+  "version": "1.0.0",
+  "displayName": "Datadog Unity Build Verification (dev-only)",
+  "description": "Batch-mode build entry points used by tools/scripts/verify_ios_build.py to verify dd-sdk-unity's own build matrix. Not part of the published com.datadoghq.unity package.",
+  "unity": "2021.3",
+  "license": "Apache 2.0",
+  "type": "library"
+}

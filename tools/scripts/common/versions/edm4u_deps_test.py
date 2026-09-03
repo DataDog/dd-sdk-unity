@@ -74,3 +74,43 @@ def test_read_external_dependency_versions():
         dd_sdk_android=Version.parse('2.22.0'),
         dd_sdk_ios=Version.parse('2.28.1'),
     )
+
+
+# Matches the current (post-Phase-2) shape of DatadogDependencies.xml: no <iosPods>
+# element at all, since the iOS pin now lives in IosDependencyVersion.json.
+__android_only_xml__ = '''<dependencies>
+  <androidPackages>
+    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:3.10.0">
+    </androidPackage>
+    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:3.10.0">
+    </androidPackage>
+    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:3.10.0">
+    </androidPackage>
+  </androidPackages>
+</dependencies>'''
+
+
+__android_only_versions__ = ExternalDependencyVersions(
+    dd_sdk_android=Version(major=3, minor=12, patch=0),
+    dd_sdk_ios=None,
+)
+
+
+def test_read_external_dependency_versions_android_only():
+    got = read_external_dependency_versions(__android_only_xml__)
+    assert got == ExternalDependencyVersions(
+        dd_sdk_android=Version.parse('3.10.0'),
+        dd_sdk_ios=None,
+    )
+
+
+def test_write_external_dependency_versions_impl_android_only():
+    infile = io.BytesIO(__android_only_xml__.encode())
+    outfile = io.BytesIO()
+    _write_external_dependency_versions_impl(infile, outfile, __android_only_versions__)
+    outfile.seek(0)
+    written = outfile.read().decode()
+    assert 'iosPod' not in written
+    assert 'dd-sdk-android-rum:3.12.0' in written
+    assert 'dd-sdk-android-logs:3.12.0' in written
+    assert 'dd-sdk-android-ndk:3.12.0' in written

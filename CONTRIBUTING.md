@@ -46,26 +46,53 @@ To build the SDK for iOS:
 - Ensure that you've configured Xcode for automatic signing by authenticating with your Apple ID.
 - Install [`xcbeautify`][xcbeautify] via `brew install xcbeautify`
     - To verify xcbeautify successfully installed, run: `xcbeautify --version`
-- Ensure that you have [Ruby][ruby] installed on your system.
-    - To verify Ruby successfully installed, run: `ruby --version`, `gem --version`
 
-#### Troubleshooting iOS Resolver
+Datadog's own iOS dependency (dd-sdk-ios) is a prebuilt XCFramework vendored directly into the `Datadog.Unity` package via Unity's native Plugin importer — neither CocoaPods nor SPM runs to resolve it. Ruby/CocoaPods are **not** required for Datadog's own dependency (EDM4U's Android-side Gradle dependency resolution is unaffected and still applies until Phase 3).
 
-Ruby is required by [External Dependency Manager for Unity (EDM4U)][edm4u] when targeting iOS in Unity projects. EDM4U uses Ruby to install the [`cocoapods`][cocoapods] gem, which it then uses to manage iOS dependencies during the build process.
+Before your first iOS build in a fresh clone, stage the XCFramework once:
 
-EDM4U can sometimes fail to resolve the `pod` binary that it installs. If you get errors about CocoaPods within Unity (in a window titled "iOS Resolver"), try the following workaround:
+```bash
+./run-script ios_xcframework stage
+```
 
-- Verify that `pod` has been installed: `pod --version`
-    - If it's not installed, run: `gem install cocoapods --user-install`
-- Symlink the `pod` binary to one of the hardcoded search paths used by EDM4U:
-    - Run `sudo ln -s $(which pod)`
-- Restart Unity.
+The staged bundles under `packages/Datadog.Unity/Plugins/iOS/` are `.gitignore`d in this dev repo (fetched on demand, not committed to `dd-sdk-unity`'s own git history). To check the staged state offline without re-fetching:
+
+```bash
+./run-script ios_xcframework verify
+```
+
+The pinned dd-sdk-ios version, its expected SHA-256, and its expected module list are the single source of truth in [`packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json`][ios-dependency-version-json].
 
 [xcode]: https://developer.apple.com/xcode/
 [xcbeautify]: https://github.com/cpisciotta/xcbeautify
-[ruby]: https://www.ruby-lang.org/en/downloads/
-[edm4u]: https://github.com/googlesamples/unity-jar-resolver?tab=readme-ov-file#external-dependency-manager-for-unity
-[cocoapods]: https://cocoapods.org/
+[ios-dependency-version-json]: ./packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json
+
+#### Troubleshooting iOS dependencies
+
+If an iOS build fails with a message from `IosXcframeworkPreprocessBuild` naming missing XCFramework module(s) under `packages/Datadog.Unity/Plugins/iOS/`, stage the XCFramework and try again:
+
+```bash
+./run-script ios_xcframework stage
+```
+
+EDM4U (`com.google.external-dependency-manager`) still exists in `packages/Datadog.Unity/package.json` and still manages the Android dependency until Phase 3. Seeing an EDM4U window appear during an Android build is expected; seeing CocoaPods/`pod` resolution attempted during an iOS build is not — Datadog's iOS dependency no longer goes through EDM4U or CocoaPods at all.
+
+#### Updating the pinned dd-sdk-ios version
+
+Bumping the pinned dd-sdk-ios version is a deliberate, manual maintainer action:
+
+```bash
+./run-script update_ios_version <version>
+```
+
+This fetches the target version's XCFramework, re-verifies that all currently-vendored modules are still present in the bundle (failing loudly and leaving the pin untouched if any are missing), stages and structurally verifies the result, and only then rewrites `IosDependencyVersion.json` with the new version and its digest. Useful flags:
+
+- `--dry-run` — perform the fetch/verify/stage steps and print the pin that would be written, without writing it.
+- `--force` — re-run the bump even if the target version already matches the current pin.
+
+`NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow, not by this script.
+
+Committing the vendored XCFramework into the `unity-package` release payload is release-automation work owned by Phase 4 — no release step is documented here.
 
 ## Repository overview
 
