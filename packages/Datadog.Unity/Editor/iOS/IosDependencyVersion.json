@@ -1,0 +1,11 @@
+{
+  "version": "3.11.1",
+  "sha256": "9fe66c4b4c4e3ba68b253c701aff97447358b08b0c5b43af6d4854bf1563c13d",
+  "modules": [
+    "DatadogCore",
+    "DatadogInternal",
+    "DatadogLogs",
+    "DatadogRUM",
+    "DatadogCrashReporting"
+  ]
+}

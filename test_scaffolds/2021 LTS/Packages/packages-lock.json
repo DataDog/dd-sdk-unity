@@ -9,6 +9,12 @@
         "com.google.external-dependency-manager": "1.2.186"
       }
     },
+    "com.datadoghq.unity.buildverification": {
+      "version": "file:../../../dev-tools/Datadog.Unity.BuildVerification",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "4.3.0",
       "depth": 0,

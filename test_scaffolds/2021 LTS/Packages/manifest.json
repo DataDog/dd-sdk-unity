@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.datadoghq.unity": "file:../../../packages/Datadog.Unity",
+    "com.datadoghq.unity.buildverification": "file:../../../dev-tools/Datadog.Unity.BuildVerification",
     "com.github-glitchenzo.nugetforunity": "4.3.0",
     "com.google.external-dependency-manager": "1.2.185",
     "com.unity.collab-proxy": "2.10.0",

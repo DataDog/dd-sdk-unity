@@ -1,7 +1,10 @@
 """
 Utility code for modifying DatadogDependencies.xml, which configures External
-Dependency Manager for Unity (EDM4U) to pull in the requisite versions of
-dd-sdk-android and dd-sdk-ios on Android and iOS builds, respectively.
+Dependency Manager for Unity (EDM4U) to pull in the requisite version of
+dd-sdk-android on Android builds. The `<iosPod>` role this module previously served
+has moved to Editor/iOS/IosDependencyVersion.json (see ios_xcframework_deps.py); iOS
+pod parsing is retained here only so this module can still read manifests from
+releases published before that move.
 
 Unless explicitly stated otherwise, all files in this repository are licensed under the
 Apache License Version 2.0. This product includes software developed at Datadog
@@ -29,7 +32,7 @@ __android_package_spec_datadog_prefix__ = 'com.datadoghq'
 @dataclass
 class ExternalDependencyVersions:
     dd_sdk_android: Version
-    dd_sdk_ios: Version
+    dd_sdk_ios: Optional[Version]
 
 
 def read_external_dependency_versions(file_contents: str) -> ExternalDependencyVersions:
@@ -66,9 +69,12 @@ def _read_android_version(root: ET.Element) -> Version:
     return Version.parse(version_str)
 
 
-def _read_ios_version(root: ET.Element) -> Version:
+def _read_ios_version(root: ET.Element) -> Optional[Version]:
     # Iterate through all <iosPod> elements for Datadog packages, and read their
-    # 'version' attributes
+    # 'version' attributes. Current manifests no longer declare any <iosPod>
+    # elements (the iOS pin moved to IosDependencyVersion.json), so it's expected
+    # for this to find none; this function is retained only to still be able to
+    # parse manifests from releases published before that move.
     version_str: Optional[str] = None
     for pod_elem in root.findall(__ios_pods_xpath__):
         name = pod_elem.get('name', '')
@@ -79,10 +85,10 @@ def _read_ios_version(root: ET.Element) -> Version:
             if version_str is not None and existing_version != version_str:
                 raise RuntimeError(f'iOS pods have mismatched versions: {existing_version} != {version_str}')
             version_str = existing_version
-            
-    # If we found a consistent version specifier, return it
+
+    # No <iosPod> elements found: this is the expected, current-schema case.
     if version_str is None:
-        raise RuntimeError('Failed to read iOS pod version(s)')
+        return None
     return Version.parse(version_str)
 
 
@@ -139,8 +145,13 @@ def _remove_android_snapshot_repositories(root: ET.Element):
                 repositories_elem.remove(repository_elem)
 
 
-def _mutate_ios_version(root: ET.Element, version: Version):
-    # Iterate through all <iosPod> elements and update their 'version' attributes
+def _mutate_ios_version(root: ET.Element, version: Optional[Version]):
+    # Iterate through all <iosPod> elements and update their 'version' attributes.
+    # Current manifests declare no <iosPod> elements at all (the iOS pin moved to
+    # IosDependencyVersion.json), so this is a no-op both when there's no target
+    # version to write and when the document has no pods to update.
+    if version is None:
+        return
     log = get_default_logger()
     for pod_elem in root.findall(__ios_pods_xpath__):
         name = pod_elem.get('name', '')
