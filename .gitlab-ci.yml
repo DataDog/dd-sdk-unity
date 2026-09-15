@@ -43,7 +43,6 @@ unit-test:
   image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
   tags:
     - macos:tart-sequoia-test
-    - specific:true
   parallel:
     matrix:
       - UNITY_VERSION_PARTIAL: '2021.3'
@@ -73,7 +72,6 @@ package-ios:
   image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
   tags:
     - macos:tart-sequoia-test
-    - specific:true
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
@@ -100,7 +98,6 @@ package-android:
   image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
   tags:
     - macos:tart-sequoia-test
-    - specific:true
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
