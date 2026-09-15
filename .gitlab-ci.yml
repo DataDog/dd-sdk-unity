@@ -45,9 +45,9 @@ stages:
 
 unit-test:
   stage: unit-test
-  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
+  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest"
   tags:
-    - macos:tart-sequoia-test
+    - macos:tart
   parallel:
     matrix:
       - UNITY_VERSION_PARTIAL: '2021.3'
@@ -74,9 +74,9 @@ unit-test:
 
 package-ios:
   stage: package
-  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
+  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest"
   tags:
-    - macos:tart-sequoia-test
+    - macos:tart
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
@@ -100,9 +100,9 @@ package-ios:
 
 package-android:
   stage: package
-  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
+  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest"
   tags:
-    - macos:tart-sequoia-test
+    - macos:tart
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
