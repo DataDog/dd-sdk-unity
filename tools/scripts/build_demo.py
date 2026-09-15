@@ -8,6 +8,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import os
 import sys
 import argparse
+import plistlib
 import shutil
 
 from common.log import init_logger
@@ -79,6 +80,13 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
             log.info(f'Removing existing export directory: {ios_export_dir}')
             shutil.rmtree(ios_export_dir)
 
+        export_options_path = os.path.join(project_root, 'exportOptions.plist')
+        with open(export_options_path, 'rb') as fp:
+            export_options = plistlib.load(fp)
+        bundle_identifier = export_options['distributionBundleIdentifier']
+        provisioning_profile = export_options['provisioningProfiles'][bundle_identifier]
+        development_team = export_options['teamID']
+
         # Run Xcode's 'archive' command to build the project for iOS, placing the build
         # artifacts (i.e. UnityDemoApp.app) in a 'build' subdirectory, then packaging that build
         # into an .xcarchive file
@@ -87,7 +95,10 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
             '-workspace', 'Unity-iPhone.xcworkspace',
             '-scheme', 'Unity-iPhone',
             '-destination', 'generic/platform=iOS',
-            '-archivePath', './Unity-iPhone.xcarchive', 
+            '-archivePath', './Unity-iPhone.xcarchive',
+            'CODE_SIGN_STYLE=Manual',
+            f'DEVELOPMENT_TEAM={development_team}',
+            f'PROVISIONING_PROFILE_SPECIFIER={provisioning_profile}',
             'archive',
         ])
 

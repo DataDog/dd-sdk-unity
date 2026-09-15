@@ -7,9 +7,8 @@ source ./echo-color.sh
 KEYCHAIN=datadog.keychain
 KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
 
-PROFILE=datadog.mobileprovision
-USER_PP_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-USER_PP_PATH="$USER_PP_DIR/$PROFILE"
+LEGACY_PP_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+XCODE_PP_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
 
 cleanup_codesigning() {
     echo_subtitle "Cleanup code signing"
@@ -80,11 +79,18 @@ keychain_import() {
 }
 
 install_provisioning_profile() {
-    # Install provisioning profile
-    mkdir -p "$USER_PP_DIR"
-    if ! cp "$1" "$USER_PP_PATH"; then
-        echo_err "▸ Error:" "Failed to install provisioning profile from '$1' to '$USER_PP_PATH'"
-        return 1
-    fi
-    echo_succ "▸ '$1' provisioning profile installed in '$USER_PP_PATH'"
+    local profile_uuid
+    profile_uuid=$(security cms -D -i "$1" | plutil -extract UUID raw -o - -)
+    local profile_name="$profile_uuid.mobileprovision"
+
+    # Xcode 16 uses XCODE_PP_DIR; retain the legacy copy for older Xcode versions.
+    for profile_dir in "$LEGACY_PP_DIR" "$XCODE_PP_DIR"; do
+        local profile_path="$profile_dir/$profile_name"
+        mkdir -p "$profile_dir"
+        if ! cp "$1" "$profile_path"; then
+            echo_err "▸ Error:" "Failed to install provisioning profile from '$1' to '$profile_path'"
+            return 1
+        fi
+        echo_succ "▸ '$1' provisioning profile installed in '$profile_path'"
+    done
 }
