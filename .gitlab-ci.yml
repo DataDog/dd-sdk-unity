@@ -40,8 +40,9 @@ stages:
 
 unit-test:
   stage: unit-test
+  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
   tags:
-    - macos:sonoma
+    - macos:tart-sequoia-test
     - specific:true
   parallel:
     matrix:
@@ -69,8 +70,9 @@ unit-test:
 
 package-ios:
   stage: package
+  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
   tags:
-    - macos:sonoma
+    - macos:tart-sequoia-test
     - specific:true
   script:
     - !reference [.shared, init-scripts]
@@ -95,8 +97,9 @@ package-ios:
 
 package-android:
   stage: package
+  image: "486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-b66be868-137563657"
   tags:
-    - macos:sonoma
+    - macos:tart-sequoia-test
     - specific:true
   script:
     - !reference [.shared, init-scripts]
