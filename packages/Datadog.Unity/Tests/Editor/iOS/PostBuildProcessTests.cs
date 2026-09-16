@@ -435,7 +435,7 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsEmpty(timeseriesLines);
         }
 
-        [TestCase(TimeseriesTypes.All, "nil")]
+        [TestCase(TimeseriesTypes.All, "[.memory, .cpu]")]
         [TestCase(TimeseriesTypes.Memory, "[.memory]")]
         [TestCase(TimeseriesTypes.Cpu, "[.cpu]")]
         public void GenerateOptionsFileWritesTimeseriesWhenEnabled(TimeseriesTypes collectTypes, string expectedCollectTypes)
