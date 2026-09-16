@@ -351,11 +351,8 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
 
         private static string GetSwiftTimeseriesCollectTypes(TimeseriesTypes collectTypes)
         {
-            if (collectTypes == TimeseriesTypes.All)
-            {
-                return "nil";
-            }
-
+            // DatadogRUM 3.17.0+ requires a non-optional Set<TimeseriesType>, so `All` must be spelled out
+            // explicitly rather than passed as `nil` (which the pre-3.17.0 optional-array API accepted).
             var swiftTypes = new List<string>();
             if (collectTypes.HasFlag(TimeseriesTypes.Memory))
             {
