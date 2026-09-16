@@ -1,16 +1,16 @@
 <dependencies>
   <androidPackages>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:3.10.0">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-rum:3.14.0">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:3.10.0">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-logs:3.14.0">
     </androidPackage>
-    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:3.10.0">
+    <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:3.14.0">
     </androidPackage>
   </androidPackages>
   <iosPods>
-    <iosPod name="DatadogCore" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
-    <iosPod name="DatadogLogs" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
-    <iosPod name="DatadogRUM" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
-    <iosPod name="DatadogCrashReporting" bitcodeEnabled="false" minTargetSdk="12.0" version="3.16.0" />
+    <iosPod name="DatadogCore" bitcodeEnabled="false" minTargetSdk="12.0" version="3.17.0" />
+    <iosPod name="DatadogLogs" bitcodeEnabled="false" minTargetSdk="12.0" version="3.17.0" />
+    <iosPod name="DatadogRUM" bitcodeEnabled="false" minTargetSdk="12.0" version="3.17.0" />
+    <iosPod name="DatadogCrashReporting" bitcodeEnabled="false" minTargetSdk="12.0" version="3.17.0" />
   </iosPods>
 </dependencies>
