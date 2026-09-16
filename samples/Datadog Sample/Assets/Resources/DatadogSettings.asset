@@ -40,4 +40,4 @@ MonoBehaviour:
   NonFatalAppHangThreshold: 0.25
   TelemetrySampleRate: 100
   EnableTimeseries: 1
-  TimeseriesBatchSize: 120
+  TimeseriesTypes: 3
