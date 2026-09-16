@@ -8,6 +8,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import os
 import sys
 import argparse
+import plistlib
 import shutil
 
 import ios_xcframework
@@ -33,7 +34,7 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {unity_version_prefix} is installed')
 
-    # The target Unity project must have a BuildCommands.cs file that follows our 
+    # The target Unity project must have a BuildCommands.cs file that follows our
     # internal conventions; sanity-check that it exists
     build_commands_cs_path = os.path.join(project_root, 'Assets', 'Editor', 'BuildCommands.cs')
     if not os.path.isfile(build_commands_cs_path):
@@ -63,7 +64,7 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
             return 86
         else:
             raise RuntimeError(f'Unity build exited with status code {result.exitcode}')
-    
+
     # On Android, Unity should have written an .apk, in which case we're done
     if platform == 'android':
         apk_path = os.path.join(project_root, 'Build', 'Android', 'datadog-demo.apk')
@@ -71,7 +72,7 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
             raise RuntimeError(f'APK not found after successful Android build: {apk_path}')
         log.info(apk_path)
         return 0
-    
+
     # On iOS, Unity just generates an Xcode project, so we need to invoke an Xcode
     # build to generate our final iOS app
     if platform == 'ios':
@@ -90,6 +91,13 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
             log.info(f'Removing existing export directory: {ios_export_dir}')
             shutil.rmtree(ios_export_dir)
 
+        export_options_path = os.path.join(project_root, 'exportOptions.plist')
+        with open(export_options_path, 'rb') as fp:
+            export_options = plistlib.load(fp)
+        bundle_identifier = export_options['distributionBundleIdentifier']
+        provisioning_profile = export_options['provisioningProfiles'][bundle_identifier]
+        development_team = export_options['teamID']
+
         # Run Xcode's 'archive' command to build the project for iOS, placing the build
         # artifacts (i.e. UnityDemoApp.app) in a 'build' subdirectory, then packaging that build
         # into an .xcarchive file. No -workspace: EDM4U's CocoaPods resolution is no
@@ -101,6 +109,9 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
             '-scheme', 'Unity-iPhone',
             '-destination', 'generic/platform=iOS',
             '-archivePath', './Unity-iPhone.xcarchive',
+            'CODE_SIGN_STYLE=Manual',
+            f'DEVELOPMENT_TEAM={development_team}',
+            f'PROVISIONING_PROFILE_SPECIFIER={provisioning_profile}',
             'archive',
         ])
 
