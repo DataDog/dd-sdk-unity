@@ -19,8 +19,9 @@ from typing import List, Tuple, Set
 
 import git
 
+import ios_xcframework
 from common.log import init_logger, get_default_logger
-from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, write_external_dependency_versions, ExternalDependencyVersions
+from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, write_external_dependency_versions, ExternalDependencyVersions, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH
 from common.commit import CommitInfo
 from common.github import resolve_latest_release_version, get_file_contents, get_releases_between
 
@@ -132,6 +133,34 @@ def _needs_dependency_upgrade(repo_name: str, target_ver: Version, prev_release_
         return False
     
     raise RuntimeError(f'Target {repo_name} version {target_ver} is a downgrade from version used in previous release ({prev_release_ver})')
+
+
+def _read_prev_release_ios_version(prev_release_version: Version, prev_release_dependency_versions: ExternalDependencyVersions) -> Version:
+    """
+    Resolves the dd-sdk-ios version pinned in the previous release. Reads from the
+    new Editor/iOS/IosDependencyVersion.json config first (Phase 2 and later
+    releases); falls back to the legacy Editor/DatadogDependencies.xml <iosPod>
+    entries (via the already-parsed prev_release_dependency_versions argument's iOS
+    field) for releases published before that config existed, since those releases
+    have no JSON pin to read.
+    """
+    log = get_default_logger()
+    try:
+        prev_release_ios_pin_json = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/iOS/IosDependencyVersion.json')
+        pin = read_ios_xcframework_pin(prev_release_ios_pin_json)
+        log.info(f'Read previous release dd-sdk-ios version {pin.version} from Editor/iOS/IosDependencyVersion.json.')
+        return pin.version
+    except Exception as json_error:
+        legacy_dd_sdk_ios_version = prev_release_dependency_versions.dd_sdk_ios
+        if legacy_dd_sdk_ios_version is None:
+            raise RuntimeError(
+                f'Failed to resolve dd-sdk-ios version used in previous release {prev_release_version}: '
+                f'could not read Editor/iOS/IosDependencyVersion.json ({json_error}), and '
+                f'Editor/DatadogDependencies.xml has no <iosPod> entries to fall back to.'
+            )
+        log.warning(f'Could not read Editor/iOS/IosDependencyVersion.json from previous release {prev_release_version}: {json_error}')
+        log.warning(f'Falling back to legacy Editor/DatadogDependencies.xml <iosPod> entries: dd-sdk-ios {legacy_dd_sdk_ios_version}.')
+        return legacy_dd_sdk_ios_version
 
 
 def _prepare_ios_changelog(prev_version: Version, target_version: Version) -> str:
@@ -323,6 +352,9 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     dev_datadog_dependencies_xml_path = _dev_package_path('Editor', 'DatadogDependencies.xml')
     if not os.path.isfile(dev_datadog_dependencies_xml_path):
         raise RuntimeError(f'File not found: {dev_datadog_dependencies_xml_path}')
+    dev_ios_dependency_version_json_path = os.path.join(dev_repo_root, IOS_DEPENDENCY_VERSION_RELPATH)
+    if not os.path.isfile(dev_ios_dependency_version_json_path):
+        raise RuntimeError(f'File not found: {dev_ios_dependency_version_json_path}')
     
     # Read the snippet that gets pasted into the release repo's README, then find the
     # source README.md file, find the '[//]: # (Repo Note)' line, and replace it with
@@ -438,7 +470,10 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     # used in that release
     prev_release_dependencies_xml = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/DatadogDependencies.xml')
     prev_release_dependency_versions = read_external_dependency_versions(prev_release_dependencies_xml)
-    needs_dd_sdk_ios_upgrade = _needs_dependency_upgrade('dd-sdk-ios', dd_sdk_ios_version, prev_release_dependency_versions.dd_sdk_ios)
+    # Resolve the previous release's dd-sdk-ios version via _read_prev_release_ios_version's
+    # JSON-primary/XML-fallback logic (see the helper above for the two attempted paths).
+    prev_release_ios_version = _read_prev_release_ios_version(prev_release_version, prev_release_dependency_versions)
+    needs_dd_sdk_ios_upgrade = _needs_dependency_upgrade('dd-sdk-ios', dd_sdk_ios_version, prev_release_ios_version)
     needs_dd_sdk_android_upgrade = _needs_dependency_upgrade('dd-sdk-android', dd_sdk_android_version, prev_release_dependency_versions.dd_sdk_android)
 
     # If we're upgrading the iOS or Android dependencies, get a list of all the
@@ -446,7 +481,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     # the list of changes published in each of those releases
     ios_changelog_text = ''
     if needs_dd_sdk_ios_upgrade:
-        ios_changelog_text = _prepare_ios_changelog(prev_release_dependency_versions.dd_sdk_ios, dd_sdk_ios_version)
+        ios_changelog_text = _prepare_ios_changelog(prev_release_ios_version, dd_sdk_ios_version)
     android_changelog_text = ''
     if needs_dd_sdk_android_upgrade:
         android_changelog_text = _prepare_android_changelog(prev_release_dependency_versions.dd_sdk_android, dd_sdk_android_version)
@@ -547,17 +582,53 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     modify_assemblyinfo(dev_assemblyinfo_cs_path, new_version)
     dev_repo.git.add(dev_assemblyinfo_cs_path)
 
-    # Bake the latest explicit dd-sdk-ios and dd-sdk-android versions into
-    # DatadogDependencies.xml, which configures EDM4U
+    # Bake the latest explicit dd-sdk-android version into DatadogDependencies.xml,
+    # which configures EDM4U for Android only; dd-sdk-ios is no longer written here
+    # (dd_sdk_ios=None) since EDM4U no longer resolves iOS pods — its version pin is
+    # written to IosDependencyVersion.json below instead.
     log.info(f'Updating EDM4U dependency versions in: {dev_datadog_dependencies_xml_path}')
     write_external_dependency_versions(
         dev_datadog_dependencies_xml_path,
         ExternalDependencyVersions(
-            dd_sdk_ios=dd_sdk_ios_version,
+            dd_sdk_ios=None,
             dd_sdk_android=dd_sdk_android_version,
         ),
     )
     dev_repo.git.add(dev_datadog_dependencies_xml_path)
+
+    # Bake the latest explicit dd-sdk-ios version into IosDependencyVersion.json instead
+    # of DatadogDependencies.xml, and fetch/stage/verify that exact version now so the
+    # release payload ships with a validated XCFramework bundle rather than merely an
+    # updated pin. Plugins/iOS/*.xcframework is .gitignore'd in this dev repo, so the
+    # file-copy step below stages these modules into the release repo explicitly, by
+    # module name, rather than relying on `git ls-files`.
+    log.info(f'Updating dd-sdk-ios version pin in: {dev_ios_dependency_version_json_path}')
+    with open(dev_ios_dependency_version_json_path) as fp:
+        existing_ios_pin = read_ios_xcframework_pin(fp.read())
+    expected_ios_sha256 = existing_ios_pin.sha256 if existing_ios_pin.version == dd_sdk_ios_version else None
+    if existing_ios_pin.version != dd_sdk_ios_version:
+        log.warning(
+            f'dd-sdk-ios version changed from {existing_ios_pin.version} to {dd_sdk_ios_version}; '
+            'fetching and verifying it now rather than leaving a stale digest for a different version.'
+        )
+    new_ios_sha256 = ios_xcframework.fetch(
+        log, str(dd_sdk_ios_version), expected_ios_sha256, force=False, allow_unknown_sha256=True,
+    )
+    # Stage into the selected --local-dev-repo checkout, not ios_xcframework's own
+    # module-level PLUGINS_IOS_DIR (which is relative to this script's own location and
+    # may be a different checkout entirely).
+    dev_plugins_ios_dir = _dev_package_path('Plugins', 'iOS')
+    ios_xcframework.stage(log, str(dd_sdk_ios_version), existing_ios_pin.modules, plugins_ios_dir=dev_plugins_ios_dir)
+    ios_xcframework.verify(log, existing_ios_pin.modules, plugins_ios_dir=dev_plugins_ios_dir)
+    write_ios_xcframework_pin(
+        dev_ios_dependency_version_json_path,
+        IosXcframeworkPin(
+            version=dd_sdk_ios_version,
+            sha256=new_ios_sha256,
+            modules=existing_ios_pin.modules,
+        ),
+    )
+    dev_repo.git.add(dev_ios_dependency_version_json_path)
 
     # Commit these changes to the local branch
     _log_section(f'Committing changes to {dev_release_branch_name}...')
@@ -619,6 +690,33 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
         # For all other files, copy them normally
         shutil.copy(src_abspath, dst_abspath)
         log.info(f'Copied {package_relpath}.')
+
+    # Copy the vendored dd-sdk-ios XCFramework modules into the release payload.
+    # Plugins/iOS/*.xcframework (and its .meta) is intentionally .gitignore'd in this
+    # dev repo, so `git ls-files` above never lists them; copy them explicitly here, by
+    # the module list just fetched/staged/verified above.
+    release_plugins_ios_dir = os.path.join(release_repo_root, 'Plugins', 'iOS')
+    for module in existing_ios_pin.modules:
+        module_dirname = f'{module}.xcframework'
+        src_module_dir = os.path.join(dev_plugins_ios_dir, module_dirname)
+        if not os.path.isdir(src_module_dir):
+            raise RuntimeError(
+                f'{src_module_dir} not found after staging dd-sdk-ios {dd_sdk_ios_version}; '
+                'cannot publish a release without the vendored XCFramework it depends on.'
+            )
+        dst_module_dir = os.path.join(release_plugins_ios_dir, module_dirname)
+        shutil.copytree(src_module_dir, dst_module_dir)
+        log.info(f'Copied {module_dirname}.')
+
+        src_meta_path = f'{src_module_dir}.meta'
+        if os.path.exists(src_meta_path):
+            shutil.copy(src_meta_path, f'{dst_module_dir}.meta')
+            log.info(f'Copied {module_dirname}.meta.')
+        else:
+            log.warning(
+                f'{src_meta_path} not found; the release repo will get a fresh .meta '
+                f'(new GUID) for {module_dirname} the next time it is opened in Unity.'
+            )
 
     # Stage all file changes
     release_repo.git.add('--all')

@@ -1,4 +1,5 @@
 {
   "omnisharp.useModernNet": false,
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "cmake.sourceDirectory": "/Users/jeff.ward/Projects/dd-sdk-unity/modules/dd-sdk-cpp"
 }

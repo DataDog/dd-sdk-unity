@@ -9,6 +9,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 from .semver import Version, VersionBump
 from .sdkversions import SdkVersionTable, SdkVersionTableRow
 from .edm4u_deps import ExternalDependencyVersions, read_external_dependency_versions, write_external_dependency_versions
+from .ios_xcframework_deps import IosXcframeworkPin, read_ios_xcframework_pin, write_ios_xcframework_pin, IOS_DEPENDENCY_VERSION_RELPATH
 from .package import modify_package_json
 from .assemblyinfo import modify_assemblyinfo
 
@@ -21,6 +22,10 @@ __all__ = [
     'ExternalDependencyVersions',
     'read_external_dependency_versions',
     'write_external_dependency_versions',
+    'IosXcframeworkPin',
+    'read_ios_xcframework_pin',
+    'write_ios_xcframework_pin',
+    'IOS_DEPENDENCY_VERSION_RELPATH',
     'modify_package_json',
     'modify_assemblyinfo',
 ]

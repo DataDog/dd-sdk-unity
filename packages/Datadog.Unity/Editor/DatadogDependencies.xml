@@ -1,4 +1,8 @@
 <dependencies>
+  <!-- iOS dependencies are no longer declared here. The dd-sdk-ios version pin now
+       lives in Editor/iOS/IosDependencyVersion.json and is vendored as a prebuilt
+       XCFramework; EDM4U no longer resolves any CocoaPods for iOS. The Android
+       entries below remain EDM4U-managed. -->
   <androidPackages>
     <androidPackage spec="com.datadoghq:dd-sdk-android-rum:3.10.0">
     </androidPackage>
@@ -7,10 +11,4 @@
     <androidPackage spec="com.datadoghq:dd-sdk-android-ndk:3.10.0">
     </androidPackage>
   </androidPackages>
-  <iosPods>
-    <iosPod name="DatadogCore" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-    <iosPod name="DatadogLogs" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-    <iosPod name="DatadogRUM" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-    <iosPod name="DatadogCrashReporting" bitcodeEnabled="false" minTargetSdk="12.0" version="3.11.1" />
-  </iosPods>
 </dependencies>

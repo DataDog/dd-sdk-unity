@@ -12,3 +12,11 @@ unit-test*
 integration-test*
 .claire/
 .claude/
+
+# iOS XCFramework (fetched locally via ./run-script ios_xcframework stage)
+# Note: at release time, Phase 4's payload push into the unity-package repo must
+# `git add -f` these paths (D-02 requires the binary to be committed there, even
+# though it is ignored in this dev repo).
+packages/Datadog.Unity/Plugins/iOS/*.xcframework
+packages/Datadog.Unity/Plugins/iOS/*.xcframework.meta
+build/ios-xcframework/
