@@ -98,5 +98,52 @@ namespace Datadog.Unity.Flags.Tests
             Assert.IsTrue(json.Contains("\"runtime_default_used\":true"));
             Assert.IsTrue(json.Contains("\"error\":{\"message\":\"FLAG_NOT_FOUND\"}"));
         }
+
+        [Test]
+        public void ExposureEventSerializesZeroSerialId()
+        {
+            var evt = new ExposureEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("show-feature"),
+                allocation: new FlagRef("alloc-123"),
+                variant: new FlagRef("variant-a"),
+                subject: new ExposureSubject(id: "user-456"),
+                serialId: 0);
+
+            var json = JsonConvert.SerializeObject(evt);
+
+            Assert.IsTrue(json.Contains("\"serial_id\":0"));
+        }
+
+        [Test]
+        public void ExposureEventSerializesPositiveSerialId()
+        {
+            var evt = new ExposureEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("show-feature"),
+                allocation: new FlagRef("alloc-123"),
+                variant: new FlagRef("variant-a"),
+                subject: new ExposureSubject(id: "user-456"),
+                serialId: 42);
+
+            var json = JsonConvert.SerializeObject(evt);
+
+            Assert.IsTrue(json.Contains("\"serial_id\":42"));
+        }
+
+        [Test]
+        public void ExposureEventOmitsAbsentSerialId()
+        {
+            var evt = new ExposureEvent(
+                timestamp: 1700000000000,
+                flag: new FlagRef("show-feature"),
+                allocation: new FlagRef("alloc-123"),
+                variant: new FlagRef("variant-a"),
+                subject: new ExposureSubject(id: "user-456"));
+
+            var json = JsonConvert.SerializeObject(evt);
+
+            Assert.IsFalse(json.Contains("serial_id"));
+        }
     }
 }

@@ -21,6 +21,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
         public string AllocationKey => _raw["allocation"]?["key"]?.Value<string>();
         public string VariantKey => _raw["variant"]?["key"]?.Value<string>();
         public string SubjectId => _raw["subject"]?["id"]?.Value<string>();
+        public bool HasSerialId => _raw["serial_id"] != null;
+        public int? SerialId => _raw["serial_id"]?.Value<int>();
         public Dictionary<string, object> SubjectAttributes
         {
             get
