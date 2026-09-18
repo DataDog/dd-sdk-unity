@@ -47,7 +47,7 @@ To build the SDK for iOS:
 - Install [`xcbeautify`][xcbeautify] via `brew install xcbeautify`
     - To verify xcbeautify successfully installed, run: `xcbeautify --version`
 
-Datadog's own iOS dependency (dd-sdk-ios) is a prebuilt XCFramework vendored directly into the `Datadog.Unity` package via Unity's native Plugin importer — neither CocoaPods nor SPM runs to resolve it. Ruby/CocoaPods are **not** required for Datadog's own dependency (EDM4U's Android-side Gradle dependency resolution is unaffected and still applies until Phase 3).
+Datadog's own iOS dependency (dd-sdk-ios) is a prebuilt XCFramework vendored directly into the `Datadog.Unity` package via Unity's native Plugin importer — neither CocoaPods nor SPM runs to resolve it. Ruby/CocoaPods are **not** required for Datadog's own dependency (this is independent of Android-side Gradle dependency resolution, which is unaffected).
 
 Before your first iOS build in a fresh clone, stage the XCFramework once:
 
@@ -93,7 +93,7 @@ This fetches the target version's XCFramework, re-verifies that all currently-ve
 
 `NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow, not by this script.
 
-Committing the vendored XCFramework into the `unity-package` release payload is release-automation work owned by Phase 4 — no release step is documented here.
+Committing the vendored XCFramework into the `unity-package` release payload is release-automation work — no release step is documented here.
 
 ### Android dependencies
 
