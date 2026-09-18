@@ -17,7 +17,7 @@ namespace Datadog.Unity.Editor
         // the package is physically embedded under Assets/ with no manifest.json entry at all.
         internal static string Resolve(Assembly callingAssembly, string scriptTypeName)
         {
-            var packageInfo = PackageInfo.FindForAssembly(callingAssembly);
+            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(callingAssembly);
             if (packageInfo != null && !string.IsNullOrEmpty(packageInfo.resolvedPath))
             {
                 return packageInfo.resolvedPath;
