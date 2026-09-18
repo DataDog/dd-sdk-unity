@@ -21,7 +21,7 @@ import git
 
 import ios_xcframework
 from common.log import init_logger, get_default_logger
-from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, write_external_dependency_versions, ExternalDependencyVersions, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH
+from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH, AndroidDependencyPin, read_android_dependency_pin, write_android_dependency_pin, ANDROID_DEPENDENCY_VERSION_RELPATH
 from common.commit import CommitInfo
 from common.github import resolve_latest_release_version, get_file_contents, get_releases_between
 
@@ -135,13 +135,14 @@ def _needs_dependency_upgrade(repo_name: str, target_ver: Version, prev_release_
     raise RuntimeError(f'Target {repo_name} version {target_ver} is a downgrade from version used in previous release ({prev_release_ver})')
 
 
-def _read_prev_release_ios_version(prev_release_version: Version, prev_release_dependency_versions: ExternalDependencyVersions) -> Version:
+def _read_prev_release_ios_version(prev_release_version: Version, prev_release_dependency_versions) -> Version:
     """
-    Resolves the dd-sdk-ios version pinned in the previous release. Reads from the
-    new Editor/iOS/IosDependencyVersion.json config first (Phase 2 and later
-    releases); falls back to the legacy Editor/DatadogDependencies.xml <iosPod>
-    entries (via the already-parsed prev_release_dependency_versions argument's iOS
-    field) for releases published before that config existed, since those releases
+    Resolves the dd-sdk-ios version pinned in the previous release. Reads from the new
+    Editor/iOS/IosDependencyVersion.json config first (releases published after that
+    config was introduced); falls back to the legacy external-dependency manifest's
+    <iosPod> entries (via the already-parsed prev_release_dependency_versions
+    argument's iOS field, which is None if that legacy manifest could not be fetched
+    at all) for releases published before that config existed, since those releases
     have no JSON pin to read.
     """
     log = get_default_logger()
@@ -151,16 +152,65 @@ def _read_prev_release_ios_version(prev_release_version: Version, prev_release_d
         log.info(f'Read previous release dd-sdk-ios version {pin.version} from Editor/iOS/IosDependencyVersion.json.')
         return pin.version
     except Exception as json_error:
-        legacy_dd_sdk_ios_version = prev_release_dependency_versions.dd_sdk_ios
+        legacy_dd_sdk_ios_version = prev_release_dependency_versions.dd_sdk_ios if prev_release_dependency_versions is not None else None
         if legacy_dd_sdk_ios_version is None:
             raise RuntimeError(
                 f'Failed to resolve dd-sdk-ios version used in previous release {prev_release_version}: '
                 f'could not read Editor/iOS/IosDependencyVersion.json ({json_error}), and '
-                f'Editor/DatadogDependencies.xml has no <iosPod> entries to fall back to.'
+                f'the legacy external-dependency manifest has no <iosPod> entries to fall back to.'
             )
         log.warning(f'Could not read Editor/iOS/IosDependencyVersion.json from previous release {prev_release_version}: {json_error}')
-        log.warning(f'Falling back to legacy Editor/DatadogDependencies.xml <iosPod> entries: dd-sdk-ios {legacy_dd_sdk_ios_version}.')
+        log.warning(f'Falling back to legacy external-dependency manifest <iosPod> entries: dd-sdk-ios {legacy_dd_sdk_ios_version}.')
         return legacy_dd_sdk_ios_version
+
+
+def _read_prev_release_android_version(prev_release_version: Version) -> Tuple[Version, object]:
+    """
+    Resolves the dd-sdk-android version pinned in the previous release, and along the way
+    fetches the legacy Editor/DatadogDependencies.xml manifest so the caller can pass it
+    to _read_prev_release_ios_version's fallback without a second network round trip.
+
+    Reads the new Editor/Android/AndroidDependencyVersion.json config first (releases
+    published after that config was introduced); falls back to the legacy manifest's
+    <androidPackage> entries for releases published before that JSON pin existed,
+    since those releases have no JSON pin to read. A release published after this
+    repo stopped writing the legacy manifest is expected to ship neither the legacy
+    manifest nor (in the hypothetical case its JSON read also fails) a usable Android
+    version at all, so a missing legacy manifest only becomes fatal if the JSON read
+    fails too.
+
+    The legacy read path is intentionally kept (only the write path was deleted):
+    older releases only ever recorded their Android version in
+    Editor/DatadogDependencies.xml, so this fallback is still needed to resolve them.
+
+    Returns a tuple of (resolved dd-sdk-android version, the parsed legacy manifest, or
+    None if that legacy manifest could not be fetched/parsed at all).
+    """
+    log = get_default_logger()
+
+    try:
+        prev_release_legacy_manifest = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/DatadogDependencies.xml')
+        legacy_versions = read_external_dependency_versions(prev_release_legacy_manifest)
+    except Exception as legacy_manifest_error:
+        log.info(f'Previous release {prev_release_version} does not ship a legacy external-dependency manifest ({legacy_manifest_error}); relying solely on JSON pins.')
+        legacy_versions = None
+
+    try:
+        prev_release_android_pin_json = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/Android/AndroidDependencyVersion.json')
+        pin = read_android_dependency_pin(prev_release_android_pin_json)
+        log.info(f'Read previous release dd-sdk-android version {pin.version} from Editor/Android/AndroidDependencyVersion.json.')
+        return pin.version, legacy_versions
+    except Exception as json_error:
+        legacy_dd_sdk_android_version = legacy_versions.dd_sdk_android if legacy_versions is not None else None
+        if legacy_dd_sdk_android_version is None:
+            raise RuntimeError(
+                f'Failed to resolve dd-sdk-android version used in previous release {prev_release_version}: '
+                f'could not read Editor/Android/AndroidDependencyVersion.json ({json_error}), and '
+                f'the legacy external-dependency manifest has no <androidPackage> entries to fall back to.'
+            )
+        log.warning(f'Could not read Editor/Android/AndroidDependencyVersion.json from previous release {prev_release_version}: {json_error}')
+        log.warning(f'Falling back to legacy external-dependency manifest <androidPackage> entries: dd-sdk-android {legacy_dd_sdk_android_version}.')
+        return legacy_dd_sdk_android_version, legacy_versions
 
 
 def _prepare_ios_changelog(prev_version: Version, target_version: Version) -> str:
@@ -349,12 +399,12 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     dev_assemblyinfo_cs_path = _dev_package_path('Runtime', 'AssemblyInfo.cs')
     if not os.path.isfile(dev_assemblyinfo_cs_path):
         raise RuntimeError(f'File not found: {dev_assemblyinfo_cs_path}')
-    dev_datadog_dependencies_xml_path = _dev_package_path('Editor', 'DatadogDependencies.xml')
-    if not os.path.isfile(dev_datadog_dependencies_xml_path):
-        raise RuntimeError(f'File not found: {dev_datadog_dependencies_xml_path}')
     dev_ios_dependency_version_json_path = os.path.join(dev_repo_root, IOS_DEPENDENCY_VERSION_RELPATH)
     if not os.path.isfile(dev_ios_dependency_version_json_path):
         raise RuntimeError(f'File not found: {dev_ios_dependency_version_json_path}')
+    dev_android_dependency_version_json_path = os.path.join(dev_repo_root, ANDROID_DEPENDENCY_VERSION_RELPATH)
+    if not os.path.isfile(dev_android_dependency_version_json_path):
+        raise RuntimeError(f'File not found: {dev_android_dependency_version_json_path}')
     
     # Read the snippet that gets pasted into the release repo's README, then find the
     # source README.md file, find the '[//]: # (Repo Note)' line, and replace it with
@@ -465,16 +515,14 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     dd_sdk_ios_version = _resolve_dependency_version('dd-sdk-ios', dd_sdk_ios_version_str)
     dd_sdk_android_version = _resolve_dependency_version('dd-sdk-android', dd_sdk_android_version_str)
 
-    # Check the EDM4U dependencies in the last published Unity SDK release to determine
-    # whether our target versions of the Android and iOS SDKs are newer than what was
-    # used in that release
-    prev_release_dependencies_xml = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/DatadogDependencies.xml')
-    prev_release_dependency_versions = read_external_dependency_versions(prev_release_dependencies_xml)
-    # Resolve the previous release's dd-sdk-ios version via _read_prev_release_ios_version's
-    # JSON-primary/XML-fallback logic (see the helper above for the two attempted paths).
-    prev_release_ios_version = _read_prev_release_ios_version(prev_release_version, prev_release_dependency_versions)
+    # Resolve the previous release's dd-sdk-android version first: it also fetches (and
+    # returns) the legacy external-dependency manifest, if the previous release shipped
+    # one, so _read_prev_release_ios_version can reuse it for its own fallback without a
+    # second network round trip.
+    prev_release_android_version, prev_release_legacy_versions = _read_prev_release_android_version(prev_release_version)
+    prev_release_ios_version = _read_prev_release_ios_version(prev_release_version, prev_release_legacy_versions)
     needs_dd_sdk_ios_upgrade = _needs_dependency_upgrade('dd-sdk-ios', dd_sdk_ios_version, prev_release_ios_version)
-    needs_dd_sdk_android_upgrade = _needs_dependency_upgrade('dd-sdk-android', dd_sdk_android_version, prev_release_dependency_versions.dd_sdk_android)
+    needs_dd_sdk_android_upgrade = _needs_dependency_upgrade('dd-sdk-android', dd_sdk_android_version, prev_release_android_version)
 
     # If we're upgrading the iOS or Android dependencies, get a list of all the
     # releases made in their respective repos since our last Unity release, and collect
@@ -484,7 +532,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
         ios_changelog_text = _prepare_ios_changelog(prev_release_ios_version, dd_sdk_ios_version)
     android_changelog_text = ''
     if needs_dd_sdk_android_upgrade:
-        android_changelog_text = _prepare_android_changelog(prev_release_dependency_versions.dd_sdk_android, dd_sdk_android_version)
+        android_changelog_text = _prepare_android_changelog(prev_release_android_version, dd_sdk_android_version)
 
     # Prompt the user to select which changes they want to keep, giving them a chance
     # to copy-edit as they see fit
@@ -582,26 +630,26 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     modify_assemblyinfo(dev_assemblyinfo_cs_path, new_version)
     dev_repo.git.add(dev_assemblyinfo_cs_path)
 
-    # Bake the latest explicit dd-sdk-android version into DatadogDependencies.xml,
-    # which configures EDM4U for Android only; dd-sdk-ios is no longer written here
-    # (dd_sdk_ios=None) since EDM4U no longer resolves iOS pods — its version pin is
-    # written to IosDependencyVersion.json below instead.
-    log.info(f'Updating EDM4U dependency versions in: {dev_datadog_dependencies_xml_path}')
-    write_external_dependency_versions(
-        dev_datadog_dependencies_xml_path,
-        ExternalDependencyVersions(
-            dd_sdk_ios=None,
-            dd_sdk_android=dd_sdk_android_version,
+    # Bake the latest explicit dd-sdk-android version into AndroidDependencyVersion.json.
+    # Nothing writes the legacy external-dependency manifest anymore; the Android pin
+    # lives here instead.
+    log.info(f'Updating dd-sdk-android version pin in: {dev_android_dependency_version_json_path}')
+    with open(dev_android_dependency_version_json_path) as fp:
+        existing_android_pin = read_android_dependency_pin(fp.read())
+    write_android_dependency_pin(
+        dev_android_dependency_version_json_path,
+        AndroidDependencyPin(
+            version=dd_sdk_android_version,
+            artifacts=existing_android_pin.artifacts,
         ),
     )
-    dev_repo.git.add(dev_datadog_dependencies_xml_path)
+    dev_repo.git.add(dev_android_dependency_version_json_path)
 
-    # Bake the latest explicit dd-sdk-ios version into IosDependencyVersion.json instead
-    # of DatadogDependencies.xml, and fetch/stage/verify that exact version now so the
-    # release payload ships with a validated XCFramework bundle rather than merely an
-    # updated pin. Plugins/iOS/*.xcframework is .gitignore'd in this dev repo, so the
-    # file-copy step below stages these modules into the release repo explicitly, by
-    # module name, rather than relying on `git ls-files`.
+    # Bake the latest explicit dd-sdk-ios version into IosDependencyVersion.json.
+    # Note: committing the vendored Plugins/iOS/*.xcframework bundles into the release
+    # payload is a separate release-automation step (those paths are .gitignore'd in
+    # this dev repo, so that step will need `git add -f` or equivalent) -- this step
+    # only updates the version pin.
     log.info(f'Updating dd-sdk-ios version pin in: {dev_ios_dependency_version_json_path}')
     with open(dev_ios_dependency_version_json_path) as fp:
         existing_ios_pin = read_ios_xcframework_pin(fp.read())

@@ -24,8 +24,7 @@ __old_package_json__ = '''{
   ],
   "type": "library",
   "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.google.external-dependency-manager": "1.2.178"
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
   }
 }
 '''
@@ -45,8 +44,7 @@ __new_package_json__ = '''{
   ],
   "type": "library",
   "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.google.external-dependency-manager": "1.2.178"
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
   }
 }
 '''

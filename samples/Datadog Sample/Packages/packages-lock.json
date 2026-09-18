@@ -5,8 +5,7 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1",
-        "com.google.external-dependency-manager": "1.2.186"
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
       }
     },
     "com.datadoghq.unity.buildverification": {
@@ -21,13 +20,6 @@
       "source": "git",
       "dependencies": {},
       "hash": "1360823f15ed590204b960472df505357c1bb929"
-    },
-    "com.google.external-dependency-manager": {
-      "version": "1.2.186",
-      "depth": 1,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://package.openupm.com"
     },
     "com.unity.2d.animation": {
       "version": "9.2.1",
