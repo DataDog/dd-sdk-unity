@@ -36,6 +36,39 @@ openupm add com.datadoghq.unity
 
 For further instructions on how to set up the Datadog SDK, refer to the [RUM Unity Monitoring Setup documentation](https://docs.datadoghq.com/real_user_monitoring/mobile_and_tv_monitoring/setup/unity/).
 
+## Feature Flags assignment requests
+
+Feature Flags assignment requests have no SDK-added timeout or retries by
+default (the underlying transport or platform may still impose its own bounds).
+The high-level configuration accepts independent convenience settings:
+
+```csharp
+DdFlags.Enable(new FlagsConfiguration(
+    assignmentRequestTimeoutSeconds: 2,
+    assignmentRequestRetryCount: 2));
+```
+
+For lower-level control, compose an assignment-only transport. A supplied
+transport is used verbatim, replacing the scalar timeout and retry settings:
+
+```csharp
+var assignmentTransport = AssignmentRequestTransports.Default
+    .WithTimeout(2)
+    .WithRetry(2);
+
+DdFlags.Enable(new FlagsConfiguration(assignmentTransport));
+```
+
+`WithTimeout(0)` returns the wrapped transport unchanged. Timeout values above
+2,147,483 seconds are capped for compatibility across Unity runtimes. Timeout
+covers the complete buffered response; at the deadline it requests cancellation
+and completes promptly. Retry creates a fresh native request for every attempt,
+retries transport failures, HTTP 408, and HTTP 5xx, and does not retry HTTP 429.
+The Unity SDK creates and disposes every `UnityWebRequest`; custom transports
+exchange immutable, fully formed request values (including the HTTP method) and
+fully buffered response values, retain ownership of their own resources, and
+must observe cancellation promptly.
+
 ## Contributing
 
 Pull requests are welcome. First, open an issue to discuss what you would like to change.
