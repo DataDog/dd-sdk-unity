@@ -4,8 +4,6 @@
 
 using System;
 using System.IO;
-using UnityEditor;
-using UnityEditor.PackageManager;
 using UnityEngine;
 
 namespace Datadog.Unity.Editor.iOS
@@ -34,38 +32,7 @@ namespace Datadog.Unity.Editor.iOS
 
         internal static string ResolvePackageRoot()
         {
-            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(IosDependencyVersion).Assembly);
-            if (packageInfo != null && !string.IsNullOrEmpty(packageInfo.resolvedPath))
-            {
-                return packageInfo.resolvedPath;
-            }
-
-            // Fallback for when the package is physically embedded under Assets/ rather than
-            // resolved through the Package Manager (e.g. UPM's `file:` local-package mode may
-            // still resolve above, but embedded/Assets-based installs need this path).
-            var guids = AssetDatabase.FindAssets("IosDependencyVersion t:MonoScript");
-            if (guids == null || guids.Length == 0)
-            {
-                return null;
-            }
-
-            var assetPath = AssetDatabase.GUIDToAssetPath(guids[0]);
-            if (string.IsNullOrEmpty(assetPath))
-            {
-                return null;
-            }
-
-            // assetPath is expected to end with .../Editor/iOS/IosDependencyVersion.cs; walk up
-            // three levels (file -> iOS -> Editor -> package root).
-            var editorIosDir = Path.GetDirectoryName(assetPath);
-            var editorDir = editorIosDir != null ? Path.GetDirectoryName(editorIosDir) : null;
-            var packageRoot = editorDir != null ? Path.GetDirectoryName(editorDir) : null;
-            if (string.IsNullOrEmpty(packageRoot))
-            {
-                return null;
-            }
-
-            return Path.GetFullPath(packageRoot);
+            return PackageRootResolver.Resolve(typeof(IosDependencyVersion).Assembly, nameof(IosDependencyVersion));
         }
 
         internal static string ResolvePluginsIosDirectory()

@@ -6,44 +6,61 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Datadog.Unity.Editor.Android;
 using UnityEditor.Android;
+using UnityEditor.Build;
 using UnityEngine;
 
 namespace Datadog.Unity.Editor
 {
     /// <summary>
     /// Modifies a Unity project's build.gradle file to ensure compatibility with certain transitive dependencies
-    /// included by dd-sdk-android.
+    /// included by dd-sdk-android, and to write Datadog's own Android dependency declarations.
     /// </summary>
     public class DatadogGradlePostProcessor : IPostGenerateGradleAndroidProject
     {
-        // These comments mark the start and end of the section in the `dependencies` block where EDM4U writes gradle
-        // dependencies
-        private const string EdmHeaderText = "// Android Resolver Dependencies Start";
-        private const string EdmFooterText = "// Android Resolver Dependencies End";
+        // These comments mark the start and end of the section in the `dependencies` block that this class itself
+        // writes, containing the dd-sdk-android implementation declarations.
+        private const string DatadogHeaderText = "// Datadog Dependencies Start";
+        private const string DatadogFooterText = "// Datadog Dependencies End";
 
-        public int callbackOrder => 999; // Run after EDM4U
+        // The anchor line every generated unityLibrary/build.gradle contains; our dependency declarations are
+        // spliced in immediately after it.
+        private const string DependenciesAnchorFragment = "implementation fileTree(dir: 'libs'";
+
+        // Must run before SymbolAssemblyBuildProcess (callbackOrder int.MaxValue), and late enough that Unity has
+        // finished generating the Gradle project.
+        public int callbackOrder => 999;
 
         public void OnPostGenerateGradleAndroidProject(string path)
         {
-            // Early-out if we're building in an environment that requires no fixes
-            if (!RequiresAndroidxMetricsCompatibilityFix())
-            {
-                return;
-            }
+            // Read the pin once; a missing/malformed pin is a hard build misconfiguration, so let it propagate.
+            AndroidDependencyPinData pin = AndroidDependencyVersion.Load();
 
             // Modify the unityLibrary build.gradle; abort silently if it doesn't exist
             string gradlePath = Path.Combine(path, "build.gradle");
             if (File.Exists(gradlePath))
             {
                 string[] lines = File.ReadAllLines(gradlePath);
-                lines = ApplyAndroidxMetricsCompatibilityFix(lines);
+                lines = ApplyDatadogDependencies(lines, pin.version, pin.artifacts);
+                if (Array.IndexOf(lines, DatadogHeaderText) == -1)
+                {
+                    throw new BuildFailedException(
+                        $"Datadog: no '{DependenciesAnchorFragment}' anchor was found in {gradlePath}, so " +
+                        "Datadog's Android dependencies could not be declared. Please report this issue.");
+                }
+
+                if (RequiresAndroidxMetricsCompatibilityFix())
+                {
+                    lines = ApplyAndroidxMetricsCompatibilityFix(lines);
+                }
+
                 File.WriteAllLines(gradlePath, lines);
             }
 
             // Modify the root build.gradle to force AGP 7-compatible androidx.core versions
             string rootGradlePath = Path.Combine(path, "..", "build.gradle");
-            if (File.Exists(rootGradlePath))
+            if (RequiresAndroidxMetricsCompatibilityFix() && File.Exists(rootGradlePath))
             {
                 string[] lines = File.ReadAllLines(rootGradlePath);
                 lines = ApplyAndroidxCoreCompatibilityFix(lines);
@@ -107,6 +124,45 @@ namespace Datadog.Unity.Editor
         }
 
         /// <summary>
+        /// Writes Datadog's own `implementation` dependency declarations into a generated build.gradle file,
+        /// immediately after the `implementation fileTree(dir: 'libs', ...)` anchor line.
+        /// </summary>
+        /// <param name="lines">The complete set of lines parsed from a build.gradle file.</param>
+        /// <param name="version">The dd-sdk-android version to declare for each artifact.</param>
+        /// <param name="artifacts">The dd-sdk-android artifact IDs to declare, in order.</param>
+        /// <returns>The same set of lines with Datadog's dependency declarations spliced in, or unchanged if
+        /// already present or if no anchor line was found.</returns>
+        public static string[] ApplyDatadogDependencies(string[] lines, string version, string[] artifacts)
+        {
+            // Idempotent: if our markers are already present, assume a previous invocation already wrote them.
+            if (Array.IndexOf(lines, DatadogHeaderText) != -1)
+            {
+                return lines;
+            }
+
+            // Locate the anchor line; abort silently if it's not present.
+            int anchorIndex = Array.FindIndex(lines, l => l.Contains(DependenciesAnchorFragment));
+            if (anchorIndex == -1)
+            {
+                return lines;
+            }
+
+            // Derive the indent from the anchor line's leading whitespace.
+            string anchorLine = lines[anchorIndex];
+            string indent = anchorLine.Substring(0, anchorLine.Length - anchorLine.TrimStart().Length);
+
+            var block = new System.Collections.Generic.List<string> { DatadogHeaderText };
+            foreach (var artifact in artifacts)
+            {
+                block.Add(indent + "implementation '" + AndroidDependencyVersion.MavenGroupId + ":" + artifact + ":" + version + "'");
+            }
+
+            block.Add(DatadogFooterText);
+
+            return lines.Take(anchorIndex + 1).Concat(block).Concat(lines.Skip(anchorIndex + 1)).ToArray();
+        }
+
+        /// <summary>
         /// Modifies the contents of a build.gradle file to apply the compatibility fix for
         /// androidx.metrics:metrics-performance, downgrading it from 1.0.0-beta02 to 1.0.0-beta01.
         /// </summary>
@@ -114,30 +170,30 @@ namespace Datadog.Unity.Editor
         /// <returns>The same set of lines with androidx.metrics:metrics-performance downgraded to beta01.</returns>
         public static string[] ApplyAndroidxMetricsCompatibilityFix(string[] lines)
         {
-            // Find the start and end of the EDM4U dependencies, and abort silently if there's no such section
-            int edmHeaderIndex = Array.IndexOf(lines, EdmHeaderText);
-            int edmFooterIndex = Array.IndexOf(lines, EdmFooterText, edmHeaderIndex + 1);
-            if (edmHeaderIndex == -1 || edmFooterIndex == -1)
+            // Find the start and end of the Datadog-written dependencies, and abort silently if there's no such section
+            int datadogHeaderIndex = Array.IndexOf(lines, DatadogHeaderText);
+            int datadogFooterIndex = Array.IndexOf(lines, DatadogFooterText, datadogHeaderIndex + 1);
+            if (datadogHeaderIndex == -1 || datadogFooterIndex == -1)
             {
                 return lines;
             }
 
             // Find the first `implementation` directive that declares dd-sdk-android-rum as a dependency, using a regex
             // that will capture the relevant details of that declaration, and ensuring that it's located within the
-            // EDM4U-managed section of the file
+            // Datadog-managed section of the file
             var regex = new Regex(@"^(\s+)implementation([ \(])(['""]com\.datadoghq:dd-sdk-android-rum:.*['""])(\)\s*{)?(?:\s*(\/\/.*))?");
             var found = lines
                 .Select((line, index) => (Match: regex.Match(line), Index: index))
                 .FirstOrDefault(t => t.Match.Success);
-            if (found.Match == null || !found.Match.Success || found.Index <= edmHeaderIndex ||
-                found.Index >= edmFooterIndex)
+            if (found.Match == null || !found.Match.Success || found.Index <= datadogHeaderIndex ||
+                found.Index >= datadogFooterIndex)
             {
                 return lines;
             }
 
             // Parse the dependency declaration so we can examine whether it's a single-line statement as written by
-            // EDM4U, e.g.:
-            //   implementation 'com.datadoghq:dd-sdk-android-rum:2.20.0' // DatadogDependencies.xml:12
+            // the Datadog dependency writer, e.g.:
+            //   implementation 'com.datadoghq:dd-sdk-android-rum:2.20.0'
             // ...or else a multi-line declaration that we've already modified, e.g.:
             //   implementation('com.datadoghq:dd-sdk-android-rum:2.20.0') { // DatadogDependencies.xml:12
             string indentStr = found.Match.Groups[1].Value; // Whitespace chars for a single-level indent
