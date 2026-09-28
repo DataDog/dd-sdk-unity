@@ -435,9 +435,10 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsEmpty(timeseriesLines);
         }
 
-        [TestCase(TimeseriesTypes.All, "[.memory, .cpu]")]
+        [TestCase(TimeseriesTypes.Default, "[.memory, .cpu]")]
         [TestCase(TimeseriesTypes.Memory, "[.memory]")]
         [TestCase(TimeseriesTypes.Cpu, "[.cpu]")]
+        [TestCase(TimeseriesTypes.None, "[]")]
         public void GenerateOptionsFileWritesTimeseriesWhenEnabled(TimeseriesTypes collectTypes, string expectedCollectTypes)
         {
             var options = new DatadogConfigurationOptions()
