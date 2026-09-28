@@ -214,9 +214,10 @@ namespace Datadog.Unity
         Cpu = 1 << 1,
 
         /// <summary>
-        /// Collect all available timeseries types. This is the default when timeseries collection is enabled.
+        /// The default set of timeseries types to collect when enabling timeseries collection,
+        /// mirroring the native SDKs' `Timeseries.default` convenience (memory and CPU).
         /// </summary>
-        All = Memory | Cpu,
+        Default = Memory | Cpu,
     }
 
     [Serializable]
@@ -278,7 +279,7 @@ namespace Datadog.Unity
         public float NonFatalAppHangThreshold = 0.25f;
         // Experimental: Timeseries collection. This API is experimental and may change without notice.
         public bool EnableTimeseries;
-        public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.All;
+        public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.None;
 
         // Advanced RUM
         public float TelemetrySampleRate;

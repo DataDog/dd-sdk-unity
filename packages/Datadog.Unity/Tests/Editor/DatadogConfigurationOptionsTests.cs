@@ -75,7 +75,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(false, options.TrackNonFatalAppHangs);
             Assert.AreEqual(0.25f, options.NonFatalAppHangThreshold);
             Assert.IsFalse(options.EnableTimeseries);
-            Assert.AreEqual(TimeseriesTypes.All, options.TimeseriesTypes);
+            Assert.AreEqual(TimeseriesTypes.None, options.TimeseriesTypes);
         }
     }
 }
