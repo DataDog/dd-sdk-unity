@@ -38,8 +38,8 @@ For further instructions on how to set up the Datadog SDK, refer to the [RUM Uni
 
 Pull requests are welcome. First, open an issue to discuss what you would like to change.
 
-For more information, read the [Contributing guidelines](https://github.com/DataDog/dd-sdk-unity/blob/main/CONTRIBUTING.md).
+For more information, read the [Contributing guidelines](https://github.com/DataDog/dd-sdk-unity/blob/develop/CONTRIBUTING.md).
 
 ## License
 
-For more information, see [Apache License, v2.0](https://github.com/DataDog/dd-sdk-unity/blob/main/LICENSE).
+For more information, see [Apache License, v2.0](https://github.com/DataDog/dd-sdk-unity/blob/develop/LICENSE).
