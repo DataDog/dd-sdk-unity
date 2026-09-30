@@ -13,7 +13,7 @@ from typing import List
 from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install
+from common.unity import UnityCli, resolve_unity_install
 from common.xslt import transform_nunit_to_junit
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -24,9 +24,9 @@ __default_test_project_unity_version__ = '2022'
 
 def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_junit_path_pattern: str):
     """
-    Prerequisites: Unity Hub must be installed on the system, and the target version of
-    Unity Editor must be installed through Unity Hub. If no fixed license is installed
-    locally, the Unity Licensing Client must be configured to obtain a floating license.
+    Prerequisites: Unity CLI must be on PATH, and the target Unity Editor must be
+    installed. If no fixed license is installed locally, the Unity Licensing Client
+    must be configured to obtain a floating license.
     """
     log = init_logger()
 
@@ -40,8 +40,8 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
         out_junit_path_pattern = root + r'-%(platform)s' + ext
 
     # Check to see if we have the requisite Unity version installed
-    unity_hub = UnityHub.require()
-    unity_installs = unity_hub.list_installs()
+    unity_cli = UnityCli.require()
+    unity_installs = unity_cli.list_installs()
     unity_install = resolve_unity_install(unity_installs, version_prefix)
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {version_prefix} is installed')
@@ -61,19 +61,19 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
                 os.remove(abspath)
 
         log.info(f'Running {platform} unit tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
-        args = [
-            '-runTests',
+        os.makedirs(artifact_dir, exist_ok=True)
+        exitcode = unity_cli.run_tests(
+            unity_install.version, project_path, platform, nunit_abspath, log_abspath,
             '-testCategory', '!integration',
-            '-testPlatform', platform,
-            '-testResults', nunit_abspath,
-        ]
-        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
+        )
         if exitcode == 0:
             log.info('Tests finished successfully.')
-        elif exitcode == 2:
+        elif exitcode == 8:
             log.error('Tests failed.')
         else:
-            raise RuntimeError(f'Unity exited with status code {exitcode}')
+            log.error(f'Unity CLI test exited with status code {exitcode}.')
+            # TODO(RUM-18770): Retry CLI codes 6/7 in CI and return them directly.
+            return 86 if exitcode in (6, 7) else exitcode
 
         # Verify that fresh test results have been written to disk
         if not os.path.isfile(nunit_abspath):
@@ -101,23 +101,24 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
 
         # If any tests failed, print a basic summary and propagate Unity's exit
         # code: do not proceed to testing additional platforms
-        if failed_cases or exitcode == 2:
+        if failed_cases or exitcode == 8:
             log.error(f'{len(failed_cases)} of {num_passed + len(failed_cases)} tests failed:')
             for case in failed_cases:
                 log.error(f'❌ {case.name}')
-            return 2
+            return 8
 
         log.info(f'✅ {num_passed} tests passed ({num_skipped} skipped).')
 
     log.info('Unit tests completed OK.')
+    return 0
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs the Unity SDK\'s Unit Test suite against the given version of Unity running the specified project')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Datadog Sample' in this repo")
-    parser.add_argument('--platform', dest='platforms', action='append', default=['EditMode', 'PlayMode'], help='Platforms to test, e.g. EditMode, PlayMode, or a supported build platform')
+    parser.add_argument('--platform', dest='platforms', action='append', choices=['EditMode', 'PlayMode'], help='Test modes to run; defaults to EditMode and PlayMode')
     parser.add_argument('--out-junit-path-pattern', '-o', default='unit-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()
 
-    sys.exit(unit_test(args.unity_version, args.project, args.platforms, args.out_junit_path_pattern))
+    sys.exit(unit_test(args.unity_version, args.project, args.platforms or ['EditMode', 'PlayMode'], args.out_junit_path_pattern))

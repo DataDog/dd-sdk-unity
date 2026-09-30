@@ -112,6 +112,23 @@ class UnityCli(object):
         exitcode = run_cmd_streaming(*command)
         self._raise_for_exitcode(exitcode, f'install-modules --editor-version {version}')
 
+    def run_tests(
+        self,
+        version: UnityVersion,
+        project_path: str,
+        platform: str,
+        results_path: str,
+        log_path: str,
+        *editor_args: str,
+    ) -> int:
+        return run_cmd_streaming(
+            *self._command('human'), 'test', project_path,
+            '--editor-version', str(version),
+            '--mode', platform,
+            '--output', results_path,
+            '--', '-logFile', log_path, *editor_args,
+        )
+
     def _command(self, output_format: str) -> List[str]:
         return [self.path, '--no-banner', '--no-pager', '--non-interactive', '--format', output_format]
 
