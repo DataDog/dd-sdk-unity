@@ -12,6 +12,7 @@ from .install import (
     match_unity_version,
 )
 from .hub import UnityHub
+from .cli import UnityCli
 from .ios_settings import modified_ios_target_settings
 
 
@@ -23,5 +24,6 @@ __all__ = [
     'resolve_unity_install',
     'match_unity_version',
     'UnityHub',
+    'UnityCli',
     'modified_ios_target_settings',
 ]

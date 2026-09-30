@@ -36,27 +36,40 @@ def run_cmd(
     cwd: Optional[str] = None,
     bufsize: int = 1,
     echo: bool = False,
+    merge_stderr: bool = False,
+    inherit_output: bool = False,
     output_handler: Optional[OutputHandlerFunc] = None
 ) -> int:    
+    if inherit_output:
+        if output_handler is not None:
+            raise ValueError('Cannot capture output when inheriting the terminal')
+        # Keep terminal detection and cursor control intact for progress displays.
+        return subprocess.run(
+            args,
+            cwd=cwd,
+            stderr=subprocess.STDOUT if merge_stderr else None,
+            check=raise_on_nonzero_exitcode,
+        ).returncode
+
     # Launch a child process
     process = subprocess.Popen(
         args,
         cwd=cwd,
-        # Pipe both stdout and stderr so we can read them
+        # Merge human output when requested; keep streams separate for data parsing.
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
         # Ensure line-buffered text output
         bufsize=1,
         text=True,
         universal_newlines=True,
     )
     assert process.stdout
-    assert process.stderr
 
     # Select on stdout and stderr so we can process output in real time
     sel = selectors.DefaultSelector()
     sel.register(process.stdout, selectors.EVENT_READ)
-    sel.register(process.stderr, selectors.EVENT_READ)
+    if process.stderr is not None:
+        sel.register(process.stderr, selectors.EVENT_READ)
 
     # Buffer output so we can handle it line-by-line
     stdout_buffer = OutputBuffer()
@@ -94,6 +107,7 @@ def run_cmd(
                 if echo:
                     echo_stream = sys.stderr if is_stderr else sys.stdout
                     echo_stream.write(line + '\n')
+                    echo_stream.flush()
                 if output_handler:
                     output_handler(line, is_stderr)
 
@@ -108,6 +122,11 @@ def run_cmd(
         raise subprocess.CalledProcessError(exitcode, args)
 
     return exitcode
+
+
+def run_cmd_streaming(*args: str) -> int:
+    """Stream combined output directly to the terminal, preserving progress displays."""
+    return run_cmd(*args, merge_stderr=True, inherit_output=True)
 
 
 def capture_output(*args: str) -> Tuple[str, str]:
