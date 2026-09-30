@@ -13,7 +13,7 @@ import shutil
 
 import ios_xcframework
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install
+from common.unity import UnityCli, resolve_unity_install
 from common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
 from common.apple import run_xcodebuild
 
@@ -28,8 +28,8 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
     log = init_logger()
 
     # Check to see if we have the required Unity version installed
-    unity_hub = UnityHub.require()
-    unity_installs = unity_hub.list_installs()
+    unity_cli = UnityCli.require()
+    unity_installs = unity_cli.list_installs()
     unity_install = resolve_unity_install(unity_installs, unity_version_prefix)
     if not unity_install:
         raise RuntimeError(f'No Unity version matching {unity_version_prefix} is installed')
@@ -50,30 +50,36 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
         ios_xcframework.stage(log, str(pin.version), pin.modules)
         ios_xcframework.verify(log, pin.modules)
 
+    target = {'android': 'Android', 'ios': 'iOS'}[platform]
+    output_path = os.path.abspath(os.path.join(project_root, 'Build', target))
+    if platform == 'android':
+        output_path = os.path.join(output_path, 'datadog-demo.apk')
+
     # Temporarily modify the project's DatadogSettings asset to adopt our desired config
     with modified_datadog_settings(project_root, config):
         # Run the Unity build: for iOS this generates an Xcode project; for other
         # platforms it generates the final packaged build
-        build_command = 'BuildCommands.BuildHeadless'
-        build_command_args = ['-buildPlatform', platform]
-        exitcode = unity_install.run_batchmode(project_root, '-quit', '-executeMethod', build_command, *build_command_args)
-        if exitcode == 0:
-            log.info('Unity build finished successfully.')
-        else:
-            raise RuntimeError(f'Unity build exited with status code {exitcode}')
+        exitcode = unity_cli.run_build(
+            unity_install.version, project_root, target, 'BuildCommands.BuildHeadless',
+            output_path,
+        )
+        if exitcode != 0:
+            log.error(f'Unity CLI build exited with status code {exitcode}.')
+            # TODO(RUM-18770): Retry CLI codes 6/7 in CI and return them directly.
+            return 86 if exitcode in (6, 7) else exitcode
+        log.info('Unity build finished successfully.')
 
     # On Android, Unity should have written an .apk, in which case we're done
     if platform == 'android':
-        apk_path = os.path.join(project_root, 'Build', 'Android', 'datadog-demo.apk')
-        if not os.path.isfile(apk_path):
-            raise RuntimeError(f'APK not found after successful Android build: {apk_path}')
-        log.info(apk_path)
+        if not os.path.isfile(output_path):
+            raise RuntimeError(f'APK not found after successful Android build: {output_path}')
+        log.info(output_path)
         return 0
 
     # On iOS, Unity just generates an Xcode project, so we need to invoke an Xcode
     # build to generate our final iOS app
     if platform == 'ios':
-        ios_build_dir = os.path.join(project_root, 'Build', 'iOS')
+        ios_build_dir = output_path
         if not os.path.isdir(ios_build_dir):
             raise RuntimeError(f'Xcode project not found after successful iOS build: {ios_build_dir}')
 

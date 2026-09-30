@@ -112,6 +112,24 @@ class UnityCli(object):
         exitcode = run_cmd_streaming(*command)
         self._raise_for_exitcode(exitcode, f'install-modules --editor-version {version}')
 
+    def run_build(
+        self,
+        version: UnityVersion,
+        project_path: str,
+        target: str,
+        execute_method: str,
+        output_path: str,
+    ) -> int:
+        return run_cmd_streaming(
+            *self._command('human'), 'build', project_path,
+            '--editor-version', str(version),
+            '--target', target,
+            '--execute-method', execute_method,
+            '--output-path', output_path,
+            # Build scripts temporarily modify project settings before invoking Unity.
+            '--allow-dirty-build',
+        )
+
     def run_tests(
         self,
         version: UnityVersion,
