@@ -20,7 +20,8 @@ namespace Datadog.Unity.Flags
             bool doLog,
             string allocationKey,
             string variationKey,
-            string reason)
+            string reason,
+            int? serialId = null)
         {
             VariationType = variationType ?? string.Empty;
             VariationValue = variationValue;
@@ -28,6 +29,7 @@ namespace Datadog.Unity.Flags
             AllocationKey = allocationKey;
             VariationKey = variationKey ?? string.Empty;
             Reason = reason ?? string.Empty;
+            SerialId = serialId;
         }
 
         /// <summary>
@@ -59,6 +61,12 @@ namespace Datadog.Unity.Flags
         /// Gets the resolution reason (DEFAULT, TARGETING_MATCH, RULE_MATCH, etc.).
         /// </summary>
         public string Reason { get; }
+
+        /// <summary>
+        /// Gets the serial identifier of the split this assignment comes from, or null when the
+        /// server sends none.
+        /// </summary>
+        public int? SerialId { get; }
 
         /// <summary>
         /// Attempts to get the variation value as the specified type.
