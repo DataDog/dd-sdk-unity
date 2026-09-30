@@ -13,7 +13,6 @@ import threading
 import subprocess
 import time
 from dataclasses import dataclass
-from enum import Enum
 from typing import List, Optional
 
 
@@ -78,18 +77,6 @@ class UnityVersion:
         return rank | int(match.group(2))
 
 
-class UnityLicenseStatus(Enum):
-    UNKNOWN = 0
-    INVALID = 1
-    VALID = 2
-
-
-@dataclass
-class UnityBatchModeResult:
-    exitcode: int
-    license_status: UnityLicenseStatus
-
-
 @dataclass
 class UnityInstall:
     """
@@ -115,22 +102,7 @@ class UnityInstall:
             return os.path.join(self.path, 'Contents', 'MacOS', 'Unity')
         return self.path
     
-    @property
-    def licensing_client_path(self) -> str:
-        """Returns the path to the Unity Licensing Client binary within this installation."""
-        if self.path.endswith('.app'):
-            subdir_name = 'MacOS'
-            if self.version < UnityVersion(2021, 3, 19, 'f1'):
-                subdir_name = 'Resources'
-            return os.path.join(self.path, 'Contents', 'Frameworks', 'UnityLicensingClient.app', 'Contents', subdir_name, 'Unity.Licensing.Client')
-        else:
-            unity_root = os.path.dirname(self.path)
-            binary_name = 'Unity.Licensing.Client'
-            if re.match(r'^[a-zA-Z]:', self.path):
-                binary_name += '.exe'
-            return os.path.join(unity_root, 'Data', 'Resources', 'Licensing', 'Client', binary_name)
-        
-    def run_batchmode(self, project_path: str, *args: str, log_path='-', echo_log=True) -> UnityBatchModeResult:
+    def run_batchmode(self, project_path: str, *args: str, log_path='-', echo_log=True) -> int:
         # If the caller doesn't care to have the log file saved anywhere, write it to a
         # temp file that we can tail
         log_file_is_temporary = False
@@ -146,16 +118,7 @@ class UnityInstall:
                 with open(log_path, 'w') as fp:
                     pass
 
-        # Prepare an line-handler callback to parse Unity license status from stdout
-        license_status = UnityLicenseStatus.UNKNOWN
         def _read(line: str):
-            # Whichever line we've most recently seen determines our status
-            nonlocal license_status
-            if line.startswith('[Licensing::Client] Successfully resolved entitlement details'):
-                license_status = UnityLicenseStatus.VALID
-            elif line.startswith('No valid Unity Editor license found. Please activate your license.'):
-                license_status = UnityLicenseStatus.INVALID
-
             # If the caller wants us to echo, write each line to Python stdout
             if echo_log:
                 max_retries = 10
@@ -213,10 +176,7 @@ class UnityInstall:
             stop_event.set()
             tail_thread.join()
 
-            return UnityBatchModeResult(
-                exitcode=exitcode,
-                license_status=license_status,
-            )
+            return exitcode
         except:
             # Stop the tail thread if we throw an error, get a SIGINT, etc
             stop_event.set()

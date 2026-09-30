@@ -30,7 +30,7 @@ from typing import Dict, List, Optional
 
 import ios_xcframework
 from common.log import init_logger
-from common.unity import UnityHub, UnityLicenseStatus, resolve_unity_install
+from common.unity import UnityHub, resolve_unity_install
 
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -63,7 +63,6 @@ class VerifyResult:
     framework_search_paths_present: bool = False
     cocoapods_absent: bool = False
     xcodebuild_succeeded: Optional[bool] = None
-    license_blocked: bool = False
     blocked: bool = False
     blocked_reason: Optional[str] = None
     failure_excerpt: Optional[str] = None
@@ -216,7 +215,7 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
     # 4. Delete any stale Build/iOS directory and log files before building. Unity
     # truncates -logFile in place (same inode) rather than replacing it, so a leftover
     # log from a prior run can make the tailer seek past the new run's own output and
-    # misreport a licensing failure -- always start clean.
+    # miss the new output -- always start clean.
     ios_build_dir = os.path.join(project_path, 'Build', 'iOS')
     if os.path.isdir(ios_build_dir):
         log.info(f'Removing stale build directory: {ios_build_dir}')
@@ -236,25 +235,19 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
     try:
         # 5. Run Unity in batch mode.
         absolute_output_dir = os.path.join(project_path, 'Build', 'iOS')
-        batchmode_result = unity_install.run_batchmode(
+        exitcode = unity_install.run_batchmode(
             project_path, '-quit', '-executeMethod', BUILD_METHOD,
             '-iosBuildOutput', absolute_output_dir,
             log_path=unity_log_path,
         )
 
-        if batchmode_result.exitcode == 0:
+        if exitcode == 0:
             log.info('Unity build finished successfully.')
             result.unity_build_ok = True
-        elif batchmode_result.license_status != UnityLicenseStatus.VALID:
-            log.error('Unity failed to acquire a license.')
-            result.blocked = True
-            result.license_blocked = True
-            result.blocked_reason = 'Unity failed to acquire a valid license.'
-            return result
         else:
             result.unity_build_ok = False
             result.failure_excerpt = _read_tail(unity_log_path)
-            log.error(f'Unity build exited with status code {batchmode_result.exitcode}')
+            log.error(f'Unity build exited with status code {exitcode}')
             return result
 
         # 6. Assert the generated Xcode project exists and record the pbxproj booleans.
@@ -327,13 +320,6 @@ def main(unity_version: str, out_json: str, keep_artifacts: bool) -> int:
     print(f'DatadogIosBuildVerify:Result {json.dumps(asdict(result))}')
 
     _merge_results_into_json(out_json, [result])
-
-    # Preserve this repo's established exit-code convention (see build_demo.py,
-    # unit_test.py): a Unity license failure returns 86 so GitLab CI's
-    # `retry.exit_codes: [86]` picks it up as a retryable environment issue rather than
-    # a real build failure.
-    if result.license_blocked:
-        return 86
 
     if result.blocked:
         return 1

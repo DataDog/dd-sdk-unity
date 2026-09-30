@@ -16,7 +16,7 @@ from typing import List
 from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install, UnityLicenseStatus, modified_ios_target_settings
+from common.unity import UnityHub, resolve_unity_install, modified_ios_target_settings
 from common.ddconfig import DatadogRuntimeConfig, FirstPartyHost, modified_datadog_settings
 from common.inet_addr import get_reachable_inet_addr
 from common.mockserver import prepare_mock_server_venv, run_mock_server
@@ -140,16 +140,13 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             '-testPlatform', platform,
             '-testResults', nunit_abspath,
         ]
-        result = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
-        if result.exitcode == 0:
+        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
+        if exitcode == 0:
             log.info('Tests finished successfully.')
-        elif result.exitcode == 2:
+        elif exitcode == 2:
             log.error('Tests failed.')
-        elif result.license_status != UnityLicenseStatus.VALID:
-            log.error('Unity failed to acquire a license.')
-            return 86
         else:
-            raise RuntimeError(f'Unity exited with status code {result.exitcode}')
+            raise RuntimeError(f'Unity exited with status code {exitcode}')
 
         # Verify that fresh test results have been written to disk
         if not os.path.isfile(nunit_abspath):
@@ -177,7 +174,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
 
         # If any tests failed, print a basic summary and propagate Unity's exit
         # code: do not proceed to testing additional platforms
-        if failed_cases or result.exitcode == 2:
+        if failed_cases or exitcode == 2:
             log.error(f'{len(failed_cases)} of {num_passed + len(failed_cases)} tests failed:')
             for case in failed_cases:
                 log.error(f'❌ {case.name}')
