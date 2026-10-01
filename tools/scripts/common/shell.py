@@ -8,45 +8,25 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import subprocess
 import selectors
 import io
-import sys
-from typing import Callable, Optional, cast, Tuple, List
+from typing import Callable, Optional, cast, Tuple
 
 
 OutputHandlerFunc = Callable[[str, bool], None]
 
 
-class OutputBuffer(object):
-    buf: str
-
-    def __init__(self):
-        self.buf = ''
-
-    def write(self, s: str):
-        self.buf += s
-
-    def __iter__(self):
-        while '\n' in self.buf:
-            line, self.buf = self.buf.split('\n', 1)
-            yield line
-
-
 def run_cmd(
     *args: str,
     raise_on_nonzero_exitcode = False,
-    cwd: Optional[str] = None,
-    bufsize: int = 1,
-    echo: bool = False,
     merge_stderr: bool = False,
     inherit_output: bool = False,
     output_handler: Optional[OutputHandlerFunc] = None
-) -> int:    
+) -> int:
     if inherit_output:
         if output_handler is not None:
             raise ValueError('Cannot capture output when inheriting the terminal')
         # Keep terminal detection and cursor control intact for progress displays.
         return subprocess.run(
             args,
-            cwd=cwd,
             stderr=subprocess.STDOUT if merge_stderr else None,
             check=raise_on_nonzero_exitcode,
         ).returncode
@@ -54,14 +34,12 @@ def run_cmd(
     # Launch a child process
     process = subprocess.Popen(
         args,
-        cwd=cwd,
         # Merge human output when requested; keep streams separate for data parsing.
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
         # Ensure line-buffered text output
         bufsize=1,
         text=True,
-        universal_newlines=True,
     )
     assert process.stdout
 
@@ -71,10 +49,6 @@ def run_cmd(
     if process.stderr is not None:
         sel.register(process.stderr, selectors.EVENT_READ)
 
-    # Buffer output so we can handle it line-by-line
-    stdout_buffer = OutputBuffer()
-    stderr_buffer = OutputBuffer()
-
     # Read output from the process until it's finished
     exitcode: Optional[int] = None
     while True:
@@ -83,10 +57,7 @@ def run_cmd(
             # Read the next chunk of data from the next available stream
             stream = cast(io.TextIOBase, key.fileobj)
             is_stderr = stream is process.stderr
-            if bufsize == 1:
-                data = stream.readline()
-            else:
-                data = stream.read(bufsize)
+            data = stream.readline()
 
             # If we read EOF, close the stream and continue
             if not data:
@@ -94,22 +65,8 @@ def run_cmd(
                 stream.close()
                 continue
 
-            # Buffer the data we've just received, and consume any complete lines that
-            # are now held in the buffer
-            lines: List[str] = []
-            if bufsize == 1:
-                lines = [data.rstrip('\n')]
-            else:
-                buffer = stderr_buffer if is_stderr else stdout_buffer
-                buffer.write(data)
-                lines = list(buffer)
-            for line in lines:
-                if echo:
-                    echo_stream = sys.stderr if is_stderr else sys.stdout
-                    echo_stream.write(line + '\n')
-                    echo_stream.flush()
-                if output_handler:
-                    output_handler(line, is_stderr)
+            if output_handler:
+                output_handler(data.rstrip('\n'), is_stderr)
 
         # Once the process has exited AND stdout/stderr are closed, finish
         exitcode = process.poll()

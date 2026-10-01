@@ -33,58 +33,43 @@ def test_UnityVersion_comparison():
     ]
 
 
-def test_UnityInstall_parse():
-    mac_install = UnityInstall.parse('6000.1.7f1 (Apple silicon), installed at /Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app')
-    assert mac_install is not None
-    assert mac_install == UnityInstall(
-        version=UnityVersion(
-            major=6000,
-            minor=1,
-            patch=7,
-            revision='f1',
-        ),
-        architecture='Apple silicon',
-        path='/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app'
+@pytest.mark.parametrize('path, expected', [
+    (
+        '/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app',
+        '/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app/Contents/MacOS/Unity',
+    ),
+    (
+        os.path.normpath('C:/Program Files/Unity/Hub/Editor/6000.1.7f1/Editor/Unity.exe'),
+        os.path.normpath('C:/Program Files/Unity/Hub/Editor/6000.1.7f1/Editor/Unity.exe'),
+    ),
+    (
+        '/home/username/Unity/Hub/Editor/6000.1.7f1/Editor/Unity',
+        '/home/username/Unity/Hub/Editor/6000.1.7f1/Editor/Unity',
+    ),
+])
+def test_UnityInstall_editor_path(path, expected):
+    install = UnityInstall(
+        version=UnityVersion.parse('6000.1.7f1'),
+        architecture='arm64',
+        path=path,
     )
-    assert mac_install.editor_path == '/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app/Contents/MacOS/Unity'
-
-    win_install = UnityInstall.parse('2022.3.55f1 (x64), installed at C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.55f1\\Editor\\Unity.exe')
-    assert win_install is not None
-    assert win_install == UnityInstall(
-        version=UnityVersion(
-            major=2022,
-            minor=3,
-            patch=55,
-            revision='f1',
-        ),
-        architecture='x64',
-        path=os.path.normpath('C:/Program Files/Unity/Hub/Editor/2022.3.55f1/Editor/Unity.exe'),
-    )
-    assert win_install.editor_path == os.path.normpath('C:/Program Files/Unity/Hub/Editor/2022.3.55f1/Editor/Unity.exe')
-
-    linux_install = UnityInstall.parse('2023.2.0f1 (x64), installed at /home/username/Unity/Hub/Editor/2023.2.0f1/Editor/Unity')
-    assert linux_install is not None
-    assert linux_install == UnityInstall(
-        version=UnityVersion(
-            major=2023,
-            minor=2,
-            patch=0,
-            revision='f1',
-        ),
-        architecture='x64',
-        path='/home/username/Unity/Hub/Editor/2023.2.0f1/Editor/Unity'
-    )
-    assert linux_install.editor_path == '/home/username/Unity/Hub/Editor/2023.2.0f1/Editor/Unity'
+    assert install.editor_path == expected
 
 
 def test_resolve_unity_install():
-    unity_6000 = UnityInstall.parse('6000.1.7f1 (Apple silicon), installed at /Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app')
-    unity_2023 = UnityInstall.parse('2022.3.55f1 (Apple silicon), installed at /Applications/Unity/Hub/Editor/2022.3.55f1/Unity.app')
-    assert unity_6000
-    assert unity_2023
-    installs = [unity_6000, unity_2023]
+    unity_6000 = UnityInstall(
+        version=UnityVersion.parse('6000.1.7f1'),
+        architecture='arm64',
+        path='/Applications/Unity/Hub/Editor/6000.1.7f1/Unity.app',
+    )
+    unity_2022 = UnityInstall(
+        version=UnityVersion.parse('2022.3.55f1'),
+        architecture='arm64',
+        path='/Applications/Unity/Hub/Editor/2022.3.55f1/Unity.app',
+    )
+    installs = [unity_6000, unity_2022]
 
-    assert resolve_unity_install(installs, '2022') == unity_2023
+    assert resolve_unity_install(installs, '2022') == unity_2022
     assert resolve_unity_install(installs, '6000') == unity_6000
     assert resolve_unity_install(installs, '6000.1.7') == unity_6000
     assert resolve_unity_install(installs, '6000.2') is None

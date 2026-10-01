@@ -9,7 +9,6 @@ from .install import (
     resolve_unity_install,
     match_unity_version,
 )
-from .hub import UnityHub
 from .cli import UnityCli
 from .ios_settings import modified_ios_target_settings
 
@@ -19,7 +18,6 @@ __all__ = [
     'UnityInstall',
     'resolve_unity_install',
     'match_unity_version',
-    'UnityHub',
     'UnityCli',
     'modified_ios_target_settings',
 ]

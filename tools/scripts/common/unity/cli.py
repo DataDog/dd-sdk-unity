@@ -45,23 +45,11 @@ class UnityCli(object):
                 architecture=editor['architecture'],
                 path=editor['location'],
             )
-            for editor in self._list_editors('--installed')
+            for editor in self._list_items('editors', '--installed')
         ]
         for install in installs:
             log.info(f'Found: {install.version} at {install.path}')
         return installs
-
-    def list_release_versions(self) -> List[UnityVersion]:
-        """Lists editor versions available from the CLI's release feed."""
-        log = get_default_logger()
-        log.info('Querying available Unity releases...')
-        versions = [
-            UnityVersion.parse(editor['version'])
-            for editor in self._list_editors('--releases')
-        ]
-        for version in versions:
-            log.info(f'Available: {version}')
-        return versions
 
     def install_version(self, version: Union[UnityVersion, str], modules: List[str]) -> UnityInstall:
         """
@@ -151,9 +139,6 @@ class UnityCli(object):
 
     def _command(self, output_format: str) -> List[str]:
         return [self.path, '--no-banner', '--no-pager', '--non-interactive', '--format', output_format]
-
-    def _list_editors(self, flag: str) -> List[dict]:
-        return self._list_items('editors', flag)
 
     def _list_items(self, *args: str) -> List[dict]:
         command = ' '.join(args)

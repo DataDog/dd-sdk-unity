@@ -65,8 +65,7 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
         )
         if exitcode != 0:
             log.error(f'Unity CLI build exited with status code {exitcode}.')
-            # TODO(RUM-18770): Retry CLI codes 6/7 in CI and return them directly.
-            return 86 if exitcode in (6, 7) else exitcode
+            return exitcode
         log.info('Unity build finished successfully.')
 
     # On Android, Unity should have written an .apk, in which case we're done

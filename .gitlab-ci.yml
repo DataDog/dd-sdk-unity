@@ -15,8 +15,8 @@ stages:
     # Running with no arguments will ensure our Python venv is initialized
     - ./run-script
   install-unity:
-    # Install Unity Hub, Unity CLI, and other development dependencies
-    - brew install --cask unity-hub unity-cli
+    # Install Unity CLI and other development dependencies
+    - brew install --cask unity-cli
     - unity --version
     - brew install xcbeautify
     # Run install_unity.py to ensure that our requisite version of Unity is installed:
@@ -70,8 +70,9 @@ unit-test:
   retry:
     max: 2
     exit_codes:
-      # Python scripts exit with 86 on Unity license error
-      - 86
+      # Retry Unity CLI operation failures (6) and unavailable services (7).
+      - 6
+      - 7
 
 package-ios:
   stage: package
@@ -96,8 +97,9 @@ package-ios:
   retry:
     max: 2
     exit_codes:
-      # Python scripts exit with 86 on Unity license error
-      - 86
+      # Retry Unity CLI operation failures (6) and unavailable services (7).
+      - 6
+      - 7
 
 package-android:
   stage: package
@@ -119,8 +121,9 @@ package-android:
   retry:
     max: 2
     exit_codes:
-      # Python scripts exit with 86 on Unity license error
-      - 86
+      # Retry Unity CLI operation failures (6) and unavailable services (7).
+      - 6
+      - 7
 
 notify-pipeline-succeeded:
   stage: post

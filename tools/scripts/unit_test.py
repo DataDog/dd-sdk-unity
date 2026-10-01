@@ -72,8 +72,7 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
             log.error('Tests failed.')
         else:
             log.error(f'Unity CLI test exited with status code {exitcode}.')
-            # TODO(RUM-18770): Retry CLI codes 6/7 in CI and return them directly.
-            return 86 if exitcode in (6, 7) else exitcode
+            return exitcode
 
         # Verify that fresh test results have been written to disk
         if not os.path.isfile(nunit_abspath):
