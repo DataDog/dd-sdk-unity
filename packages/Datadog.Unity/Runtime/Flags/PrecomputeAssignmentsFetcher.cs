@@ -100,7 +100,7 @@ namespace Datadog.Unity.Flags
             }
         }
 
-        private string BuildRequestBody(FlagsEvaluationContext context)
+        internal string BuildRequestBody(FlagsEvaluationContext context)
         {
             var dto = new AssignmentsRequestDto
             {
@@ -224,11 +224,23 @@ namespace Datadog.Unity.Flags
 
         private class AssignmentsRequestAttributesDto
         {
+            [JsonProperty("source")]
+            public AssignmentsSourceDto Source { get; set; } = new AssignmentsSourceDto();
+
             [JsonProperty("env")]
             public AssignmentsEnvDto Env { get; set; }
 
             [JsonProperty("subject")]
             public AssignmentsSubjectDto Subject { get; set; }
+        }
+
+        private class AssignmentsSourceDto
+        {
+            [JsonProperty("sdk_name")]
+            public string SdkName { get; set; } = FlagsSdkMetadata.Name;
+
+            [JsonProperty("sdk_version")]
+            public string SdkVersion { get; set; } = FlagsSdkMetadata.Version;
         }
 
         private class AssignmentsEnvDto

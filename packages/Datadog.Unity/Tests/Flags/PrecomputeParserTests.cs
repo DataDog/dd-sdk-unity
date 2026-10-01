@@ -4,11 +4,31 @@
 
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Collections.Generic;
 
 namespace Datadog.Unity.Flags.Tests
 {
     public class PrecomputeParserTests
     {
+        [Test]
+        public void RequestReportsFlagsPackageIdentityAndPreservesContext()
+        {
+            var fetcher = new PrecomputeAssignmentsFetcher("https://example.test", "token", "app", "prod", null);
+            var context = new FlagsEvaluationContext("athlete-123", new Dictionary<string, object>
+            {
+                { "sdk_version", "99.99.99-attribute" },
+                { "application_version", "88.88.88-app" },
+            });
+
+            var attributes = JObject.Parse(fetcher.BuildRequestBody(context))["data"]["attributes"];
+
+            Assert.AreEqual("dd-sdk-unity", attributes["source"]["sdk_name"].Value<string>());
+            Assert.AreEqual(FlagsSdkMetadata.Version, attributes["source"]["sdk_version"].Value<string>());
+            Assert.AreEqual("prod", attributes["env"]["dd_env"].Value<string>());
+            Assert.AreEqual("athlete-123", attributes["subject"]["targeting_key"].Value<string>());
+            Assert.AreEqual("99.99.99-attribute", attributes["subject"]["targeting_attributes"]["sdk_version"].Value<string>());
+        }
+
         [Test]
         public void ParsesValidBooleanFlag()
         {
