@@ -7,8 +7,8 @@
 Re-runnable per-Unity-version driver that proves a Unity iOS build succeeds with the
 prebuilt Datadog XCFramework embedded via
 Unity's native Plugin importer alone, with EDM4U's iOS CocoaPods resolution permanently
-absent. Stages the pinned XCFramework, runs a batch-mode Unity build via
-IosBuildCommands.BuildIOS, asserts the generated pbxproj structure and the absence of
+absent. Stages the pinned XCFramework, invokes IosBuildCommands.BuildIOS through
+Unity CLI, asserts the generated pbxproj structure and the absence of
 any CocoaPods artifacts, then runs xcodebuild and records a machine-readable result.
 
 Usage (via the repo's run-script wrapper):
@@ -30,7 +30,7 @@ from typing import Dict, List, Optional
 
 import ios_xcframework
 from common.log import init_logger
-from common.unity import UnityHub, resolve_unity_install
+from common.unity import UnityCli, resolve_unity_install
 
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -115,7 +115,8 @@ def _check_pbxproj(pbxproj_path: str, module_names: List[str]) -> Dict[str, bool
     embed_phase_present = all(
         f'{name}.xcframework in Embed Frameworks' in contents for name in module_names
     )
-    search_path_blocks = re.findall(r'FRAMEWORK_SEARCH_PATHS\s*=\s*\(([^)]*)\);', contents, re.DOTALL)
+    # Match the list terminator, allowing parentheses in variables like $(PROJECT_DIR).
+    search_path_blocks = re.findall(r'FRAMEWORK_SEARCH_PATHS\s*=\s*\((.*?)\)\s*;', contents, re.DOTALL)
     framework_search_paths_present = any(
         'Plugins/iOS' in block for block in search_path_blocks
     )
@@ -191,8 +192,8 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
     _check_project_not_locked(project_path)
 
     # 2. Resolve the Unity install for this version prefix.
-    unity_hub = UnityHub.require()
-    unity_installs = unity_hub.list_installs()
+    unity_cli = UnityCli.require()
+    unity_installs = unity_cli.list_installs()
     unity_install = resolve_unity_install(unity_installs, version_prefix)
     if not unity_install:
         result.blocked = True
@@ -212,11 +213,8 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
     ios_xcframework.stage(log, str(pin.version), pin.modules)
     ios_xcframework.verify(log, pin.modules)
 
-    # 4. Delete any stale Build/iOS directory and log files before building. Unity
-    # truncates -logFile in place (same inode) rather than replacing it, so a leftover
-    # log from a prior run can make the tailer seek past the new run's own output and
-    # miss the new output -- always start clean.
-    ios_build_dir = os.path.join(project_path, 'Build', 'iOS')
+    # 4. Delete stale build output and logs from previous verification runs.
+    ios_build_dir = os.path.abspath(os.path.join(project_path, 'Build', 'iOS'))
     if os.path.isdir(ios_build_dir):
         log.info(f'Removing stale build directory: {ios_build_dir}')
         shutil.rmtree(ios_build_dir)
@@ -233,11 +231,9 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
             os.remove(stale_log_path)
 
     try:
-        # 5. Run Unity in batch mode.
-        absolute_output_dir = os.path.join(project_path, 'Build', 'iOS')
-        exitcode = unity_install.run_batchmode(
-            project_path, '-quit', '-executeMethod', BUILD_METHOD,
-            '-iosBuildOutput', absolute_output_dir,
+        # 5. Generate the Xcode project through Unity CLI.
+        exitcode = unity_cli.run_build(
+            unity_install.version, project_path, 'iOS', BUILD_METHOD, ios_build_dir,
             log_path=unity_log_path,
         )
 
@@ -246,8 +242,9 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
             result.unity_build_ok = True
         else:
             result.unity_build_ok = False
-            result.failure_excerpt = _read_tail(unity_log_path)
-            log.error(f'Unity build exited with status code {exitcode}')
+            message = f'Unity CLI build exited with status code {exitcode}'
+            result.failure_excerpt = _read_tail(unity_log_path) or message
+            log.error(message)
             return result
 
         # 6. Assert the generated Xcode project exists and record the pbxproj booleans.
