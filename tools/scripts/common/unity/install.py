@@ -8,7 +8,6 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import os
 import re
-import tempfile
 import threading
 import subprocess
 import time
@@ -40,14 +39,6 @@ class UnityVersion:
         rhs = (other.major, other.minor, other.patch, other._revision_sort_key)
         return lhs < rhs
 
-    @property
-    def is_released(self) -> bool:
-        """
-        Returns whether this version of Unity is tagged 'f1', 'p2', etc., indicating
-        that it's officially released (as opposed to 'a', 'b', 'rc' for alpha/beta/RC).
-        """
-        return self.revision.startswith('f') or self.revision.startswith('p')
-    
     @classmethod
     def parse(cls, s: str) -> 'UnityVersion':
         pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc|f|p)\d+)$')
@@ -83,7 +74,7 @@ class UnityInstall:
     Represents a single installation of the Unity Editor that's available on this
     machine.
 
-    `path` is the exact install path reported by Unity Hub, e.g.:
+    `path` is the exact install path reported by Unity CLI, e.g.:
 
     - '/Applications/Unity/Hub/Editor/$VERSION/Unity.app'
     - 'C:\\Program Files\\Unity\\Hub\\Editor\\%VERSION%\\Editor\\Unity.exe'
@@ -102,36 +93,25 @@ class UnityInstall:
             return os.path.join(self.path, 'Contents', 'MacOS', 'Unity')
         return self.path
     
-    def run_batchmode(self, project_path: str, *args: str, log_path='-', echo_log=True) -> int:
-        # If the caller doesn't care to have the log file saved anywhere, write it to a
-        # temp file that we can tail
-        log_file_is_temporary = False
-        if log_path == '-':
-            with tempfile.NamedTemporaryFile(suffix='.log', delete=False) as tmp:
-                log_path = tmp.name
-            log_file_is_temporary = True
-        else:
-            # If we have a caller-specified log file path, make sure it exists so we
-            # can open it for read before we've launched Unity
-            if not os.path.isfile(log_path):
-                os.makedirs(os.path.dirname(log_path), exist_ok=True)
-                with open(log_path, 'w') as fp:
-                    pass
+    def run_batchmode(self, project_path: str, *args: str, log_path: str) -> int:
+        # Create the log file before the tail thread opens it.
+        if not os.path.isfile(log_path):
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            with open(log_path, 'w'):
+                pass
 
         def _read(line: str):
-            # If the caller wants us to echo, write each line to Python stdout
-            if echo_log:
-                max_retries = 10
-                delay = 0.01
-                for attempt in range(max_retries):
-                    try:
-                        print(line)
-                        break
-                    except BlockingIOError:
-                        if attempt >= max_retries:
-                            raise
-                        time.sleep(delay)
-                        delay *= 2
+            max_retries = 10
+            delay = 0.01
+            for attempt in range(max_retries):
+                try:
+                    print(line)
+                    break
+                except BlockingIOError:
+                    if attempt >= max_retries:
+                        raise
+                    time.sleep(delay)
+                    delay *= 2
 
         # Prepare a separate thread to tail output from the Unity log file, passing
         # each line to the _read callback - trying to pipe output via subprocess.Popen
@@ -181,25 +161,6 @@ class UnityInstall:
             # Stop the tail thread if we throw an error, get a SIGINT, etc
             stop_event.set()
             raise
-        finally:
-            if log_file_is_temporary:
-                os.remove(log_path)
-
-    @classmethod
-    def parse(cls, line: str) -> Optional['UnityInstall']:
-        """Parses a line of output from Unity Hub's 'editors --installed' command."""
-        pattern = re.compile(r'^(\S+)\s+\(([^)]+)\),? installed at (.+)$')
-        match = pattern.match(line)
-        if match:
-            path = match.group(3)
-            if re.match(r'^[a-zA-Z]:\\', path):
-                path = path.replace('\\', os.sep)
-            return UnityInstall(
-                version=UnityVersion.parse(match.group(1)),
-                architecture=match.group(2),
-                path=path,
-            )
-        return None
 
 
 def resolve_unity_install(installs: List[UnityInstall], version_prefix: str) -> Optional[UnityInstall]:
