@@ -15,6 +15,7 @@ import shutil
 import argparse
 import tempfile
 import subprocess
+from pathlib import Path
 from typing import List, Tuple, Set
 
 import git
@@ -22,6 +23,7 @@ import git
 import ios_xcframework
 from common.log import init_logger, get_default_logger
 from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH, AndroidDependencyPin, read_android_dependency_pin, write_android_dependency_pin, ANDROID_DEPENDENCY_VERSION_RELPATH
+from generate_flags_metadata import generate_metadata
 from common.commit import CommitInfo
 from common.github import resolve_latest_release_version, get_file_contents, get_releases_between
 
@@ -624,6 +626,9 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     log.info(f'Updating version to {new_version} in: {dev_package_json_path}')
     modify_package_json(dev_package_json_path, new_version)
     dev_repo.git.add(dev_package_json_path)
+    # Keep the Flags wire version identical to the packaged release, including suffixes.
+    flags_metadata_path = generate_metadata(Path(dev_package_json_path).parent)
+    dev_repo.git.add(str(flags_metadata_path))
 
     # Update the AssemblyVersion attribute in AssemblyInfo.cs
     log.info(f'Updating AssemblyVersion to {new_version} in: {dev_assemblyinfo_cs_path}')

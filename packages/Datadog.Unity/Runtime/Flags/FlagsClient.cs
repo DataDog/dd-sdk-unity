@@ -124,6 +124,8 @@ namespace Datadog.Unity.Flags
                     "Provide a stable, unique targeting key per user (e.g. user ID).");
             }
 
+            // A failed or unsupported response must not retain another subject's assignments.
+            _repository.PrepareContext(context);
             TransitionState(FlagsClientState.Reconciling);
 
             _fetcher.Fetch(context, flags =>
