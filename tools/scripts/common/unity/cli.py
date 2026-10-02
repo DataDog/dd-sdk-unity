@@ -7,7 +7,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import json
 import shutil
-from typing import List, Union
+from typing import List, Optional, Union
 
 from common.log import get_default_logger
 from common.shell import run_cmd, run_cmd_streaming
@@ -119,6 +119,7 @@ class UnityCli(object):
         target: str,
         execute_method: str,
         output_path: str,
+        log_path: Optional[str] = None,
     ) -> int:
         return run_cmd_streaming(
             *self._command('human'), 'build', project_path,
@@ -126,6 +127,7 @@ class UnityCli(object):
             '--target', target,
             '--execute-method', execute_method,
             '--output-path', output_path,
+            *(['--log-file', log_path] if log_path else []),
             # Build scripts temporarily modify project settings before invoking Unity.
             '--allow-dirty-build',
         )

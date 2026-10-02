@@ -4,10 +4,7 @@
 //
 // Batch-mode iOS build entry point for tools/scripts/verify_ios_build.py. Lives in a
 // dev-only local package (not referenced by the published com.datadoghq.unity package)
-// so it never ships to consumers. Deliberately NOT wrapped in a UNITY_IOS platform guard:
-// that symbol is only defined once the Editor's active build target is already iOS, and
-// this entry point is what switches the active target via -executeMethod, so guarding it
-// would make Unity fail to resolve the method before the target switch happens.
+// so it never ships to consumers. Unity CLI selects the iOS target before invoking it.
 using System;
 using System.IO;
 using System.Linq;
@@ -23,28 +20,17 @@ namespace Datadog.Unity.BuildVerification
     /// </summary>
     public class IosBuildCommands
     {
-        private const string DefaultOutputDirectory = "Build/iOS";
-
         public static void BuildIOS()
         {
             string[] args = Environment.GetCommandLineArgs();
-            string outputDirectory = DefaultOutputDirectory;
-            for (int i = 0; i < args.Length; ++i)
+            int outputIndex = Array.IndexOf(args, "-buildOutput");
+            if (outputIndex < 0 || outputIndex + 1 >= args.Length)
             {
-                if (args[i] == "-iosBuildOutput" && i + 1 < args.Length)
-                {
-                    outputDirectory = args[i + 1];
-                }
-            }
-
-            bool switched = EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
-            Debug.Log($"DatadogIosBuild: SwitchActiveBuildTarget(iOS) returned {switched}");
-            if (!switched)
-            {
-                Debug.LogError("DatadogIosBuild: Failed to switch active build target to iOS.");
+                Debug.LogError("DatadogIosBuild: No build output path specified.");
                 EditorApplication.Exit(1);
                 return;
             }
+            string outputDirectory = args[outputIndex + 1];
 
             string[] scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
