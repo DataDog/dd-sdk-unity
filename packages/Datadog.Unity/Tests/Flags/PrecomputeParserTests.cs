@@ -29,7 +29,7 @@ namespace Datadog.Unity.Flags.Tests
                 }
             }";
 
-            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json).Flags;
 
             Assert.AreEqual(1, flags.Count);
             Assert.IsTrue(flags.ContainsKey("enable-feature"));
@@ -87,7 +87,7 @@ namespace Datadog.Unity.Flags.Tests
                 }
             }";
 
-            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json).Flags;
 
             Assert.AreEqual(4, flags.Count);
 
@@ -105,24 +105,22 @@ namespace Datadog.Unity.Flags.Tests
         public void ParsesEmptyFlagsResponse()
         {
             var json = @"{""data"":{""attributes"":{""flags"":{}}}}";
-            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json).Flags;
             Assert.AreEqual(0, flags.Count);
         }
 
         [Test]
-        public void ParsesInvalidJsonReturnsEmptyDict()
+        public void ParsesInvalidJsonReturnsFailure()
         {
             var flags = PrecomputeAssignmentsFetcher.ParseResponse("not json");
-            Assert.IsNotNull(flags);
-            Assert.AreEqual(0, flags.Count);
+            Assert.IsNull(flags);
         }
 
         [Test]
-        public void ParsesNullJsonReturnsEmptyDict()
+        public void ParsesNullJsonReturnsFailure()
         {
             var flags = PrecomputeAssignmentsFetcher.ParseResponse(null);
-            Assert.IsNotNull(flags);
-            Assert.AreEqual(0, flags.Count);
+            Assert.IsNull(flags);
         }
     }
 }
