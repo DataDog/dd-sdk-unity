@@ -93,6 +93,10 @@ def test_resolve_unity_install():
 
 def test_match_unity_version():
     versions = [UnityVersion.parse(s) for s in [
+        '2022.3.0f1',
+        '2022.3.0f2',
+        '6000.0.62f1',
+        '6000.0.62f2',
         '2022.3.55f1',
         '2022.3.11rc1',
         '2022.2.0f1',
@@ -106,7 +110,15 @@ def test_match_unity_version():
         ['2022.3.11', '2022.3.11rc1'],
         ['6000', '6000.1.7p2'],
         ['6000.1.7f1', '6000.1.7f1'],
+        ['6000.0', '6000.0.62f2'],
+        ['6000.0.62', '6000.0.62f2'],
+        ['6000.0.62f1', '6000.0.62f1'],
+        ['2022.3.0', '2022.3.0f2'],
+        ['2022.3.0f1', '2022.3.0f1'],
     ]:
         got = match_unity_version(versions, version_prefix)
         assert got
         assert got == want
+
+    assert match_unity_version(versions, '6000.0.0') is None
+    assert match_unity_version(versions, '2022.3.0p1') is None

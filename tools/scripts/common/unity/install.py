@@ -271,9 +271,9 @@ def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Op
     required_revision: Optional[str] = match.group(4) or None
 
     candidates = [x for x in versions if x.major == required_major]
-    if required_minor:
+    if required_minor is not None:
         candidates = [x for x in candidates if x.minor == required_minor]
-        if required_patch:
+        if required_patch is not None:
             candidates = [x for x in candidates if x.patch == required_patch]
             if required_revision:
                 candidates = [x for x in candidates if x.revision == required_revision]
