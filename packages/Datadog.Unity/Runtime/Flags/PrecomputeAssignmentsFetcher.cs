@@ -237,10 +237,10 @@ namespace Datadog.Unity.Flags
         private class AssignmentsSourceDto
         {
             [JsonProperty("sdk_name")]
-            public string SdkName { get; set; } = FlagsSdkMetadata.Name;
+            public string SdkName { get; set; } = "dd-sdk-unity";
 
             [JsonProperty("sdk_version")]
-            public string SdkVersion { get; set; } = FlagsSdkMetadata.Version;
+            public string SdkVersion { get; set; } = DatadogSdk.SdkVersion;
         }
 
         private class AssignmentsEnvDto

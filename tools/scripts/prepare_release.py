@@ -20,8 +20,6 @@ from typing import List, Tuple, Set
 import git
 
 import ios_xcframework
-from generate_flags_metadata import generate_metadata
-from pathlib import Path
 from common.log import init_logger, get_default_logger
 from common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH, AndroidDependencyPin, read_android_dependency_pin, write_android_dependency_pin, ANDROID_DEPENDENCY_VERSION_RELPATH
 from common.commit import CommitInfo
@@ -626,8 +624,6 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     log.info(f'Updating version to {new_version} in: {dev_package_json_path}')
     modify_package_json(dev_package_json_path, new_version)
     dev_repo.git.add(dev_package_json_path)
-    generated_metadata = generate_metadata(Path(dev_package_json_path).parent)
-    dev_repo.git.add(str(generated_metadata))
 
     # Update the AssemblyVersion attribute in AssemblyInfo.cs
     log.info(f'Updating AssemblyVersion to {new_version} in: {dev_assemblyinfo_cs_path}')

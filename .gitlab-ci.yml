@@ -58,8 +58,6 @@ unit-test:
         PROJECT_PATH: 'test_scaffolds/6000 LTS'
   script:
     - !reference [.shared, init-scripts]
-    - ./run-script generate_flags_metadata --check
-    - tools/scripts/venv/bin/python -m pytest tools/scripts/generate_flags_metadata_test.py
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
     - ./run-script unit_test --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"

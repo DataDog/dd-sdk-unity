@@ -23,7 +23,7 @@ namespace Datadog.Unity.Flags.Tests
             var attributes = JObject.Parse(fetcher.BuildRequestBody(context))["data"]["attributes"];
 
             Assert.AreEqual("dd-sdk-unity", attributes["source"]["sdk_name"].Value<string>());
-            Assert.AreEqual(FlagsSdkMetadata.Version, attributes["source"]["sdk_version"].Value<string>());
+            Assert.AreEqual(DatadogSdk.SdkVersion, attributes["source"]["sdk_version"].Value<string>());
             Assert.AreEqual("prod", attributes["env"]["dd_env"].Value<string>());
             Assert.AreEqual("athlete-123", attributes["subject"]["targeting_key"].Value<string>());
             Assert.AreEqual("99.99.99-attribute", attributes["subject"]["targeting_attributes"]["sdk_version"].Value<string>());
