@@ -109,7 +109,6 @@ namespace Datadog.Unity.Flags
                     Attributes = new AssignmentsRequestAttributesDto
                     {
                         Env = new AssignmentsEnvDto { Name = _env, DdEnv = _env },
-                        Source = new AssignmentsSourceDto(),
                         SupportedCapabilities = new AssignmentsCapabilitiesDto(),
                         Subject = new AssignmentsSubjectDto
                         {
@@ -230,9 +229,6 @@ namespace Datadog.Unity.Flags
 
         private class AssignmentsRequestAttributesDto
         {
-            [JsonProperty("source")]
-            public AssignmentsSourceDto Source { get; set; }
-
             [JsonProperty("supported_capabilities")]
             public AssignmentsCapabilitiesDto SupportedCapabilities { get; set; }
 
@@ -241,15 +237,6 @@ namespace Datadog.Unity.Flags
 
             [JsonProperty("subject")]
             public AssignmentsSubjectDto Subject { get; set; }
-        }
-
-        private class AssignmentsSourceDto
-        {
-            [JsonProperty("sdk_name")]
-            public string SdkName { get; set; } = FlagsSdkMetadata.Name;
-
-            [JsonProperty("sdk_version")]
-            public string SdkVersion { get; set; } = FlagsSdkMetadata.Version;
         }
 
         private class AssignmentsCapabilitiesDto

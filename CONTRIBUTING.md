@@ -187,11 +187,6 @@ To install the latest release of a specific editor version, along with all requi
 
 ### Unit tests
 
-Flags request identity comes from `packages/Datadog.Unity/package.json`.
-Release preparation generates `FlagsSdkMetadata.cs` from that version, including prerelease suffixes.
-After changing the package version locally, run `./run-script generate_flags_metadata`.
-CI checks this file with `./run-script generate_flags_metadata --check`.
-
 The [`unit_test`][unit-test] script runs all tests except for those in the `Integration` namespace.
 
 ```bash

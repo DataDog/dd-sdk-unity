@@ -198,13 +198,11 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
-        public void ReportsGeneratedImplementationIdentityAndCapabilities()
+        public void AdvertisesAssignmentEncodingCapability()
         {
             var fetcher = new PrecomputeAssignmentsFetcher("https://example.invalid", "token", null, "prod", null);
             var request = JObject.Parse(fetcher.BuildRequestBody(new FlagsEvaluationContext("athlete")));
             var attributes = request["data"]["attributes"];
-            Assert.AreEqual("dd-sdk-unity", attributes["source"]["sdk_name"].Value<string>());
-            Assert.AreEqual(FlagsSdkMetadata.Version, attributes["source"]["sdk_version"].Value<string>());
             Assert.AreEqual("flag-key-sha256-v1", attributes["supported_capabilities"]["assignment_encodings"][0].Value<string>());
             Assert.AreEqual("athlete", attributes["subject"]["targeting_key"].Value<string>());
         }
