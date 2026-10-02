@@ -13,7 +13,7 @@ import shutil
 
 import ios_xcframework
 from common.log import init_logger
-from common.unity import UnityHub, UnityLicenseStatus, resolve_unity_install
+from common.unity import UnityHub, resolve_unity_install
 from common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
 from common.apple import run_xcodebuild
 
@@ -56,14 +56,11 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
         # platforms it generates the final packaged build
         build_command = 'BuildCommands.BuildHeadless'
         build_command_args = ['-buildPlatform', platform]
-        result = unity_install.run_batchmode(project_root, '-quit', '-executeMethod', build_command, *build_command_args)
-        if result.exitcode == 0:
+        exitcode = unity_install.run_batchmode(project_root, '-quit', '-executeMethod', build_command, *build_command_args)
+        if exitcode == 0:
             log.info('Unity build finished successfully.')
-        elif result.license_status != UnityLicenseStatus.VALID:
-            log.error('Unity failed to acquire a license.')
-            return 86
         else:
-            raise RuntimeError(f'Unity build exited with status code {result.exitcode}')
+            raise RuntimeError(f'Unity build exited with status code {exitcode}')
 
     # On Android, Unity should have written an .apk, in which case we're done
     if platform == 'android':
