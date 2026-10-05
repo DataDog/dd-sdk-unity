@@ -219,19 +219,24 @@ The [`integration_test`][integration-test] script runs all tests in the `Integra
 ./run-script integration_test --platform ios --target device
 ```
 
-As with the unit test script, these commands launch the Unity Editor in headless mode to invoke the tests, but the integration test script also performs some additional setup:
+As with the unit test script, these commands launch the Unity Editor in headless mode. Selected integration-test fixtures use `IPrebuildSetup` to prepare the mock server and SDK settings, so the same setup also works from the Editor:
 
-- It launches a mock server that records all incoming HTTP requests from the SDK and allows the test to inspect and validate the set of requests received.
-- It configures the Unity project to use that mock server in lieu of the Datadog intake endpoint, while also ensuring that the project's Datadog settings are configured with the expected feature set.
-- It ensures that the tests run on supported platforms (Android or iOS), thereby exercising the client functionality of the underlying Android and iOS SDKs.
+- The hook starts a mock server on the host's reachable LAN address, port 5100, or reuses an existing mock server on that address. Initial setup requires Python 3, package-download access, and GitHub SSH access for the event schemas.
+- C# saves the project's Datadog settings and configures the `DatadogConfigurationOptions` asset directly before the player is built. `IPostBuildCleanup` restores the exact original asset after the build; the built player retains the test configuration. Python manages the mock server, and the CLI can restore the asset backup if Unity exits before cleanup.
+- Editor completion and error callbacks stop only the server started by that run. The CLI retains emulator provisioning, platform selection, and JUnit conversion, plus fallback cleanup if Unity exits early.
+
+New integration-test fixtures should inherit `IntegrationTestBase`, which declares the shared setup and cleanup attributes. Editor-only setup code is guarded inside `IntegrationTestEnvironment`; fixtures need no preprocessor directives or hook attributes.
 
 Integration test results are written in JUnit format to `integration-test-<platform>.xml`. If all tests pass, the script will exit with a status code of 0.
 
 #### Debugging integration tests
 
-Running integration tests manually is not trivial, given the extra setup steps that are handled by the script. If you want to manually recreate the integration test environment:
+To run integration tests from the Editor:
 
-- Start a mock server with `./run-script init_mock_server --start --port 5000`
-- Configure the Unity project's Datadog Settings with a **Custom Endpoint** URL
-- Ensure that the remaining Datadog Settings match the values specified through `DatadogRuntimeConfig` in [`integration_test.py`][integration-test]
-- If desired, start a simulator with `./run-script start_simulator --platform android`
+1. Open `samples/Datadog Sample` in Unity 2022.3 with Test Framework 1.4.6.
+2. Select Android in **File > Build Settings**, start an emulator or connect a device, and select it as the run device. The Editor hooks do not provision devices. You can start an emulator with `./run-script start_simulator --platform android`.
+3. Open **Window > General > Test Runner**, choose the **Player** tab, select the integration tests, and click **Run Selected**. Confirm the panel says **Running on Android**. Editor Play Mode uses the no-op platform and does not validate native SDK telemetry.
+
+Server and SDK settings are prepared automatically; no manual endpoint edits or additional environment variables are needed. Keep the host LAN address reachable from the device. iOS player runs use the same hooks, with the usual Xcode/device or simulator setup.
+
+Test Framework 1.4.6 does not expose a reliable public cancellation callback. After cancelling or abandoning a run, use **Datadog > Tests > Stop Integration Test Environment**. Cleanup also runs when the Editor quits; reopening the project or starting another integration run recovers saved state after a crash. Recovery state and server logs are in `Library/DatadogIntegrationTests`. Do not edit Datadog settings while a test build is in progress.

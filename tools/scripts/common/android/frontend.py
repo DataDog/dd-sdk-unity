@@ -65,7 +65,7 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, No
     adb = Adb.require()
     log.info(f'Using adb at: {adb.path}')
     emulator = AndroidEmulator.require()
-    log.info(f'Using emulator at: {adb.path}')
+    log.info(f'Using emulator at: {emulator.path}')
 
     # Use sdkmanager to ensure that we have the required system image installed
     installed_packages = sdkmanager.list_installed_packages()

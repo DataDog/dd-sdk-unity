@@ -30,6 +30,17 @@ from urllib.parse import urlparse
 app = Flask(__name__)
 CORS(app)
 
+
+@app.route('/__datadog_test_health')
+def test_health():
+    # Keep readiness probes out of the request history inspected by tests.
+    return {
+        'service': 'datadog-unity-mock-server',
+        'version': 1,
+        'pid': os.getpid(),
+        'owner': app.config.get('TEST_OWNER', ''),
+    }
+
 configured_responses = {}  # path -> { status, body, content_type }
 
 @dataclass()
@@ -321,11 +332,12 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
         print(f'⚠️ Could not find endpoint with hash {endpoint_hash}')
         return redirect(url_for('inspect'))
 
-def run(preferred_address: str, port: int):
+def run(preferred_address: str, port: int, owned: bool = False):
     if not preferred_address:
         preferred_address = get_best_server_address().ip
 
-    app.run(debug=True, host=preferred_address, port=port)
+    # Owned test servers must have one stable PID and no interactive debugger.
+    app.run(debug=not owned, use_reloader=not owned, host=preferred_address, port=port)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -333,6 +345,7 @@ if __name__ == '__main__':
     parser.add_argument("--update-schemas", action='store_true')
     parser.add_argument("--addr", type=str)
     parser.add_argument("--port", type=int, default=5000)
+    parser.add_argument("--test-owner", default='')
 
     args = parser.parse_args()
     if args.update_schemas:
@@ -350,4 +363,5 @@ if __name__ == '__main__':
     if args.prefer_localhost:
         preferred_address = '127.0.0.1'
 
-    run(preferred_address, args.port)
+    app.config['TEST_OWNER'] = args.test_owner
+    run(preferred_address, args.port, owned=bool(args.test_owner))

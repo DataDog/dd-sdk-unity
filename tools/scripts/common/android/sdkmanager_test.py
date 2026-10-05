@@ -51,3 +51,45 @@ def test_parse_sdkmanager_list_output():
         AndroidPackage(path='platforms;android-36', version='2', description='Android SDK Platform 36'),
         AndroidPackage(path='system-images;android-36;google_apis_playstore;arm64-v8a', version='6', description='Google Play ARM 64 v8a System Image'),
     ]
+
+
+@pytest.mark.parametrize('ending', [
+    '',
+    '\nAvailable packages:\n  platforms/android-36  2.0.0  Android SDK Platform 36',
+    '\nAvailable updates:\n  emulator  37.2.10 -> 37.2.12',
+])
+def test_parse_aligned_sdkmanager_output_without_blank_separator(ending):
+    output = '''WARNING: The SDK Manager CLI tool (sdkmanager) is deprecated. Android CLI will be used.
+Installed packages:
+  emulator                                               37.2.10   ->  37.2.12  Android Emulator
+  system-images/android-33/google_apis/arm64-v8a           9.0.0                Google APIs ARM 64 v8a System Image'''
+
+    assert _parse_sdkmanager_list_output(output + ending) == [
+        AndroidPackage(path='emulator', version='37.2.10', description='Android Emulator'),
+        AndroidPackage(path='system-images;android-33;google_apis;arm64-v8a', version='9.0.0',
+                       description='Google APIs ARM 64 v8a System Image'),
+    ]
+
+
+def test_parse_pipe_delimited_output_without_blank_separator():
+    output = '''Installed packages:
+  Path | Version | Description | Location
+  ---- | ------- | ----------- | --------
+  emulator | 35.5.10 | Android Emulator | emulator
+Available Packages:
+  platforms;android-36 | 2 | Android SDK Platform 36'''
+    assert _parse_sdkmanager_list_output(output) == [
+        AndroidPackage(path='emulator', version='35.5.10', description='Android Emulator'),
+    ]
+
+
+def test_parse_sdkmanager_output_with_no_installed_packages():
+    output = '''Installed packages:
+Available packages:
+  platforms/android-33  3.0.0  Android SDK Platform 33'''
+    assert _parse_sdkmanager_list_output(output) == []
+
+
+def test_reject_unrecognized_sdkmanager_output():
+    with pytest.raises(RuntimeError, match='did not appear'):
+        _parse_sdkmanager_list_output('Unable to load packages')

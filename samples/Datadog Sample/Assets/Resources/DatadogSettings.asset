@@ -18,7 +18,7 @@ MonoBehaviour:
   PerformNativeStackMapping: 1
   ClientToken: 
   Site: 0
-  Env: 
+  Env: staging
   ServiceName: 
   CustomEndpoint: 
   BatchSize: 0

@@ -9,7 +9,6 @@ import os
 from dataclasses import dataclass
 from contextlib import contextmanager
 from typing import Optional
-from yaml import load, dump, Loader, Dumper
 
 __dd_settings_asset_filename__ = 'DatadogSettings.asset'
 __dd_settings_asset_relpath__ = os.path.join('Assets', 'Resources', __dd_settings_asset_filename__)

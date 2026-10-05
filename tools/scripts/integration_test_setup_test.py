@@ -1,0 +1,177 @@
+"""
+Unless explicitly stated otherwise, all files in this repository are licensed under the
+Apache License Version 2.0. This product includes software developed at Datadog
+(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+"""
+import json
+from pathlib import Path
+import socket
+import subprocess
+import sys
+import time
+
+import pytest
+
+import integration_test_setup as setup
+
+
+# Exercise actual process/HTTP lifetimes without installing Flask or cloning schemas
+# in the Python unit suite. The real Flask endpoint is covered by the smoke run.
+SERVER = '''
+import argparse, json, os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+parser = argparse.ArgumentParser()
+parser.add_argument('--addr')
+parser.add_argument('--port', type=int)
+parser.add_argument('--test-owner', default='')
+args = parser.parse_args()
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(json.dumps(dict(service='datadog-unity-mock-server',
+            version=1, pid=os.getpid(), owner=args.test_owner)).encode())
+    def log_message(self, *args): pass
+HTTPServer((args.addr, args.port), Handler).serve_forever()
+'''
+
+
+@pytest.fixture
+def environment(tmp_path, monkeypatch):
+    project = tmp_path / 'Sample Project'
+    server = tmp_path / 'server'
+    server.mkdir()
+    (server / 'app.py').write_text(SERVER)
+    monkeypatch.setattr(setup, '__mock_server_root__', str(server))
+    monkeypatch.setattr(setup, 'prepare_mock_server_venv', lambda: sys.executable)
+    return setup.IntegrationTestEnvironment(project)
+
+
+@pytest.fixture
+def port():
+    with socket.socket() as sock:
+        sock.bind(('127.0.0.1', 0))
+        return sock.getsockname()[1]
+
+
+def wait_for_server(endpoint):
+    deadline = time.monotonic() + 5
+    while setup.server_health(endpoint) is None:
+        assert time.monotonic() < deadline, 'test server did not start'
+        time.sleep(0.05)
+
+
+def test_unused_local_port_does_not_require_http_response(port, monkeypatch):
+    def unexpected_http(*args):
+        pytest.fail('An unused local port must not require an HTTP connection')
+
+    monkeypatch.setattr(setup, 'build_opener', unexpected_http)
+    assert setup.server_health(f'http://127.0.0.1:{port}') is None
+
+
+def test_owned_server_stays_ready_until_completion(environment, port):
+    endpoint = f'http://127.0.0.1:{port}'
+    try:
+        environment.prepare('127.0.0.1', port)
+        state = json.loads(environment.state_path.read_text())
+        assert state['endpoint'] == endpoint
+        assert setup.server_health(endpoint)['owner'] == state['owner']
+    finally:
+        # Recreate the helper as Unity does across callbacks and domain reloads.
+        setup.IntegrationTestEnvironment(environment.project).finish()
+    assert setup.server_health(endpoint) is None
+    assert not environment.state_path.exists()
+    environment.finish()
+
+
+@pytest.mark.parametrize('owner', ['', 'another-test-run'])
+def test_external_server_is_never_stopped(environment, port, owner):
+    endpoint = f'http://127.0.0.1:{port}'
+    process = subprocess.Popen([sys.executable, 'app.py', '--addr', '127.0.0.1', '--port', str(port),
+                                '--test-owner', owner], cwd=setup.__mock_server_root__)
+    try:
+        wait_for_server(endpoint)
+        if owner:
+            with pytest.raises(RuntimeError, match='another test run'):
+                environment.prepare('127.0.0.1', port)
+        else:
+            environment.prepare('127.0.0.1', port)
+        environment.finish()
+        assert process.poll() is None
+        assert setup.server_health(endpoint)['pid'] == process.pid
+    finally:
+        environment.finish()
+        process.terminate()
+        process.wait(timeout=5)
+
+
+def test_dependency_failure_cleans_up_state(environment, port, monkeypatch):
+    def fail_bootstrap():
+        raise RuntimeError('dependency setup failed')
+
+    monkeypatch.setattr(setup, 'prepare_mock_server_venv', fail_bootstrap)
+    with pytest.raises(RuntimeError, match='dependency setup failed'):
+        environment.prepare('127.0.0.1', port)
+    assert setup.server_health(f'http://127.0.0.1:{port}') is None
+    assert not environment.state_path.exists()
+
+
+def test_unrecognized_server_is_rejected(environment, port):
+    (Path(setup.__mock_server_root__) / 'app.py').write_text(SERVER.replace('version=1', 'version=2'))
+    process = subprocess.Popen([sys.executable, 'app.py', '--addr', '127.0.0.1', '--port', str(port)],
+                               cwd=setup.__mock_server_root__)
+    try:
+        with pytest.raises(RuntimeError, match='unrecognized server'):
+            wait_for_server(f'http://127.0.0.1:{port}')
+        with pytest.raises(RuntimeError, match='unrecognized server'):
+            environment.prepare('127.0.0.1', port)
+        assert process.poll() is None
+        assert not environment.state_path.exists()
+    finally:
+        process.terminate()
+        process.wait(timeout=5)
+
+
+def test_server_startup_failure_cleans_up_state(environment, port):
+    (Path(setup.__mock_server_root__) / 'app.py').write_text('raise SystemExit(1)')
+    with pytest.raises(RuntimeError, match='Mock server exited'):
+        environment.prepare('127.0.0.1', port)
+    assert not environment.state_path.exists()
+
+
+def test_next_setup_replaces_owned_server_from_interrupted_run(environment, port):
+    try:
+        environment.prepare('127.0.0.1', port)
+        first_owner = setup.server_health(f'http://127.0.0.1:{port}')['owner']
+        # No post-build callback: simulate a cancelled build followed by another run.
+        environment.prepare('127.0.0.1', port)
+        assert setup.server_health(f'http://127.0.0.1:{port}')['owner'] != first_owner
+    finally:
+        environment.finish()
+
+
+def test_server_lifecycle_leaves_settings_and_editor_backup_untouched(environment, port):
+    settings = environment.project / 'Assets/Resources/DatadogSettings.asset'
+    backup = environment.directory / 'DatadogSettings.original'
+    settings.parent.mkdir(parents=True)
+    backup.parent.mkdir(parents=True)
+    settings.write_bytes(b'Settings belong to the Editor, not the server helper.')
+    backup.write_bytes(b'Original asset snapshot created by C#.')
+    try:
+        environment.prepare('127.0.0.1', port)
+    finally:
+        environment.finish()
+    assert settings.read_bytes() == b'Settings belong to the Editor, not the server helper.'
+    assert backup.read_bytes() == b'Original asset snapshot created by C#.'
+
+
+def test_cleanup_does_not_signal_pid_when_server_owner_changed(environment, port):
+    environment.prepare('127.0.0.1', port)
+    state = json.loads(environment.state_path.read_text())
+    try:
+        environment.state_path.write_text(json.dumps({**state, 'owner': 'stale-owner'}))
+        environment.finish()
+        assert setup.server_health(f'http://127.0.0.1:{port}')['owner'] == state['owner']
+    finally:
+        environment.state_path.write_text(json.dumps(state))
+        environment.finish()

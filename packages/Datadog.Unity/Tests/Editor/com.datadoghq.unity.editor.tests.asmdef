@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "com.datadog.unity",
+        "com.datadoghq.unity.tests",
         "com.datadoghq.unity.Editor"
     ],
     "includePlatforms": [
