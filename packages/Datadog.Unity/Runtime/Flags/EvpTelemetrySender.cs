@@ -9,6 +9,7 @@ using Datadog.Unity.Core;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Flags
 {
@@ -151,53 +152,67 @@ namespace Datadog.Unity.Flags
             return builder.ToString();
         }
 
+        // Json.NET reads these properties through reflection when serializing a batch.
         private class BatchPayload
         {
+            [Preserve]
             [JsonProperty("context")]
             public BatchContext Context { get; set; }
 
+            [Preserve]
             [JsonProperty("flagEvaluations")]
             public List<FlagEvaluationEvent> FlagEvaluations { get; set; }
         }
 
         private class BatchContext
         {
+            [Preserve]
             [JsonProperty("device")]
             public DeviceInfo Device { get; set; }
 
+            [Preserve]
             [JsonProperty("os")]
             public OsInfo Os { get; set; }
 
+            [Preserve]
             [JsonProperty("service")]
             public string Service { get; set; }
 
+            [Preserve]
             [JsonProperty("version")]
             public string Version { get; set; }
 
+            [Preserve]
             [JsonProperty("env")]
             public string Env { get; set; }
         }
 
         private class DeviceInfo
         {
+            [Preserve]
             [JsonProperty("name")]
             public string Name { get; set; }
 
+            [Preserve]
             [JsonProperty("type")]
             public string Type { get; set; }
 
+            [Preserve]
             [JsonProperty("brand")]
             public string Brand { get; set; }
 
+            [Preserve]
             [JsonProperty("model")]
             public string Model { get; set; }
         }
 
         private class OsInfo
         {
+            [Preserve]
             [JsonProperty("name")]
             public string Name { get; set; }
 
+            [Preserve]
             [JsonProperty("version")]
             public string Version { get; set; }
         }

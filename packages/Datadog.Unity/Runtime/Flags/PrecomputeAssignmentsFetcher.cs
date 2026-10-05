@@ -9,6 +9,7 @@ using Datadog.Unity.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine.Networking;
+using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Flags
 {
@@ -207,83 +208,106 @@ namespace Datadog.Unity.Flags
             return flags;
         }
 
+        // Json.NET uses these accessors through reflection; keep them in IL2CPP players.
         private class AssignmentsRequestDto
         {
+            [Preserve]
             [JsonProperty("data")]
             public AssignmentsRequestDataDto Data { get; set; }
         }
 
         private class AssignmentsRequestDataDto
         {
+            [Preserve]
             [JsonProperty("type")]
             public string Type { get; set; } = "precompute-assignments-request";
 
+            [Preserve]
             [JsonProperty("attributes")]
             public AssignmentsRequestAttributesDto Attributes { get; set; }
         }
 
         private class AssignmentsRequestAttributesDto
         {
+            [Preserve]
             [JsonProperty("env")]
             public AssignmentsEnvDto Env { get; set; }
 
+            [Preserve]
             [JsonProperty("subject")]
             public AssignmentsSubjectDto Subject { get; set; }
         }
 
         private class AssignmentsEnvDto
         {
+            [Preserve]
             [JsonProperty("name")]
             public string Name { get; set; }
 
+            [Preserve]
             [JsonProperty("dd_env")]
             public string DdEnv { get; set; }
         }
 
         private class AssignmentsSubjectDto
         {
+            [Preserve]
             [JsonProperty("targeting_key")]
             public string TargetingKey { get; set; }
 
+            [Preserve]
             [JsonProperty("targeting_attributes", NullValueHandling = NullValueHandling.Ignore)]
             public IReadOnlyDictionary<string, string> TargetingAttributes { get; set; }
         }
 
+        [Preserve]
         private class AssignmentsResponseDto
         {
+            [Preserve]
             [JsonProperty("data")]
             public AssignmentsResponseDataDto Data { get; set; }
         }
 
+        [Preserve]
         private class AssignmentsResponseDataDto
         {
+            [Preserve]
             [JsonProperty("attributes")]
             public AssignmentsResponseAttributesDto Attributes { get; set; }
         }
 
+        [Preserve]
         private class AssignmentsResponseAttributesDto
         {
+            [Preserve]
             [JsonProperty("flags")]
             public Dictionary<string, FlagAssignmentDto> Flags { get; set; }
         }
 
+        [Preserve]
         private class FlagAssignmentDto
         {
+            [Preserve]
             [JsonProperty("variationType")]
             public string VariationType { get; set; }
 
+            [Preserve]
             [JsonProperty("variationValue")]
             public JToken VariationValue { get; set; }
 
+            [Preserve]
             [JsonProperty("doLog")]
             public bool DoLog { get; set; }
 
+            [Preserve]
             [JsonProperty("allocationKey")]
             public string AllocationKey { get; set; }
 
+            [Preserve]
             [JsonProperty("variationKey")]
             public string VariationKey { get; set; }
 
+            [Preserve]
             [JsonProperty("reason")]
             public string Reason { get; set; }
 
