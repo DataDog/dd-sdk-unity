@@ -1,5 +1,6 @@
-include:
-  - 'https://gitlab-templates.ddbuild.io/slack-notifier/v3-sdm/template.yml'
+# RUM-5994: temporarily run only Android integration tests while validating CI.
+# include:
+#   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v3-sdm/template.yml'
 
 variables:
   UNITY_VERSION_PARTIAL: 2022.3
@@ -7,6 +8,7 @@ variables:
 
 stages:
   - unit-test
+  - integration-test
   - package
   - post
 
@@ -44,7 +46,7 @@ stages:
     - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
     - ls -la "$UNITY_SUPPORT_PATH"
 
-unit-test:
+.unit-test:
   stage: unit-test
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
@@ -74,7 +76,34 @@ unit-test:
       - 6
       - 7
 
-package-ios:
+integration-test-android:
+  stage: integration-test
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
+  tags:
+    - macos:tart
+  timeout: 1h
+  # Add 2021.3 and 6000.2 once their projects have the integration-test prerequisites.
+  variables:
+    UNITY_VERSION_PARTIAL: '2022.3'
+    PROJECT_PATH: 'samples/Datadog Sample'
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - !reference [.shared, configure-unity-licensing]
+    - export ANDROID_HOME="${ANDROID_HOME:-$HOME/android_sdk}"
+    - '"$ANDROID_HOME/emulator/emulator" -accel-check'
+    - ./run-script integration_test --platform android --headless --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: integration-test-android.xml
+    paths:
+      - integration-test-android*.log
+      - nunit-integration-test-android.xml
+      - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+
+.package-ios:
   stage: package
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
@@ -101,7 +130,7 @@ package-ios:
       - 6
       - 7
 
-package-android:
+.package-android:
   stage: package
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
@@ -125,7 +154,7 @@ package-android:
       - 6
       - 7
 
-notify-pipeline-succeeded:
+.notify-pipeline-succeeded:
   stage: post
   tags: [ "arch:amd64" ]
   image: "$BUILDENV_REGISTRY/images/docker:24.0.4-gbi-focal"

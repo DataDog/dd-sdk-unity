@@ -11,7 +11,7 @@ import platform
 import random
 import subprocess
 from dataclasses import dataclass
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from typing import Optional, Generator
 
 from common.log import get_default_logger
@@ -49,7 +49,7 @@ class AndroidDeviceSpec:
 
 
 @contextmanager
-def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, None]:
+def run_android_device(spec: AndroidDeviceSpec, *, log_path: str = None, headless: bool = False) -> Generator[AdbDevice, None, None]:
     log = get_default_logger()
     log.info('Preparing an emulated Android device...')
     log.info(f'- API Level: {spec.api_level}')
@@ -105,9 +105,21 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, No
         '-no-snapshot',
         '-wipe-data',
     ]
+    if headless:
+        emulator_args.append('-no-window')
+
+    with ExitStack() as stack:
+        output = stack.enter_context(open(log_path, 'w')) if log_path else subprocess.DEVNULL
+        if log_path:
+            log.info(f'Emulator output: {log_path}')
+        yield from _run_emulator(emulator_args, adb, device_name, output)
+
+
+def _run_emulator(emulator_args, adb: Adb, device_name: str, output) -> Generator[AdbDevice, None, None]:
+    log = get_default_logger()
     emulator_process = subprocess.Popen(
         emulator_args,
-        stdout=subprocess.DEVNULL,
+        stdout=output,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
     )

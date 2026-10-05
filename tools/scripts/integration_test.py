@@ -30,7 +30,7 @@ __default_test_project_unity_version__ = '2022'
 
 
 @contextmanager
-def _integration_test_env(project_path: str, platform: str, target: str):
+def _integration_test_env(project_path: str, platform: str, target: str, emulator_log_path: str, headless: bool):
     # Unity's selected-fixture hooks own the server and SDK settings. Retain a
     # fallback cleanup here in case the Editor exits before invoking its callbacks.
     try:
@@ -38,7 +38,7 @@ def _integration_test_env(project_path: str, platform: str, target: str):
             if target != 'simulator' or platform == 'ios':
                 yield
             else:
-                with run_default_simulator(platform):
+                with run_default_simulator(platform, log_path=emulator_log_path, headless=headless):
                     yield
     finally:
         try:
@@ -51,7 +51,7 @@ def _integration_test_env(project_path: str, platform: str, target: str):
         finally:
             IntegrationTestEnvironment(project_path).finish()
 
-def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):
+def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str, headless: bool = False):
     log = init_logger()
 
     # Check to see if we have the requisite Unity version installed
@@ -72,22 +72,25 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     junit_filename_noext, _ = os.path.splitext(junit_filename)
     nunit_abspath = os.path.join(artifact_dir, 'nunit-' + junit_filename)
     log_abspath = os.path.join(artifact_dir, junit_filename_noext + '.log')
+    emulator_log_abspath = os.path.join(artifact_dir, junit_filename_noext + '-emulator.log')
+    os.makedirs(artifact_dir, exist_ok=True)
 
 
-    for abspath in [junit_abspath, nunit_abspath, log_abspath]:
+    for abspath in [junit_abspath, nunit_abspath, log_abspath, emulator_log_abspath]:
         if os.path.isfile(abspath):
             log.info(f'Deleting old artifact: {abspath}')
             os.remove(abspath)
 
 
-    with _integration_test_env(project_path, platform, target):
+    with _integration_test_env(project_path, platform, target, emulator_log_abspath, headless):
         # Run our Unity project's integration tests in the editor
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
+        build_target = {'android': 'Android', 'ios': 'iOS'}[platform]
         args = [
             '-runTests',
-            '-buildTarget', platform,
+            '-buildTarget', build_target,
             '-testCategory', 'integration',
-            '-testPlatform', platform,
+            '-testPlatform', build_target,
             '-testResults', nunit_abspath,
         ]
         exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
@@ -105,7 +108,6 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
         # Convert the intermediate NUnit results file to JUnit format, and parse them
         transform_nunit_to_junit(nunit_abspath, junit_abspath)
         log.info(f'JUnit results written to: {junit_abspath}')
-        os.remove(nunit_abspath)
         test_results = JUnitXml.fromfile(junit_abspath)
 
         # Summarize JUnit results in the console
@@ -130,6 +132,9 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
                 log.error(f'❌ {case.name}')
             return 2
 
+        if num_passed == 0:
+            raise RuntimeError('Unity reported no passing integration tests; check test discovery and platform filters')
+
         log.info(f'✅ {num_passed} tests passed ({num_skipped} skipped).')
 
 
@@ -140,6 +145,7 @@ if __name__ == '__main__':
     parser.add_argument('--platform', choices=['ios', 'android'], required=True, help='The platform to build an app bundle for')
     parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', your must have a phone connected and ready for debugging.")
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
+    parser.add_argument('--headless', action='store_true', help='Run the Android emulator without a window')
     args = parser.parse_args()
 
-    sys.exit(integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern))
+    sys.exit(integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern, args.headless))
