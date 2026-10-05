@@ -1,4 +1,4 @@
-# RUM-5994: temporarily run only Android integration tests while validating CI.
+# RUM-5994: temporarily run only iOS simulator integration tests while validating CI.
 # include:
 #   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v3-sdm/template.yml'
 
@@ -76,7 +76,7 @@ stages:
       - 6
       - 7
 
-integration-test-android:
+integration-test-ios:
   stage: integration-test
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
@@ -90,20 +90,16 @@ integration-test-android:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
-    - export ANDROID_HOME="${ANDROID_HOME:-$HOME/android_sdk}"
-    # The image's standalone SDK does not include adb; Unity's SDK is separate.
-    - '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --install "platform-tools"'
-    - '"$ANDROID_HOME/platform-tools/adb" version'
-    - '"$ANDROID_HOME/emulator/emulator" -accel-check'
-    - ./run-script integration_test --platform android --headless --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+    - ./run-script ios_xcframework stage
+    - ./run-script integration_test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
   artifacts:
     when: always
     expire_in: "30 days"
     reports:
-      junit: integration-test-android.xml
+      junit: integration-test-ios.xml
     paths:
-      - integration-test-android*.log
-      - nunit-integration-test-android.xml
+      - integration-test-ios*.log
+      - nunit-integration-test-ios.xml
       - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
 
 .package-ios:

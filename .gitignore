@@ -10,6 +10,7 @@ Build/
 test_scaffolds/6000 LTS/.utmp
 unit-test*
 integration-test*
+nunit-integration-test*
 .claire/
 .claude/
 
