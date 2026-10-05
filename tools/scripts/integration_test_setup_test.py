@@ -84,6 +84,53 @@ def test_owned_server_stays_ready_until_completion(environment, port):
     environment.finish()
 
 
+@pytest.mark.parametrize('platform,client_host', [('ios', 'localhost'), ('android', '10.0.2.2')])
+def test_ci_mobile_clients_use_loopback_routing(environment, port, monkeypatch, platform, client_host):
+    monkeypatch.setenv('CI', 'true')
+    server_health = setup.server_health
+    probed_endpoints = []
+
+    def probe(endpoint, *args, **kwargs):
+        probed_endpoints.append(endpoint)
+        return server_health(endpoint, *args, **kwargs)
+
+    def unexpected_lan_lookup():
+        pytest.fail('CI mobile tests must not select a LAN address')
+
+    monkeypatch.setattr(setup, 'server_health', probe)
+    monkeypatch.setattr(setup, 'get_reachable_inet_addr', unexpected_lan_lookup)
+    try:
+        environment.prepare(port=port, platform=platform)
+        state = json.loads(environment.state_path.read_text())
+        assert state['endpoint'] == f'http://{client_host}:{port}'
+        assert state['server_endpoint'] == f'http://127.0.0.1:{port}'
+    finally:
+        environment.finish()
+    assert probed_endpoints and set(probed_endpoints) == {f'http://127.0.0.1:{port}'}
+    assert server_health(f'http://127.0.0.1:{port}') is None
+    assert not environment.state_path.exists()
+
+
+@pytest.mark.parametrize('ci,platform', [('true', 'standaloneosx'), ('false', 'ios'), ('false', 'android')])
+def test_other_runs_keep_current_address_selection(environment, port, monkeypatch, ci, platform):
+    monkeypatch.setenv('CI', ci)
+    lan_lookups = []
+
+    def lan_address():
+        lan_lookups.append(True)
+        return '127.0.0.1'
+
+    monkeypatch.setattr(setup, 'get_reachable_inet_addr', lan_address)
+    try:
+        environment.prepare(port=port, platform=platform)
+        state = json.loads(environment.state_path.read_text())
+        assert lan_lookups == [True]
+        assert state['endpoint'] == f'http://127.0.0.1:{port}'
+    finally:
+        environment.finish()
+    assert not environment.state_path.exists()
+
+
 @pytest.mark.parametrize('probe_error', [
     setup.URLError(TimeoutError('server is still starting')),
     TimeoutError('server is still starting'),

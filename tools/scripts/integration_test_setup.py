@@ -77,19 +77,26 @@ class IntegrationTestEnvironment:
         temporary.write_text(json.dumps(state))
         temporary.replace(self.state_path)
 
-    def prepare(self, host=None, port=PORT):
+    def prepare(self, host=None, port=PORT, platform=None):
         # Stop an owned server left behind by a previous failed/cancelled run.
         self.finish()
-        host = host or get_reachable_inet_addr()
+        ci = os.environ.get('CI', '').lower() in ('true', '1')
+        if ci and platform in ('ios', 'android'):
+            host = '127.0.0.1'
+            client_host = 'localhost' if platform == 'ios' else '10.0.2.2'
+        else:
+            host = host or get_reachable_inet_addr()
+            client_host = host
         if not host:
             raise RuntimeError('Failed to resolve a reachable LAN address for the mock server')
-        endpoint = f'http://{host}:{port}'
-        health = server_health(endpoint)
+        endpoint = f'http://{client_host}:{port}'
+        server_endpoint = f'http://{host}:{port}'
+        health = server_health(server_endpoint)
         if health and health.get('owner'):
-            raise RuntimeError(f'Mock server at {endpoint} belongs to another test run')
+            raise RuntimeError(f'Mock server at {server_endpoint} belongs to another test run')
 
         self.directory.mkdir(parents=True, exist_ok=True)
-        state = {'endpoint': endpoint, 'owner': '', 'pid': None}
+        state = {'endpoint': endpoint, 'server_endpoint': server_endpoint, 'owner': '', 'pid': None}
         self._write_state(state)
         process = None
         try:
@@ -109,13 +116,13 @@ class IntegrationTestEnvironment:
                     if process.poll() is not None:
                         raise RuntimeError(f'Mock server exited; see {self.directory / "mock-server.log"}')
                     # Binding a socket can precede listening and HTTP readiness.
-                    health = server_health(endpoint, retry_timeout=True)
+                    health = server_health(server_endpoint, retry_timeout=True)
                     if health:
                         if health.get('owner') != state['owner'] or health.get('pid') != process.pid:
                             raise RuntimeError('Another server occupied the mock-server port during startup')
                         break
                     if time.monotonic() >= deadline:
-                        raise RuntimeError(f'Mock server did not become ready at {endpoint}')
+                        raise RuntimeError(f'Mock server did not become ready at {server_endpoint}')
                     time.sleep(0.1)
 
         except BaseException:
@@ -138,12 +145,13 @@ class IntegrationTestEnvironment:
         if not state:
             return
         if state['owner'] and state['pid']:
-            health = server_health(state['endpoint'])
+            server_endpoint = state.get('server_endpoint', state['endpoint'])
+            health = server_health(server_endpoint)
             # Never signal an unrelated process, even if the OS has reused its PID.
             if health and health.get('owner') == state['owner'] and health.get('pid') == state['pid']:
                 os.kill(state['pid'], signal.SIGTERM)
                 deadline = time.monotonic() + 5
-                while server_health(state['endpoint']) == health:
+                while server_health(server_endpoint) == health:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Owned mock server did not stop; retry cleanup')
                     time.sleep(0.1)
@@ -154,10 +162,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['prepare', 'finish'])
     parser.add_argument('--project', required=True)
+    parser.add_argument('--platform', type=str.lower, help='Unity build platform for CI simulator routing')
     args = parser.parse_args()
     init_logger()
     environment = IntegrationTestEnvironment(args.project)
     if args.action == 'prepare':
-        environment.prepare()
+        environment.prepare(platform=args.platform)
     else:
         environment.finish()
