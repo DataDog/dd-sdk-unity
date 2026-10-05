@@ -16,12 +16,13 @@ To submit a bug report concerning the Datadog Unity SDK, [open a GitHub Issue][i
 
 To work on the Datadog Unity SDK, you'll need to:
 
-- Install [Unity Hub][unity-hub].
+- Install [Unity CLI][unity-cli].
+    - To verify: `unity --version`
 - Install the [.NET SDK][dotnet-sdk].
 - Ensure that you have [Python 3.10][python] installed on your system.
     - To verify: `python3 --version`
 
-[unity-hub]: https://unity.com/download
+[unity-cli]: https://docs.unity.com/en-us/unity-cli/use-unity-cli
 [dotnet-sdk]: https://dotnet.microsoft.com/en-us/download
 [python]: https://www.python.org/downloads/
 
@@ -29,7 +30,7 @@ To work on the Datadog Unity SDK, you'll need to:
 
 To build the SDK for Android:
 
-- In Unity Hub, ensure that all relevant Unity Editor installs include the **Android Build Support** components, along with **OpenJDK** and **Android SDK & NDK Tools**.
+- Ensure that all relevant Unity Editor installs include **Android Build Support**, **OpenJDK**, and **Android SDK & NDK Tools**. The [`install_unity`][install-unity] script installs these modules.
 - For Android emulator support in scripts, install the [Android SDK][android-sdk] and the [`cmdline-tools`][cmdline-tools] package.
     - To verify the SDK has successfully installed, check that `$ANDROID_HOME` is set, and `$ANDROID_HOME/cmdline-tools/latest` exists.
 
@@ -40,7 +41,7 @@ To build the SDK for Android:
 
 To build the SDK for iOS:
 
-- In Unity Hub, ensure that all relevant Unity Editor installs include the **iOS Build Support** component.
+- Ensure that all relevant Unity Editor installs include **iOS Build Support**. The [`install_unity`][install-unity] script installs this module.
 - Install [`Xcode`][xcode].
     - To verify Xcode successfully installed, run: `xcodebuild -version`
 - Ensure that you've configured Xcode for automatic signing by authenticating with your Apple ID.
@@ -167,12 +168,12 @@ We currently run tests against these versions of Unity:
 | [`unit_test`][unit-test]               | [`test_scaffolds/6000 LTS`][scaffold-6000] | Unity 6000.1  |
 | [`integration_test`][integration-test] | [`samples/Datadog Sample`][datadog-sample] | Unity 2022.3  |
 
-Our test scripts use the [Unity Hub][unity-hub] binary to locate and manage installed versions of the Unity Editor. If a test script is unable to locate the required version of the editor, it exits with an error.
+Our test scripts use the [Unity CLI][unity-cli] binary to locate and manage installed versions of the Unity Editor. If a test script is unable to locate the required version of the editor, it exits with an error.
 
 To install the latest release of a specific editor version, along with all required components for testing the Datadog SDK, you can use the [`install_unity`][install-unity] script:
 
 ```bash
-# Install the latest version release of Unity 2022.3 through Unity Hub
+# Install Unity 2022.3 and its required iOS/Android modules through Unity CLI
 ./run-script install_unity 2022.3
 ```
 
