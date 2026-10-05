@@ -84,6 +84,65 @@ def test_owned_server_stays_ready_until_completion(environment, port):
     environment.finish()
 
 
+@pytest.mark.parametrize('probe_error', [
+    setup.URLError(TimeoutError('server is still starting')),
+    TimeoutError('server is still starting'),
+])
+def test_owned_startup_retries_a_health_probe_timeout(environment, port, monkeypatch, probe_error):
+    build_opener = setup.build_opener
+    timed_out = False
+
+    def timeout_first_request(*args):
+        opener = build_opener(*args)
+        open_request = opener.open
+
+        def open_with_timeout(*args, **kwargs):
+            nonlocal timed_out
+            if not timed_out:
+                timed_out = True
+                raise probe_error
+            return open_request(*args, **kwargs)
+
+        opener.open = open_with_timeout
+        return opener
+
+    monkeypatch.setattr(setup, 'build_opener', timeout_first_request)
+    try:
+        environment.prepare('127.0.0.1', port)
+        assert timed_out, 'The regression must exercise a timed-out HTTP probe'
+        state = json.loads(environment.state_path.read_text())
+        health = setup.server_health(f'http://127.0.0.1:{port}')
+        assert health['owner'] == state['owner']
+        assert health['pid'] == state['pid']
+    finally:
+        environment.finish()
+    assert not environment.state_path.exists()
+
+
+def test_existing_server_health_timeout_does_not_start_another_server(environment, port, monkeypatch):
+    process = subprocess.Popen([sys.executable, 'app.py', '--addr', '127.0.0.1', '--port', str(port)],
+                               cwd=setup.__mock_server_root__)
+    try:
+        wait_for_server(f'http://127.0.0.1:{port}')
+
+        class TimedOutOpener:
+            def open(self, *args, **kwargs):
+                raise setup.URLError(TimeoutError('existing server is unresponsive'))
+
+        def unexpected_bootstrap():
+            pytest.fail('A timeout from an existing server must not start a replacement')
+
+        monkeypatch.setattr(setup, 'build_opener', lambda *args: TimedOutOpener())
+        monkeypatch.setattr(setup, 'prepare_mock_server_venv', unexpected_bootstrap)
+        with pytest.raises(RuntimeError, match='Cannot probe mock server'):
+            environment.prepare('127.0.0.1', port)
+        assert process.poll() is None
+        assert not environment.state_path.exists()
+    finally:
+        process.terminate()
+        process.wait(timeout=5)
+
+
 @pytest.mark.parametrize('owner', ['', 'another-test-run'])
 def test_external_server_is_never_stopped(environment, port, owner):
     endpoint = f'http://127.0.0.1:{port}'

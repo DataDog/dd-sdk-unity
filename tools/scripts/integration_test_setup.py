@@ -29,7 +29,7 @@ HEALTH_PATH = '/__datadog_test_health'
 PORT = 5100
 
 
-def server_health(endpoint: str):
+def server_health(endpoint: str, retry_timeout=False):
     # macOS can silently drop connections to an unused LAN port. Check whether
     # this local address is free before issuing HTTP, rather than mistaking that
     # firewall timeout for an existing server. Still verify any occupied port.
@@ -48,13 +48,15 @@ def server_health(endpoint: str):
         with build_opener(ProxyHandler({})).open(endpoint + HEALTH_PATH, timeout=1) as response:
             health = json.load(response)
     except URLError as error:
-        if isinstance(error.reason, ConnectionError):
+        if isinstance(error.reason, ConnectionError) or (retry_timeout and isinstance(error.reason, TimeoutError)):
             return None
         raise RuntimeError(f'Cannot probe mock server at {endpoint}: {error}') from error
     except (ConnectionError, RemoteDisconnected):
         # A server can close an in-flight health request during shutdown.
         return None
     except (ValueError, TimeoutError) as error:
+        if retry_timeout and isinstance(error, TimeoutError):
+            return None
         raise RuntimeError(f'Port at {endpoint} is occupied by an unrecognized server') from error
     if not isinstance(health, dict) or health.get('service') != 'datadog-unity-mock-server' or health.get('version') != 1:
         raise RuntimeError(f'Port at {endpoint} is occupied by an unrecognized server')
@@ -106,7 +108,8 @@ class IntegrationTestEnvironment:
                 while True:
                     if process.poll() is not None:
                         raise RuntimeError(f'Mock server exited; see {self.directory / "mock-server.log"}')
-                    health = server_health(endpoint)
+                    # Binding a socket can precede listening and HTTP readiness.
+                    health = server_health(endpoint, retry_timeout=True)
                     if health:
                         if health.get('owner') != state['owner'] or health.get('pid') != process.pid:
                             raise RuntimeError('Another server occupied the mock-server port during startup')

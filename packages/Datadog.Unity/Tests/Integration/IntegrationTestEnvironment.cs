@@ -121,19 +121,12 @@ namespace Datadog.Unity.Tests.Integration
                 throw new InvalidOperationException("Integration tests require a project inside the dd-sdk-unity repository.");
             }
 
-            var python = Path.Combine(root.FullName, "tools/scripts/venv",
-                Application.platform == RuntimePlatform.WindowsEditor ? "Scripts/python.exe" : "bin/python");
-            if (!File.Exists(python))
-            {
-                // GUI applications may not inherit the terminal's PATH. Prefer the
-                // python.org installation on macOS when no repository venv exists.
-                python = Application.platform == RuntimePlatform.OSXEditor && File.Exists("/usr/local/bin/python3")
-                    ? "/usr/local/bin/python3" : "python3";
-            }
-
-            var script = Path.Combine(root.FullName, "tools/scripts/integration_test_setup.py");
-            var startInfo = new ProcessStartInfo(python,
-                $"\"{script}\" {action} --project \"{ProjectPath}\"")
+            var windows = Application.platform == RuntimePlatform.WindowsEditor;
+            var script = Path.Combine(root.FullName, windows ? "run-script.bat" : "run-script");
+            var arguments = $"integration_test_setup {action} --project \"{ProjectPath}\"";
+            var startInfo = new ProcessStartInfo(
+                windows ? "cmd.exe" : script,
+                windows ? $"/d /s /c \"\"{script}\" {arguments}\"" : arguments)
             {
                 WorkingDirectory = root.FullName,
                 UseShellExecute = false,
@@ -141,6 +134,12 @@ namespace Datadog.Unity.Tests.Integration
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+
+            if (Application.platform == RuntimePlatform.OSXEditor)
+            {
+                // GUI applications may not include the python.org installation on PATH.
+                startInfo.EnvironmentVariables["PATH"] = "/usr/local/bin:" + startInfo.EnvironmentVariables["PATH"];
+            }
 
             using (var process = Process.Start(startInfo))
             {

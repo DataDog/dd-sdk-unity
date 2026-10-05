@@ -19,4 +19,12 @@ if "%SCRIPT_NAME%"=="" (
 )
 
 shift
-"%SCRIPTS_VENV%\Scripts\python" "%SCRIPTS_ROOT%\%SCRIPT_NAME%.py" %*
+set "SCRIPT_ARGS="
+:collect_args
+if "%~1"=="" goto run_script
+set "SCRIPT_ARGS=%SCRIPT_ARGS% %1"
+shift
+goto collect_args
+
+:run_script
+"%SCRIPTS_VENV%\Scripts\python" "%SCRIPTS_ROOT%\%SCRIPT_NAME%.py" %SCRIPT_ARGS%
