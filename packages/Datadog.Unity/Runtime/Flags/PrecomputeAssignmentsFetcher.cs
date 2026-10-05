@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Text;
 using Datadog.Unity.Core;
 using Newtonsoft.Json;
+using UnityEngine.Scripting;
 using Newtonsoft.Json.Linq;
 using UnityEngine.Networking;
-using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Flags
 {
