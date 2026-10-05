@@ -87,10 +87,17 @@ integration-test-android:
     UNITY_VERSION_PARTIAL: '2022.3'
     PROJECT_PATH: 'samples/Datadog Sample'
   script:
+    # Noninteractive runner shells may not load the image's pyenv setup from .zshrc.
+    - test -x "$HOME/.pyenv/shims/python3"
+    - export PATH="$HOME/.pyenv/shims:$PATH"
+    - python3 --version
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - !reference [.shared, configure-unity-licensing]
     - export ANDROID_HOME="${ANDROID_HOME:-$HOME/android_sdk}"
+    # The image's standalone SDK does not include adb; Unity's SDK is separate.
+    - '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --install "platform-tools"'
+    - '"$ANDROID_HOME/platform-tools/adb" version'
     - '"$ANDROID_HOME/emulator/emulator" -accel-check'
     - ./run-script integration_test --platform android --headless --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
   artifacts:
