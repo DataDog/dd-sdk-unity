@@ -7,6 +7,7 @@
 # -----------------------------------------------------------
 
 import argparse
+import faulthandler
 import os
 import json
 
@@ -33,6 +34,8 @@ CORS(app)
 
 @app.route('/__datadog_test_health')
 def test_health():
+    if app.config.get('TEST_OWNER'):
+        faulthandler.cancel_dump_traceback_later()
     # Keep readiness probes out of the request history inspected by tests.
     return {
         'service': 'datadog-unity-mock-server',
@@ -366,4 +369,6 @@ if __name__ == '__main__':
     app.config['TEST_OWNER'] = args.test_owner
     if args.test_owner:
         print(f"Mock-server Python: {sys.executable} (base: {sys.base_prefix})", flush=True)
+        # Capture a stalled startup before the helper reaches its 15-second deadline.
+        faulthandler.dump_traceback_later(10)
     run(preferred_address, args.port, owned=bool(args.test_owner))
