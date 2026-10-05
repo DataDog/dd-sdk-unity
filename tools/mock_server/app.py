@@ -364,4 +364,6 @@ if __name__ == '__main__':
         preferred_address = '127.0.0.1'
 
     app.config['TEST_OWNER'] = args.test_owner
+    if args.test_owner:
+        print(f"Mock-server Python: {sys.executable} (base: {sys.base_prefix})", flush=True)
     run(preferred_address, args.port, owned=bool(args.test_owner))
