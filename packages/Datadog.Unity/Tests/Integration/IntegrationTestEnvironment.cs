@@ -149,7 +149,7 @@ namespace Datadog.Unity.Tests.Integration
                 if (!process.WaitForExit(420000))
                 {
                     process.Kill();
-                    throw new TimeoutException("Integration test setup timed out. Check Python dependencies and GitHub SSH access.");
+                    throw new TimeoutException("Integration test setup timed out. Check Python dependencies and GitHub access.");
                 }
 
                 var details = output.GetAwaiter().GetResult() + errors.GetAwaiter().GetResult();

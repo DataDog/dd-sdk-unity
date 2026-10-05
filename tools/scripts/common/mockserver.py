@@ -42,7 +42,7 @@ def prepare_mock_server_venv():
     if not os.path.isdir(schemas_path):
         subprocess.check_call([venv_python, 'app.py', '--update-schemas'], cwd=__mock_server_root__, timeout=120)
     if not os.path.isdir(schemas_path):
-        raise RuntimeError('Mock server schema checkout failed; check GitHub SSH access')
+        raise RuntimeError('Mock server schema checkout failed; check GitHub access')
     log.info('Event schemas available.')
     return venv_python
 
