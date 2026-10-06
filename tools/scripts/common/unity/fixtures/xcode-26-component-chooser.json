@@ -1,0 +1,164 @@
+{
+  "windows": [
+    {
+      "name": "Xcode",
+      "truncated": false,
+      "controls": [
+        {
+          "role": "AXWindow",
+          "name": "Xcode",
+          "description": "dialog",
+          "value": null,
+          "enabled": null
+        },
+        {
+          "role": "AXGroup",
+          "name": null,
+          "description": "group",
+          "value": null,
+          "enabled": null
+        },
+        {
+          "role": "AXImage",
+          "name": null,
+          "description": "image",
+          "value": null,
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "Xcode",
+          "description": "text",
+          "value": "Xcode",
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "Version 26.0 (17A324)",
+          "description": "text",
+          "value": "Version 26.0 (17A324)",
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "Select the components you want to get started with:",
+          "description": "text",
+          "value": "Select the components you want to get started with:",
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "Platform Support",
+          "description": "text",
+          "value": "Platform Support",
+          "enabled": true
+        },
+        {
+          "role": "AXCheckBox",
+          "name": null,
+          "description": "checkbox",
+          "value": 1,
+          "enabled": false
+        },
+        {
+          "role": "AXStaticText",
+          "name": "Built-in",
+          "description": "text",
+          "value": "Built-in",
+          "enabled": true
+        },
+        {
+          "role": "AXCheckBox",
+          "name": null,
+          "description": "checkbox",
+          "value": 1,
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "10.07 GB",
+          "description": "text",
+          "value": "10.07 GB",
+          "enabled": true
+        },
+        {
+          "role": "AXCheckBox",
+          "name": null,
+          "description": "checkbox",
+          "value": 0,
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "5.03 GB",
+          "description": "text",
+          "value": "5.03 GB",
+          "enabled": true
+        },
+        {
+          "role": "AXCheckBox",
+          "name": null,
+          "description": "checkbox",
+          "value": 0,
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "3.62 GB",
+          "description": "text",
+          "value": "3.62 GB",
+          "enabled": true
+        },
+        {
+          "role": "AXCheckBox",
+          "name": null,
+          "description": "checkbox",
+          "value": 0,
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "6.98 GB",
+          "description": "text",
+          "value": "6.98 GB",
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "Other Components",
+          "description": "text",
+          "value": "Other Components",
+          "enabled": true
+        },
+        {
+          "role": "AXCheckBox",
+          "name": null,
+          "description": "checkbox",
+          "value": 1,
+          "enabled": true
+        },
+        {
+          "role": "AXButton",
+          "name": null,
+          "description": "button",
+          "value": null,
+          "enabled": true
+        },
+        {
+          "role": "AXStaticText",
+          "name": "2 GB",
+          "description": "text",
+          "value": "2 GB",
+          "enabled": true
+        },
+        {
+          "role": "AXButton",
+          "name": null,
+          "description": "button",
+          "value": null,
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}

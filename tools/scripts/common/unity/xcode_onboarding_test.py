@@ -181,6 +181,14 @@ def test_cancellation_reaps_real_owned_child(tmp_path, monkeypatch):
     ('unknown_button', 'continue', 'unrecognized-continue-button', 0),
     ('uncertain_checkbox', 'continue', 'unrecognized-checkbox-state', 0),
     ('no_checkboxes', 'continue', 'unrecognized-checkbox-state', 0),
+    ('metadata_checkbox', 'deselect', 'deselected', 2),
+    ('title_element_checkbox', 'deselect', 'deselected', 2),
+    ('metadata_button', 'continue', 'submitted', 1),
+    ('metadata_unknown_checkbox', 'deselect', 'unrecognized-checkbox', 0),
+    ('metadata_wrong_button', 'continue', 'unrecognized-continue-button', 0),
+    ('metadata_snapshot', 'probe', None, 0),
+    ('real_unnamed_probe', 'probe', None, 0),
+    ('real_unnamed_deselect', 'deselect', 'unrecognized-checkbox', 0),
 ])
 def test_jxa_actions_are_scoped_to_recognized_controls(case, mode, outcome, clicks):
     # Execute the actual JS against a fake System Events API; no macOS UI access.
@@ -193,11 +201,19 @@ function element(role, name, value, children=[], enabled=true) {
     const e = {
         role: () => role, name: () => typeof name === 'function' ? name() : name,
         description: () => '', value: () => e.current,
-        enabled: () => enabled, uiElements: () => children, current: value
+        enabled: () => enabled, uiElements: () => children, current: value,
+        metadata: {}, position: () => [100, 200], size: () => [30, 40]
+    };
+    e.attributes = {
+        name: () => Object.keys(e.metadata),
+        byName: key => ({value: () => {
+            if (!(key in e.metadata)) throw new Error('Attribute unavailable');
+            return e.metadata[key];
+        }})
     };
     return e;
 }
-const checked = scenario === 'cleared' || scenario === 'deep' || scenario === 'unknown_button' ? 0 : 1;
+const checked = scenario === 'cleared' || scenario === 'deep' || ['unknown_button','metadata_button','metadata_wrong_button'].includes(scenario) ? 0 : 1;
 const ios = element('AXCheckBox', scenario === 'unknown_checkbox' ? 'Unknown download' : 'iOS 26.0', checked);
 const model = element('AXCheckBox', 'Predictive Code Completion Model', checked);
 const mac = element('AXCheckBox', 'macOS 26.0', 1, [], false);
@@ -213,8 +229,41 @@ if (scenario === 'deep') {
     for (let i=0;i<14;i++) nested=element('AXGroup','',null,[nested]);
     children.push(nested);
 }
+if (['metadata_checkbox','metadata_unknown_checkbox','title_element_checkbox'].includes(scenario)) {
+    ios.name = () => null; model.name = () => null;
+    ios.description = () => 'checkbox'; model.description = () => 'checkbox';
+    if (scenario === 'title_element_checkbox') {
+        ios.metadata.AXTitleUIElement = element('AXStaticText','iOS 26.0','iOS 26.0');
+        model.metadata.AXTitleUIElement = element('AXStaticText','Predictive Code Completion Model','Predictive Code Completion Model');
+    } else {
+        ios.metadata.AXTitle = scenario === 'metadata_unknown_checkbox' ? 'Unknown download' : 'iOS 26.0';
+        model.metadata.AXHelp = 'Predictive Code Completion Model';
+    }
+}
+if (['metadata_button','metadata_wrong_button'].includes(scenario)) {
+    button.name = () => null; button.description = () => 'button';
+    button.metadata.AXTitle = scenario === 'metadata_button' ? 'Continue' : 'Delete Project';
+}
 const window = element('AXWindow','Xcode',null,children);
+window.metadata.AXDefaultButton = button;
+if (scenario === 'metadata_snapshot') {
+    ios.metadata.AXIdentifier = 'platform.iphoneos';
+    ios.metadata.AXHelp = 'Install iOS runtime';
+    ios.metadata.AXTitleUIElement = element('AXStaticText','iOS 26.0','iOS 26.0');
+    button.metadata.AXIdentifier = 'complete-onboarding';
+    button.metadata.AXTitle = 'Download & Install';
+}
 let windows = [window];
+if (scenario.startsWith('real_unnamed')) {
+    const fixture = JSON.parse(fs.readFileSync(process.argv[4], 'utf8')).windows[0];
+    function fromFixture(c, children=[]) {
+        const node = element(c.role,c.name,c.value,children,c.enabled);
+        node.description = () => c.description;
+        return node;
+    }
+    const items = fixture.controls;
+    windows = [fromFixture(items[0],items.slice(1).map(c => fromFixture(c)))];
+}
 const target = {name: () => 'Xcode', windows: () => windows};
 const system = {
     processes: {whose: query => {
@@ -229,11 +278,24 @@ vm.runInContext(fs.readFileSync(script,'utf8'), context);
 const result = JSON.parse(context.run(['43',mode]));
 process.stdout.write(JSON.stringify({result,calls}));
 """
-    result = subprocess.run(['node', '-e', harness, str(script), case, mode],
+    result = subprocess.run(['node', '-e', harness, str(script), case, mode,
+                             str(script.parent / 'fixtures/xcode-26-component-chooser.json')],
                             capture_output=True, text=True, timeout=10, check=True)
     data = json.loads(result.stdout)
     assert data['result'].get('outcome') == outcome
     assert len(data['calls']) == clicks
+    if case == 'metadata_snapshot':
+        window = data['result']['windows'][0]
+        control = next(c for c in window['controls'] if c['role'] == 'AXCheckBox' and c['enabled'])
+        assert control['accessibility']['available'] == ['AXIdentifier', 'AXHelp', 'AXTitleUIElement']
+        assert control['accessibility']['identifier'] == 'platform.iphoneos'
+        assert control['accessibility']['titleElement']['name'] == 'iOS 26.0'
+        assert control['accessibility']['position'] == [100, 200]
+        assert window['defaultButton']['role'] == 'AXButton'
+        assert window['defaultButton']['identifier'] == 'complete-onboarding'
+        assert window['defaultButton']['title'] == 'Download & Install'
+    if case.startswith('real_unnamed'):
+        assert data['result']['windows'][0]['controls'][9]['name'] is None
 
 
 @pytest.mark.parametrize('ci,enabled', [('true', True), ('1', True), ('false', False), ('', False)])

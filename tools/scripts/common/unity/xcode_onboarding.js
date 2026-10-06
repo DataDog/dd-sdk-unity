@@ -6,21 +6,73 @@ function readProperty(element, key, fallback) {
     try { return element[key](); } catch (_) { return fallback; }
 }
 
+function readAttribute(element, key) {
+    try { return element.attributes.byName(key).value(); } catch (_) { return null; }
+}
+
+function scalar(value) {
+    if (typeof value === "string") return value.slice(0, 300);
+    if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
+    return null;
+}
+
+function coordinates(value) {
+    return Array.isArray(value) && value.length === 2 && value.every(function (v) {
+        return typeof v === "number" && isFinite(v);
+    }) ? value : null;
+}
+
+function referenceSummary(element) {
+    if (element === null) return null;
+    var role = readProperty(element, "role", "");
+    return {
+        role: role,
+        name: scalar(readProperty(element, "name", null)),
+        description: scalar(readProperty(element, "description", null)),
+        value: role.indexOf("Secure") >= 0 ? "[redacted]" : scalar(readProperty(element, "value", null)),
+        title: scalar(readAttribute(element, "AXTitle")),
+        identifier: scalar(readAttribute(element, "AXIdentifier")),
+        position: coordinates(readProperty(element, "position", null)),
+        size: coordinates(readProperty(element, "size", null))
+    };
+}
+
+function accessibilityDetails(element, role) {
+    // Limit queries to controls needed for onboarding; unknown attributes remain null.
+    if (["AXWindow", "AXCheckBox", "AXButton"].indexOf(role) < 0) return null;
+    var names = [];
+    try { names = element.attributes.name().filter(function (name) {
+        return typeof name === "string";
+    }).slice(0, 50); } catch (_) {}
+    function attribute(key) {
+        return names.length && names.indexOf(key) < 0 ? null : readAttribute(element, key);
+    }
+    return {
+        available: names,
+        title: scalar(attribute("AXTitle")),
+        description: scalar(attribute("AXDescription")),
+        help: scalar(attribute("AXHelp")),
+        identifier: scalar(attribute("AXIdentifier")),
+        titleElement: referenceSummary(attribute("AXTitleUIElement")),
+        position: coordinates(readProperty(element, "position", null)),
+        size: coordinates(readProperty(element, "size", null))
+    };
+}
+
 function inspectWindow(window) {
     var pending = [{element: window, depth: 0}], controls = [], depthTruncated = false;
     while (pending.length && controls.length < 500) {
         var item = pending.shift(), element = item.element;
         var role = readProperty(element, "role", "");
-        var value = role.indexOf("Secure") >= 0 ? "[redacted]" : readProperty(element, "value", null);
-        if (typeof value === "string") value = value.slice(0, 300);
-        if (value !== null && typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") value = null;
+        var value = role.indexOf("Secure") >= 0 ? "[redacted]" : scalar(readProperty(element, "value", null));
         controls.push({
             element: element,
             role: role,
             name: readProperty(element, "name", ""),
             description: readProperty(element, "description", ""),
             value: value,
-            enabled: readProperty(element, "enabled", false)
+            enabled: readProperty(element, "enabled", false),
+            accessibility: accessibilityDetails(element, role)
         });
         var children = readProperty(element, "uiElements", []);
         if (item.depth < 12) {
@@ -32,8 +84,16 @@ function inspectWindow(window) {
     return {controls: controls, truncated: pending.length > 0 || depthTruncated};
 }
 
+function labelTexts(control) {
+    var detail = control.accessibility || {}, titleElement = detail.titleElement || {};
+    return [control.name, control.description, typeof control.value === "string" ? control.value : "",
+        detail.title, detail.description, detail.help, titleElement.name, titleElement.value].filter(function (v) {
+        return typeof v === "string";
+    });
+}
+
 function label(control) {
-    return [control.name, control.description, typeof control.value === "string" ? control.value : ""].join(" ");
+    return labelTexts(control).join(" ");
 }
 
 function snapshot(process) {
@@ -49,9 +109,11 @@ function snapshot(process) {
         }
         result.push({
             name: readProperty(windows[i], "name", ""),
+            defaultButton: referenceSummary(readAttribute(windows[i], "AXDefaultButton")),
             truncated: inspected.truncated,
             controls: inspected.controls.map(function (c) {
-                return {role: c.role, name: c.name, description: c.description, value: c.value, enabled: c.enabled};
+                return {role: c.role, name: c.name, description: c.description, value: c.value,
+                    enabled: c.enabled, accessibility: c.accessibility};
             })
         });
     }
@@ -90,15 +152,15 @@ function run(args) {
         if (selected.some(function (c) {
             return !/\b(iOS|watchOS|tvOS|visionOS)\b|Predictive Code Completion Model/i.test(label(c));
         })) return JSON.stringify({outcome: "unrecognized-checkbox", windows: state.windows});
-        // Check every selected control before making any changes.
         selected.forEach(function (c) { system.click(c.element); });
         return JSON.stringify({outcome: "deselected", count: selected.length});
     }
     if (selected.length)
         return JSON.stringify({outcome: "downloads-still-selected", windows: state.windows});
     var buttons = state.chooser.controls.filter(function (c) {
-        var name = String(c.name || c.description).trim();
-        return c.role === "AXButton" && c.enabled && /^(Continue|Download & Install)$/.test(name);
+        return c.role === "AXButton" && c.enabled && labelTexts(c).some(function (name) {
+            return /^(Continue|Download & Install)$/.test(name.trim());
+        });
     });
     if (buttons.length !== 1)
         return JSON.stringify({outcome: "unrecognized-continue-button", windows: state.windows});
