@@ -86,6 +86,7 @@ integration-test-ios:
   variables:
     # Reserve time for cleanup and diagnostic artifact upload before the 1h job limit.
     RUNNER_SCRIPT_TIMEOUT: 20m
+    UNITY_CI_XCODE_UI_PROBE: '1'
     UNITY_VERSION_PARTIAL: '2022.3'
     PROJECT_PATH: 'samples/Datadog Sample'
   script:

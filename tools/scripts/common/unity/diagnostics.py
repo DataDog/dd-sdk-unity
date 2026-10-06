@@ -6,12 +6,15 @@ Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import faulthandler
+import os
 from pathlib import Path
 import shlex
 import signal
 import subprocess
 import sys
 import time
+
+from .xcode_onboarding import XcodeOnboardingProbe
 
 HEARTBEAT_SECONDS = 60
 STALL_SECONDS = 5 * 60
@@ -138,6 +141,13 @@ class UnityDiagnostics:
         started = time.monotonic()
         last_capture = started
         next_heartbeat = started + HEARTBEAT_SECONDS
+        probe = None
+        if (sys.platform == 'darwin' and os.environ.get('CI', '').lower() in ('true', '1')
+                and os.environ.get('UNITY_CI_XCODE_UI_PROBE') == '1'):
+            try:
+                probe = XcodeOnboardingProbe(self.directory, self.message, self.start_video)
+            except Exception as error:
+                self.message(f'Xcode UI probe unavailable: {error}')
         self.message(f'Launching Unity: {shlex.join(command)}')
         process = subprocess.Popen(command)  # Inherit streams; Unity writes to its log file.
         self.process = process
@@ -165,16 +175,29 @@ class UnityDiagnostics:
                                  f'log reader alive={tail_alive}; last output: {line[:200]}')
                     next_heartbeat = now + HEARTBEAT_SECONDS
                 self.check_video()
+                if probe is not None:
+                    try:
+                        probe.poll()
+                    except Exception as error:
+                        probe.done = True
+                        self.message(f'Xcode UI probe stopped: {error}')
                 if now - last_output >= STALL_SECONDS and now - last_capture >= STALL_SECONDS:
                     self.capture(process, 'no visible Editor progress')
                     last_capture = time.monotonic()
         finally:
-            self.stop_video()
-            if process.poll() is None:
-                self.message(f'Stopping owned Unity PID {process.pid}')
-                process.terminate()
-                try:
-                    process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=5)
+            try:
+                if probe is not None:
+                    try:
+                        probe.close()
+                    except Exception as error:
+                        self.message(f'Xcode preference comparison unavailable: {error}')
+            finally:
+                self.stop_video()
+                if process.poll() is None:
+                    self.message(f'Stopping owned Unity PID {process.pid}')
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=5)
