@@ -3,6 +3,7 @@
 // Copyright 2026-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
@@ -18,6 +19,8 @@ namespace Datadog.Unity.Flags
         private static readonly UTF8Encoding StrictUtf8 = new(false, true);
         private static readonly byte[] Domain = StrictUtf8.GetBytes("datadog.feature-flags.flag-key.v1\0");
         private readonly byte[] _prefix;
+        private readonly Dictionary<string, string> _lookupKeys = new(StringComparer.Ordinal);
+        private const int LookupCacheLimit = 1024;
 
         private FlagKeyObfuscation(string salt)
         {
@@ -46,6 +49,18 @@ namespace Datadog.Unity.Flags
         }
 
         internal string Encode(string key)
+        {
+            lock (_lookupKeys)
+            {
+                if (_lookupKeys.TryGetValue(key, out var cached)) return cached;
+                var digest = Hash(key);
+                if (_lookupKeys.Count >= LookupCacheLimit) _lookupKeys.Clear();
+                _lookupKeys[key] = digest;
+                return digest;
+            }
+        }
+
+        private string Hash(string key)
         {
             // Reject invalid UTF-16 rather than aliasing a key containing a replacement character.
             var keyBytes = StrictUtf8.GetBytes(key);

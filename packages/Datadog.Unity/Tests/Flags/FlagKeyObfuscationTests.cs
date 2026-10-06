@@ -66,6 +66,22 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
+        public void BoundsLookupHashesAndKeepsDescriptorsSeparate()
+        {
+            var encoding = Encoding();
+            var other = Encoding(new string('f', 32));
+            var first = encoding.Encode("flag");
+            Assert.AreSame(first, encoding.Encode("flag"));
+            Assert.AreNotEqual(first, other.Encode("flag"));
+            Assert.AreSame(first, encoding.Encode("flag"));
+            Assert.AreNotEqual(encoding.Encode("café"), encoding.Encode("cafe\u0301"));
+            for (var index = 0; index < 1024; index++) encoding.Encode($"flag-{index}");
+            var afterEviction = encoding.Encode("flag");
+            Assert.AreEqual(first, afterEviction);
+            Assert.AreNotSame(first, afterEviction);
+        }
+
+        [Test]
         public void RejectsInvalidUnicodeWithoutAliasingReplacementCharacter()
         {
             Assert.Throws<EncoderFallbackException>(() => Encoding().Encode("\ud800"));
@@ -152,6 +168,36 @@ namespace Datadog.Unity.Flags.Tests
             Assert.AreEqual(expected.DoLog, actual.DoLog);
             Assert.IsNull(repository.GetFlagAssignment("missing"));
             Assert.IsNull(repository.GetFlagAssignment(Encoding().Encode("flag")), "No plaintext lookup fallback.");
+        }
+
+        [Test]
+        public void AcceptsNewKeysAndFieldsAndPreservesUnknownVariantBehavior()
+        {
+            var encoding = Encoding();
+            var attributes = new JObject
+            {
+                ["obfuscated"] = true, ["obfuscation"] = Descriptor(), ["future-field"] = true,
+                ["flags"] = new JObject
+                {
+                    [encoding.Encode("flag")] = Assignment(),
+                    [encoding.Encode("new-flag")] = Assignment(),
+                    [encoding.Encode("future")] = Assignment("future-type"),
+                },
+            };
+            var repository = new FlagsRepository();
+            repository.SetFlagsAndContext(new FlagsEvaluationContext("athlete"),
+                PrecomputeAssignmentsFetcher.ParseResponse(Response(attributes).ToString()));
+            using var client = new FlagsClient(repository, null, null, null, null,
+                false, false, null, FlagsClientState.Ready);
+            Assert.IsTrue(client.GetBooleanValue("flag", false));
+            Assert.IsTrue(client.GetBooleanValue("new-flag", false));
+            // Unity converts the value without requiring a known variationType. Encoding must not change that.
+            var plain = PrecomputeAssignmentsFetcher.ParseResponse(Response(new JObject
+            {
+                ["flags"] = new JObject { ["future"] = Assignment("future-type") },
+            }).ToString());
+            Assert.IsTrue(plain.Flags["future"].TryGetValue<bool>(out var expected));
+            Assert.AreEqual(expected, client.GetBooleanValue("future", false));
         }
 
         [Test]
