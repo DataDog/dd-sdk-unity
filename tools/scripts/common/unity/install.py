@@ -103,9 +103,14 @@ class UnityInstall:
         quiet_warnings = os.environ.get('CI', '').lower() in ('true', '1')
         warning_pattern = re.compile(r'(?:^|:\s*)warning\s+[A-Z]+\d+:', re.IGNORECASE)
         warning_count = 0
+        lightmapper_count = 0
 
         def _read(line: str):
-            nonlocal warning_count
+            nonlocal warning_count, lightmapper_count
+            if quiet_warnings and line.strip() == 'Falling back to CPU lightmapper.':
+                lightmapper_count += 1
+                if lightmapper_count > 1:
+                    return
             if quiet_warnings and warning_pattern.search(line):
                 warning_count += 1
                 return
@@ -165,6 +170,8 @@ class UnityInstall:
             tail_thread.join()
             if warning_count:
                 print(f'Suppressed {warning_count} compiler/analyzer warnings from the CI console. Full log: {log_path}')
+            if lightmapper_count > 1:
+                print(f'Suppressed {lightmapper_count - 1} repeated CPU lightmapper fallback messages from the CI console. Full log: {log_path}')
 
             return exitcode
         except:
