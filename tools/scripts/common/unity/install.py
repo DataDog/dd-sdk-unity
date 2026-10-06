@@ -100,7 +100,15 @@ class UnityInstall:
             with open(log_path, 'w'):
                 pass
 
+        quiet_warnings = os.environ.get('CI', '').lower() in ('true', '1')
+        warning_pattern = re.compile(r'(?:^|:\s*)warning\s+[A-Z]+\d+:', re.IGNORECASE)
+        warning_count = 0
+
         def _read(line: str):
+            nonlocal warning_count
+            if quiet_warnings and warning_pattern.search(line):
+                warning_count += 1
+                return
             max_retries = 10
             delay = 0.01
             for attempt in range(max_retries):
@@ -155,6 +163,8 @@ class UnityInstall:
             # Let the tail thread finish reading from the log file
             stop_event.set()
             tail_thread.join()
+            if warning_count:
+                print(f'Suppressed {warning_count} compiler/analyzer warnings from the CI console. Full log: {log_path}')
 
             return exitcode
         except:
