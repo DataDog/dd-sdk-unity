@@ -49,6 +49,14 @@ def modified_ios_target_settings(project_root: str, platform: str, target: str):
     with open(path) as fp:
         old_text = fp.read()
 
+    # The split build modifier temporarily disables audio; retain a byte snapshot
+    # in case Unity exits before its post-build cleanup restores that setting.
+    audio_path = os.path.join(project_root, 'ProjectSettings', 'AudioManager.asset')
+    original_audio = None
+    if target == 'simulator':
+        with open(audio_path, 'rb') as fp:
+            original_audio = fp.read()
+
     # Modify the file to contain our desired settings
     new_text = _modify_project_settings_impl(old_text, sdk, architecture)
     with open(path, 'w') as fp:
@@ -58,8 +66,13 @@ def modified_ios_target_settings(project_root: str, platform: str, target: str):
     try:
         yield
     finally:
-        with open(path, 'w') as fp:
-            fp.write(old_text)
+        try:
+            with open(path, 'w') as fp:
+                fp.write(old_text)
+        finally:
+            if original_audio is not None:
+                with open(audio_path, 'wb') as fp:
+                    fp.write(original_audio)
 
 
 def _modify_project_settings_impl(text: str, sdk: TargetIosSdk, architecture: Optional[TargetIosSimulatorArchitecture]) -> str:

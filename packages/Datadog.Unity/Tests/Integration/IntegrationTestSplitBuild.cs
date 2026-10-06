@@ -22,6 +22,7 @@ namespace Datadog.Unity.Tests.Integration
         // UTF temporarily disables removal of unused engine code for test players.
         private static readonly bool OriginalStripping = PlayerSettings.stripEngineCode;
         private static bool _exporting;
+        private static bool _originalAudioDisabled;
 
         public BuildPlayerOptions ModifyOptions(BuildPlayerOptions options)
         {
@@ -31,6 +32,8 @@ namespace Datadog.Unity.Tests.Integration
                 return options;
             }
 
+            // CoreAudio initialization can abort in virtualized iOS Simulators.
+            _originalAudioDisabled = SetAudioDisabled(true);
             options.options &= ~(BuildOptions.AutoRunPlayer | BuildOptions.ConnectToHost);
             // Include the file result writer only in this exported player.
             options.extraScriptingDefines = (options.extraScriptingDefines ?? Array.Empty<string>())
@@ -38,6 +41,19 @@ namespace Datadog.Unity.Tests.Integration
             _exporting = true;
             Debug.Log($"Exporting integration test player without launching Xcode: {options.locationPathName}");
             return options;
+        }
+
+        private static bool SetAudioDisabled(bool disabled)
+        {
+            var audioManager = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/AudioManager.asset")[0];
+            using (var serializedManager = new SerializedObject(audioManager))
+            {
+                var property = serializedManager.FindProperty("m_DisableAudio");
+                var original = property.boolValue;
+                property.boolValue = disabled;
+                serializedManager.ApplyModifiedProperties();
+                return original;
+            }
         }
 
         public void Cleanup()
@@ -48,6 +64,7 @@ namespace Datadog.Unity.Tests.Integration
             }
             // UTF skips restoring its temporary engine-stripping change when AutoRunPlayer is cleared.
             PlayerSettings.stripEngineCode = OriginalStripping;
+            SetAudioDisabled(_originalAudioDisabled);
             _exporting = false;
             // Let every asset cleanup finish before closing the batch Editor.
             EditorApplication.delayCall += () => EditorApplication.Exit(0);

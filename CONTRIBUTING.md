@@ -222,7 +222,7 @@ The [`integration_test`][integration-test] script runs all tests in the `Integra
 ./run-script integration_test --platform ios --target device
 ```
 
-As with the unit test script, these commands launch the Unity Editor in headless mode. For iOS Simulator runs, the script uses UTF split mode: the batch Editor exports the test player and exits, then Python compiles with `xcodebuild` and installs/launches through `simctl`. The player writes NUnit XML into its data container, which Python retrieves and converts to JUnit. The script creates and deletes its own Simulator using an available iOS runtime. Android and physical iOS devices retain normal UTF execution.
+As with the unit test script, these commands launch the Unity Editor in headless mode. For iOS Simulator runs, the script uses UTF split mode: the batch Editor exports the test player and exits, then Python compiles with `xcodebuild` and installs/launches through `simctl`. The player writes NUnit XML into its data container, which Python retrieves and converts to JUnit. The script creates and deletes its own Simulator using an available iOS runtime. These test exports disable Unity audio to avoid Simulator audio initialization failures; the original project setting is restored after the build. Android and physical iOS devices retain normal UTF execution.
 
 Selected integration-test fixtures use `IPrebuildSetup` to ensure the mock server is available and prepare SDK settings, so setup also works from the built-in Editor Test Runner:
 
