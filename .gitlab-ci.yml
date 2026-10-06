@@ -158,6 +158,20 @@ integration-test-ios:
           sleep 10
         done
         unset XCODE_AUTOMATION_PASSWORD
+        # Match Unity's Xcode preference to the installation prepared above.
+        task_xcode_developer=$(xcode-select -p)
+        task_xcode_application=${task_xcode_developer%/Contents/Developer}
+        test -x "$task_xcode_application/Contents/MacOS/Xcode"
+        task_xcode_version=$(xcodebuild -version | awk '/^Xcode / {print $2}')
+        test -n "$task_xcode_version"
+        echo 'Unity Xcode preference before pinning:'
+        defaults read com.unity3d.UnityEditor5.x BuildWithXcodePath 2>/dev/null || true
+        defaults write com.unity3d.UnityEditor5.x BuildWithXcodePath -string "$task_xcode_application"
+        defaults write com.unity3d.UnityEditor5.x BuildWithXcodeVersion -string "$task_xcode_version"
+        defaults write com.unity3d.UnityEditor5.x BuildWithSelectedXcodeVersion -string "$task_xcode_version"
+        test "$(defaults read com.unity3d.UnityEditor5.x BuildWithXcodePath)" = "$task_xcode_application"
+        test "$(defaults read com.unity3d.UnityEditor5.x BuildWithXcodeVersion)" = "$task_xcode_version"
+        printf 'Unity Xcode selection: %s (version %s)\n' "$task_xcode_application" "$task_xcode_version"
         xcodebuild -checkFirstLaunchStatus
         xcrun simctl list runtimes available
         xcrun simctl list runtimes -j | python3 -c 'import json, sys; runtimes = json.load(sys.stdin)["runtimes"]; sys.exit(0 if any(r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-") for r in runtimes) else "No available iOS Simulator runtime after Xcode preparation")'
