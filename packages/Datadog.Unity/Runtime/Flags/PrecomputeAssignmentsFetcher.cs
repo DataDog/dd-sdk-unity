@@ -18,6 +18,8 @@ namespace Datadog.Unity.Flags
     internal class PrecomputeAssignmentsFetcher
     {
         public const int FetchTimeoutSeconds = 30;
+        private static readonly string CapabilitiesHeader = string.Join(",",
+            new SortedSet<string>(StringComparer.Ordinal) { FlagKeyObfuscation.Capability });
 
         private readonly string _endpointUrl;
         private readonly string _clientToken;
@@ -47,20 +49,7 @@ namespace Datadog.Unity.Flags
         {
             try
             {
-                var requestBody = BuildRequestBody(context);
-                var bodyBytes = Encoding.UTF8.GetBytes(requestBody);
-
-                var request = new UnityWebRequest(_endpointUrl, "POST");
-                request.uploadHandler = new UploadHandlerRaw(bodyBytes);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.timeout = FetchTimeoutSeconds;
-                request.SetRequestHeader("Content-Type", "application/vnd.api+json");
-                request.SetRequestHeader("dd-client-token", _clientToken);
-
-                if (!string.IsNullOrEmpty(_applicationId))
-                {
-                    request.SetRequestHeader("dd-application-id", _applicationId);
-                }
+                var request = BuildRequest(context);
 
                 var operation = request.SendWebRequest();
                 operation.completed += _ =>
@@ -100,6 +89,22 @@ namespace Datadog.Unity.Flags
             }
         }
 
+        internal UnityWebRequest BuildRequest(FlagsEvaluationContext context)
+        {
+            var request = new UnityWebRequest(_endpointUrl, "POST");
+            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(BuildRequestBody(context)));
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.timeout = FetchTimeoutSeconds;
+            request.SetRequestHeader("Content-Type", "application/vnd.api+json");
+            request.SetRequestHeader("dd-client-token", _clientToken);
+            request.SetRequestHeader("X-DD-FEATURE-FLAGS-CAPABILITIES", CapabilitiesHeader);
+            if (!string.IsNullOrEmpty(_applicationId))
+            {
+                request.SetRequestHeader("dd-application-id", _applicationId);
+            }
+            return request;
+        }
+
         internal string BuildRequestBody(FlagsEvaluationContext context)
         {
             var dto = new AssignmentsRequestDto
@@ -109,7 +114,6 @@ namespace Datadog.Unity.Flags
                     Attributes = new AssignmentsRequestAttributesDto
                     {
                         Env = new AssignmentsEnvDto { Name = _env, DdEnv = _env },
-                        SupportedCapabilities = new AssignmentsCapabilitiesDto(),
                         Subject = new AssignmentsSubjectDto
                         {
                             TargetingKey = context.TargetingKey,
@@ -229,20 +233,11 @@ namespace Datadog.Unity.Flags
 
         private class AssignmentsRequestAttributesDto
         {
-            [JsonProperty("supported_capabilities")]
-            public AssignmentsCapabilitiesDto SupportedCapabilities { get; set; }
-
             [JsonProperty("env")]
             public AssignmentsEnvDto Env { get; set; }
 
             [JsonProperty("subject")]
             public AssignmentsSubjectDto Subject { get; set; }
-        }
-
-        private class AssignmentsCapabilitiesDto
-        {
-            [JsonProperty("assignment_encodings")]
-            public string[] AssignmentEncodings { get; set; } = new[] { FlagKeyObfuscation.Scheme };
         }
 
         private class AssignmentsEnvDto

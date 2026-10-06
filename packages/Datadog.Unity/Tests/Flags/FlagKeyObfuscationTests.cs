@@ -201,9 +201,11 @@ namespace Datadog.Unity.Flags.Tests
         public void AdvertisesAssignmentEncodingCapability()
         {
             var fetcher = new PrecomputeAssignmentsFetcher("https://example.invalid", "token", null, "prod", null);
+            using var httpRequest = fetcher.BuildRequest(new FlagsEvaluationContext("athlete"));
+            Assert.AreEqual("assignment-encoding-flag-key-256-v1", httpRequest.GetRequestHeader("X-DD-FEATURE-FLAGS-CAPABILITIES"));
             var request = JObject.Parse(fetcher.BuildRequestBody(new FlagsEvaluationContext("athlete")));
             var attributes = request["data"]["attributes"];
-            Assert.AreEqual("flag-key-sha256-v1", attributes["supported_capabilities"]["assignment_encodings"][0].Value<string>());
+            Assert.IsNull(attributes["supported_capabilities"]);
             Assert.AreEqual("athlete", attributes["subject"]["targeting_key"].Value<string>());
         }
 

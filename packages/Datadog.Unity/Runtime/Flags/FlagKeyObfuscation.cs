@@ -14,6 +14,7 @@ namespace Datadog.Unity.Flags
     internal sealed class FlagKeyObfuscation
     {
         internal const string Scheme = "flag-key-sha256-v1";
+        internal const string Capability = "assignment-encoding-flag-key-256-v1";
         private static readonly UTF8Encoding StrictUtf8 = new(false, true);
         private static readonly byte[] Domain = StrictUtf8.GetBytes("datadog.feature-flags.flag-key.v1\0");
         private readonly byte[] _prefix;
