@@ -23,7 +23,7 @@ namespace Datadog.Unity.Tests.Integration
     public class IntegrationTestEnvironment : IPrebuildSetup, IPostBuildCleanup
     {
 #if UNITY_EDITOR
-        private const string SessionKey = "Datadog.IntegrationTestEnvironment";
+        private static bool _settingsApplied;
 
         private static string ProjectPath => Directory.GetParent(Application.dataPath).FullName;
 
@@ -35,14 +35,14 @@ namespace Datadog.Unity.Tests.Integration
 
         static IntegrationTestEnvironment()
         {
-            // Callbacks are not retained across domain reloads; SessionState is.
+            // Register callbacks again after an assembly reload.
             TestRunnerApi.RegisterTestCallback(new RunCallbacks(), 100);
-            EditorApplication.quitting += Finish;
+            EditorApplication.quitting += OnEditorQuitting;
             EditorApplication.delayCall += () =>
             {
-                if (!SessionState.GetBool(SessionKey, false))
+                if (!_settingsApplied && !EditorApplication.isPlayingOrWillChangePlaymode)
                 {
-                    Finish(); // Recover a previous Editor crash.
+                    Settings.Restore(); // Recover the asset after a previous Editor crash.
                 }
             };
         }
@@ -51,7 +51,7 @@ namespace Datadog.Unity.Tests.Integration
         public void Setup()
         {
 #if UNITY_EDITOR
-            SessionState.SetBool(SessionKey, true);
+            _settingsApplied = true;
             try
             {
                 Settings.Restore();
@@ -61,7 +61,8 @@ namespace Datadog.Unity.Tests.Integration
             }
             catch
             {
-                Finish();
+                Settings.Restore();
+                _settingsApplied = false;
                 throw;
             }
 #endif
@@ -71,13 +72,26 @@ namespace Datadog.Unity.Tests.Integration
         {
 #if UNITY_EDITOR
             // The player contains the test configuration now. It still needs the
-            // server until RunFinished, so post-build cleanup only restores settings.
+            // server during execution, so post-build cleanup only restores settings.
             Settings.Restore();
+            _settingsApplied = false;
 #endif
         }
 
 #if UNITY_EDITOR
-        [MenuItem("Datadog/Tests/Stop Integration Test Environment")]
+        [MenuItem("Datadog/Tests/Start Mock Server")]
+        public static void StartMockServer() => RunHelper("prepare");
+
+        private static void OnEditorQuitting()
+        {
+            // Batch export exits before native execution; Python handles server cleanup.
+            if (!Application.isBatchMode)
+            {
+                Finish();
+            }
+        }
+
+        [MenuItem("Datadog/Tests/Stop Mock Server")]
         public static void Finish()
         {
             try
@@ -94,11 +108,11 @@ namespace Datadog.Unity.Tests.Integration
                     }
                 }
 
-                SessionState.SetBool(SessionKey, false);
+                _settingsApplied = false;
             }
             catch (Exception error)
             {
-                Debug.LogError($"Integration test cleanup failed: {error.Message}. Retry Datadog > Tests > Stop Integration Test Environment.");
+                Debug.LogError($"Integration test cleanup failed: {error.Message}. Retry Datadog > Tests > Stop Mock Server.");
             }
         }
 
@@ -170,8 +184,14 @@ namespace Datadog.Unity.Tests.Integration
             public void RunStarted(ITestAdaptor testsToRun) { }
             public void TestStarted(ITestAdaptor test) { }
             public void TestFinished(ITestResultAdaptor result) { }
-            public void RunFinished(ITestResultAdaptor result) => Finish();
-            public void OnError(string message) => Finish();
+            public void RunFinished(ITestResultAdaptor result) => RestoreAfterRun();
+            public void OnError(string message) => RestoreAfterRun();
+
+            private static void RestoreAfterRun()
+            {
+                Settings.Restore();
+                _settingsApplied = false;
+            }
         }
 #endif
     }

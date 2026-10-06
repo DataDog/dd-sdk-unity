@@ -32,7 +32,8 @@ class UnityDiagnostics:
         self.snapshot_count = 0
         self.video_count = 0
         self.recorder = None
-        self.video_disabled = sys.platform != 'darwin'
+        self.video_disabled = (sys.platform != 'darwin'
+                               or os.environ.get('UNITY_CI_SCREEN_CAPTURE', '1') == '0')
 
     def message(self, text):
         text = f'{time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())} {text}'
@@ -137,28 +138,29 @@ class UnityDiagnostics:
             except (OSError, subprocess.TimeoutExpired) as error:
                 self.message(f'Could not stop screen recorder: {error}')
 
-    def run(self, command, status):
+    def run(self, command, status, timeout_seconds=None):
+        timeout_seconds = UNITY_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
         started = time.monotonic()
         last_capture = started
         next_heartbeat = started + HEARTBEAT_SECONDS
         probe = None
-        if (sys.platform == 'darwin' and os.environ.get('CI', '').lower() in ('true', '1')
+        if (sys.platform == 'darwin' and os.environ.get('CI', '').lower() == 'true'
                 and os.environ.get('UNITY_CI_XCODE_UI_PROBE') == '1'):
             try:
                 probe = XcodeOnboardingProbe(self.directory, self.message, self.start_video)
             except Exception as error:
                 self.message(f'Xcode UI probe unavailable: {error}')
         self.message(f'Launching Unity: {shlex.join(command)}')
-        process = subprocess.Popen(command)  # Inherit streams; Unity writes to its log file.
+        process = subprocess.Popen(command, start_new_session=True)  # Inherit streams; Unity writes to its log file.
         self.process = process
         try:
-            self.message(f'Unity PID {process.pid}; timeout {UNITY_TIMEOUT_SECONDS // 60} minutes')
+            self.message(f'Unity PID {process.pid}; timeout {timeout_seconds // 60} minutes')
             self.start_video('startup')
             while True:
-                remaining = UNITY_TIMEOUT_SECONDS - (time.monotonic() - started)
+                remaining = timeout_seconds - (time.monotonic() - started)
                 if remaining <= 0:
                     self.capture(process, 'Unity runtime limit exceeded')
-                    raise RuntimeError(f'Unity exceeded {UNITY_TIMEOUT_SECONDS // 60} minutes; '
+                    raise RuntimeError(f'Unity exceeded {timeout_seconds // 60} minutes; '
                                        f'diagnostics: {self.directory}')
                 try:
                     result = process.wait(timeout=min(POLL_SECONDS, remaining))
@@ -195,9 +197,15 @@ class UnityDiagnostics:
                 self.stop_video()
                 if process.poll() is None:
                     self.message(f'Stopping owned Unity PID {process.pid}')
-                    process.terminate()
+                    if os.name == 'nt':
+                        process.terminate()
+                    else:
+                        os.killpg(process.pid, signal.SIGTERM)
                     try:
                         process.wait(timeout=10)
                     except subprocess.TimeoutExpired:
-                        process.kill()
+                        if os.name == 'nt':
+                            process.kill()
+                        else:
+                            os.killpg(process.pid, signal.SIGKILL)
                         process.wait(timeout=5)

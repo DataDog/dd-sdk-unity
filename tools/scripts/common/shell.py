@@ -6,6 +6,8 @@ Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import subprocess
+import os
+import signal
 import selectors
 import io
 from typing import Callable, Optional, cast, Tuple
@@ -100,3 +102,22 @@ def capture_output(*args: str) -> Tuple[str, str]:
     stdout.seek(0)
     stderr.seek(0)
     return stdout.read(), stderr.read()
+
+
+def stop_process(process):
+    if process.poll() is None:
+        # Every child we launch has its own process group, including compiler children.
+        try:
+            if os.name == 'nt':
+                process.terminate()
+            else:
+                os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            if os.name == 'nt':
+                process.kill()
+            else:
+                os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=5)
+        except ProcessLookupError:
+            process.wait(timeout=5)

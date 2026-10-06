@@ -9,6 +9,8 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import os
 import sys
+import signal
+import shutil
 import argparse
 from pathlib import Path
 from contextlib import contextmanager
@@ -21,6 +23,7 @@ from common.unity import UnityCli, resolve_unity_install, modified_ios_target_se
 from integration_test_setup import IntegrationTestEnvironment
 from common.simulator import run_default_simulator
 from common.xslt import transform_nunit_to_junit
+from common.apple.simulator import run_simulator_tests
 
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -31,9 +34,14 @@ __default_test_project_unity_version__ = '2022'
 
 @contextmanager
 def _integration_test_env(project_path: str, platform: str, target: str, emulator_log_path: str, headless: bool):
-    # Unity's selected-fixture hooks own the server and SDK settings. Retain a
-    # fallback cleanup here in case the Editor exits before invoking its callbacks.
+    # Python owns a newly started server through export, native execution and results.
+    # A healthy server started from the Editor is borrowed and left running.
+    environment = IntegrationTestEnvironment(project_path)
+    started_server = False
+    owner = None
     try:
+        started_server = environment.prepare(platform=platform)
+        owner = environment._read_state()['owner']
         with modified_ios_target_settings(project_path, platform, target):
             if target != 'simulator' or platform == 'ios':
                 yield
@@ -49,7 +57,8 @@ def _integration_test_env(project_path: str, platform: str, target: str, emulato
                 (Path(project_path) / 'Assets/Resources/DatadogSettings.asset').write_bytes(backup.read_bytes())
                 backup.unlink()
         finally:
-            IntegrationTestEnvironment(project_path).finish()
+            if started_server:
+                environment.finish(expected_owner=owner)
 
 def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str, headless: bool = False):
     log = init_logger()
@@ -83,7 +92,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
 
 
     with _integration_test_env(project_path, platform, target, emulator_log_abspath, headless):
-        # Run our Unity project's integration tests in the editor
+        # GUI and Android use normal UTF; only script-driven iOS Simulator runs split.
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
         build_target = {'android': 'Android', 'ios': 'iOS'}[platform]
         args = [
@@ -93,15 +102,24 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             '-testPlatform', build_target,
             '-testResults', nunit_abspath,
         ]
-        ci = os.environ.get('CI', '').lower() in ('true', '1')
+        split = platform == 'ios' and target == 'simulator'
+        export_path = Path(project_path).resolve() / 'Build/DatadogIntegrationTests/PlayerWithTests'
+        if split:
+            if export_path.exists():
+                shutil.rmtree(export_path)
+            args += ['-buildPlayerPath', str(export_path.parent)]
+        ci = os.environ.get('CI', '').lower() == 'true'
         if ci:
             args.append('-nographics')
-        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath, diagnostics=ci)
-        if exitcode == 0:
-            log.info('Tests finished successfully.')
-        elif exitcode == 2:
-            log.error('Tests failed.')
-        else:
+        options = {'timeout_seconds': 8 * 60} if split else {}
+        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath, diagnostics=ci, **options)
+        if split:
+            if exitcode != 0:
+                raise RuntimeError(f'Unity export exited with status code {exitcode}')
+            log.info('Unity export finished; compiling and running the test player.')
+            run_simulator_tests(export_path, nunit_abspath,
+                                Path(log_abspath).with_name(junit_filename_noext + '-native.log'))
+        if exitcode not in (0, 2):
             raise RuntimeError(f'Unity exited with status code {exitcode}')
 
         # Verify that fresh test results have been written to disk
@@ -144,11 +162,15 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run integration tests on the provided version of Unity and on the specified platform.')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
-    parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
+    parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Datadog Sample' in this repo")
     parser.add_argument('--platform', choices=['ios', 'android'], required=True, help='The platform to build an app bundle for')
     parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', your must have a phone connected and ready for debugging.")
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     parser.add_argument('--headless', action='store_true', help='Run the Android emulator without a window')
     args = parser.parse_args()
 
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt('Integration tests interrupted')
+
+    signal.signal(signal.SIGTERM, interrupted)
     sys.exit(integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern, args.headless))

@@ -95,14 +95,14 @@ class UnityInstall:
             return os.path.join(self.path, 'Contents', 'MacOS', 'Unity')
         return self.path
     
-    def run_batchmode(self, project_path: str, *args: str, log_path: str, diagnostics: bool = False) -> int:
+    def run_batchmode(self, project_path: str, *args: str, log_path: str, diagnostics: bool = False, timeout_seconds: Optional[float] = None) -> int:
         # Create the log file before the tail thread opens it.
         if not os.path.isfile(log_path):
             os.makedirs(os.path.dirname(log_path), exist_ok=True)
             with open(log_path, 'w'):
                 pass
 
-        quiet_warnings = os.environ.get('CI', '').lower() in ('true', '1')
+        quiet_warnings = os.environ.get('CI', '').lower() == 'true'
         warning_pattern = re.compile(r'(?:^|:\s*)warning\s+[A-Z]+\d+:', re.IGNORECASE)
         warning_count = 0
         lightmapper_count = 0
@@ -169,7 +169,14 @@ class UnityInstall:
             unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', log_path, *args]
             if diagnostics:
                 watchdog = UnityDiagnostics(log_path)
-                exitcode = watchdog.run(unity_args, lambda: (*last_output, tail_thread.is_alive()))
+                exitcode = watchdog.run(unity_args, lambda: (*last_output, tail_thread.is_alive()), timeout_seconds=timeout_seconds)
+            elif timeout_seconds is not None:
+                from common.shell import stop_process
+                process = subprocess.Popen(unity_args, start_new_session=True)
+                try:
+                    exitcode = process.wait(timeout=timeout_seconds)
+                finally:
+                    stop_process(process)
             else:
                 exitcode = subprocess.call(unity_args)
 

@@ -245,13 +245,13 @@ def test_server_startup_failure_cleans_up_state(environment, port):
     assert not environment.state_path.exists()
 
 
-def test_next_setup_replaces_owned_server_from_interrupted_run(environment, port):
+def test_next_setup_reuses_owned_server_across_editor_reloads(environment, port, monkeypatch):
     try:
         environment.prepare('127.0.0.1', port)
-        first_owner = setup.server_health(f'http://127.0.0.1:{port}')['owner']
-        # No post-build callback: simulate a cancelled build followed by another run.
-        environment.prepare('127.0.0.1', port)
-        assert setup.server_health(f'http://127.0.0.1:{port}')['owner'] != first_owner
+        first_health = setup.server_health(f'http://127.0.0.1:{port}')
+        monkeypatch.setattr(setup, 'prepare_mock_server_venv', lambda: pytest.fail('Reusing a server must not install or restart it'))
+        assert environment.prepare('127.0.0.1', port) is False
+        assert setup.server_health(f'http://127.0.0.1:{port}') == first_health
     finally:
         environment.finish()
 
@@ -280,4 +280,26 @@ def test_cleanup_does_not_signal_pid_when_server_owner_changed(environment, port
         assert setup.server_health(f'http://127.0.0.1:{port}')['owner'] == state['owner']
     finally:
         environment.state_path.write_text(json.dumps(state))
+        environment.finish()
+
+
+def test_stale_state_starts_a_new_server(environment, port):
+    assert environment.prepare('127.0.0.1', port) is True
+    stale = environment._read_state()
+    environment.finish()
+    environment._write_state(stale)
+    try:
+        assert environment.prepare('127.0.0.1', port) is True
+        assert environment._read_state()['owner'] != stale['owner']
+    finally:
+        environment.finish()
+
+
+def test_cleanup_with_borrowed_owner_cannot_stop_replacement(environment, port):
+    environment.prepare('127.0.0.1', port)
+    try:
+        environment.finish(expected_owner='a-previous-run')
+        assert environment.state_path.exists()
+        assert setup.server_health(f'http://127.0.0.1:{port}') is not None
+    finally:
         environment.finish()

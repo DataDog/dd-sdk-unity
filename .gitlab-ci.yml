@@ -86,7 +86,6 @@ integration-test-ios:
   variables:
     # Reserve time for cleanup and diagnostic artifact upload before the 1h job limit.
     RUNNER_SCRIPT_TIMEOUT: 20m
-    UNITY_CI_XCODE_UI_PROBE: '1'
     UNITY_VERSION_PARTIAL: '2022.3'
     PROJECT_PATH: 'samples/Datadog Sample'
   script:
@@ -124,55 +123,6 @@ integration-test-ios:
           printf '%s\n' "$task_download_output"
           [[ "$task_download_output" == *"already downloaded"* ]] || exit 1
         fi
-        # AMIs pre-approve automation; Tart's provisioning account is admin/admin.
-        XCODE_AUTOMATION_TOOL=$(xcrun -f automationmodetool)
-        export XCODE_AUTOMATION_TOOL
-        test -n "$XCODE_AUTOMATION_TOOL"
-        set +x
-        export XCODE_AUTOMATION_PASSWORD="${TART_ADMIN_PASSWORD:-admin}"
-        for task_attempt in 1 2 3 4 5 6 7 8 9 10; do
-          if /usr/bin/expect <<'XCODE_AUTOMATION'
-      set timeout 10
-      log_user 0
-      spawn $env(XCODE_AUTOMATION_TOOL) enable-automationmode-without-authentication
-      expect {
-        -nocase "password" { send "$env(XCODE_AUTOMATION_PASSWORD)\r" }
-        "succeeded." { exit 0 }
-        eof { exit 1 }
-        timeout { exit 1 }
-      }
-      expect {
-        "succeeded." { exit 0 }
-        eof { exit 1 }
-        timeout { exit 1 }
-      }
-      XCODE_AUTOMATION
-          then
-            echo 'Automation mode enabled successfully'
-            break
-          fi
-          if [ "$task_attempt" = 10 ]; then
-            echo 'Automation mode did not succeed after ten attempts'
-            exit 1
-          fi
-          echo "Automation mode attempt $task_attempt failed; retrying in 10s"
-          sleep 10
-        done
-        unset XCODE_AUTOMATION_PASSWORD
-        # Match Unity's Xcode preference to the installation prepared above.
-        task_xcode_developer=$(xcode-select -p)
-        task_xcode_application=${task_xcode_developer%/Contents/Developer}
-        test -x "$task_xcode_application/Contents/MacOS/Xcode"
-        task_xcode_version=$(xcodebuild -version | awk '/^Xcode / {print $2}')
-        test -n "$task_xcode_version"
-        echo 'Unity Xcode preference before pinning:'
-        defaults read com.unity3d.UnityEditor5.x BuildWithXcodePath 2>/dev/null || true
-        defaults write com.unity3d.UnityEditor5.x BuildWithXcodePath -string "$task_xcode_application"
-        defaults write com.unity3d.UnityEditor5.x BuildWithXcodeVersion -string "$task_xcode_version"
-        defaults write com.unity3d.UnityEditor5.x BuildWithSelectedXcodeVersion -string "$task_xcode_version"
-        test "$(defaults read com.unity3d.UnityEditor5.x BuildWithXcodePath)" = "$task_xcode_application"
-        test "$(defaults read com.unity3d.UnityEditor5.x BuildWithXcodeVersion)" = "$task_xcode_version"
-        printf 'Unity Xcode selection: %s (version %s)\n' "$task_xcode_application" "$task_xcode_version"
         xcodebuild -checkFirstLaunchStatus
         xcrun simctl list runtimes available
         xcrun simctl list runtimes -j | python3 -c 'import json, sys; runtimes = json.load(sys.stdin)["runtimes"]; sys.exit(0 if any(r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-") for r in runtimes) else "No available iOS Simulator runtime after Xcode preparation")'

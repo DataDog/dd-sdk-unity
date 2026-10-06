@@ -78,9 +78,8 @@ class IntegrationTestEnvironment:
         temporary.replace(self.state_path)
 
     def prepare(self, host=None, port=PORT, platform=None):
-        # Stop an owned server left behind by a previous failed/cancelled run.
-        self.finish()
-        ci = os.environ.get('CI', '').lower() in ('true', '1')
+        """Ensure a healthy server exists; return whether this call started it."""
+        ci = os.environ.get('CI', '').lower() == 'true'
         if ci and platform in ('ios', 'android'):
             host = '127.0.0.1'
             client_host = 'localhost' if platform == 'ios' else '10.0.2.2'
@@ -91,12 +90,28 @@ class IntegrationTestEnvironment:
             raise RuntimeError('Failed to resolve a reachable LAN address for the mock server')
         endpoint = f'http://{client_host}:{port}'
         server_endpoint = f'http://{host}:{port}'
+        previous = self._read_state()
         health = server_health(server_endpoint)
+        if previous and health and previous.get('server_endpoint', previous['endpoint']) == server_endpoint:
+            if health.get('owner') == previous.get('owner') and (
+                    not previous.get('owner') or health.get('pid') == previous.get('pid')):
+                previous['endpoint'] = endpoint
+                previous['pid'] = health.get('pid')
+                self._write_state(previous)
+                print(f'Integration mock server reused at {endpoint}', flush=True)
+                return False
         if health and health.get('owner'):
             raise RuntimeError(f'Mock server at {server_endpoint} belongs to another test run')
+        if previous:
+            # A different address can still refer to a live server tracked by this project.
+            previous_health = server_health(previous.get('server_endpoint', previous['endpoint']))
+            if previous_health and previous_health.get('owner') == previous.get('owner'):
+                raise RuntimeError('A tracked mock server is running at another address; stop it before changing platforms')
+            self.state_path.unlink()
 
         self.directory.mkdir(parents=True, exist_ok=True)
-        state = {'endpoint': endpoint, 'server_endpoint': server_endpoint, 'owner': '', 'pid': None}
+        state = {'endpoint': endpoint, 'server_endpoint': server_endpoint, 'owner': '',
+                 'pid': health.get('pid') if health else None}
         self._write_state(state)
         process = None
         try:
@@ -139,10 +154,11 @@ class IntegrationTestEnvironment:
             self.finish()
             raise
         print(f'Integration mock server ready at {endpoint} ({"owned" if state["owner"] else "existing"} server)', flush=True)
+        return process is not None
 
-    def finish(self):
+    def finish(self, expected_owner=None):
         state = self._read_state()
-        if not state:
+        if not state or (expected_owner is not None and state.get('owner') != expected_owner):
             return
         if state['owner'] and state['pid']:
             server_endpoint = state.get('server_endpoint', state['endpoint'])
@@ -151,7 +167,7 @@ class IntegrationTestEnvironment:
             if health and health.get('owner') == state['owner'] and health.get('pid') == state['pid']:
                 os.kill(state['pid'], signal.SIGTERM)
                 deadline = time.monotonic() + 5
-                while server_health(server_endpoint) == health:
+                while server_health(server_endpoint, retry_timeout=True) == health:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Owned mock server did not stop; retry cleanup')
                     time.sleep(0.1)
@@ -160,7 +176,7 @@ class IntegrationTestEnvironment:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['prepare', 'finish'])
+    parser.add_argument('action', choices=['prepare', 'status', 'finish'])
     parser.add_argument('--project', required=True)
     parser.add_argument('--platform', type=str.lower, help='Unity build platform for CI simulator routing')
     args = parser.parse_args()
@@ -168,5 +184,8 @@ if __name__ == '__main__':
     environment = IntegrationTestEnvironment(args.project)
     if args.action == 'prepare':
         environment.prepare(platform=args.platform)
+    elif args.action == 'status':
+        state = environment._read_state()
+        print(json.dumps(state if state and server_health(state.get('server_endpoint', state['endpoint'])) else None))
     else:
         environment.finish()

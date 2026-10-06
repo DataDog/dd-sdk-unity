@@ -298,7 +298,7 @@ process.stdout.write(JSON.stringify({result,calls}));
         assert data['result']['windows'][0]['controls'][9]['name'] is None
 
 
-@pytest.mark.parametrize('ci,enabled', [('true', True), ('1', True), ('false', False), ('', False)])
+@pytest.mark.parametrize('ci,enabled', [('true', True), ('1', False), ('false', False), ('', False)])
 def test_probe_opt_in_requires_ci_and_cannot_fail_normal_unity(tmp_path, monkeypatch, ci, enabled):
     from . import diagnostics
     events = []

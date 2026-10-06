@@ -215,15 +215,20 @@ The [`integration_test`][integration-test] script runs all tests in the `Integra
 # Run integration tests on Android, using an AVD
 ./run-script integration_test --platform android
 
+# Run integration tests on an iOS Simulator
+./run-script integration_test --platform ios
+
 # Run integration tests on iOS, using a physically-connected iPhone
 ./run-script integration_test --platform ios --target device
 ```
 
-As with the unit test script, these commands launch the Unity Editor in headless mode. Selected integration-test fixtures use `IPrebuildSetup` to prepare the mock server and SDK settings, so the same setup also works from the Editor:
+As with the unit test script, these commands launch the Unity Editor in headless mode. For iOS Simulator runs, the script uses UTF split mode: the batch Editor exports the test player and exits, then Python compiles with `xcodebuild` and installs/launches through `simctl`. The player writes NUnit XML into its data container, which Python retrieves and converts to JUnit. The script creates and deletes its own Simulator using an available iOS runtime. Android and physical iOS devices retain normal UTF execution.
 
-- The hook starts a mock server on the host's reachable LAN address, port 5100, or reuses an existing mock server on that address. Initial setup requires Python 3, package-download access, and GitHub SSH access for the event schemas.
+Selected integration-test fixtures use `IPrebuildSetup` to ensure the mock server is available and prepare SDK settings, so setup also works from the built-in Editor Test Runner:
+
+- The helper starts a mock server on the host's reachable LAN address, port 5100, or reuses a healthy server identified by its state file. Initial setup requires Python 3, package-download access, and GitHub access for the event schemas. In CI, iOS uses localhost and Android uses 10.0.2.2; the host readiness probe uses 127.0.0.1.
 - C# saves the project's Datadog settings and configures the `DatadogConfigurationOptions` asset directly before the player is built. `IPostBuildCleanup` restores the exact original asset after the build; the built player retains the test configuration. Python manages the mock server, and the CLI can restore the asset backup if Unity exits before cleanup.
-- Editor completion and error callbacks stop only the server started by that run. The CLI retains emulator provisioning, platform selection, and JUnit conversion, plus fallback cleanup if Unity exits early.
+- The CLI keeps its server running through export and native tests, and stops a server it started in `finally`, including failures or interruption. A borrowed server stays running. GUI runs keep the server between tests; **Datadog > Tests > Start Mock Server** and **Stop Mock Server** provide manual control. Closing the GUI Editor stops its tracked server; batch Editor exit leaves CLI cleanup in charge.
 
 New integration-test fixtures should inherit `IntegrationTestBase`, which declares the shared setup and cleanup attributes. Editor-only setup code is guarded inside `IntegrationTestEnvironment`; fixtures need no preprocessor directives or hook attributes.
 
@@ -239,4 +244,4 @@ To run integration tests from the Editor:
 
 Server and SDK settings are prepared automatically; no manual endpoint edits or additional environment variables are needed. Keep the host LAN address reachable from the device. iOS player runs use the same hooks, with the usual Xcode/device or simulator setup.
 
-Test Framework 1.4.6 does not expose a reliable public cancellation callback. After cancelling or abandoning a run, use **Datadog > Tests > Stop Integration Test Environment**. Cleanup also runs when the Editor quits; reopening the project or starting another integration run recovers saved state after a crash. Recovery state and server logs are in `Library/DatadogIntegrationTests`. Do not edit Datadog settings while a test build is in progress.
+After cancelling or abandoning a GUI run, use **Datadog > Tests > Stop Mock Server** when the server is no longer needed. Reopening the project restores an interrupted asset backup; the next setup reuses a healthy tracked server or replaces stale state after a crash. Recovery state and server logs are in `Library/DatadogIntegrationTests`. Do not edit Datadog settings while a test build is in progress.
