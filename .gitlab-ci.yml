@@ -84,6 +84,8 @@ integration-test-ios:
   timeout: 1h
   # Add 2021.3 and 6000.2 once their projects have the integration-test prerequisites.
   variables:
+    # Reserve time for cleanup and diagnostic artifact upload before the 1h job limit.
+    RUNNER_SCRIPT_TIMEOUT: 50m
     UNITY_VERSION_PARTIAL: '2022.3'
     PROJECT_PATH: 'samples/Datadog Sample'
   script:
@@ -99,6 +101,9 @@ integration-test-ios:
       junit: integration-test-ios.xml
     paths:
       - integration-test-ios*.log
+      - integration-test-ios-diagnostics/
+      - "$PROJECT_PATH/Library/Bee/**/*.traceevents"
+      - "$PROJECT_PATH/Logs/AssetImportWorker*.log"
       - nunit-integration-test-ios.xml
       - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
 

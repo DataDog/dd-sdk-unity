@@ -93,9 +93,10 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             '-testPlatform', build_target,
             '-testResults', nunit_abspath,
         ]
-        if os.environ.get('CI', '').lower() in ('true', '1'):
+        ci = os.environ.get('CI', '').lower() in ('true', '1')
+        if ci:
             args.append('-nographics')
-        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
+        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath, diagnostics=ci)
         if exitcode == 0:
             log.info('Tests finished successfully.')
         elif exitcode == 2:
