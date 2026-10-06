@@ -85,7 +85,7 @@ integration-test-ios:
   # Add 2021.3 and 6000.2 once their projects have the integration-test prerequisites.
   variables:
     # Reserve time for cleanup and diagnostic artifact upload before the 1h job limit.
-    RUNNER_SCRIPT_TIMEOUT: 50m
+    RUNNER_SCRIPT_TIMEOUT: 20m
     UNITY_VERSION_PARTIAL: '2022.3'
     PROJECT_PATH: 'samples/Datadog Sample'
   script:
@@ -104,9 +104,60 @@ integration-test-ios:
           echo 'Xcode first-launch tasks need preparation'
         fi
         xcrun simctl list runtimes available
+        sudo xcodebuild -license accept
         sudo xcodebuild -runFirstLaunch
-        # Run as the job/GUI user so Xcode registers the platform in that user's preferences.
-        xcodebuild -downloadPlatform iOS
+        sudo mkdir -p /Library/Developer/CoreSimulator/Images/Inbox /Library/Developer/CoreSimulator/Images/mnt
+        xcrun simctl list devices >/dev/null 2>&1 || true
+        # Match AMI registration using the installed runtime's internal build ID.
+        task_runtime_build=$(xcrun simctl list runtimes -j | python3 -c 'import json, sys; runtimes = json.load(sys.stdin)["runtimes"]; builds = [r.get("buildversion") for r in runtimes if r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-") and r.get("buildversion")]; sys.exit("No available iOS runtime build for registration") if not builds else print(builds[0])')
+        if [ "$(uname -m)" = arm64 ]; then
+          task_architecture=arm64
+        else
+          task_architecture=universal
+        fi
+        printf 'Registering iOS runtime build %s, architecture %s\n' "$task_runtime_build" "$task_architecture"
+        # Run as the job/GUI user, retaining the AMI's already-downloaded fallback.
+        if task_download_output=$(xcodebuild -downloadPlatform iOS -buildVersion "$task_runtime_build" -architectureVariant "$task_architecture" 2>&1); then
+          printf '%s\n' "$task_download_output"
+        else
+          printf '%s\n' "$task_download_output"
+          [[ "$task_download_output" == *"already downloaded"* ]] || exit 1
+        fi
+        # AMIs pre-approve automation; Tart's provisioning account is admin/admin.
+        XCODE_AUTOMATION_TOOL=$(xcrun -f automationmodetool)
+        export XCODE_AUTOMATION_TOOL
+        test -n "$XCODE_AUTOMATION_TOOL"
+        set +x
+        export XCODE_AUTOMATION_PASSWORD="${TART_ADMIN_PASSWORD:-admin}"
+        for task_attempt in 1 2 3 4 5 6 7 8 9 10; do
+          if /usr/bin/expect <<'XCODE_AUTOMATION'
+      set timeout 10
+      log_user 0
+      spawn $env(XCODE_AUTOMATION_TOOL) enable-automationmode-without-authentication
+      expect {
+        -nocase "password" { send "$env(XCODE_AUTOMATION_PASSWORD)\r" }
+        "succeeded." { exit 0 }
+        eof { exit 1 }
+        timeout { exit 1 }
+      }
+      expect {
+        "succeeded." { exit 0 }
+        eof { exit 1 }
+        timeout { exit 1 }
+      }
+      XCODE_AUTOMATION
+          then
+            echo 'Automation mode enabled successfully'
+            break
+          fi
+          if [ "$task_attempt" = 10 ]; then
+            echo 'Automation mode did not succeed after ten attempts'
+            exit 1
+          fi
+          echo "Automation mode attempt $task_attempt failed; retrying in 10s"
+          sleep 10
+        done
+        unset XCODE_AUTOMATION_PASSWORD
         xcodebuild -checkFirstLaunchStatus
         xcrun simctl list runtimes available
         xcrun simctl list runtimes -j | python3 -c 'import json, sys; runtimes = json.load(sys.stdin)["runtimes"]; sys.exit(0 if any(r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-") for r in runtimes) else "No available iOS Simulator runtime after Xcode preparation")'
