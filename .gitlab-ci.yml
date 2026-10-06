@@ -91,6 +91,27 @@ integration-test-ios:
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
+    - |
+      set -o pipefail
+      (
+        set -e
+        printf 'Preparing Xcode: job user=%s, console user=%s\n' "$(id -un)" "$(stat -f '%Su' /dev/console)"
+        xcode-select -p
+        xcodebuild -version
+        if xcodebuild -checkFirstLaunchStatus; then
+          echo 'Xcode first-launch tasks are already complete'
+        else
+          echo 'Xcode first-launch tasks need preparation'
+        fi
+        xcrun simctl list runtimes available
+        sudo xcodebuild -runFirstLaunch
+        # Run as the job/GUI user so Xcode registers the platform in that user's preferences.
+        xcodebuild -downloadPlatform iOS
+        xcodebuild -checkFirstLaunchStatus
+        xcrun simctl list runtimes available
+        xcrun simctl list runtimes -j | python3 -c 'import json, sys; runtimes = json.load(sys.stdin)["runtimes"]; sys.exit(0 if any(r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-") for r in runtimes) else "No available iOS Simulator runtime after Xcode preparation")'
+        xcrun simctl list devices available
+      ) 2>&1 | tee integration-test-ios-xcode-setup.log
     - !reference [.shared, configure-unity-licensing]
     - ./run-script ios_xcframework stage
     - ./run-script integration_test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
