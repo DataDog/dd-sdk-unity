@@ -139,6 +139,7 @@ integration-test-ios:
     paths:
       - integration-test-ios*.log
       - integration-test-ios-diagnostics/
+      - integration-test-ios-native-diagnostics/
       - "$PROJECT_PATH/Library/Bee/**/*.traceevents"
       - "$PROJECT_PATH/Logs/AssetImportWorker*.log"
       - nunit-integration-test-ios.xml
