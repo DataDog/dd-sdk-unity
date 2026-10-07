@@ -40,7 +40,7 @@ def _integration_test_env(project_path: str, platform: str, target: str, emulato
     started_server = False
     owner = None
     try:
-        started_server = environment.prepare(platform=platform)
+        started_server = environment.prepare()
         owner = environment._read_state()['owner']
         with modified_ios_target_settings(project_path, platform, target):
             if target != 'simulator' or platform == 'ios':

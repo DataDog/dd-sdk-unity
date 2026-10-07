@@ -137,8 +137,7 @@ namespace Datadog.Unity.Tests.Integration
 
             var windows = Application.platform == RuntimePlatform.WindowsEditor;
             var script = Path.Combine(root.FullName, windows ? "run-script.bat" : "run-script");
-            var platform = EditorUserBuildSettings.activeBuildTarget.ToString().ToLowerInvariant();
-            var arguments = $"integration_test_setup {action} --project \"{ProjectPath}\" --platform {platform}";
+            var arguments = $"integration_test_setup {action} --project \"{ProjectPath}\"";
             var startInfo = new ProcessStartInfo(
                 windows ? "cmd.exe" : script,
                 windows ? $"/d /s /c \"\"{script}\" {arguments}\"" : arguments)

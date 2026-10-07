@@ -77,18 +77,12 @@ class IntegrationTestEnvironment:
         temporary.write_text(json.dumps(state))
         temporary.replace(self.state_path)
 
-    def prepare(self, host=None, port=PORT, platform=None):
+    def prepare(self, host=None, port=PORT):
         """Ensure a healthy server exists; return whether this call started it."""
-        ci = os.environ.get('CI', '').lower() == 'true'
-        if ci and platform in ('ios', 'android'):
-            host = '127.0.0.1'
-            client_host = 'localhost' if platform == 'ios' else '10.0.2.2'
-        else:
-            host = host or get_reachable_inet_addr()
-            client_host = host
+        host = host or get_reachable_inet_addr()
         if not host:
             raise RuntimeError('Failed to resolve a reachable LAN address for the mock server')
-        endpoint = f'http://{client_host}:{port}'
+        endpoint = f'http://{host}:{port}'
         server_endpoint = f'http://{host}:{port}'
         previous = self._read_state()
         health = server_health(server_endpoint)
@@ -178,12 +172,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['prepare', 'status', 'finish'])
     parser.add_argument('--project', required=True)
-    parser.add_argument('--platform', type=str.lower, help='Unity build platform for CI simulator routing')
     args = parser.parse_args()
     init_logger()
     environment = IntegrationTestEnvironment(args.project)
     if args.action == 'prepare':
-        environment.prepare(platform=args.platform)
+        environment.prepare()
     elif args.action == 'status':
         state = environment._read_state()
         print(json.dumps(state if state and server_health(state.get('server_endpoint', state['endpoint'])) else None))

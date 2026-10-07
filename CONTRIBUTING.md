@@ -226,7 +226,7 @@ As with the unit test script, these commands launch the Unity Editor in headless
 
 Selected integration-test fixtures use `IPrebuildSetup` to ensure the mock server is available and prepare SDK settings, so setup also works from the built-in Editor Test Runner:
 
-- The helper starts a mock server on the host's reachable LAN address, port 5100, or reuses a healthy server identified by its state file. Initial setup requires Python 3, package-download access, and GitHub access for the event schemas. In CI, iOS uses localhost and Android uses 10.0.2.2; the host readiness probe uses 127.0.0.1.
+- The helper starts a mock server on the host's reachable LAN address, port 5100, or reuses a healthy server identified by its state file. Initial setup requires Python 3, package-download access, and GitHub access for the event schemas. The server and player use the same LAN address in CI and locally.
 - C# saves the project's Datadog settings and configures the `DatadogConfigurationOptions` asset directly before the player is built. `IPostBuildCleanup` restores the exact original asset after the build; the built player retains the test configuration. Python manages the mock server, and the CLI can restore the asset backup if Unity exits before cleanup.
 - The CLI keeps its server running through export and native tests, and stops a server it started in `finally`, including failures or interruption. A borrowed server stays running. GUI runs keep the server between tests; **Datadog > Tests > Start Mock Server** and **Stop Mock Server** provide manual control. Closing the GUI Editor stops its tracked server; batch Editor exit leaves CLI cleanup in charge.
 
