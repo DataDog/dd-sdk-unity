@@ -33,7 +33,7 @@ __default_test_project_unity_version__ = '2022'
 
 
 @contextmanager
-def _integration_test_env(project_path: str, platform: str, target: str, emulator_log_path: str, headless: bool):
+def _integration_test_env(project_path: str, platform: str, target: str, emulator_log_path: str):
     # Python owns a newly started server through export, native execution and results.
     # A healthy server started from the Editor is borrowed and left running.
     environment = IntegrationTestEnvironment(project_path)
@@ -46,7 +46,7 @@ def _integration_test_env(project_path: str, platform: str, target: str, emulato
             if target != 'simulator' or platform == 'ios':
                 yield
             else:
-                with run_default_simulator(platform, log_path=emulator_log_path, headless=headless):
+                with run_default_simulator(platform, log_path=emulator_log_path):
                     yield
     finally:
         try:
@@ -60,7 +60,7 @@ def _integration_test_env(project_path: str, platform: str, target: str, emulato
             if started_server:
                 environment.finish(expected_owner=owner)
 
-def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str, headless: bool = False):
+def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):
     log = init_logger()
 
     # Check to see if we have the requisite Unity version installed
@@ -93,7 +93,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             os.remove(abspath)
 
 
-    with _integration_test_env(project_path, platform, target, emulator_log_abspath, headless):
+    with _integration_test_env(project_path, platform, target, emulator_log_abspath):
         # GUI and Android use normal UTF; only script-driven iOS Simulator runs split.
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
         build_target = {'android': 'Android', 'ios': 'iOS'}[platform]
@@ -169,11 +169,10 @@ if __name__ == '__main__':
     parser.add_argument('--platform', choices=['ios', 'android'], required=True, help='The platform to build an app bundle for')
     parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', your must have a phone connected and ready for debugging.")
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
-    parser.add_argument('--headless', action='store_true', help='Run the Android emulator without a window')
     args = parser.parse_args()
 
     def interrupted(signum, frame):
         raise KeyboardInterrupt('Integration tests interrupted')
 
     signal.signal(signal.SIGTERM, interrupted)
-    sys.exit(integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern, args.headless))
+    sys.exit(integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern))

@@ -49,7 +49,7 @@ class AndroidDeviceSpec:
 
 
 @contextmanager
-def run_android_device(spec: AndroidDeviceSpec, *, log_path: str = None, headless: bool = False) -> Generator[AdbDevice, None, None]:
+def run_android_device(spec: AndroidDeviceSpec, *, log_path: str = None) -> Generator[AdbDevice, None, None]:
     log = get_default_logger()
     log.info('Preparing an emulated Android device...')
     log.info(f'- API Level: {spec.api_level}')
@@ -105,9 +105,6 @@ def run_android_device(spec: AndroidDeviceSpec, *, log_path: str = None, headles
         '-no-snapshot',
         '-wipe-data',
     ]
-    if headless:
-        emulator_args.append('-no-window')
-
     with ExitStack() as stack:
         output = stack.enter_context(open(log_path, 'w')) if log_path else subprocess.DEVNULL
         if log_path:

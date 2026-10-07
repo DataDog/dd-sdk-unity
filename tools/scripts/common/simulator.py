@@ -17,11 +17,11 @@ __default_android_device__ = AndroidDeviceSpec.default(api_level=33, device='pix
 
 
 @contextmanager
-def run_default_simulator(platform: str, *, log_path: str = None, headless: bool = False):
+def run_default_simulator(platform: str, *, log_path: str = None):
     if platform.lower() == 'ios':
         with run_apple_device(__default_ios_device__):
             yield
     else:
         assert platform.lower() == 'android'
-        with run_android_device(__default_android_device__, log_path=log_path, headless=headless):
+        with run_android_device(__default_android_device__, log_path=log_path):
             yield
