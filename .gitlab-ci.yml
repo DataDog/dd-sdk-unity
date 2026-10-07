@@ -78,7 +78,7 @@ stages:
 
 integration-test-ios:
   stage: integration-test
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-3437fb59-143143969
   tags:
     - macos:tart
   timeout: 1h
