@@ -113,8 +113,6 @@ def test_match_unity_version():
 
 @pytest.mark.parametrize('ci', [False, True])
 def test_run_batchmode_preserves_log_and_exit_status(tmp_path, monkeypatch, capsys, ci):
-    from .diagnostics import UnityDiagnostics
-
     log_path = tmp_path / 'Editor.log'
     contents = ('Assets/Test.cs(1,1): warning CS0168: unused variable\n'
                 + 'Falling back to CPU lightmapper.\n' * 100
@@ -130,11 +128,10 @@ def test_run_batchmode_preserves_log_and_exit_status(tmp_path, monkeypatch, caps
              str(log_path), contents], *args, **kwargs,
         )
     monkeypatch.setattr(subprocess, 'Popen', popen)
-    monkeypatch.setattr(UnityDiagnostics, 'start_video', lambda self, label: None)
     monkeypatch.setenv('CI', 'true' if ci else 'false')
 
     install = UnityInstall(UnityVersion.parse('2022.3.67f2'), 'arm64', '/fake/Unity')
-    result = install.run_batchmode('/fake/sample project', '-runTests', log_path=str(log_path), diagnostics=ci)
+    result = install.run_batchmode('/fake/sample project', '-runTests', log_path=str(log_path), timeout_seconds=10)
 
     assert result == 2
     assert log_path.read_text() == contents
@@ -146,4 +143,3 @@ def test_run_batchmode_preserves_log_and_exit_status(tmp_path, monkeypatch, caps
     assert launches[0][0][1] == '-batchmode'
     assert 'stdout' not in launches[0][1]
     assert 'stderr' not in launches[0][1]
-    assert (tmp_path / 'Editor-diagnostics' / 'watchdog.log').is_file() == ci

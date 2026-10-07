@@ -14,8 +14,6 @@ import time
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .diagnostics import UnityDiagnostics
-
 
 @dataclass
 class UnityVersion:
@@ -95,7 +93,7 @@ class UnityInstall:
             return os.path.join(self.path, 'Contents', 'MacOS', 'Unity')
         return self.path
     
-    def run_batchmode(self, project_path: str, *args: str, log_path: str, diagnostics: bool = False, timeout_seconds: Optional[float] = None) -> int:
+    def run_batchmode(self, project_path: str, *args: str, log_path: str, timeout_seconds: Optional[float] = None) -> int:
         # Create the log file before the tail thread opens it.
         if not os.path.isfile(log_path):
             os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -106,10 +104,9 @@ class UnityInstall:
         warning_pattern = re.compile(r'(?:^|:\s*)warning\s+[A-Z]+\d+:', re.IGNORECASE)
         warning_count = 0
         lightmapper_count = 0
-        last_output = (time.monotonic(), 'No Editor output yet')
 
         def _read(line: str):
-            nonlocal warning_count, lightmapper_count, last_output
+            nonlocal warning_count, lightmapper_count
             if quiet_warnings and line.strip() == 'Falling back to CPU lightmapper.':
                 lightmapper_count += 1
                 if lightmapper_count > 1:
@@ -117,7 +114,6 @@ class UnityInstall:
             if quiet_warnings and warning_pattern.search(line):
                 warning_count += 1
                 return
-            last_output = (time.monotonic(), line)
             max_retries = 10
             delay = 0.01
             for attempt in range(max_retries):
@@ -161,16 +157,13 @@ class UnityInstall:
                     _read(line.rstrip('\n'))
 
         try:
-            tail_thread = threading.Thread(target=_tail_log, daemon=diagnostics)
+            tail_thread = threading.Thread(target=_tail_log, daemon=True)
             tail_thread.start()
             ready_event.wait()
 
             # Run Unity in batchmode with our desired args, logging to the specified file
             unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', log_path, *args]
-            if diagnostics:
-                watchdog = UnityDiagnostics(log_path)
-                exitcode = watchdog.run(unity_args, lambda: (*last_output, tail_thread.is_alive()), timeout_seconds=timeout_seconds)
-            elif timeout_seconds is not None:
+            if timeout_seconds is not None:
                 from common.shell import stop_process
                 process = subprocess.Popen(unity_args, start_new_session=True)
                 try:
@@ -182,9 +175,9 @@ class UnityInstall:
 
             # Let the tail thread finish reading from the log file
             stop_event.set()
-            tail_thread.join(timeout=30 if diagnostics else None)
-            if diagnostics and tail_thread.is_alive():
-                watchdog.capture(watchdog.process, 'Editor exited, but the log reader did not finish within 30 seconds')
+            tail_thread.join(timeout=30)
+            if tail_thread.is_alive():
+                print(f'Editor exited, but the log reader did not finish. Full log: {log_path}')
             if warning_count:
                 print(f'Suppressed {warning_count} compiler/analyzer warnings from the CI console. Full log: {log_path}')
             if lightmapper_count > 1:

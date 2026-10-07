@@ -112,7 +112,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
         if ci:
             args.append('-nographics')
         options = {'timeout_seconds': 8 * 60} if split else {}
-        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath, diagnostics=ci, **options)
+        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath, **options)
         if split:
             if exitcode != 0:
                 raise RuntimeError(f'Unity export exited with status code {exitcode}')

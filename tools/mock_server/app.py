@@ -7,20 +7,16 @@
 # -----------------------------------------------------------
 
 import argparse
-import faulthandler
 import os
 import json
 
 import datetime
 from hashlib import sha1
-import sys
-from socketserver import TCPServer
 from typing import Optional
 from dataclasses import dataclass, is_dataclass, asdict
 from flask import Flask, request, Request, render_template, url_for, redirect
 from flask_cors import CORS
 import flask
-from werkzeug.serving import ThreadedWSGIServer
 from schema_update import schemas_path_exists, update_schemas
 from schemas.schema import Schema
 from schemas.raw import RAWSchema
@@ -36,8 +32,6 @@ CORS(app)
 
 @app.route('/__datadog_test_health')
 def test_health():
-    if app.config.get('TEST_OWNER'):
-        faulthandler.cancel_dump_traceback_later()
     # Keep readiness probes out of the request history inspected by tests.
     return {
         'service': 'datadog-unity-mock-server',
@@ -337,25 +331,12 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
         print(f'⚠️ Could not find endpoint with hash {endpoint_hash}')
         return redirect(url_for('inspect'))
 
-class _IntegrationTestServer(ThreadedWSGIServer):
-    def server_bind(self):
-        # HTTPServer performs reverse DNS here, which can stall before listen() in CI.
-        # Test URLs already use explicit addresses, so no hostname lookup is needed.
-        TCPServer.server_bind(self)
-        self.server_name, self.server_port = self.server_address[:2]
-
-
 def run(preferred_address: str, port: int, owned: bool = False):
     if not preferred_address:
         preferred_address = get_best_server_address().ip
 
     # Owned test servers must have one stable PID and no interactive debugger.
-    if owned:
-        with _IntegrationTestServer(preferred_address, port, app) as server:
-            print(f'Mock server listening at http://{preferred_address}:{server.server_port}', flush=True)
-            server.serve_forever()
-    else:
-        app.run(debug=True, use_reloader=True, host=preferred_address, port=port)
+    app.run(debug=not owned, use_reloader=not owned, host=preferred_address, port=port)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -382,8 +363,4 @@ if __name__ == '__main__':
         preferred_address = '127.0.0.1'
 
     app.config['TEST_OWNER'] = args.test_owner
-    if args.test_owner:
-        print(f"Mock-server Python: {sys.executable} (base: {sys.base_prefix})", flush=True)
-        # Capture a stalled startup before the helper reaches its 15-second deadline.
-        faulthandler.dump_traceback_later(10)
     run(preferred_address, args.port, owned=bool(args.test_owner))

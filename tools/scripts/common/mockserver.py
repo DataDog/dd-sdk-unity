@@ -21,7 +21,6 @@ __mock_server_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '
 
 def prepare_mock_server_venv():
     log = get_default_logger()
-    log.info(f"Mock-server setup Python: {sys.executable} (base: {sys.base_prefix})")
 
     # mock_server has its own requirements.txt file, so make sure it has a venv dir
     venv_dir = os.path.join(__mock_server_root__, 'venv')
