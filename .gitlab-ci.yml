@@ -91,19 +91,10 @@ integration-test-ios:
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
+    - xcodebuild -version
     - |
       set -o pipefail
-      (
-        set -e
-        xcode-select -p
-        xcodebuild -version
-        sudo xcodebuild -license accept
-        if ! xcodebuild -checkFirstLaunchStatus; then
-          sudo xcodebuild -runFirstLaunch
-          xcodebuild -checkFirstLaunchStatus
-        fi
-        xcrun simctl list runtimes -j | python3 -c 'import json, sys; runtimes = json.load(sys.stdin)["runtimes"]; sys.exit(0 if any(r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-") for r in runtimes) else "No available iOS Simulator runtime")'
-      ) 2>&1 | tee integration-test-ios-xcode-setup.log
+      xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
     - !reference [.shared, configure-unity-licensing]
     - ./run-script ios_xcframework stage
     - ./run-script integration_test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
