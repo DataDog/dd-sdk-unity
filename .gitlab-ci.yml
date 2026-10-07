@@ -92,9 +92,7 @@ integration-test-ios:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
     - xcodebuild -version
-    - |
-      set -o pipefail
-      xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
+    - xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
     - !reference [.shared, configure-unity-licensing]
     - ./run-script ios_xcframework stage
     - ./run-script integration_test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
@@ -104,9 +102,8 @@ integration-test-ios:
     reports:
       junit: integration-test-ios.xml
     paths:
+      - integration-test-ios.xml
       - integration-test-ios*.log
-      - integration-test-ios-native-diagnostics/
-      - nunit-integration-test-ios.xml
       - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
 
 .package-ios:

@@ -232,7 +232,7 @@ Selected integration-test fixtures use `IPrebuildSetup` to ensure the mock serve
 
 New integration-test fixtures should inherit `IntegrationTestBase`, which declares the shared setup and cleanup attributes. Editor-only setup code is guarded inside `IntegrationTestEnvironment`; fixtures need no preprocessor directives or hook attributes.
 
-Integration test results are written in JUnit format to `integration-test-<platform>.xml`. If all tests pass, the script will exit with a status code of 0.
+Integration test results are written in JUnit format to `integration-test-<platform>.xml`. Intermediate NUnit XML is kept under the project's `Build/DatadogIntegrationTests` directory and removed after conversion. If all tests pass, the script will exit with a status code of 0.
 
 #### Debugging integration tests
 

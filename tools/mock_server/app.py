@@ -351,7 +351,7 @@ def run(preferred_address: str, port: int, owned: bool = False):
             print(f'Mock server listening at http://{preferred_address}:{server.server_port}', flush=True)
             server.serve_forever()
     else:
-        app.run(debug=True, use_reloader=True, host=preferred_address, port=port)
+        app.run(debug=True, host=preferred_address, port=port)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

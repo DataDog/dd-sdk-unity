@@ -79,7 +79,9 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     junit_abspath = os.path.abspath(out_junit_path_pattern % {'platform': platform.lower()})
     artifact_dir, junit_filename = os.path.split(junit_abspath)
     junit_filename_noext, _ = os.path.splitext(junit_filename)
-    nunit_abspath = os.path.join(artifact_dir, 'nunit-' + junit_filename)
+    build_directory = Path(project_path).resolve() / 'Build/DatadogIntegrationTests'
+    build_directory.mkdir(parents=True, exist_ok=True)
+    nunit_abspath = str(build_directory / ('nunit-' + junit_filename))
     log_abspath = os.path.join(artifact_dir, junit_filename_noext + '.log')
     emulator_log_abspath = os.path.join(artifact_dir, junit_filename_noext + '-emulator.log')
     os.makedirs(artifact_dir, exist_ok=True)
@@ -103,7 +105,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             '-testResults', nunit_abspath,
         ]
         split = platform == 'ios' and target == 'simulator'
-        export_path = Path(project_path).resolve() / 'Build/DatadogIntegrationTests/PlayerWithTests'
+        export_path = build_directory / 'PlayerWithTests'
         if split:
             if export_path.exists():
                 shutil.rmtree(export_path)
@@ -128,6 +130,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
 
         # Convert the intermediate NUnit results file to JUnit format, and parse them
         transform_nunit_to_junit(nunit_abspath, junit_abspath)
+        os.remove(nunit_abspath)
         log.info(f'JUnit results written to: {junit_abspath}')
         test_results = JUnitXml.fromfile(junit_abspath)
 

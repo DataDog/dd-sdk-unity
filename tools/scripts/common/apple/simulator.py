@@ -8,7 +8,6 @@ import json
 from pathlib import Path
 import plistlib
 import shlex
-import shutil
 import sys
 import subprocess
 import time
@@ -86,59 +85,6 @@ def _print_player_progress(reader):
             log.info(line[marker:].rstrip())
 
 
-def _collect_failure_logs(udid, bundle_id, app_name, container, launch, started, directory):
-    directory = directory / udid
-    directory.mkdir(parents=True, exist_ok=True)
-    log = get_default_logger()
-    log.warning(f'Collecting Simulator failure diagnostics before cleanup: {directory}')
-    (directory / 'launch.json').write_text(json.dumps({
-        'simulator_udid': udid, 'bundle_id': bundle_id, 'executable': app_name,
-        'console_launcher_pid': launch.pid, 'console_launcher_exit_code': launch.poll(),
-        'launch_started_unix': started, 'collected_unix': time.time(),
-    }, indent=2))
-
-    def command(arguments, filename, timeout):
-        with (directory / filename).open('w') as output:
-            try:
-                result = subprocess.run(arguments, stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT, timeout=timeout)
-                output.write(f'\nDiagnostic command exit code: {result.returncode}\n')
-            except (OSError, subprocess.TimeoutExpired) as error:
-                output.write(f'\nDiagnostic command unavailable: {error}\n')
-
-    predicate = (f'process == {json.dumps(app_name)} OR process == "ReportCrash" OR '
-                 f'process == "runningboardd" OR eventMessage CONTAINS {json.dumps(bundle_id)}')
-    command(['xcrun', 'simctl', 'spawn', udid, 'log', 'show', '--style', 'compact',
-             '--info', '--debug', '--start', f'@{int(started) - 5}', '--predicate', predicate],
-            'system.log', 20)
-    command(['xcrun', 'simctl', 'spawn', udid, 'launchctl', 'list'], 'launch-services.log', 10)
-
-    # ReportCrash may write the .ips file asynchronously after the app exits.
-    reports = directory / 'crash-reports'
-    reports.mkdir()
-    sources = [Path.home() / 'Library/Logs/DiagnosticReports',
-               Path.home() / 'Library/Developer/CoreSimulator/Devices' / udid / 'data/Library/Logs/CrashReporter']
-    copied = set()
-    deadline = time.monotonic() + 10
-    while True:
-        for index, source in enumerate(sources):
-            if not source.is_dir():
-                continue
-            for report in source.glob(app_name + '*'):
-                if (report.is_file() and report.suffix in ('.ips', '.crash', '.hang')
-                        and report.name.startswith(app_name) and report.stat().st_mtime >= started
-                        and report not in copied):
-                    shutil.copy2(report, reports / f'{index}-{report.name}')
-                    copied.add(report)
-        if copied or time.monotonic() >= deadline:
-            break
-        time.sleep(0.5)
-    (directory / 'crash-reports.log').write_text(
-        '\n'.join(str(report) for report in sorted(copied)) or 'No matching new app crash report found.\n')
-    sdk_reports = container / 'Library/Caches/CrashReports'
-    if sdk_reports.is_dir():
-        shutil.copytree(sdk_reports, directory / 'sdk-crash-reports')
-
-
 def run_simulator_tests(export_path, nunit_path, log_path, timeout=600):
     log = get_default_logger()
     export_path = Path(export_path)
@@ -153,9 +99,6 @@ def run_simulator_tests(export_path, nunit_path, log_path, timeout=600):
     log.info(f'Created owned iOS Simulator {udid}, runtime {runtime}')
     launch = None
     bundle_id = None
-    app_name = None
-    container = None
-    launch_started = None
     try:
         derived = export_path.parent / 'ios-derived-data'
         workspace = export_path / 'Unity-iPhone.xcworkspace'
@@ -168,9 +111,7 @@ def run_simulator_tests(export_path, nunit_path, log_path, timeout=600):
         if len(apps) != 1:
             raise RuntimeError(f'Expected one built test app, found {apps}')
         with (apps[0] / 'Info.plist').open('rb') as info:
-            app_info = plistlib.load(info)
-            bundle_id = app_info['CFBundleIdentifier']
-            app_name = app_info['CFBundleExecutable']
+            bundle_id = plistlib.load(info)['CFBundleIdentifier']
         _run(['xcrun', 'simctl', 'boot', udid], log_path, deadline)
         _run(['xcrun', 'simctl', 'bootstatus', udid, '-b'], log_path, deadline)
         _run(['xcrun', 'simctl', 'install', udid, str(apps[0])], log_path, deadline)
@@ -182,7 +123,6 @@ def run_simulator_tests(export_path, nunit_path, log_path, timeout=600):
         player_log = Path(log_path).with_name(Path(log_path).stem + '-player.log')
         log.info(f'Launching {bundle_id} via simctl; player log: {player_log}')
         with player_log.open('w') as output, player_log.open(errors='replace') as reader:
-            launch_started = time.time()
             launch_command = ['xcrun', 'simctl', 'launch', '--console-pty', udid, bundle_id]
             with Path(log_path).open('a') as native_log:
                 native_log.write('$ ' + shlex.join(launch_command) + '\n')
@@ -212,12 +152,6 @@ def run_simulator_tests(export_path, nunit_path, log_path, timeout=600):
         primary_error = sys.exc_info()[0] is not None
         cleanup_errors = []
         if launch is not None:
-            if primary_error:
-                try:
-                    _collect_failure_logs(udid, bundle_id, app_name, container, launch, launch_started,
-                                          Path(log_path).with_suffix('').with_name(Path(log_path).stem + '-diagnostics'))
-                except Exception as error:
-                    log.warning(f'Simulator diagnostic collection failed: {error}')
             try:
                 if bundle_id:
                     subprocess.run(['xcrun', 'simctl', 'terminate', udid, bundle_id], timeout=15,
