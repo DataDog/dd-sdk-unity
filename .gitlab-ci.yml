@@ -105,6 +105,11 @@ integration-test-ios:
       - integration-test-ios.xml
       - integration-test-ios*.log
       - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+  retry:
+    max: 2
+    exit_codes:
+      # Integration tests invoke the Editor directly rather than Unity CLI.
+      - 198
 
 .package-ios:
   stage: package

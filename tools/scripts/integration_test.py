@@ -117,12 +117,14 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
         exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath, **options)
         if split:
             if exitcode != 0:
-                raise RuntimeError(f'Unity export exited with status code {exitcode}')
+                log.error(f'Unity export exited with status code {exitcode}')
+                return exitcode
             log.info('Unity export finished; compiling and running the test player.')
             run_simulator_tests(export_path, nunit_abspath,
                                 Path(log_abspath).with_name(junit_filename_noext + '-native.log'))
         if exitcode not in (0, 2):
-            raise RuntimeError(f'Unity exited with status code {exitcode}')
+            log.error(f'Unity exited with status code {exitcode}')
+            return exitcode
 
         # Verify that fresh test results have been written to disk
         if not os.path.isfile(nunit_abspath):
