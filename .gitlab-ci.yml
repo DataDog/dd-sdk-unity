@@ -17,6 +17,8 @@ default:
 
 variables:
   UNITY_NON_INTERACTIVE: "1"
+  AWS_METADATA_SERVICE_TIMEOUT: '5'
+  AWS_METADATA_SERVICE_NUM_ATTEMPTS: '3'
   UNITY_VERSION_PARTIAL: 2022.3
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
