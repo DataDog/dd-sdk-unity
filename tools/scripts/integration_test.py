@@ -10,7 +10,9 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import os
 import sys
 import signal
+import shutil
 import argparse
+from pathlib import Path
 from contextlib import contextmanager
 from typing import List
 
@@ -21,6 +23,7 @@ from common.unity import UnityCli, resolve_unity_install, modified_ios_target_se
 from integration_test_setup import IntegrationTestEnvironment
 from common.simulator import run_default_simulator
 from common.xslt import transform_nunit_to_junit
+from common.apple.simulator import run_simulator_tests
 
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -80,15 +83,30 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
     with _integration_test_env(project_path, platform, target):
         # Run our Unity project's integration tests in the editor
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
+        build_target = {'ios': 'iOS', 'android': 'Android'}[platform]
         args = [
             '-runTests',
-            '-buildTarget', platform,
+            '-buildTarget', build_target,
             '-testCategory', 'integration',
-            '-testPlatform', platform,
+            '-testPlatform', build_target,
             '-testResults', nunit_abspath,
+            '-nographics',
         ]
+        split = platform == 'ios' and target == 'simulator'
+        if split:
+            export_path = Path(project_path).resolve() / 'Build/DatadogIntegrationTests/PlayerWithTests'
+            if export_path.exists():
+                shutil.rmtree(export_path)
+            export_path.parent.mkdir(parents=True, exist_ok=True)
+            args += ['-buildPlayerPath', str(export_path.parent)]
         exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
-        if exitcode == 0:
+        if split:
+            if exitcode != 0:
+                raise RuntimeError(f'Unity export exited with status code {exitcode}')
+            log.info('Unity export finished; compiling and running the test player.')
+            run_simulator_tests(export_path, nunit_abspath,
+                                Path(log_abspath).with_name(junit_filename_noext + '-native.log'))
+        elif exitcode == 0:
             log.info('Tests finished successfully.')
         elif exitcode == 2:
             log.error('Tests failed.')
