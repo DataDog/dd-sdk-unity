@@ -31,18 +31,21 @@ PORT = 5100
 
 def server_health(endpoint: str, retry_timeout=False):
     # macOS can silently drop connections to an unused LAN port. Check whether
-    # this local address is free before issuing HTTP, rather than mistaking that
+    # the port is free before issuing HTTP, rather than mistaking that
     # firewall timeout for an existing server. Still verify any occupied port.
     address = urlsplit(endpoint)
-    with socket.socket() as probe:
-        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            probe.bind((address.hostname, address.port))
-        except OSError as error:
-            if error.errno != errno.EADDRINUSE:
-                raise
-        else:
-            return None
+    # macOS may allow a specific-address bind alongside a wildcard listener, or vice versa.
+    for bind_host in ('0.0.0.0', address.hostname):
+        with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                probe.bind((bind_host, address.port))
+            except OSError as error:
+                if error.errno != errno.EADDRINUSE:
+                    raise
+                break
+    else:
+        return None
     # Local test traffic must not go through a machine's HTTP proxy.
     try:
         with build_opener(ProxyHandler({})).open(endpoint + HEALTH_PATH, timeout=1) as response:
@@ -114,7 +117,7 @@ class IntegrationTestEnvironment:
                 state['owner'] = uuid.uuid4().hex
                 with (self.directory / 'mock-server.log').open('ab') as log:
                     process = subprocess.Popen(
-                        [python, 'app.py', '--addr', host, '--port', str(port), '--test-owner', state['owner']],
+                        [python, 'app.py', '--addr', '0.0.0.0', '--port', str(port), '--test-owner', state['owner']],
                         cwd=__mock_server_root__, stdout=log, stderr=subprocess.STDOUT,
                         stdin=subprocess.DEVNULL, start_new_session=True,
                     )
