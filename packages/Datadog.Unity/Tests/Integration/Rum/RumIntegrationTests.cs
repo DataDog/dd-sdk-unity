@@ -17,7 +17,7 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration.Rum
 {
-    public class RumIntegrationTests
+    public class RumIntegrationTests : IntegrationTestBase
     {
         [UnityTest]
         [Category("integration")]

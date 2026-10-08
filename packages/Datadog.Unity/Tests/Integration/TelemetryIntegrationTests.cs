@@ -13,7 +13,7 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration
 {
-    public class TelemetryIntegrationTests
+    public class TelemetryIntegrationTests : IntegrationTestBase
     {
         [UnityTest]
         [Category("integration")]
