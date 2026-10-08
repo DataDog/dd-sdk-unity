@@ -1,7 +1,22 @@
 include:
   - 'https://gitlab-templates.ddbuild.io/slack-notifier/v3-sdm/template.yml'
 
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      auto_cancel:
+        on_new_commit: none
+    - when: always
+
+default:
+  interruptible: true
+  after_script:
+    - unity license return --yes || true
+
 variables:
+  UNITY_NON_INTERACTIVE: "1"
   UNITY_VERSION_PARTIAL: 2022.3
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
 
