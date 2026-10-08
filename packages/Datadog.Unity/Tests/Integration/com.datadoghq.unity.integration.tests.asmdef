@@ -1,5 +1,5 @@
 {
-    "name": "com.datadoghq.unity.tests",
+    "name": "com.datadoghq.unity.integration.tests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
@@ -14,13 +14,11 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
-        "Newtonsoft.Json.dll",
-        "NSubstitute.dll"
+        "Newtonsoft.Json.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [
-        "UNITY_INCLUDE_TESTS",
-        "UNITY_EDITOR"
+        "UNITY_INCLUDE_TESTS"
     ],
     "versionDefines": [],
     "noEngineReferences": false
