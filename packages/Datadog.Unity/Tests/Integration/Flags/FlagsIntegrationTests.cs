@@ -14,7 +14,7 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration.Flags
 {
-    public class FlagsIntegrationTests
+    public class FlagsIntegrationTests : IntegrationTestBase
     {
         private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(30);
 
