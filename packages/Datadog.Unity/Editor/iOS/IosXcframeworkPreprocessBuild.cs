@@ -30,6 +30,24 @@ namespace Datadog.Unity.Editor.iOS
             var requiredModules = IosDependencyVersion.Load().modules;
 
             Validate(pluginsIosDirectory, requiredModules);
+
+            foreach (var module in requiredModules)
+            {
+                var assetPath = $"Packages/{IosDependencyVersion.PackageName}/Plugins/iOS/{module}.xcframework";
+                var importer = AssetImporter.GetAtPath(assetPath) as PluginImporter;
+                if (importer == null)
+                {
+                    throw new BuildFailedException($"Datadog: no native plugin importer found for {assetPath}.");
+                }
+
+                // Linking lets Xcode find the framework while building. Embedding
+                // also makes it available when the app runs without Xcode's debugger.
+                if (importer.GetPlatformData(BuildTarget.iOS, "AddToEmbeddedBinaries") != "true")
+                {
+                    importer.SetPlatformData(BuildTarget.iOS, "AddToEmbeddedBinaries", "true");
+                    importer.SaveAndReimport();
+                }
+            }
         }
 
         internal static List<string> FindMissingModules(string pluginsIosDirectory, IEnumerable<string> requiredModules)
