@@ -56,18 +56,14 @@ def _simulator_type(runtimes, devices):
 
 
 def collect_results(source, destination):
-    """UTF's runtime callback returns a suite; the existing converter expects test-run."""
+    """Wrap Unity's runtime suite in a NUnit <test-run> root for JUnit conversion."""
     root = ET.parse(source).getroot()
     if root.tag == 'test-suite':
         run = ET.Element('test-run', dict(root.attrib))
         run.append(root)
         root = run
     if root.tag != 'test-run' or not root.findall('.//test-case'):
-        raise RuntimeError('The Simulator did not produce a nonempty NUnit test run')
-    # Runtime ToXml retains discovery counts even when the run is category-filtered.
-    for suite in root.iter():
-        if suite.tag in ('test-run', 'test-suite'):
-            suite.set('testcasecount', str(len(suite.findall('.//test-case'))))
+        raise RuntimeError('Expected a Simulator NUnit test-run document containing at least one test case')
     ET.ElementTree(root).write(destination, encoding='utf-8', xml_declaration=True)
 
 

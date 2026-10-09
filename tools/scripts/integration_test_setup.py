@@ -1,8 +1,19 @@
-"""Mock-server startup and cleanup for integration tests.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
+"""Unless explicitly stated otherwise, all files in this repository are licensed under the
 Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+
+Start, reuse, and stop the mock server used by Unity integration tests.
+The Python integration runner calls this module's IntegrationTestEnvironment class
+directly. To manage the server separately, run these commands from the repository root:
+
+    ./run-script integration_test_setup start --project 'samples/Datadog Sample'
+    ./run-script integration_test_setup stop --project 'samples/Datadog Sample'
+
+The required --project selects the Unity project whose Library/DatadogIntegrationTests
+directory holds the server state and log. start reuses a live recorded process after
+checking its PID and creation time, or starts a server on the reachable LAN address at
+port 5100. stop terminates the verified recorded process and its reloader workers. These
+commands manage only the server; they do not run tests or configure SDK settings.
 """
 import argparse
 import errno
@@ -162,7 +173,7 @@ class IntegrationTestEnvironment:
         temporary.write_text(json.dumps(state))
         temporary.replace(self.state_path)
 
-    def prepare(self, host=None, port=PORT):
+    def start(self, host=None, port=PORT):
         """Reuse a live recorded PID; otherwise start a server and return its Popen reference."""
         state = self._read_state()
         if state and process_is_running(state):
@@ -170,7 +181,7 @@ class IntegrationTestEnvironment:
             print(f'Integration mock server reused at {self.endpoint}', flush=True)
             return None
         if state:
-            self.finish()
+            self.stop()
 
         host = host or get_reachable_inet_addr()
         if not host:
@@ -203,12 +214,12 @@ class IntegrationTestEnvironment:
                 time.sleep(0.1)
         except BaseException:
             if process is not None:
-                self.finish(process)
+                self.stop(process)
             raise
         print(f'Integration mock server ready at {self.endpoint}', flush=True)
         return process
 
-    def finish(self, process=None):
+    def stop(self, process=None):
         """Stop the recorded process group, including reloader workers."""
         state = self._read_state()
         if state is None and process is None:
@@ -224,12 +235,12 @@ class IntegrationTestEnvironment:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['prepare', 'finish'])
+    parser.add_argument('action', choices=['start', 'stop'])
     parser.add_argument('--project', required=True)
     args = parser.parse_args()
     init_logger()
     environment = IntegrationTestEnvironment(args.project)
-    if args.action == 'prepare':
-        environment.prepare()
+    if args.action == 'start':
+        environment.start()
     else:
-        environment.finish()
+        environment.stop()

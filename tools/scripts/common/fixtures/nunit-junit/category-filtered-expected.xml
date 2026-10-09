@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1" errors="0" disabled="0" time="1">
+  <testsuite tests="2" time="1" errors="0" failures="1" skipped="0" timestamp="" name="Integration.">
+    <testcase name="passes" assertions="1" time="0.5" status="Passed" classname="Fixture"/>
+    <testcase name="fails" assertions="1" time="0.5" status="Failed" classname="Fixture">
+      <failure message="native assertion">at Fixture</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

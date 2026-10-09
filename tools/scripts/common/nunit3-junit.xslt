@@ -4,7 +4,7 @@
 
   <xsl:template match="/test-run">
     <xsl:variable name="suiteFailures" select=".//test-suite[failure and not(@site = ('Child', 'Parent'))]"/>
-    <testsuites tests="{@testcasecount + count($suiteFailures)}" failures="{@failed + count($suiteFailures[not(@label = 'Error')])}" errors="{count($suiteFailures[@label = 'Error'])}" disabled="{@skipped}" time="{@duration}">
+    <testsuites tests="{count(.//test-case) + count($suiteFailures)}" failures="{@failed + count($suiteFailures[not(@label = 'Error')])}" errors="{count($suiteFailures[@label = 'Error'])}" disabled="{@skipped}" time="{@duration}">
       <xsl:apply-templates/>
     </testsuites>
   </xsl:template>
