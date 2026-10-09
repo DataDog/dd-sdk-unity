@@ -6,26 +6,25 @@ Unless explicitly stated otherwise, all files in this repository are licensed un
 Apache License Version 2.0. This product includes software developed at Datadog
 (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
+import shlex
 import subprocess
 from typing import List
 
+from common.log import get_default_logger
+from common.shell import stop_process
+
 
 def run_xcodebuild(cwd: str, args: List[str]):
-    # Run xcodebuild and pipe the output into xcbeautify
-    xcodebuild_args = ['xcodebuild'] + args
-    xcodebuild = subprocess.Popen(xcodebuild_args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    xcbeautify = subprocess.Popen(['xcbeautify'], cwd=cwd, stdin=xcodebuild.stdout)
-
-    # Close xcodebuild's stdout to handle broken pipe gracefully
-    assert xcodebuild.stdout
-    xcodebuild.stdout.close()
-
-    # Wait for both processes to complete
-    xcbeautify.wait()
-    xcodebuild.wait()
-
-    # Check both exit codes
-    if xcodebuild.returncode != 0:
-        raise subprocess.CalledProcessError(xcodebuild.returncode, xcodebuild_args)
-    if xcbeautify.returncode != 0:
-        raise subprocess.CalledProcessError(xcbeautify.returncode, ['xcbeautify'])
+    command = ['xcodebuild', *args]
+    pipeline = shlex.join(command) + ' 2>&1 | xcbeautify'
+    log = get_default_logger()
+    log.info('Running: ' + pipeline)
+    process = subprocess.Popen(['bash', '-o', 'pipefail', '-c', pipeline], cwd=cwd,
+                               stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                               start_new_session=True)
+    try:
+        result = process.wait()
+        if result:
+            raise subprocess.CalledProcessError(result, command)
+    finally:
+        stop_process(process)
