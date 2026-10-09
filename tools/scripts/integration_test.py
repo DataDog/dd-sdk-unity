@@ -9,6 +9,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 """
 import os
 import sys
+import signal
 import argparse
 from contextlib import contextmanager
 from typing import List
@@ -17,9 +18,7 @@ from junitparser.junitparser import JUnitXml, TestCase
 
 from common.log import init_logger
 from common.unity import UnityCli, resolve_unity_install, modified_ios_target_settings
-from common.ddconfig import DatadogRuntimeConfig, FirstPartyHost, modified_datadog_settings
-from common.inet_addr import get_reachable_inet_addr
-from common.mockserver import prepare_mock_server_venv, run_mock_server
+from integration_test_setup import IntegrationTestEnvironment
 from common.simulator import run_default_simulator
 from common.xslt import transform_nunit_to_junit
 
@@ -31,44 +30,26 @@ __default_test_project_unity_version__ = '2022'
 
 
 @contextmanager
-def _integration_test_env(project_path: str, config: DatadogRuntimeConfig, mock_server_bind_addr: str, mock_server_port: int, platform: str, target: str):
-    # Modify DatadogSettings.asset to configure test prerequisites and set use the mock
-    # server URL as a custom endpoint
-    with modified_datadog_settings(project_path, config):
-        # For iOS builds only, modify ProjectSettings.asset to use the desired iOS
-        # target (simulator vs. device)
+def _integration_test_env(project_path: str, platform: str, target: str):
+    # Keep the mock server alive through the complete player run.
+    environment = IntegrationTestEnvironment(project_path)
+    process = None
+    prepared = False
+    try:
+        process = environment.prepare()
+        prepared = True
         with modified_ios_target_settings(project_path, platform, target):
-            # Run the mock server that will record HTTP requests sent by the SDK
-            with run_mock_server(mock_server_bind_addr, mock_server_port):
-                # If we're targeting a real device, allow the tests to run: we expect
-                # that the user has connected a physical phone that's the default
-                # device for debugging
-                if target != 'simulator':
-                    yield
-                    return
-
-                # Similarly, proceed with tests if we're targeting iOS: Unity will
-                # launch Xcode and run the tests through it, and Xcode automatically
-                # launches a simulator unconditionally
-                if platform == 'ios':
-                    yield
-                    return
-
-                # For Android builds with a target of 'simulator', preemptively launch
-                # an emulator running an appropriate AVD: this should become the
-                # default device in adb, and Unity will deploy to it automatically
-                # TODO: Device targeting is currently implicit; i.e. if a user already
-                # has an Android phone connected or another simulator running, there's
-                # no guarantee that we'll actually use this emulator for our tests
+            if target != 'simulator' or platform == 'ios':
+                yield
+            else:
                 with run_default_simulator(platform):
                     yield
+    finally:
+        if prepared:
+            environment.finish(process)
 
 def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):
     log = init_logger()
-
-    # Make sure we have a Python interpreter with all required dependencies to run the
-    # mock server
-    prepare_mock_server_venv()
 
     # Check to see if we have the requisite Unity version installed
     unity_cli = UnityCli.require()
@@ -96,41 +77,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
             os.remove(abspath)
 
 
-    # We need our mock server to bind to an address that is reachable from a simulator
-    # or external device on our network
-    mock_server_port = 5100
-    mock_server_bind_addr = get_reachable_inet_addr()
-    if not mock_server_bind_addr:
-        raise RuntimeError('Failed to resolve a private IP for mock server')
-    mock_server_url = f'http://{mock_server_bind_addr}:{mock_server_port}'
-
-    # Temporarily modify the project's DatadogSettings asset so that it will send data
-    # to the mock server we're about to stand up, and also apply any settings that the
-    # integration tests require
-    mock_host = f'{mock_server_bind_addr}:{mock_server_port}'
-    config = DatadogRuntimeConfig(
-        enabled=True,
-        sdk_verbosity=1,
-        client_token='fake-client-token',
-        env='integration-test',
-        service_name='datadog-sample',
-        custom_endpoint=mock_server_url,
-        batch_size=1,
-        upload_frequency=1,
-        batch_processing_level=1,
-        crash_reporting_enabled=True,
-        forward_unity_logs=True,
-        remote_log_threshold=3,
-        rum_enabled=True,
-        rum_application_id='fake-rum-application-id',
-        automatic_scene_tracking=True,
-        session_sample_rate=100,
-        trace_sample_rate=100,
-        telemetry_sample_rate=100,
-        # 18 == TracingHeaderType.Datadog | TracingHeaderType.TraceContext
-        first_party_hosts=[FirstPartyHost(host=mock_host, tracing_header_type=18)],
-    )
-    with _integration_test_env(project_path, config, mock_server_bind_addr, mock_server_port, platform, target):
+    with _integration_test_env(project_path, platform, target):
         # Run our Unity project's integration tests in the editor
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
         args = [
@@ -192,4 +139,8 @@ if __name__ == '__main__':
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()
 
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt('Integration tests interrupted')
+
+    signal.signal(signal.SIGTERM, interrupted)
     sys.exit(integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern))
