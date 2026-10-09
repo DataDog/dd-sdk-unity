@@ -2,6 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System;
+
 namespace Datadog.Unity.Flags
 {
     /// <summary>
@@ -44,6 +46,26 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public readonly string CustomEvaluationEndpoint;
 
+        /// <summary>
+        /// Timeout for each precomputed assignment request, in seconds. The timeout covers
+        /// receiving the complete response body. Set to 0 to disable; negative values are
+        /// normalized to 0 and values above 2,147,483 are capped. Default: 0.
+        /// </summary>
+        public readonly int AssignmentRequestTimeoutSeconds;
+
+        /// <summary>
+        /// Number of retries after the initial precomputed assignment request fails transiently.
+        /// Values are clamped to the range [0, 10]. Set to 0 to disable. Default: 0.
+        /// </summary>
+        public readonly int AssignmentRequestRetryCount;
+
+        /// <summary>
+        /// Fully configured transport used only for assignment requests. When non-null, this
+        /// transport is used verbatim and the scalar assignment timeout and retry settings are
+        /// not applied. The caller retains ownership of the transport.
+        /// </summary>
+        public readonly IAssignmentRequestTransport AssignmentRequestTransport;
+
         public FlagsConfiguration(
             bool trackExposures = true,
             bool trackEvaluations = true,
@@ -51,6 +73,77 @@ namespace Datadog.Unity.Flags
             string customFlagsEndpoint = null,
             string customExposureEndpoint = null,
             string customEvaluationEndpoint = null)
+            : this(
+                assignmentRequestTimeoutSeconds: 0,
+                assignmentRequestRetryCount: AssignmentRequestRetryPolicy.DefaultRetryCount,
+                trackExposures: trackExposures,
+                trackEvaluations: trackEvaluations,
+                evaluationFlushIntervalSeconds: evaluationFlushIntervalSeconds,
+                customFlagsEndpoint: customFlagsEndpoint,
+                customExposureEndpoint: customExposureEndpoint,
+                customEvaluationEndpoint: customEvaluationEndpoint,
+                assignmentRequestTransport: null)
+        {
+        }
+
+        public FlagsConfiguration(
+            int assignmentRequestTimeoutSeconds,
+            int assignmentRequestRetryCount,
+            bool trackExposures = true,
+            bool trackEvaluations = true,
+            float evaluationFlushIntervalSeconds = 10.0f,
+            string customFlagsEndpoint = null,
+            string customExposureEndpoint = null,
+            string customEvaluationEndpoint = null)
+            : this(
+                assignmentRequestTimeoutSeconds,
+                assignmentRequestRetryCount,
+                trackExposures,
+                trackEvaluations,
+                evaluationFlushIntervalSeconds,
+                customFlagsEndpoint,
+                customExposureEndpoint,
+                customEvaluationEndpoint,
+                assignmentRequestTransport: null)
+        {
+        }
+
+        /// <summary>
+        /// Creates a Flags configuration with a fully composed assignment-only transport.
+        /// The scalar convenience policy is not added to this transport.
+        /// </summary>
+        public FlagsConfiguration(
+            IAssignmentRequestTransport assignmentRequestTransport,
+            bool trackExposures = true,
+            bool trackEvaluations = true,
+            float evaluationFlushIntervalSeconds = 10.0f,
+            string customFlagsEndpoint = null,
+            string customExposureEndpoint = null,
+            string customEvaluationEndpoint = null)
+            : this(
+                assignmentRequestTimeoutSeconds: 0,
+                assignmentRequestRetryCount: AssignmentRequestRetryPolicy.DefaultRetryCount,
+                trackExposures: trackExposures,
+                trackEvaluations: trackEvaluations,
+                evaluationFlushIntervalSeconds: evaluationFlushIntervalSeconds,
+                customFlagsEndpoint: customFlagsEndpoint,
+                customExposureEndpoint: customExposureEndpoint,
+                customEvaluationEndpoint: customEvaluationEndpoint,
+                assignmentRequestTransport: assignmentRequestTransport ??
+                    throw new ArgumentNullException(nameof(assignmentRequestTransport)))
+        {
+        }
+
+        private FlagsConfiguration(
+            int assignmentRequestTimeoutSeconds,
+            int assignmentRequestRetryCount,
+            bool trackExposures,
+            bool trackEvaluations,
+            float evaluationFlushIntervalSeconds,
+            string customFlagsEndpoint,
+            string customExposureEndpoint,
+            string customEvaluationEndpoint,
+            IAssignmentRequestTransport assignmentRequestTransport)
         {
             TrackExposures = trackExposures;
             TrackEvaluations = trackEvaluations;
@@ -58,6 +151,11 @@ namespace Datadog.Unity.Flags
             CustomFlagsEndpoint = customFlagsEndpoint;
             CustomExposureEndpoint = customExposureEndpoint;
             CustomEvaluationEndpoint = customEvaluationEndpoint;
+            AssignmentRequestTimeoutSeconds = AssignmentRequestRetryPolicy.NormalizeTimeoutSeconds(
+                assignmentRequestTimeoutSeconds);
+            AssignmentRequestRetryCount = AssignmentRequestRetryPolicy.NormalizeRetryCount(
+                assignmentRequestRetryCount);
+            AssignmentRequestTransport = assignmentRequestTransport;
         }
     }
 }
