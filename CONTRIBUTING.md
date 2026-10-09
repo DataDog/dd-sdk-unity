@@ -209,7 +209,7 @@ Unit test results are written in JUnit format to `unit-test-<mode>.xml`. If all 
 
 ### Integration tests
 
-Close the target project in the Editor before running integration tests. These commands use `samples/Datadog Sample` with Unity 2022.3:
+Before running integration tests, close the target project in the Editor and make sure the test device can reach your computer's LAN address on port 5100. These commands use `samples/Datadog Sample` with Unity 2022.3:
 
 ```bash
 # Run integration tests on Android, using an AVD
@@ -229,7 +229,7 @@ As with the unit test script, these commands launch the Unity Editor in headless
 - It configures the project's Datadog Settings to use that server and enable the features under test.
 - It runs the tests on Android or iOS players, exercising the underlying native SDKs.
 
-Use `--project` and `--unity-version` to select another project and Editor. The test device must be able to reach your computer's LAN address on port 5100.
+Use `--project` and `--unity-version` to select another project and Editor.
 
 Results are written to `integration-test-<platform>.xml` in JUnit format, with logs alongside them. Mock-server logs are under the project's `Library/DatadogIntegrationTests/` directory.
 
