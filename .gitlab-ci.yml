@@ -22,6 +22,7 @@ variables:
 
 stages:
   - unit-test
+  - integration-test
   - package
   - post
 
@@ -88,6 +89,42 @@ unit-test:
       # Retry Unity CLI operation failures (6) and unavailable services (7).
       - 6
       - 7
+
+integration-test-ios:
+  stage: integration-test
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
+  tags:
+    - macos:tart
+  timeout: 1h
+  variables:
+    # Reserve time for cleanup and artifact upload before the job limit.
+    RUNNER_SCRIPT_TIMEOUT: 20m
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: '2022.3'
+        PROJECT_PATH: 'samples/Datadog Sample'
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - xcodebuild -version
+    - xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
+    - !reference [.shared, configure-unity-licensing]
+    - ./run-script ios_xcframework stage
+    - ./run-script integration_test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: integration-test-ios.xml
+    paths:
+      - integration-test-ios.xml
+      - integration-test-ios*.log
+      - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+  retry:
+    max: 2
+    exit_codes:
+      # Integration tests invoke the Editor directly rather than Unity CLI.
+      - 198
 
 package-ios:
   stage: package
