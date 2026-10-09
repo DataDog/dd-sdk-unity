@@ -124,5 +124,108 @@ namespace Datadog.Unity.Flags.Tests
             Assert.IsNotNull(flags);
             Assert.AreEqual(0, flags.Count);
         }
+
+        [Test]
+        public void ParsesZeroSerialId()
+        {
+            var json = @"{
+                ""data"": {
+                    ""attributes"": {
+                        ""flags"": {
+                            ""enable-feature"": {
+                                ""variationType"": ""boolean"",
+                                ""variationValue"": true,
+                                ""doLog"": true,
+                                ""allocationKey"": ""alloc-abc"",
+                                ""variationKey"": ""treatment"",
+                                ""reason"": ""TARGETING_MATCH"",
+                                ""serialId"": 0
+                            }
+                        }
+                    }
+                }
+            }";
+
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+
+            Assert.AreEqual(0, flags["enable-feature"].SerialId);
+        }
+
+        [Test]
+        public void ParsesPositiveSerialId()
+        {
+            var json = @"{
+                ""data"": {
+                    ""attributes"": {
+                        ""flags"": {
+                            ""enable-feature"": {
+                                ""variationType"": ""boolean"",
+                                ""variationValue"": true,
+                                ""doLog"": true,
+                                ""allocationKey"": ""alloc-abc"",
+                                ""variationKey"": ""treatment"",
+                                ""reason"": ""TARGETING_MATCH"",
+                                ""serialId"": 42
+                            }
+                        }
+                    }
+                }
+            }";
+
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+
+            Assert.AreEqual(42, flags["enable-feature"].SerialId);
+        }
+
+        [Test]
+        public void ParsesExplicitNullSerialIdAsAbsent()
+        {
+            var json = @"{
+                ""data"": {
+                    ""attributes"": {
+                        ""flags"": {
+                            ""enable-feature"": {
+                                ""variationType"": ""boolean"",
+                                ""variationValue"": true,
+                                ""doLog"": true,
+                                ""allocationKey"": ""alloc-abc"",
+                                ""variationKey"": ""treatment"",
+                                ""reason"": ""TARGETING_MATCH"",
+                                ""serialId"": null
+                            }
+                        }
+                    }
+                }
+            }";
+
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+
+            Assert.IsNull(flags["enable-feature"].SerialId);
+        }
+
+        [Test]
+        public void ParsesMissingSerialIdAsAbsent()
+        {
+            var json = @"{
+                ""data"": {
+                    ""attributes"": {
+                        ""flags"": {
+                            ""enable-feature"": {
+                                ""variationType"": ""boolean"",
+                                ""variationValue"": true,
+                                ""doLog"": true,
+                                ""allocationKey"": ""alloc-abc"",
+                                ""variationKey"": ""treatment"",
+                                ""reason"": ""TARGETING_MATCH""
+                            }
+                        }
+                    }
+                }
+            }";
+
+            var flags = PrecomputeAssignmentsFetcher.ParseResponse(json);
+
+            Assert.IsNull(flags["enable-feature"].SerialId);
+        }
     }
 }
