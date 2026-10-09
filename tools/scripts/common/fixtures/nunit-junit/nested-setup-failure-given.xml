@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<test-run testcasecount="1" failed="1" skipped="0" duration="1">
+  <test-suite name="Fixture" fullname="Tests.Fixture" testcasecount="1" failed="1" duration="1" site="SetUp" label="Error">
+    <failure>
+      <message>setup exploded</message>
+      <stack-trace>at Fixture.Setup</stack-trace>
+    </failure>
+    <test-suite name="Parameterized" testcasecount="1" failed="1" duration="1" site="Parent">
+      <failure>
+        <message>setup exploded</message>
+      </failure>
+      <test-case name="blocked(1)" classname="Tests.Fixture" result="Failed" duration="0">
+        <failure>
+          <message>OneTimeSetUp: setup exploded</message>
+        </failure>
+      </test-case>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -63,7 +63,7 @@ def test_unused_local_port_does_not_require_http_response(port, monkeypatch):
 
 
 def test_started_server_is_recorded_and_stopped(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     try:
         assert environment._read_state() == {
             'pid': process.pid, 'create_time': process.create_time(),
@@ -71,11 +71,11 @@ def test_started_server_is_recorded_and_stopped(environment, port):
         }
         assert setup.server_health(environment.endpoint) is True
     finally:
-        environment.finish(process)
+        environment.stop(process)
     assert process.poll() is not None
     assert setup.server_health(environment.endpoint) is None
     assert not environment.state_path.exists()
-    environment.finish()
+    environment.stop()
 
 
 @pytest.mark.parametrize('ci', ['true', 'false'])
@@ -86,12 +86,12 @@ def test_runs_use_lan_address(environment, port, monkeypatch, ci):
         lookups.append(True)
         return '127.0.0.1'
     monkeypatch.setattr(setup, 'get_reachable_inet_addr', lan_address)
-    process = environment.prepare(port=port)
+    process = environment.start(port=port)
     try:
         assert lookups == [True]
         assert environment._read_state()['endpoint'] == f'http://127.0.0.1:{port}'
     finally:
-        environment.finish(process)
+        environment.stop(process)
 
 
 @pytest.mark.parametrize('probe_error', [setup.URLError(TimeoutError('starting')), TimeoutError('starting')])
@@ -110,39 +110,39 @@ def test_startup_retries_health_timeout(environment, port, monkeypatch, probe_er
         opener.open = open_with_timeout
         return opener
     monkeypatch.setattr(setup, 'build_opener', timeout_first_request)
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     try:
         assert timed_out
         assert setup.server_health(environment.endpoint) is True
     finally:
-        environment.finish(process)
+        environment.stop(process)
 
 
 def test_live_pid_returns_without_http_or_bootstrap(environment, port, monkeypatch):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     state = environment._read_state()
     try:
         helper = setup.IntegrationTestEnvironment(environment.directory.parent.parent)
         monkeypatch.setattr(setup, 'server_health', lambda *args, **kwargs: pytest.fail('A live PID must return directly'))
         monkeypatch.setattr(setup, 'prepare_mock_server_venv', lambda: pytest.fail('A live PID must not bootstrap'))
         monkeypatch.setattr(setup, 'get_reachable_inet_addr', lambda: pytest.fail('A live PID must reuse the saved endpoint'))
-        assert helper.prepare() is None
+        assert helper.start() is None
         assert helper.endpoint == state['endpoint']
         assert helper._read_state() == state
     finally:
-        environment.finish(process)
+        environment.stop(process)
 
 
 def test_cleanup_stops_a_reused_recorded_server(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     try:
         helper = setup.IntegrationTestEnvironment(environment.directory.parent.parent)
-        assert helper.prepare() is None
-        helper.finish()
+        assert helper.start() is None
+        helper.stop()
         process.wait(timeout=5)
         assert not environment.state_path.exists()
     finally:
-        environment.finish(process)
+        environment.stop(process)
 
 
 def test_untracked_server_is_not_adopted_from_health(environment, port):
@@ -151,7 +151,7 @@ def test_untracked_server_is_not_adopted_from_health(environment, port):
     try:
         wait_for_server(f'http://127.0.0.1:{port}')
         with pytest.raises(RuntimeError, match='without a live state record'):
-            environment.prepare('127.0.0.1', port)
+            environment.start('127.0.0.1', port)
         assert not environment.state_path.exists()
         assert process.poll() is None
     finally:
@@ -160,13 +160,13 @@ def test_untracked_server_is_not_adopted_from_health(environment, port):
 
 
 def test_cleanup_can_read_state_in_a_fresh_helper(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     try:
-        setup.IntegrationTestEnvironment(environment.directory.parent.parent).finish()
+        setup.IntegrationTestEnvironment(environment.directory.parent.parent).stop()
         process.wait(timeout=5)
         assert not environment.state_path.exists()
     finally:
-        environment.finish(process)
+        environment.stop(process)
 
 
 def test_dependency_failure_cleans_state(environment, port, monkeypatch):
@@ -174,7 +174,7 @@ def test_dependency_failure_cleans_state(environment, port, monkeypatch):
         raise RuntimeError('dependency setup failed')
     monkeypatch.setattr(setup, 'prepare_mock_server_venv', fail)
     with pytest.raises(RuntimeError, match='dependency setup failed'):
-        environment.prepare('127.0.0.1', port)
+        environment.start('127.0.0.1', port)
     assert not environment.state_path.exists()
 
 
@@ -186,7 +186,7 @@ def test_non_success_healthcheck_is_rejected(environment, port):
         with pytest.raises(RuntimeError, match='Cannot probe mock server'):
             wait_for_server(f'http://127.0.0.1:{port}')
         with pytest.raises(RuntimeError, match='Cannot probe mock server'):
-            environment.prepare('127.0.0.1', port)
+            environment.start('127.0.0.1', port)
         assert process.poll() is None
     finally:
         process.terminate()
@@ -196,7 +196,7 @@ def test_non_success_healthcheck_is_rejected(environment, port):
 def test_startup_failure_cleans_state(environment, port):
     (Path(setup.__mock_server_root__) / 'app.py').write_text('raise SystemExit(1)')
     with pytest.raises(RuntimeError, match='Mock server exited'):
-        environment.prepare('127.0.0.1', port)
+        environment.start('127.0.0.1', port)
     assert not environment.state_path.exists()
 
 
@@ -208,29 +208,29 @@ def test_server_cleanup_leaves_settings_backup_untouched(environment, port):
     backup.parent.mkdir(parents=True)
     settings.write_bytes(b'original settings')
     backup.write_bytes(b'original snapshot')
-    process = environment.prepare('127.0.0.1', port)
-    environment.finish(process)
+    process = environment.start('127.0.0.1', port)
+    environment.stop(process)
     assert settings.read_bytes() == b'original settings'
     assert backup.read_bytes() == b'original snapshot'
 
 
 def test_dead_pid_starts_a_new_server(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     process.terminate()
     process.wait(timeout=5)
-    replacement = environment.prepare('127.0.0.1', port)
+    replacement = environment.start('127.0.0.1', port)
     try:
         assert replacement is not None
         assert environment._read_state()['pid'] == replacement.pid
     finally:
-        environment.finish(replacement)
+        environment.stop(replacement)
 
 
 def test_cleanup_removes_dead_pid_state(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     process.terminate()
     process.wait(timeout=5)
-    environment.finish()
+    environment.stop()
     assert not environment.state_path.exists()
 
 
@@ -238,12 +238,12 @@ def test_cleanup_stops_reloader_parent_and_serving_child(environment, port):
     # Model the reloader: a parent waits while its child serves requests.
     parent = "import subprocess, sys\nchild = subprocess.Popen([sys.executable, '-c', " + repr(SERVER) + ", *sys.argv[1:]])\nchild.wait()\n"
     (Path(setup.__mock_server_root__) / 'app.py').write_text(parent)
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     try:
         assert setup.server_health(environment.endpoint) is True
         assert environment._read_state()['pid'] == process.pid
     finally:
-        environment.finish(process)
+        environment.stop(process)
     deadline = time.monotonic() + 5
     while setup.server_health(environment.endpoint) is not None:
         assert time.monotonic() < deadline, 'serving child survived cleanup'
@@ -251,7 +251,7 @@ def test_cleanup_stops_reloader_parent_and_serving_child(environment, port):
     assert not environment.state_path.exists()
 
 
-@pytest.mark.parametrize('action', ['prepare', 'finish'])
+@pytest.mark.parametrize('action', ['start', 'stop'])
 def test_stale_identity_does_not_signal_an_unrelated_process(environment, port, action):
     unrelated = psutil.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
     environment.directory.mkdir(parents=True)
@@ -259,16 +259,16 @@ def test_stale_identity_does_not_signal_an_unrelated_process(environment, port, 
                               'port': port, 'endpoint': f'http://127.0.0.1:{port}'})
     replacement = None
     try:
-        if action == 'prepare':
-            replacement = environment.prepare('127.0.0.1', port)
+        if action == 'start':
+            replacement = environment.start('127.0.0.1', port)
             assert replacement is not None
         else:
-            environment.finish()
+            environment.stop()
             assert not environment.state_path.exists()
         assert unrelated.poll() is None
     finally:
         if replacement is not None:
-            environment.finish(replacement)
+            environment.stop(replacement)
         unrelated.terminate()
         unrelated.wait(timeout=5)
 
@@ -309,19 +309,19 @@ def test_group_discovery_rejects_pid_reuse(monkeypatch):
 
 
 def test_unreaped_zombie_starts_a_replacement(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     replacement = None
     try:
         process.terminate()
         wait_for_zombie(process)
         assert not setup.process_is_running(environment._read_state())
-        replacement = environment.prepare('127.0.0.1', port)
+        replacement = environment.start('127.0.0.1', port)
         assert replacement is not None
         assert replacement.pid != process.pid
     finally:
         process.wait(timeout=5)
         if replacement is not None:
-            environment.finish(replacement)
+            environment.stop(replacement)
 
 
 def test_fresh_cleanup_waits_for_delayed_shutdown(environment, port):
@@ -339,18 +339,18 @@ while stop_at is None or time.monotonic() < stop_at:
 server.server_close()
 ''')
     (Path(setup.__mock_server_root__) / 'app.py').write_text(delayed)
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     replacement = None
     try:
         helper = setup.IntegrationTestEnvironment(environment.directory.parent.parent)
-        helper.finish()
+        helper.stop()
         assert setup.server_health(environment.endpoint) is None
-        replacement = helper.prepare('127.0.0.1', port)
+        replacement = helper.start('127.0.0.1', port)
         assert replacement is not None
     finally:
         process.wait(timeout=5)
         if replacement is not None:
-            helper.finish(replacement)
+            helper.stop(replacement)
 
 
 @pytest.mark.parametrize('reap_leader', [False, True])
@@ -364,7 +364,7 @@ while not Path('exit-parent').exists(): time.sleep(0.01)
 os._exit(0)
 '''.replace('SERVER', repr(SERVER))
     (root / 'app.py').write_text(parent)
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     worker = psutil.Process(int((root / 'worker.pid').read_text()))
     try:
         (root / 'exit-parent').touch()
@@ -372,11 +372,11 @@ os._exit(0)
         if reap_leader:
             process.wait(timeout=5)
             with pytest.raises(RuntimeError, match='leader.*gone'):
-                environment.finish()
+                environment.stop()
             assert environment.state_path.exists()
             assert setup.server_health(environment.endpoint) is True
         else:
-            environment.finish()
+            environment.stop()
             assert not environment.state_path.exists()
             assert setup.server_health(environment.endpoint) is None
     finally:
@@ -384,7 +384,7 @@ os._exit(0)
             worker.terminate()
         worker.wait(timeout=5)
         process.wait(timeout=5)
-        environment.finish()
+        environment.stop()
 
 
 def test_cleanup_escalates_when_term_is_ignored(environment, port, monkeypatch):
@@ -392,9 +392,9 @@ def test_cleanup_escalates_when_term_is_ignored(environment, port, monkeypatch):
                             'import argparse, json, os, signal\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)')
     (Path(setup.__mock_server_root__) / 'app.py').write_text(server)
     monkeypatch.setattr(setup, 'STOP_TIMEOUT', 0.2)
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     try:
-        setup.IntegrationTestEnvironment(environment.directory.parent.parent).finish()
+        setup.IntegrationTestEnvironment(environment.directory.parent.parent).stop()
         assert setup.server_health(environment.endpoint) is None
         assert not environment.state_path.exists()
     finally:
@@ -402,7 +402,7 @@ def test_cleanup_escalates_when_term_is_ignored(environment, port, monkeypatch):
 
 
 def test_permission_failure_retains_state(environment, port, monkeypatch):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     state = environment._read_state()
     try:
         with monkeypatch.context() as patch:
@@ -410,40 +410,40 @@ def test_permission_failure_retains_state(environment, port, monkeypatch):
                 raise psutil.AccessDenied(process.pid)
             patch.setattr(setup, '_live_group_members', denied)
             with pytest.raises(psutil.AccessDenied):
-                environment.finish()
+                environment.stop()
             assert environment._read_state() == state
             assert process.poll() is None
     finally:
-        environment.finish(process)
+        environment.stop(process)
 
 
 def test_local_cleanup_preserves_a_replacement_record(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     environment.state_path.unlink()
     helper = setup.IntegrationTestEnvironment(environment.directory.parent.parent)
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         replacement_port = sock.getsockname()[1]
-    replacement = helper.prepare('127.0.0.1', replacement_port)
+    replacement = helper.start('127.0.0.1', replacement_port)
     state = helper._read_state()
     try:
-        environment.finish(process)
+        environment.stop(process)
         assert process.poll() is not None
         assert replacement.poll() is None
         assert helper._read_state() == state
         assert setup.server_health(helper.endpoint) is True
     finally:
-        helper.finish(replacement)
+        helper.stop(replacement)
 
 
 def test_legacy_record_is_discarded_without_signaling(environment, port):
-    process = environment.prepare('127.0.0.1', port)
+    process = environment.start('127.0.0.1', port)
     state = environment._read_state()
     del state['create_time']
     environment._write_state(state)
     try:
-        environment.finish()
+        environment.stop()
         assert process.poll() is None
         assert not environment.state_path.exists()
     finally:
-        environment.finish(process)
+        environment.stop(process)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1" errors="0" disabled="0" time="1">
+  <testsuite tests="2" time="1" errors="0" failures="1" skipped="0" timestamp="" name="">
+    <testcase name="passes" assertions="" time="0" status="Passed" classname="Fixture"/>
+    <testcase name="executionError" classname="Tests.Fixture" time="0">
+      <failure message="fixture exploded">fixture exploded
+at Fixture.Hook</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<test-run type="TestSuite" name="Integration" testcasecount="223" passed="1" failed="1" skipped="0" duration="1">
+  <test-suite type="TestSuite" name="Integration" testcasecount="223" passed="1" failed="1" skipped="0" duration="1">
+    <test-case name="passes" classname="Fixture" result="Passed" duration="0.5" asserts="1"/>
+    <test-case name="fails" classname="Fixture" result="Failed" duration="0.5" asserts="1">
+      <failure>
+        <message>native assertion</message>
+        <stack-trace>at Fixture</stack-trace>
+      </failure>
+    </test-case>
+  </test-suite>
+</test-run>

@@ -39,7 +39,7 @@ def _integration_test_env(project_path: str, platform: str, target: str):
     process = None
     prepared = False
     try:
-        process = environment.prepare()
+        process = environment.start()
         prepared = True
         with modified_ios_target_settings(project_path, platform, target):
             if target != 'simulator' or platform == 'ios':
@@ -49,7 +49,7 @@ def _integration_test_env(project_path: str, platform: str, target: str):
                     yield
     finally:
         if prepared:
-            environment.finish(process)
+            environment.stop(process)
 
 def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):
     log = init_logger()
