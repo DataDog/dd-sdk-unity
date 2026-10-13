@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1" errors="1" disabled="0" time="1">
+  <testsuite tests="1" time="1" errors="1" failures="0" skipped="0" timestamp="" name="">
+    <testcase name="initializationError" classname="Tests.Fixture" time="0">
+      <error message="setup exploded">setup exploded
+at Fixture.Setup</error>
+    </testcase>
+  </testsuite>
+  <testsuite tests="1" time="1" errors="0" failures="1" skipped="0" timestamp="" name="">
+    <testcase name="blocked(1)" assertions="" time="0" status="Failed" classname="Tests.Fixture">
+      <failure message="OneTimeSetUp: setup exploded"/>
+    </testcase>
+  </testsuite>
+</testsuites>

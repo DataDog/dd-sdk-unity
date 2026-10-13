@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<test-run testcasecount="1" passed="1" failed="0" skipped="0" duration="1">
+  <test-suite type="Assembly" name="Tests" testcasecount="1" passed="1" failed="0" skipped="0" duration="1" site="Child">
+    <failure>
+      <message>Child fixture failed</message>
+    </failure>
+    <test-suite type="TestFixture" name="Fixture" fullname="Tests.Fixture" testcasecount="1" passed="1" failed="0" skipped="0" duration="1" result="Failed" site="TearDown" label="Error">
+      <test-case name="passes" classname="Fixture" result="Passed" duration="0"/>
+      <failure>
+        <message>fixture exploded</message>
+        <stack-trace>at Fixture.Hook</stack-trace>
+      </failure>
+    </test-suite>
+  </test-suite>
+</test-run>

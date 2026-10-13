@@ -10,6 +10,7 @@ Apache License Version 2.0. This product includes software developed at Datadog
 import os
 import subprocess
 import signal
+import sys
 from contextlib import contextmanager
 from typing import Generator
 
@@ -27,8 +28,8 @@ def prepare_mock_server_venv():
         log.info(f'venv exists: {venv_dir}')
     else:
         log.info(f'Initializing venv at: {venv_dir}')
-        subprocess.check_call(['python3', '-m', 'venv', venv_dir])
-    venv_python = os.path.join(venv_dir, 'bin', 'python')
+        subprocess.check_call([sys.executable, '-m', 'venv', venv_dir])
+    venv_python = os.path.join(venv_dir, 'Scripts', 'python.exe') if os.name == 'nt' else os.path.join(venv_dir, 'bin', 'python')
 
     # Ensure that we have the latest dependencies installed to that venv
     log.info('Installing dependencies with pip...')
@@ -36,10 +37,7 @@ def prepare_mock_server_venv():
     subprocess.check_call([venv_python, '-m', 'pip', 'install', '-r', requirements_txt])
     log.info('Dependencies up to date.')
 
-    # Run mock_server/schema_update.py to ensure we have the latest RUM events schemas
-    schema_update_py = os.path.join(__mock_server_root__, 'schema_update.py')
-    subprocess.check_call([venv_python, schema_update_py])
-    log.info('Event schemas up to date.')
+    return venv_python
 
 
 @contextmanager

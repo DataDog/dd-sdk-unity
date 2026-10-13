@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="58" failures="2" disabled="0" time="0.24846">
-   <testsuite tests="45"
+<testsuites tests="58" failures="2" errors="0" disabled="0" time="0.24846">
+   <testsuite tests="17"
               time="0.068056"
               errors="0"
               failures="0"
@@ -453,10 +453,10 @@ Datadog SDK is running in Editor mode. No data will be sent to Datadog.
                 classname="Datadog.Unity.Editor.Tests.DatadogConfigurationOptionsTests">
                 </testcase>
    </testsuite>
-   <testsuite tests="11"
+   <testsuite tests="9"
               time="0.045071"
               errors="0"
-              failures="2"
+              failures="0"
               skipped="0"
               timestamp="2025-06-20 13:09:22Z"
               name="Datadog Sample.Datadog.Unity.Editor.Tests.">

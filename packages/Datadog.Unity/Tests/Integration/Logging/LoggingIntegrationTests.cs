@@ -13,7 +13,7 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration.Logging
 {
-    public class LoggingIntegrationTests
+    public class LoggingIntegrationTests : IntegrationTestBase
     {
         [UnityTest]
         [Category("integration")]

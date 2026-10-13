@@ -13,7 +13,7 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration.Rum
 {
-    public class TrackedWebRequestIntegrationTests
+    public class TrackedWebRequestIntegrationTests : IntegrationTestBase
     {
         [UnityTest]
         [Category("integration")]
@@ -104,7 +104,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 Debug.Log($"Web request failed: {getRequest.error}");
             }
 
-            // The mock server must be configured as a first-party host in Datadog settings.
+            // The integration prebuild setup configures the mock server as a first-party host.
             var datadogSettings = DatadogConfigurationOptions.Load();
             var endpoint = datadogSettings.CustomEndpoint;
             FirstPartyUrl = $"{endpoint}/integration_get";

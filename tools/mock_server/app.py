@@ -12,13 +12,14 @@ import json
 
 import datetime
 from hashlib import sha1
-import sys
+from socketserver import TCPServer
 from typing import Optional
 from dataclasses import dataclass, is_dataclass, asdict
 from flask import Flask, request, Request, render_template, url_for, redirect
 from flask_cors import CORS
 import flask
-from schema_update import schemas_path_exists, update_schemas
+from werkzeug import serving as _serving
+from schemas.update import schemas_path_exists, update_schemas
 from schemas.schema import Schema
 from schemas.raw import RAWSchema
 from schemas.rum import RUMSchema
@@ -29,6 +30,12 @@ from urllib.parse import urlparse
 
 app = Flask(__name__)
 CORS(app)
+
+
+@app.route('/_healthcheck')
+def healthcheck():
+    # Keep readiness probes out of the request history inspected by tests.
+    return '', 200
 
 configured_responses = {}  # path -> { status, body, content_type }
 
@@ -321,11 +328,25 @@ def inspect_request(schema_name, endpoint_hash, request_hash):
         print(f'⚠️ Could not find endpoint with hash {endpoint_hash}')
         return redirect(url_for('inspect'))
 
+class _MockServer(_serving.ThreadedWSGIServer):
+    def server_bind(self):
+        # HTTPServer performs reverse DNS here, which can stall before listen() in CI.
+        # Test URLs already use explicit addresses, so no hostname lookup is needed.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+
+
 def run(preferred_address: str, port: int):
     if not preferred_address:
         preferred_address = get_best_server_address().ip
 
-    app.run(debug=True, host=preferred_address, port=port)
+    # Keep Flask's debugger/reloader while bypassing reverse DNS for every startup.
+    original_server = _serving.ThreadedWSGIServer
+    _serving.ThreadedWSGIServer = _MockServer
+    try:
+        app.run(debug=True, host=preferred_address, port=port)
+    finally:
+        _serving.ThreadedWSGIServer = original_server
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -340,8 +361,7 @@ if __name__ == '__main__':
         exit()
 
     if not schemas_path_exists():
-        print('Missing .schemas. Please run app.py --update-schemas')
-        exit()
+        update_schemas()
 
     if args.addr and args.prefer_localhost:
         raise ValueError('--addr and --prefer-localhost are mutually exclusive')

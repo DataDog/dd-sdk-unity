@@ -140,7 +140,7 @@ At a high level, the `dd-sdk-unity` repository is organized like so:
 - [`tools/scripts/`][scripts]: Python scripts used to automate common development tasks.
 - [`packages/Datadog.Unity/`][package-root]: The source of the Datadog Unity package, which is deployed to the root of the [`unity-package`][unity-package] repo.
 
-To get started, open `samples/Datadog Sample` in Unity 2023, then open the same project in your IDE of choice to begin editing the source of the `Datadog.Unity` package.
+To get started, open `samples/Datadog Sample` in Unity 2022.3, then open the same project in your IDE of choice to begin editing the source of the `Datadog.Unity` package. Each project's `ProjectSettings/ProjectVersion.txt` records its exact Editor version.
 
 [unity-package]: https://github.com/DataDog/unity-package?tab=readme-ov-file#datadog-unity
 [samples]: ./samples/
@@ -165,7 +165,7 @@ We currently run tests against these versions of Unity:
 |----------------------------------------|--------------------------------------------|---------------|
 | [`unit_test`][unit-test]               | [`test_scaffolds/2021 LTS`][scaffold-2021] | Unity 2021.3  |
 | [`unit_test`][unit-test]               | [`samples/Datadog Sample`][datadog-sample] | Unity 2022.3  |
-| [`unit_test`][unit-test]               | [`test_scaffolds/6000 LTS`][scaffold-6000] | Unity 6000.1  |
+| [`unit_test`][unit-test]               | [`test_scaffolds/6000 LTS`][scaffold-6000] | Unity 6000.2  |
 | [`integration_test`][integration-test] | [`samples/Datadog Sample`][datadog-sample] | Unity 2022.3  |
 
 Our test scripts use the [Unity CLI][unity-cli] binary to locate and manage installed versions of the Unity Editor. If a test script is unable to locate the required version of the editor, it exits with an error.
@@ -209,11 +209,15 @@ Unit test results are written in JUnit format to `unit-test-<mode>.xml`. If all 
 
 ### Integration tests
 
-The [`integration_test`][integration-test] script runs all tests in the `Integration` namespace.
+Before running integration tests, close the target project in the Editor and make sure the test device can reach your computer's LAN address on port 5100. These commands use `samples/Datadog Sample` with Unity 2022.3:
 
 ```bash
 # Run integration tests on Android, using an AVD
 ./run-script integration_test --platform android
+
+# Run integration tests on an iOS Simulator
+./run-script ios_xcframework stage
+./run-script integration_test --platform ios --target simulator
 
 # Run integration tests on iOS, using a physically-connected iPhone
 ./run-script integration_test --platform ios --target device
@@ -221,17 +225,28 @@ The [`integration_test`][integration-test] script runs all tests in the `Integra
 
 As with the unit test script, these commands launch the Unity Editor in headless mode to invoke the tests, but the integration test script also performs some additional setup:
 
-- It launches a mock server that records all incoming HTTP requests from the SDK and allows the test to inspect and validate the set of requests received.
-- It configures the Unity project to use that mock server in lieu of the Datadog intake endpoint, while also ensuring that the project's Datadog settings are configured with the expected feature set.
-- It ensures that the tests run on supported platforms (Android or iOS), thereby exercising the client functionality of the underlying Android and iOS SDKs.
+- It launches a mock server that records incoming SDK requests so the tests can inspect and validate them.
+- It configures the project's Datadog Settings to use that server and enable the features under test.
+- It runs the tests on Android or iOS players, exercising the underlying native SDKs.
 
-Integration test results are written in JUnit format to `integration-test-<platform>.xml`. If all tests pass, the script will exit with a status code of 0.
+Use `--project` and `--unity-version` to select another project and Editor.
+
+Results are written to `integration-test-<platform>.xml` in JUnit format, with logs alongside them. Mock-server logs are under the project's `Library/DatadogIntegrationTests/` directory.
+
+New integration tests should inherit [`IntegrationTestBase`][integration-test-base] and use the `integration` category.
+
+[integration-test-base]: ./packages/Datadog.Unity/Tests/Integration/IntegrationTestBase.cs
 
 #### Debugging integration tests
 
-Running integration tests manually is not trivial, given the extra setup steps that are handled by the script. If you want to manually recreate the integration test environment:
+To build an integration test player manually from Unity's Test Runner, start the mock server first:
 
-- Start a mock server with `./run-script init_mock_server --start --port 5000`
-- Configure the Unity project's Datadog Settings with a **Custom Endpoint** URL
-- Ensure that the remaining Datadog Settings match the values specified through `DatadogRuntimeConfig` in [`integration_test.py`][integration-test]
-- If desired, start a simulator with `./run-script start_simulator --platform android`
+```bash
+./run-script integration_test_setup start --project 'samples/Datadog Sample'
+```
+
+Run the integration tests on an Android or iOS player. When finished, stop the server:
+
+```bash
+./run-script integration_test_setup stop --project 'samples/Datadog Sample'
+```

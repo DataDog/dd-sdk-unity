@@ -1,27 +1,23 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
+"""Unless explicitly stated otherwise, all files in this repository are licensed under the
 Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
-import os
-import tempfile
+Given/expected checks for NUnit-to-JUnit XML conversion.
+"""
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+import pytest
 
 from .xslt import transform_nunit_to_junit
 
 
-__test_nunit_xml__ = os.path.join(os.path.dirname(__file__), 'xslt_test_nunit.xml')
-__test_junit_xml__ = os.path.join(os.path.dirname(__file__), 'xslt_test_junit.xml')
+FIXTURES = Path(__file__).with_name('fixtures') / 'nunit-junit'
 
 
-def test_transform_nunit_to_junit():
-    with open(__test_junit_xml__, 'rb') as fp:
-        want = fp.read()
-
-    with tempfile.NamedTemporaryFile() as tmp:
-        transform_nunit_to_junit(__test_nunit_xml__, tmp.name)
-        tmp.seek(0)
-        got = tmp.read()
-
-    assert got == want
+@pytest.mark.parametrize('given', sorted(FIXTURES.glob('*-given.xml')), ids=lambda path: path.stem.removesuffix('-given'))
+def test_nunit_conversion_matches_expected_junit(tmp_path, given):
+    junit = tmp_path / 'junit.xml'
+    transform_nunit_to_junit(str(given), str(junit))
+    expected = given.with_name(given.name.replace('-given.xml', '-expected.xml'))
+    assert ET.canonicalize(from_file=junit, strip_text=True) == ET.canonicalize(from_file=expected, strip_text=True)

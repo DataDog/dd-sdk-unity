@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="0" errors="1" disabled="0" time="1">
+  <testsuite tests="1" time="1" errors="1" failures="0" skipped="0" timestamp="" name="">
+    <testcase name="initializationError" classname="Tests.Fixture" time="0">
+      <error message="fixture exploded">fixture exploded
+at Fixture.Hook</error>
+    </testcase>
+  </testsuite>
+</testsuites>
