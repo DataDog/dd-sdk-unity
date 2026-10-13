@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Iterates over every file in tools/scripts in order to ensure that a Datadog legal
+Iterates over every file in tools/dd_sdk_unity/scripts in order to ensure that a Datadog legal
 notice is present at the top of the file. Invoke with --fix to automatically write
 comments where they are missing.
 
@@ -23,7 +23,7 @@ from typing import Optional, Literal, List
 
 # Get the path to the directory containing our Python scripts
 __repo_root__ = os.path.abspath(os.path.dirname(__file__))
-__scripts_root__ = os.path.join(__repo_root__, 'tools', 'scripts')
+__scripts_root__ = os.path.join(__repo_root__, 'tools', 'dd_sdk_unity', 'scripts')
 assert os.path.isdir(__scripts_root__)
 
 __notice_begin__ = 'Unless explicitly stated otherwise'

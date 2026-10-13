@@ -19,12 +19,68 @@ To work on the Datadog Unity SDK, you'll need to:
 - Install [Unity CLI][unity-cli].
     - To verify: `unity --version`
 - Install the [.NET SDK][dotnet-sdk].
-- Ensure that you have [Python 3.10][python] installed on your system.
+- Ensure that you have [Python 3.14][python] installed on your system.
     - To verify: `python3 --version`
 
 [unity-cli]: https://docs.unity.com/en-us/unity-cli/use-unity-cli
 [dotnet-sdk]: https://dotnet.microsoft.com/en-us/download
 [python]: https://www.python.org/downloads/
+
+### Python tooling
+
+Python dependencies and commands are defined in the root `pyproject.toml`.
+The development scripts and mock server share one environment.
+
+Both setups use editable installation, so Python code changes take effect without
+reinstalling.
+
+#### Using pip
+
+Install the tooling from the repository root with pip:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --editable .
+dd-unity-unit-test
+```
+
+After changing dependencies or command definitions in `pyproject.toml`, repeat
+the pip install command.
+
+Run Python tests with:
+
+```bash
+pytest
+```
+
+#### Using uv
+
+Install the tooling from the repository root with [uv][uv]:
+
+```bash
+uv sync
+source .venv/bin/activate
+dd-unity-unit-test
+python -m dd_sdk_unity.mock_server
+```
+
+After changing dependencies or command definitions in `pyproject.toml`, run
+`uv sync` again. The `dd-unity-*` commands use the existing environment without
+syncing it.
+
+Select `.venv` as your IDE's Python environment to make the development tools
+available there.
+
+Run Python tests:
+
+```bash
+uv run pytest
+```
+
+The `uv run` commands update their environment automatically.
+
+[uv]: https://docs.astral.sh/uv/
 
 ### Android prerequisites
 
@@ -53,13 +109,13 @@ Datadog's own iOS dependency (dd-sdk-ios) is a prebuilt XCFramework vendored dir
 Before your first iOS build in a fresh clone, stage the XCFramework once:
 
 ```bash
-./run-script ios_xcframework stage
+dd-unity-ios-xcframework stage
 ```
 
 The staged bundles under `packages/Datadog.Unity/Plugins/iOS/` are `.gitignore`d in this dev repo (fetched on demand, not committed to `dd-sdk-unity`'s own git history). To check the staged state offline without re-fetching:
 
 ```bash
-./run-script ios_xcframework verify
+dd-unity-ios-xcframework verify
 ```
 
 The pinned dd-sdk-ios version, its expected SHA-256, and its expected module list are the single source of truth in [`packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json`][ios-dependency-version-json].
@@ -74,7 +130,7 @@ The pinned dd-sdk-ios version, its expected SHA-256, and its expected module lis
 If an iOS build fails with a message from `IosXcframeworkPreprocessBuild` naming missing XCFramework module(s) under `packages/Datadog.Unity/Plugins/iOS/`, stage the XCFramework and try again:
 
 ```bash
-./run-script ios_xcframework stage
+dd-unity-ios-xcframework stage
 ```
 
 EDM4U (Google's External Dependency Manager for Unity) has been removed from the package entirely. Neither an iOS nor an Android build invokes EDM4U or CocoaPods for Datadog's own dependencies. If an EDM4U window appears during any build, that indicates a stale EDM4U install left over in the local Unity project — it is not something this package requires or installs.
@@ -84,7 +140,7 @@ EDM4U (Google's External Dependency Manager for Unity) has been removed from the
 Bumping the pinned dd-sdk-ios version is a deliberate, manual maintainer action:
 
 ```bash
-./run-script update_ios_version <version>
+dd-unity-update-ios-version <version>
 ```
 
 This fetches the target version's XCFramework, re-verifies that all currently-vendored modules are still present in the bundle (failing loudly and leaving the pin untouched if any are missing), stages and structurally verifies the result, and only then rewrites `IosDependencyVersion.json` with the new version and its digest. Useful flags:
@@ -115,7 +171,7 @@ fetched by Gradle at build time, so there is no fetch/stage step and no `Plugins
 Bumping the pinned dd-sdk-android version is a deliberate, manual maintainer action:
 
 ```bash
-./run-script update_android_version <version>
+dd-unity-update-android-version <version>
 ```
 
 This verifies that the three AARs are reachable on Maven Central and re-checks the transitive
@@ -136,8 +192,8 @@ At a high level, the `dd-sdk-unity` repository is organized like so:
 
 - [`samples/`][samples]: Unity projects used for running tests and showcasing example usage.
 - [`test_scaffolds/`][test-scaffolds]: Additional Unity projects used to test compatibility with a wider range of Unity versions.
-- [`tools/mock_server/`][mock-server]: Flask app used by integration tests to record HTTP requests sent by the SDK and validate expected usage.
-- [`tools/scripts/`][scripts]: Python scripts used to automate common development tasks.
+- [`tools/dd_sdk_unity/mock_server/`][mock-server]: Flask app used by integration tests to record HTTP requests sent by the SDK and validate expected usage.
+- [`tools/dd_sdk_unity/scripts/`][scripts]: Scripts used to automate common development tasks.
 - [`packages/Datadog.Unity/`][package-root]: The source of the Datadog Unity package, which is deployed to the root of the [`unity-package`][unity-package] repo.
 
 To get started, open `samples/Datadog Sample` in Unity 2022.3, then open the same project in your IDE of choice to begin editing the source of the `Datadog.Unity` package. Each project's `ProjectSettings/ProjectVersion.txt` records its exact Editor version.
@@ -145,8 +201,8 @@ To get started, open `samples/Datadog Sample` in Unity 2022.3, then open the sam
 [unity-package]: https://github.com/DataDog/unity-package?tab=readme-ov-file#datadog-unity
 [samples]: ./samples/
 [test-scaffolds]: ./test_scaffolds/
-[mock-server]: ./tools/mock_server/
-[scripts]: ./tools/scripts/
+[mock-server]: ./tools/dd_sdk_unity/mock_server/
+[scripts]: ./tools/dd_sdk_unity/scripts/
 [package-root]: ./packages/Datadog.Unity/
 
 ## Running tests locally
@@ -174,12 +230,12 @@ To install the latest release of a specific editor version, along with all requi
 
 ```bash
 # Install Unity 2022.3 and its required iOS/Android modules through Unity CLI
-./run-script install_unity 2022.3
+dd-unity-install-unity 2022.3
 ```
 
-[unit-test]: ./tools/scripts/unit_test.py
-[integration-test]: ./tools/scripts/integration_test.py
-[install-unity]: ./tools/scripts/install_unity.py
+[unit-test]: ./tools/dd_sdk_unity/scripts/unit_test.py
+[integration-test]: ./tools/dd_sdk_unity/scripts/integration_test.py
+[install-unity]: ./tools/dd_sdk_unity/scripts/install_unity.py
 [datadog-sample]: ./samples/Datadog%20Sample/
 [demo-data]: ./samples/Demo%20Data/
 [scaffold-2021]: ./test_scaffolds/2021%20LTS/
@@ -192,13 +248,13 @@ The [`unit_test`][unit-test] script runs all tests except for those in the `Inte
 
 ```bash
 # Run Datadog SDK unit tests against the default 'Datadog Sample' project, with Unity 2022
-./run-script unit_test
+dd-unity-unit-test
 
 # Run the same tests in the '6000 LTS' project, with any version of Unity 6
-./run-script unit_test --project 'test_scaffolds/6000 LTS' --unity-version 6000
+dd-unity-unit-test --project 'test_scaffolds/6000 LTS' --unity-version 6000
 
 # Run the same tests in the '2021 LTS' project, requiring an exact Unity 2021 build
-./run-script unit_test --project 'test_scaffolds/2021 LTS' --unity-version 2021.3.44f1
+dd-unity-unit-test --project 'test_scaffolds/2021 LTS' --unity-version 2021.3.44f1
 ```
 
 When you run any of these commands from the root of this repository, the script locates the appropriate version of the Unity Editor, then boots a headless instance of that editor. That editor instance runs `EditMode` tests, then `PlayMode` tests, and then it exits.
@@ -213,14 +269,14 @@ Before running integration tests, close the target project in the Editor and mak
 
 ```bash
 # Run integration tests on Android, using an AVD
-./run-script integration_test --platform android
+dd-unity-integration-test --platform android
 
 # Run integration tests on an iOS Simulator
-./run-script ios_xcframework stage
-./run-script integration_test --platform ios --target simulator
+dd-unity-ios-xcframework stage
+dd-unity-integration-test --platform ios --target simulator
 
 # Run integration tests on iOS, using a physically-connected iPhone
-./run-script integration_test --platform ios --target device
+dd-unity-integration-test --platform ios --target device
 ```
 
 As with the unit test script, these commands launch the Unity Editor in headless mode to invoke the tests, but the integration test script also performs some additional setup:
@@ -242,11 +298,11 @@ New integration tests should inherit [`IntegrationTestBase`][integration-test-ba
 To build an integration test player manually from Unity's Test Runner, start the mock server first:
 
 ```bash
-./run-script integration_test_setup start --project 'samples/Datadog Sample'
+dd-unity-integration-test-setup start --project 'samples/Datadog Sample'
 ```
 
 Run the integration tests on an Android or iOS player. When finished, stop the server:
 
 ```bash
-./run-script integration_test_setup stop --project 'samples/Datadog Sample'
+dd-unity-integration-test-setup stop --project 'samples/Datadog Sample'
 ```
