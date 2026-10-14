@@ -11,11 +11,14 @@ import argparse
 import os
 import shutil
 import signal
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from types import FrameType
 
 from junitparser.junitparser import JUnitXml, TestCase
 
+from dd_sdk_unity.scripts.common import DeviceTarget, MobilePlatform
 from dd_sdk_unity.scripts.common.apple.simulator import run_simulator_tests
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.simulator import run_default_simulator
@@ -34,7 +37,7 @@ __default_test_project_unity_version__ = '2022'
 
 
 @contextmanager
-def _integration_test_env(project_path: str, platform: str, target: str):
+def _integration_test_env(project_path: str, platform: MobilePlatform, target: DeviceTarget) -> Generator[None]:
     # Keep the mock server alive through the complete player run.
     environment = IntegrationTestEnvironment(project_path)
     process = None
@@ -52,7 +55,7 @@ def _integration_test_env(project_path: str, platform: str, target: str):
         if prepared:
             environment.stop(process)
 
-def integration_test(unity_version_prefix: str, project_path: str, platform: str, target: str, out_junit_path_pattern: str):
+def integration_test(unity_version_prefix: str, project_path: str, platform: MobilePlatform, target: DeviceTarget, out_junit_path_pattern: str) -> int:
     log = init_logger()
 
     # Check to see if we have the requisite Unity version installed
@@ -150,8 +153,10 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
 
         log.info(f'✅ {num_passed} tests passed ({num_skipped} skipped).')
 
+    return 0
 
-def main():
+
+def main() -> int:
     parser = argparse.ArgumentParser(description='Run integration tests on the provided version of Unity and on the specified platform.')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
@@ -160,7 +165,7 @@ def main():
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()
 
-    def interrupted(signum, frame):
+    def interrupted(signum: int, frame: FrameType | None) -> None:
         raise KeyboardInterrupt('Integration tests interrupted')
 
     signal.signal(signal.SIGTERM, interrupted)

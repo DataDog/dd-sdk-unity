@@ -6,6 +6,6 @@ class Stat:
     title: str
     value: str
 
-    def __init__(self, title: str, value: str):
+    def __init__(self, title: str, value: str) -> None:
         self.title = title
         self.value = value

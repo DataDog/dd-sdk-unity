@@ -5,3 +5,8 @@
 """
 Common library code used by dd-sdk-unity Python scripts.
 """
+from typing import Literal
+
+type MobilePlatform = Literal['ios', 'android']
+type DeviceTarget = Literal['simulator', 'device']
+type TestMode = Literal['EditMode', 'PlayMode']

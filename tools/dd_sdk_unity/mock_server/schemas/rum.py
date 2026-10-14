@@ -5,6 +5,7 @@
 import gzip
 import json
 import zlib
+from typing import Any, TypedDict
 
 from flask import Request
 
@@ -12,6 +13,12 @@ from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
 from dd_sdk_unity.mock_server.templates.components.stat import Stat
 from dd_sdk_unity.mock_server.validation.validation import validate_event
+
+
+class _RumSchemaJson(TypedDict):
+    headers: list[str]
+    data: str
+    decompressed_data: str
 
 
 class RUMSchema(Schema):
@@ -23,9 +30,9 @@ class RUMSchema(Schema):
 
     # RUM-specific:
     stats: list[Stat]
-    event_jsons: [dict]
+    event_jsons: list[dict[str, Any]]
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request) -> None:
         self.headers = [f'{name}: {value}' for name, value in request.headers]
         self.data_as_text = request.get_data(as_text=True)
 
@@ -80,7 +87,7 @@ class RUMSchema(Schema):
 
         return CardTab(title=f'Events ({len(self.event_jsons)})', template='rum/events_view.html', object=obj)
 
-    def as_json(self) -> dict:
+    def as_json(self) -> _RumSchemaJson:
         return {
             "headers": self.headers,
             "data": self.data_as_text,
@@ -94,5 +101,5 @@ class RUMSchema(Schema):
         return data
 
     @staticmethod
-    def matches(method: str, path: str):
+    def matches(method: str, path: str) -> bool:
         return method == 'POST' and path.startswith('/api/v2/rum')

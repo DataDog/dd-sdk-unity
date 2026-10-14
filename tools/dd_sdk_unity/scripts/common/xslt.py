@@ -12,7 +12,7 @@ from saxonche import PySaxonProcessor  # type: ignore
 __nunit3_junit_xslt__ = os.path.join(os.path.dirname(__file__), 'nunit3-junit.xslt')
 
 
-def transform_nunit_to_junit(nunit_file: str, junit_file: str):
+def transform_nunit_to_junit(nunit_file: str, junit_file: str) -> None:
     with PySaxonProcessor(license=False) as proc:
         xsltproc = proc.new_xslt30_processor()
         xsltproc.transform_to_file(

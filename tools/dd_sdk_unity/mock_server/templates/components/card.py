@@ -8,9 +8,9 @@ from uuid import uuid4
 class CardTab:
     title: str
     template: str
-    object: any  # ambiguous object, specific to `template`
+    object: object  # Value specific to `template`.
 
-    def __init__(self, title: str, template: str, object: any):
+    def __init__(self, title: str, template: str, object: object) -> None:
         self.title = title
         self.template = template
         self.object = object
@@ -19,9 +19,9 @@ class CardTab:
 class Card:
     id: str
     title: str
-    tabs: [CardTab]
+    tabs: list[CardTab]
 
-    def __init__(self, title: str, tabs: [CardTab]):
+    def __init__(self, title: str, tabs: list[CardTab]) -> None:
         self.id = str(uuid4())
         self.title = title
         self.tabs = tabs

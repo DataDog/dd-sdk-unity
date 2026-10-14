@@ -7,7 +7,9 @@ Utility code for finding and invoking the standalone Unity CLI (the `unity` bina
 """
 import json
 import shutil
+from typing import Literal, TypedDict, overload
 
+from dd_sdk_unity.scripts.common import TestMode
 from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.shell import run_cmd, run_cmd_streaming
 from dd_sdk_unity.scripts.common.unity.install import (
@@ -30,10 +32,21 @@ _EXIT_CODE_DESCRIPTIONS = {
 }
 
 
+class _InstalledEditor(TypedDict):
+    version: str
+    architecture: str
+    location: str
+
+
+class _InstalledModule(TypedDict):
+    id: str
+    status: str
+
+
 class UnityCli:
     path: str
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
 
     def list_installs(self) -> list[UnityInstall]:
@@ -70,7 +83,7 @@ class UnityCli:
             return install
         raise RuntimeError('Failed to resolve Unity install after successful completion of install command')
 
-    def install_modules(self, version: UnityVersion, modules: list[str]):
+    def install_modules(self, version: UnityVersion, modules: list[str]) -> None:
         """Adds modules and their children, accepting module license agreements."""
         if not modules:
             return
@@ -125,7 +138,7 @@ class UnityCli:
         self,
         version: UnityVersion,
         project_path: str,
-        platform: str,
+        platform: TestMode,
         results_path: str,
         log_path: str,
         *editor_args: str,
@@ -141,15 +154,21 @@ class UnityCli:
     def _command(self, output_format: str) -> list[str]:
         return [self.path, '--no-banner', '--no-pager', '--non-interactive', '--format', output_format]
 
-    def _list_items(self, *args: str) -> list[dict]:
-        command = ' '.join(args)
+    @overload
+    def _list_items(self, operation: Literal['editors'], *args: str) -> list[_InstalledEditor]: ...
+
+    @overload
+    def _list_items(self, operation: Literal['install-modules'], *args: str) -> list[_InstalledModule]: ...
+
+    def _list_items(self, operation: Literal['editors', 'install-modules'], *args: str) -> list[_InstalledEditor] | list[_InstalledModule]:
+        command = ' '.join((operation, *args))
         stdout: list[str] = []
         stderr: list[str] = []
 
-        def _read(line: str, is_stderr: bool):
+        def _read(line: str, is_stderr: bool) -> None:
             (stderr if is_stderr else stdout).append(line)
 
-        exitcode = run_cmd(*self._command('json'), *args, output_handler=_read)
+        exitcode = run_cmd(*self._command('json'), operation, *args, output_handler=_read)
         output = '\n'.join(stdout)
         if exitcode != 0:
             details = '\n'.join(stderr + stdout)
@@ -165,7 +184,7 @@ class UnityCli:
         return result['data']
 
     @staticmethod
-    def _raise_for_exitcode(exitcode: int, command: str, details: str = ''):
+    def _raise_for_exitcode(exitcode: int, command: str, details: str = '') -> None:
         if exitcode == 0:
             return
         reason = _EXIT_CODE_DESCRIPTIONS.get(exitcode, 'unrecognized exit code')

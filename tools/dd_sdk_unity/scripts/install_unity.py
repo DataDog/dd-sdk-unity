@@ -12,7 +12,7 @@ from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install
 
 
-def install_unity(version_prefix: str):
+def install_unity(version_prefix: str) -> int:
     """
     Ensures that the given version of Unity and its iOS/Android modules are installed.
 

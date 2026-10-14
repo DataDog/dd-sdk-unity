@@ -18,7 +18,7 @@ OutputHandlerFunc = Callable[[str, bool], None]
 
 def run_cmd(
     *args: str,
-    raise_on_nonzero_exitcode = False,
+    raise_on_nonzero_exitcode: bool = False,
     merge_stderr: bool = False,
     inherit_output: bool = False,
     output_handler: OutputHandlerFunc | None = None
@@ -91,7 +91,7 @@ def run_cmd_streaming(*args: str) -> int:
 def capture_output(*args: str) -> tuple[str, str]:
     stdout = io.StringIO()
     stderr = io.StringIO()
-    def _read(line: str, is_stderr: bool):
+    def _read(line: str, is_stderr: bool) -> None:
         if is_stderr:
             stderr.write(line + '\n')
         else:
@@ -104,7 +104,7 @@ def capture_output(*args: str) -> tuple[str, str]:
     return stdout.read(), stderr.read()
 
 
-def stop_process(process):
+def stop_process(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is None:
         try:
             if os.name == 'nt':

@@ -2,7 +2,10 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
-class Schema:
+from abc import ABC, abstractmethod
+
+
+class Schema(ABC):
     name: str  # displayed in the UI
     pretty_name: str
     is_known: bool
@@ -10,5 +13,6 @@ class Schema:
     request_template: str
 
     @staticmethod
-    def matches(method: str, path: str):
+    @abstractmethod
+    def matches(method: str, path: str) -> bool:
         pass

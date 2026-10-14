@@ -49,7 +49,7 @@ def _read_ios_xcframework_pin_impl(infile: IO[str]) -> IosXcframeworkPin:
     )
 
 
-def write_ios_xcframework_pin(path: str, pin: IosXcframeworkPin):
+def write_ios_xcframework_pin(path: str, pin: IosXcframeworkPin) -> None:
     outfile_name = ''
     with tempfile.NamedTemporaryFile('w', delete=False) as outfile:
         outfile_name = outfile.name
@@ -58,7 +58,7 @@ def write_ios_xcframework_pin(path: str, pin: IosXcframeworkPin):
     os.rename(outfile_name, path)
 
 
-def _write_ios_xcframework_pin_impl(infile: IO[str], outfile: IO[str], pin: IosXcframeworkPin):
+def _write_ios_xcframework_pin_impl(infile: IO[str], outfile: IO[str], pin: IosXcframeworkPin) -> None:
     log = get_default_logger()
 
     existing_doc = json.load(infile)

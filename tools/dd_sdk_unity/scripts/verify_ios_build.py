@@ -75,7 +75,7 @@ def _read_tail(path: str, max_lines: int = 80) -> str:
     return ''.join(lines[-max_lines:])
 
 
-def _check_project_not_locked(project_path: str):
+def _check_project_not_locked(project_path: str) -> None:
     """
     Fails fast if a Unity Editor instance is already holding the project's lock file.
     Two concurrent Unity instances against the same project corrupt the build, so this
@@ -142,7 +142,7 @@ def _check_cocoapods_absent(ios_build_dir: str) -> bool:
     return absent
 
 
-def _run_xcodebuild(ios_build_dir: str, xcodebuild_log_path: str):
+def _run_xcodebuild(ios_build_dir: str, xcodebuild_log_path: str) -> None:
     # No -workspace, since no CocoaPods workspace is ever generated on this path:
     #   xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone \
     #       -configuration Release -destination 'generic/platform=iOS' \
@@ -279,7 +279,7 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
             ios_xcframework.clean(log)
 
 
-def _merge_results_into_json(out_json: str, results: list[VerifyResult]):
+def _merge_results_into_json(out_json: str, results: list[VerifyResult]) -> None:
     os.makedirs(os.path.dirname(out_json), exist_ok=True)
     existing: list[dict] = []
     if os.path.isfile(out_json):
@@ -329,7 +329,7 @@ def main(unity_version: str, out_json: str, keep_artifacts: bool) -> int:
     return 0 if all_green else 1
 
 
-def cli_main():
+def cli_main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         '--unity-version', required=True, choices=list(MATRIX.keys()),

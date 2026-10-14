@@ -54,15 +54,15 @@ class Simctl:
         result = SimctlDeviceList(**data)
         return result.devices
     
-    def shutdown(self, udid: str, timeout_seconds: float = 30.0):
+    def shutdown(self, udid: str, timeout_seconds: float = 30.0) -> None:
         args = ['xcrun', 'simctl', 'shutdown', udid]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def boot(self, udid: str, timeout_seconds: float = 30.0):
+    def boot(self, udid: str, timeout_seconds: float = 30.0) -> None:
         args = ['xcrun', 'simctl', 'boot', udid]
         subprocess.check_call(args, timeout=timeout_seconds)
 
-    def wait_for_boot(self, udid: str, timeout_seconds: float = 30.0):
+    def wait_for_boot(self, udid: str, timeout_seconds: float = 30.0) -> None:
         args = ['xcrun', 'simctl', 'bootstatus', udid]
         subprocess.check_call(args, timeout=timeout_seconds, stdout=subprocess.DEVNULL)
 

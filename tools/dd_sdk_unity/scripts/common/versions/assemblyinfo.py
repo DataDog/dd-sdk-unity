@@ -11,7 +11,7 @@ from typing import IO
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
 
-def modify_assemblyinfo(path: str, new_version: Version):
+def modify_assemblyinfo(path: str, new_version: Version) -> None:
     with open(path) as fp:
         new_text = _modify_assemblyinfo_impl(fp, new_version)
     with open(path, 'w') as fp:

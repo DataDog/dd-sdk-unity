@@ -47,7 +47,7 @@ def _read_android_dependency_pin_impl(infile: IO[str]) -> AndroidDependencyPin:
     )
 
 
-def write_android_dependency_pin(path: str, pin: AndroidDependencyPin):
+def write_android_dependency_pin(path: str, pin: AndroidDependencyPin) -> None:
     outfile_name = ''
     with tempfile.NamedTemporaryFile('w', delete=False) as outfile:
         outfile_name = outfile.name
@@ -56,7 +56,7 @@ def write_android_dependency_pin(path: str, pin: AndroidDependencyPin):
     os.rename(outfile_name, path)
 
 
-def _write_android_dependency_pin_impl(infile: IO[str], outfile: IO[str], pin: AndroidDependencyPin):
+def _write_android_dependency_pin_impl(infile: IO[str], outfile: IO[str], pin: AndroidDependencyPin) -> None:
     log = get_default_logger()
 
     existing_doc = json.load(infile)

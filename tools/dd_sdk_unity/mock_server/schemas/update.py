@@ -10,12 +10,12 @@ schemas_path = ".schemas"
 schema_repo = "https://github.com/DataDog/rum-events-format.git"
 
 
-def schemas_path_exists(path=schemas_path):
+def schemas_path_exists(path: str | os.PathLike[str] = schemas_path) -> bool:
     """Test whether the schema directory exists."""
     return os.path.isdir(path)
 
 
-def update_schemas(path=schemas_path):
+def update_schemas(path: str | os.PathLike[str] = schemas_path) -> None:
     """Clone or update the schema repository in the supplied directory."""
     if os.path.exists(path):
         if not os.path.exists(os.path.join(path, '.git')):
@@ -28,11 +28,11 @@ def update_schemas(path=schemas_path):
         _clone_schemas_repo(path)
 
 
-def _clone_schemas_repo(path):
+def _clone_schemas_repo(path: str | os.PathLike[str]) -> None:
     print(f"Running git clone of {schema_repo}")
     subprocess.check_call(['git', 'clone', schema_repo, os.fspath(path)])
 
 
-def _update_schemas_repo(path):
+def _update_schemas_repo(path: str | os.PathLike[str]) -> None:
     print(f"Running git pull on {path}")
     subprocess.check_call(['git', 'pull'], cwd=path)

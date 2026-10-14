@@ -32,14 +32,14 @@ class AvdManager:
     """
     path: str
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
 
     def list_avds(self) -> list[Avd]:
         stdout, _ = capture_output(self.path, 'list', 'avd')
         return _parse_list_avd_output(stdout)
     
-    def create_avd(self, name: str, system_package_path: str, device: str):
+    def create_avd(self, name: str, system_package_path: str, device: str) -> None:
         capture_output(
             self.path, 'create', 'avd',
             '-n', name,

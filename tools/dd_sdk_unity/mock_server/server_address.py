@@ -8,11 +8,11 @@ import socket
 
 
 class ServerAddress:
-    def __init__(self, ip, port):
+    def __init__(self, ip: str, port: int) -> None:
         self.ip = ip
         self.port = port
 
-def get_private_IP_on_subnet(subnet_broadcast: str):
+def get_private_IP_on_subnet(subnet_broadcast: str) -> ServerAddress | None:
     """
     Returns private IP on a specific local network or `None` if the local network is not reachable.
     """
@@ -26,7 +26,7 @@ def get_private_IP_on_subnet(subnet_broadcast: str):
     finally:
         s.close()
 
-def get_private_IP():
+def get_private_IP() -> ServerAddress | None:
     """
     Returns private IP on the local network or `None` if the local network is not reachable.
     """
@@ -36,14 +36,14 @@ def get_private_IP():
         return private_ip
     return get_private_IP_on_subnet('192.168.255.255')
 
-def get_localhost():
+def get_localhost() -> ServerAddress:
     """
     Returns localhost address.
     """
 
     return ServerAddress('127.0.0.1', 8000)
 
-def get_best_server_address():
+def get_best_server_address() -> ServerAddress:
     """
     Returns private IP if possible, localhost otherwise.
     """

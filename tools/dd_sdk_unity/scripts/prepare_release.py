@@ -31,6 +31,7 @@ from dd_sdk_unity.scripts.common.versions import (
     ANDROID_DEPENDENCY_VERSION_RELPATH,
     IOS_DEPENDENCY_VERSION_RELPATH,
     AndroidDependencyPin,
+    ExternalDependencyVersions,
     IosXcframeworkPin,
     SdkVersionTable,
     Version,
@@ -75,7 +76,7 @@ def _require_clean_repo(root: str, branch_name: str) -> git.Repo:
     
     # Require that we're at the latest revision reflected in GitHub, i.e. we're not
     # behind remote or ahead of remote
-    remote_commit: git.Commit = repo.refs[f'origin/{branch_name}'].commit  # type: ignore
+    remote_commit: git.Commit = repo.refs[f'origin/{branch_name}'].commit
     if repo.head.commit != remote_commit:
         log.error(f'{repo_name} is not up to date with origin/{branch_name}!')
         log.error(f'Local commit: {repo.head.commit}')
@@ -153,7 +154,7 @@ def _needs_dependency_upgrade(repo_name: str, target_ver: Version, prev_release_
     raise RuntimeError(f'Target {repo_name} version {target_ver} is a downgrade from version used in previous release ({prev_release_ver})')
 
 
-def _read_prev_release_ios_version(prev_release_version: Version, prev_release_dependency_versions) -> Version:
+def _read_prev_release_ios_version(prev_release_version: Version, prev_release_dependency_versions: ExternalDependencyVersions | None) -> Version:
     """
     Resolves the dd-sdk-ios version pinned in the previous release. Reads from the new
     Editor/iOS/IosDependencyVersion.json config first (releases published after that
@@ -182,7 +183,7 @@ def _read_prev_release_ios_version(prev_release_version: Version, prev_release_d
         return legacy_dd_sdk_ios_version
 
 
-def _read_prev_release_android_version(prev_release_version: Version) -> tuple[Version, object]:
+def _read_prev_release_android_version(prev_release_version: Version) -> tuple[Version, ExternalDependencyVersions | None]:
     """
     Resolves the dd-sdk-android version pinned in the previous release, and along the way
     fetches the legacy Editor/DatadogDependencies.xml manifest so the caller can pass it
@@ -362,7 +363,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     log = init_logger()
     num_sections_logged = 0
 
-    def _log_section(s: str):
+    def _log_section(s: str) -> None:
         nonlocal num_sections_logged
         if num_sections_logged > 0:
             log.info('')
@@ -916,7 +917,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     return 0
 
 
-def main():
+def main() -> int:
 
     parser = argparse.ArgumentParser(description='Cuts a new release')
     parser.add_argument('--local-dev-repo', default='auto', help='Path to the root of the dd-sdk-unity repo from which a new release will be cut; defaults to the repo containing this script.')

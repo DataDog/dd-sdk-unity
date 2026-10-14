@@ -34,10 +34,10 @@ def test_empty_wrong_or_partial_result_is_rejected(tmp_path, text):
 
 
 def test_simulator_selection_uses_available_runtime_not_fixed_version():
-    runtimes = [{'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-18-5', 'version': '18.5', 'isAvailable': True},
+    runtimes: list[simulator._SimulatorRuntime] = [{'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-18-5', 'version': '18.5', 'isAvailable': True},
                 {'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-0', 'version': '26.0', 'isAvailable': True},
                 {'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0', 'version': '27.0', 'isAvailable': False}]
-    devices = {runtime['identifier']: [{'isAvailable': True,
+    devices: dict[str, list[simulator._SimulatorDevice]] = {runtime['identifier']: [{'isAvailable': True,
                 'deviceTypeIdentifier': 'com.apple.CoreSimulator.SimDeviceType.iPhone-17'}] for runtime in runtimes}
     assert simulator._simulator_type(runtimes, devices)[0].endswith('iOS-26-0')
 

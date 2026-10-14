@@ -24,14 +24,14 @@ class AndroidSdkManager:
     """
     path: str
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
 
     def list_installed_packages(self) -> list[AndroidPackage]:
         stdout, _ = capture_output(self.path, '--list')
         return _parse_sdkmanager_list_output(stdout)
     
-    def install_package(self, package_path: str):
+    def install_package(self, package_path: str) -> None:
         capture_output(self.path, '--install', package_path)
 
     @classmethod

@@ -26,6 +26,7 @@ import sys
 import time
 from http.client import RemoteDisconnected
 from pathlib import Path
+from typing import NotRequired, TypedDict
 from urllib.error import URLError
 from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, build_opener
@@ -42,7 +43,17 @@ PORT = 5100
 STOP_TIMEOUT = 5
 
 
-def server_health(endpoint: str, retry_timeout=False):
+class _ProcessIdentity(TypedDict):
+    pid: int
+    create_time: NotRequired[float]
+
+
+class _ServerState(_ProcessIdentity):
+    port: int
+    endpoint: str
+
+
+def server_health(endpoint: str, retry_timeout: bool = False) -> bool | None:
     # macOS can silently drop connections to an unused LAN port. Check whether
     # this local address is free before issuing HTTP, rather than mistaking that
     # firewall timeout for an existing server. Still verify any occupied port.
@@ -75,7 +86,7 @@ def server_health(endpoint: str, retry_timeout=False):
         raise RuntimeError(f'Cannot probe mock server at {endpoint}: {error}') from error
 
 
-def _verified_process(state):
+def _verified_process(state: _ProcessIdentity) -> psutil.Process | None:
     if state['pid'] <= 0 or 'create_time' not in state:
         return None
     try:
@@ -90,19 +101,19 @@ def _verified_process(state):
     return None
 
 
-def _is_live(process):
+def _is_live(process: psutil.Process) -> bool:
     try:
         return process.is_running() and process.status() not in (psutil.STATUS_ZOMBIE, psutil.STATUS_DEAD)
     except psutil.NoSuchProcess:
         return False
 
 
-def process_is_running(state):
+def process_is_running(state: _ProcessIdentity) -> bool:
     process = _verified_process(state)
     return process is not None and _is_live(process)
 
 
-def _live_group_members(group):
+def _live_group_members(group: int) -> dict[int, psutil.Process]:
     members = {}
     for candidate in psutil.process_iter():
         try:
@@ -114,7 +125,7 @@ def _live_group_members(group):
     return members
 
 
-def _stop_group(state):
+def _stop_group(state: _ProcessIdentity) -> None:
     pid = state['pid']
     if pid <= 0:
         raise RuntimeError('Invalid mock-server PID')
@@ -161,20 +172,20 @@ def _stop_group(state):
 
 
 class IntegrationTestEnvironment:
-    def __init__(self, project):
+    def __init__(self, project: str | os.PathLike[str]) -> None:
         self.directory = Path(project).resolve() / STATE_DIRECTORY
         self.state_path = self.directory / 'state.json'
-        self.endpoint = None
+        self.endpoint: str | None = None
 
-    def _read_state(self):
+    def _read_state(self) -> _ServerState | None:
         return json.loads(self.state_path.read_text()) if self.state_path.exists() else None
 
-    def _write_state(self, state):
+    def _write_state(self, state: _ServerState) -> None:
         temporary = self.state_path.with_suffix('.tmp')
         temporary.write_text(json.dumps(state))
         temporary.replace(self.state_path)
 
-    def start(self, host=None, port=PORT):
+    def start(self, host: str | None = None, port: int = PORT) -> psutil.Popen | None:
         """Reuse a live recorded PID; otherwise start a server and return its Popen reference."""
         state = self._read_state()
         if state and process_is_running(state):
@@ -219,12 +230,16 @@ class IntegrationTestEnvironment:
         print(f'Integration mock server ready at {self.endpoint}', flush=True)
         return process
 
-    def stop(self, process=None):
+    def stop(self, process: psutil.Popen | None = None) -> None:
         """Stop the recorded process group, including reloader workers."""
         state = self._read_state()
-        if state is None and process is None:
+        identity: _ProcessIdentity
+        if process is not None:
+            identity = {'pid': process.pid, 'create_time': process.create_time()}
+        elif state is not None:
+            identity = state
+        else:
             return
-        identity = {'pid': process.pid, 'create_time': process.create_time()} if process is not None else state
         _stop_group(identity)
         if process is not None:
             process.wait(timeout=STOP_TIMEOUT)
@@ -233,7 +248,7 @@ class IntegrationTestEnvironment:
             self.state_path.unlink(missing_ok=True)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['start', 'stop'])
     parser.add_argument('--project', required=True)

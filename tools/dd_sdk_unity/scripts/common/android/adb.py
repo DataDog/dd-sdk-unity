@@ -18,7 +18,7 @@ class AdbDevice:
     adb_path: str
     name: str
 
-    def wait_for_boot(self, timeout_seconds: float = 30.0, interval_seconds = 0.5):
+    def wait_for_boot(self, timeout_seconds: float = 30.0, interval_seconds: float = 0.5) -> None:
         started_at = time.time()
         while True:
             args = [self.adb_path, '-s', self.name, 'shell', 'getprop', 'sys.boot_completed']
@@ -29,7 +29,7 @@ class AdbDevice:
             if elapsed + interval_seconds > timeout_seconds:
                 raise TimeoutError(f'ADB device {self.name} failed to complete boot after {timeout_seconds} seconds')
             
-    def emu_kill(self, timeout_seconds: float = 30.0):
+    def emu_kill(self, timeout_seconds: float = 30.0) -> None:
         args = [self.adb_path, '-s', self.name, 'emu', 'kill']
         subprocess.check_call(args, timeout=timeout_seconds)
 

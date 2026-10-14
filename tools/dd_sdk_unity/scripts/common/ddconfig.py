@@ -6,6 +6,7 @@
 Utility code for modifying the DatadogSettings.asset file for any given Unity project.
 """
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -49,7 +50,7 @@ class DatadogRuntimeConfig:
     telemetry_sample_rate: int | None = None
     first_party_hosts: list[FirstPartyHost] | None = None
 
-    def apply_to(self, path: str):
+    def apply_to(self, path: str) -> None:
         with open(path) as fp:
             old_text = fp.read()
         new_text = _modify_datadog_settings_impl(old_text, self)
@@ -58,7 +59,7 @@ class DatadogRuntimeConfig:
 
 
 @contextmanager
-def modified_datadog_settings(project_root: str, config: DatadogRuntimeConfig):
+def modified_datadog_settings(project_root: str, config: DatadogRuntimeConfig) -> Generator[None]:
     # Read the original contents of DatadogSettings.asset
     path = os.path.join(project_root, __dd_settings_asset_relpath__)
     with open(path) as fp:

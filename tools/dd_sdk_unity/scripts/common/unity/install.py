@@ -21,7 +21,7 @@ class UnityVersion:
     patch: int
     revision: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.major:d}.{self.minor:d}.{self.patch:d}{self.revision}'
 
     def __eq__(self, other: object) -> bool:
@@ -99,7 +99,7 @@ class UnityInstall:
             with open(log_path, 'w'):
                 pass
 
-        def _read(line: str):
+        def _read(line: str) -> None:
             max_retries = 10
             delay = 0.01
             for attempt in range(max_retries):
@@ -119,7 +119,7 @@ class UnityInstall:
         stop_event = threading.Event()
         ready_event = threading.Event()
 
-        def _tail_log():
+        def _tail_log() -> None:
             with open(log_path, 'r') as fp:
                 # Seek to EOF
                 fp.seek(0, 2)

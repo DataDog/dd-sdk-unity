@@ -9,8 +9,11 @@ devices.
 """
 import os
 import platform as _platform
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
+
+from dd_sdk_unity.scripts.common import DeviceTarget, MobilePlatform
 
 __project_settings_asset_filename__ = 'ProjectSettings.asset'
 __project_settings_asset_relpath__ = os.path.join('ProjectSettings', __project_settings_asset_filename__)
@@ -28,7 +31,7 @@ class TargetIosSimulatorArchitecture(Enum):
 
 
 @contextmanager
-def modified_ios_target_settings(project_root: str, platform: str, target: str):
+def modified_ios_target_settings(project_root: str, platform: MobilePlatform, target: DeviceTarget) -> Generator[None]:
     # If we're launching on non-iOS platforms, do nothing
     if platform != 'ios':
         yield

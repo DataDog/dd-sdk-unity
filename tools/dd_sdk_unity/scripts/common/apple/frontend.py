@@ -7,6 +7,7 @@ High-level interface for iOS simulators; allows you to specify the target device
 with AppleDeviceSpec and use `with run_apple_device(spec):` to provision and boot the
 appropriate simulator for the duration of the `with` block.
 """
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -21,7 +22,7 @@ class AppleDeviceSpec:
 
 
 @contextmanager
-def run_apple_device(spec: AppleDeviceSpec):
+def run_apple_device(spec: AppleDeviceSpec) -> Generator[None]:
     log = get_default_logger()
     log.info('Preparing an emulated Apple device...')
     log.info(f'- Runtime: {spec.runtime}')

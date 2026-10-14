@@ -4,11 +4,18 @@
 
 import gzip
 import zlib
+from typing import TypedDict
 
 from flask import Request
 
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
+
+
+class _RawSchemaJson(TypedDict):
+    headers: list[str]
+    data: str
+    decompressed_data: str | None
 
 
 class RAWSchema(Schema):
@@ -19,11 +26,11 @@ class RAWSchema(Schema):
     request_template = 'raw/request.html'
 
     # RAW-specific:
-    headers: [str]  # ['field1: value1', 'field2: value2', ...]
+    headers: list[str]  # ['field1: value1', 'field2: value2', ...]
     data_as_text: str
     decompressed_data: str | None  # `None` if data was not compressed
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request) -> None:
         self.headers = [f'{name}: {value}' for name, value in request.headers]
         self.data_as_text = request.get_data(as_text=True)
         encoding = request.headers.get('Content-Encoding', None)
@@ -52,7 +59,7 @@ class RAWSchema(Schema):
 
         return Card(title='View as:' if len(tabs) > 1 else 'Body', tabs=tabs)
 
-    def as_json(self) -> dict:
+    def as_json(self) -> _RawSchemaJson:
         return {
             "headers": self.headers,
             "data": self.data_as_text,
@@ -60,5 +67,5 @@ class RAWSchema(Schema):
         }
 
     @staticmethod
-    def matches(method: str, path: str):
+    def matches(method: str, path: str) -> bool:
         return True

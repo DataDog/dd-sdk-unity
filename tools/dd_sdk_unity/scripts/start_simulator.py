@@ -8,13 +8,14 @@ Starts an emulated device for either iOS or Android, blocking until Ctrl-C is pr
 import argparse
 import time
 
+from dd_sdk_unity.scripts.common import MobilePlatform
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.simulator import run_default_simulator
 
 
-def start_simulator(platform: str) -> int:
+def start_simulator(platform: MobilePlatform) -> int:
     log = init_logger()
-    with run_default_simulator(platform.lower()):
+    with run_default_simulator(platform):
         log.info('Simulator running.')
         log.info('Press Ctrl-C to exit...')
         while True:
@@ -26,7 +27,7 @@ def start_simulator(platform: str) -> int:
     return 0
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description='Boots up an emulated mobile device for testing')
     parser.add_argument('--platform', choices=['ios', 'android'], required=True)
     args = parser.parse_args()

@@ -27,7 +27,7 @@ class SdkVersionTableRow:
 class SdkVersionTable:
     rows: list[SdkVersionTableRow]
 
-    def set(self, unity_version: Version, ios_version: Version, android_version: Version):
+    def set(self, unity_version: Version, ios_version: Version, android_version: Version) -> None:
         row = SdkVersionTableRow(
             unity_version=unity_version,
             ios_version_str=str(ios_version),

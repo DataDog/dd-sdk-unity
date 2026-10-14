@@ -11,6 +11,7 @@ import plistlib
 import shutil
 
 from dd_sdk_unity.scripts import ios_xcframework
+from dd_sdk_unity.scripts.common import MobilePlatform
 from dd_sdk_unity.scripts.common.apple import run_xcodebuild
 from dd_sdk_unity.scripts.common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
 from dd_sdk_unity.scripts.common.log import init_logger
@@ -22,7 +23,7 @@ __default_demo_project_root__ = os.path.join(__repo_root__, 'samples', 'Demo Dat
 __default_demo_project_unity_version__ = '2022'
 
 
-def build_demo(unity_version_prefix: str, project_root: str, platform: str, config: DatadogRuntimeConfig):
+def build_demo(unity_version_prefix: str, project_root: str, platform: MobilePlatform, config: DatadogRuntimeConfig) -> int:
     log = init_logger()
 
     # Check to see if we have the required Unity version installed
@@ -131,7 +132,7 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: str, conf
         return 0
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description='Build the Demo Data project, configured appropriately')
     parser.add_argument('--unity-version', '-u', default=__default_demo_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_demo_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")

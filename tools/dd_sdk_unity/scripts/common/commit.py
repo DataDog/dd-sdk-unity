@@ -21,7 +21,7 @@ class ConventionalCommitInfo:
     bang: bool
 
     @classmethod
-    def parse(cls, headline) -> tuple[ConventionalCommitInfo | None, str]:
+    def parse(cls, headline: str) -> tuple[ConventionalCommitInfo | None, str]:
         match = __conventional_commit_pattern__.match(headline)
         if not match:
             return None, headline

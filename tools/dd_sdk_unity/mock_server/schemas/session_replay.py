@@ -4,6 +4,7 @@
 
 import json
 import zlib
+from typing import TypedDict
 
 from flask import Request
 
@@ -22,6 +23,14 @@ record_name_by_type = {
 }
 
 
+class _ReplayRecord(TypedDict):
+    type: int
+
+
+class _ReplaySegment(TypedDict):
+    records: list[_ReplayRecord]
+
+
 class SRSchema(Schema):
     name = 'session-replay'
     pretty_name = 'Session Replay'
@@ -31,9 +40,9 @@ class SRSchema(Schema):
 
     # SR-specific
     stats: list[Stat]
-    segment_json: dict
+    segment_json: _ReplaySegment
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request) -> None:
         segment_file = request.files['segment'].read()
         segment_json_string = zlib.decompress(segment_file).decode('utf-8')
         self.segment_json = json.loads(segment_json_string)
@@ -97,12 +106,12 @@ class SRSchema(Schema):
         return CardTab(title=f'Records ({records_count})', template='session-replay/records_view.html', object=obj)
 
     @staticmethod
-    def matches(method: str, path: str):
+    def matches(method: str, path: str) -> bool:
         return method == 'POST' and path.startswith('/api/v2/replay')
 
     @staticmethod
-    def create_stats(records: dict) -> [Stat]:
-        stats: [Stat] = []
+    def create_stats(records: list[_ReplayRecord]) -> list[Stat]:
+        stats: list[Stat] = []
         for r_type, record_name in record_name_by_type.items():
             count = 0
 

@@ -9,6 +9,7 @@ versions declared below. Android artifacts are never downloaded into the package
 Gradle resolves them at the user's build time — so there is no stage step here.
 """
 import subprocess
+from logging import Logger
 from xml.etree import ElementTree as ET
 
 MAVEN_BASE = 'https://repo1.maven.org/maven2'
@@ -31,7 +32,7 @@ def aar_url(artifact: str, version: str) -> str:
     return f'{MAVEN_BASE}/{MAVEN_GROUP_PATH}/{artifact}/{version}/{artifact}-{version}.aar'
 
 
-def fetch_text(log, url: str) -> str:
+def fetch_text(log: Logger, url: str) -> str:
     log.info(f'Fetching {url}')
     # Equivalent to `curl --proto '=https' --tlsv1.2 --fail --location --silent
     # --show-error <url>`, passed as separate argv entries (no shell involved).
@@ -54,7 +55,7 @@ def fetch_text(log, url: str) -> str:
     return result.stdout
 
 
-def check_reachable(log, url: str) -> bool:
+def check_reachable(log: Logger, url: str) -> bool:
     log.info(f'Checking reachability of {url}')
     result = subprocess.run(
         [
@@ -79,7 +80,7 @@ def check_reachable(log, url: str) -> bool:
 def parse_direct_dependencies(pom_xml: str) -> dict[str, str]:
     root = ET.fromstring(pom_xml)
 
-    def local_tag(elem) -> str:
+    def local_tag(elem: ET.Element) -> str:
         tag = elem.tag
         if '}' in tag:
             return tag.split('}', 1)[1]
@@ -110,7 +111,7 @@ def parse_direct_dependencies(pom_xml: str) -> dict[str, str]:
     return deps
 
 
-def verify_artifacts_reachable(log, artifacts: list[str], version: str) -> list[str]:
+def verify_artifacts_reachable(log: Logger, artifacts: list[str], version: str) -> list[str]:
     unreachable: list[str] = []
     for artifact in artifacts:
         for url in (pom_url(artifact, version), aar_url(artifact, version)):
@@ -122,7 +123,7 @@ def verify_artifacts_reachable(log, artifacts: list[str], version: str) -> list[
     return unreachable
 
 
-def collect_transitives(log, artifacts: list[str], version: str) -> dict[str, str]:
+def collect_transitives(log: Logger, artifacts: list[str], version: str) -> dict[str, str]:
     merged: dict[str, str] = {}
     for artifact in artifacts:
         pom_xml = fetch_text(log, pom_url(artifact, version))

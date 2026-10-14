@@ -13,7 +13,7 @@ from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.shell import stop_process
 
 
-def run_xcodebuild(cwd: str, args: list[str]):
+def run_xcodebuild(cwd: str, args: list[str]) -> None:
     command = ['xcodebuild', *args]
     pipeline = shlex.join(command) + ' 2>&1 | xcbeautify'
     log = get_default_logger()

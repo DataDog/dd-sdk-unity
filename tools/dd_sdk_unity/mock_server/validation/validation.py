@@ -4,6 +4,8 @@
 
 import json
 import os
+from collections.abc import Mapping
+from typing import Any
 
 from jsonschema import RefResolver, ValidationError, validate
 
@@ -13,13 +15,13 @@ class JSONSchemaValidationResult:
     all_ok: bool
     error: str | None  # `None` if `all_ok`
 
-    def __init__(self, schema_path: str, all_ok: bool, error: str | None):
+    def __init__(self, schema_path: str, all_ok: bool, error: str | None) -> None:
         self.schema_name = os.path.basename(schema_path)
         self.all_ok = all_ok
         self.error = error
 
 
-def patch_ajv_uri(uri):
+def patch_ajv_uri(uri: str) -> Any:
     """
     For patching $ref and $ids after AJV-required
     change introduced in https://github.com/DataDog/rum-events-format/pull/88
@@ -52,7 +54,7 @@ def patch_ajv_uri(uri):
         return json.load(schema_file)
 
 
-def validate_event(event: dict, schema_path: str) -> JSONSchemaValidationResult:
+def validate_event(event: Mapping[str, object], schema_path: str) -> JSONSchemaValidationResult:
     try:
         with open(schema_path, 'r') as schema_file:
             schema = json.load(schema_file)

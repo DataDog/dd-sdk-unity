@@ -12,7 +12,9 @@ import sys
 import time
 import uuid
 import xml.etree.ElementTree as ET
+from collections.abc import Iterable
 from pathlib import Path
+from typing import NotRequired, TypedDict
 
 from dd_sdk_unity.scripts.common.apple.xcode import run_xcodebuild
 from dd_sdk_unity.scripts.common.log import get_default_logger
@@ -22,11 +24,22 @@ RESULT_FILENAME = 'nunit-integration-test-ios.xml'
 PLAYER_RESULTS_TIMEOUT = 600
 
 
-def _capture(*command):
+class _SimulatorRuntime(TypedDict):
+    identifier: str
+    version: str
+    isAvailable: NotRequired[bool]
+
+
+class _SimulatorDevice(TypedDict):
+    deviceTypeIdentifier: str
+    isAvailable: NotRequired[bool]
+
+
+def _capture(*command: str) -> str:
     return subprocess.check_output(command, text=True).strip()
 
 
-def _run(command, log_path):
+def _run(command: list[str], log_path: str | Path) -> None:
     log = get_default_logger()
     log.info('Running: ' + shlex.join(command))
     with Path(log_path).open('a') as output:
@@ -43,7 +56,7 @@ def _run(command, log_path):
             stop_process(process)
 
 
-def _simulator_type(runtimes, devices):
+def _simulator_type(runtimes: list[_SimulatorRuntime], devices: dict[str, list[_SimulatorDevice]]) -> tuple[str, str]:
     candidates = [r for r in runtimes if r.get('isAvailable') and
                   r.get('identifier', '').startswith('com.apple.CoreSimulator.SimRuntime.iOS-')]
     candidates.sort(key=lambda r: tuple(int(part) for part in r['version'].split('.')), reverse=True)
@@ -55,7 +68,7 @@ def _simulator_type(runtimes, devices):
     raise RuntimeError('No available iOS runtime with an iPhone device type; check simctl list devices available')
 
 
-def collect_results(source, destination):
+def collect_results(source: str | Path, destination: str | Path) -> None:
     """Wrap Unity's runtime suite in a NUnit <test-run> root for JUnit conversion."""
     root = ET.parse(source).getroot()
     if root.tag == 'test-suite':
@@ -67,7 +80,7 @@ def collect_results(source, destination):
     ET.ElementTree(root).write(destination, encoding='utf-8', xml_declaration=True)
 
 
-def _print_player_progress(reader):
+def _print_player_progress(reader: Iterable[str]) -> None:
     log = get_default_logger()
     for line in reader:
         marker = line.find('[Integration tests]')
@@ -75,7 +88,7 @@ def _print_player_progress(reader):
             log.info(line[marker:].rstrip())
 
 
-def run_simulator_tests(export_path, nunit_path, log_path):
+def run_simulator_tests(export_path: str | Path, nunit_path: str | Path, log_path: str | Path) -> None:
     log = get_default_logger()
     export_path = Path(export_path)
     if not (export_path / 'Unity-iPhone.xcodeproj').is_dir():

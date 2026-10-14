@@ -52,6 +52,7 @@ Run Python checks from the repository root:
 
 ```bash
 ruff check
+ty check
 pytest
 ```
 
@@ -77,6 +78,7 @@ Run Python checks from the repository root:
 
 ```bash
 uv run ruff check
+uv run ty check
 uv run pytest
 ```
 
