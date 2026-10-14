@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.Unity.Analyzers</id>
+    <version>1.28.0</version>
+    <authors>Microsoft</authors>
+    <developmentDependency>true</developmentDependency>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/microsoft/Microsoft.Unity.Analyzers</projectUrl>
+    <description>Roslyn analyzers for Unity game developers</description>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <tags>Unity3d analyzers csharp</tags>
+    <repository type="git" url="https://github.com/microsoft/Microsoft.Unity.Analyzers" commit="fd250c39b858921df0f9479926338b0bad6259fb" />
+    <dependencies>
+      <group targetFramework=".NETStandard2.0" />
+    </dependencies>
+  </metadata>
+</package>
