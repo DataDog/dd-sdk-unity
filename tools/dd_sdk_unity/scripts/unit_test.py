@@ -1,13 +1,12 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Runs the unit test suite for the Unity SDK's C# implementation layer.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-import os
 import argparse
-from typing import List
+import os
 
 from junitparser.junitparser import JUnitXml, TestCase
 
@@ -21,7 +20,7 @@ __default_test_project_root__ = os.path.join(__repo_root__, 'samples', 'Datadog 
 __default_test_project_unity_version__ = '2022'
 
 
-def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_junit_path_pattern: str):
+def unit_test(version_prefix: str, project_path: str, platforms: list[str], out_junit_path_pattern: str):
     """
     Prerequisites: Unity CLI must be on PATH, and the target Unity Editor must be
     installed. If no fixed license is installed locally, the Unity Licensing Client
@@ -86,7 +85,7 @@ def unit_test(version_prefix: str, project_path: str, platforms: List[str], out_
         # Summarize JUnit results in the console
         num_skipped = 0
         num_passed = 0
-        failed_cases: List[TestCase] = []
+        failed_cases: list[TestCase] = []
         for suite in test_results:
             for case in suite:
                 if case.is_skipped:

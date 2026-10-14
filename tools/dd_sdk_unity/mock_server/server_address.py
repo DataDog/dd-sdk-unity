@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
 import socket
 
-class ServerAddress():
+
+class ServerAddress:
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
@@ -22,7 +21,7 @@ def get_private_IP_on_subnet(subnet_broadcast: str):
     try:
         s.connect((subnet_broadcast, 1))
         return ServerAddress(s.getsockname()[0], 8000)
-    except:
+    except OSError:
         return None
     finally:
         s.close()
@@ -54,4 +53,4 @@ def get_best_server_address():
 
 if __name__ == "__main__":
     address = get_best_server_address()
-    print("{ip}:{port}".format( ip = address.ip, port = address.port))
+    print(f"{address.ip}:{address.port}")

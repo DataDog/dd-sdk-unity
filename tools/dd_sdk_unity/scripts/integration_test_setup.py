@@ -1,8 +1,8 @@
-"""Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
-Start, reuse, and stop the mock server used by Unity integration tests.
+"""Start, reuse, and stop the mock server used by Unity integration tests.
 The Python integration runner calls this module's IntegrationTestEnvironment class
 directly. To manage the server separately, run these commands from the repository root:
 
@@ -17,24 +17,23 @@ commands manage only the server; they do not run tests or configure SDK settings
 """
 import argparse
 import errno
-from http.client import RemoteDisconnected
 import json
 import os
-from pathlib import Path
 import signal
 import socket
 import subprocess
 import sys
 import time
+from http.client import RemoteDisconnected
+from pathlib import Path
 from urllib.error import URLError
-from urllib.request import ProxyHandler, build_opener
 from urllib.parse import urlsplit
+from urllib.request import ProxyHandler, build_opener
 
 import psutil
 
 from dd_sdk_unity.scripts.common.inet_addr import get_reachable_inet_addr
 from dd_sdk_unity.scripts.common.log import init_logger
-
 
 __mock_server_root__ = Path(__file__).resolve().parents[1] / 'mock_server'
 STATE_DIRECTORY = Path('Library/DatadogIntegrationTests')
@@ -81,10 +80,11 @@ def _verified_process(state):
         return None
     try:
         process = psutil.Process(state['pid'])
-        if process.create_time() == state['create_time']:
-            # macOS cannot query a zombie's group; its identity still anchors the saved group.
-            if process.status() == psutil.STATUS_ZOMBIE or os.getpgid(process.pid) == process.pid:
-                return process
+        # macOS cannot query a zombie's group; its identity still anchors the saved group.
+        if process.create_time() == state['create_time'] and (
+            process.status() == psutil.STATUS_ZOMBIE or os.getpgid(process.pid) == process.pid
+        ):
+            return process
     except (psutil.NoSuchProcess, ProcessLookupError):
         pass
     return None

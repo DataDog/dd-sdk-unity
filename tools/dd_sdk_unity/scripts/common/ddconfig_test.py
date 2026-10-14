@@ -1,11 +1,14 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 import pytest
 
-from dd_sdk_unity.scripts.common.ddconfig import DatadogRuntimeConfig, FirstPartyHost, _modify_datadog_settings_impl
+from dd_sdk_unity.scripts.common.ddconfig import (
+    DatadogRuntimeConfig,
+    FirstPartyHost,
+    _modify_datadog_settings_impl,
+)
 
 __old_settings__ = '''%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:

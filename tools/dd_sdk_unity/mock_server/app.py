@@ -1,32 +1,29 @@
-#!/usr/bin/python3
-
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
 import argparse
-import os
-import json
-
 import datetime
+import json
+import os
+from dataclasses import asdict, dataclass, is_dataclass
 from hashlib import sha1
 from socketserver import TCPServer
-from typing import Optional
-from dataclasses import dataclass, is_dataclass, asdict
-from flask import Flask, request, Request, render_template, url_for, redirect
-from flask_cors import CORS
+from urllib.parse import urlparse
+
 import flask
+from flask import Flask, Request, redirect, render_template, request, url_for
+from flask_cors import CORS
 from werkzeug import serving as _serving
-from dd_sdk_unity.mock_server.schemas.update import schemas_path_exists, update_schemas
-from dd_sdk_unity.mock_server.schemas.schema import Schema
+
 from dd_sdk_unity.mock_server.schemas.raw import RAWSchema
 from dd_sdk_unity.mock_server.schemas.rum import RUMSchema
+from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.schemas.session_replay import SRSchema
-from dd_sdk_unity.mock_server.server_address import get_best_server_address, get_localhost
-from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
-from urllib.parse import urlparse
+from dd_sdk_unity.mock_server.schemas.update import schemas_path_exists, update_schemas
+from dd_sdk_unity.mock_server.server_address import (
+    get_best_server_address,
+)
 
 app = Flask(__name__)
 CORS(app)
@@ -46,7 +43,7 @@ class GenericRequest:
     query_string: str
     date: datetime
     content_type: str
-    content_length: Optional[int]
+    content_length: int | None
     data_as_text: str
     schemas: [Schema]
 
@@ -75,12 +72,12 @@ class GenericRequest:
         )
 
     def hash(self) -> str:
-        meta = f'{self.method} {self.path} {self.date}'.encode('utf-8')
+        meta = f'{self.method} {self.path} {self.date}'.encode()
         body = self.data_as_text.encode('utf-8')
         return sha1(meta + body).hexdigest()
 
     def endpoint_hash(self) -> str:
-        return sha1(f'{self.method} {self.path}'.encode('utf-8')).hexdigest()
+        return sha1(f'{self.method} {self.path}'.encode()).hexdigest()
 
     def schema_with_name(self, name: str):
         return next((s for s in self.schemas if s.name == name), None)
@@ -100,13 +97,13 @@ class GenericEndpoint:
         return len(self.requests)
 
     def bytes_received(self):
-        return sum(map(lambda r: r.content_length or 0, self.requests))
+        return sum(r.content_length or 0 for r in self.requests)
 
     def follow_url(self, schema: Schema):
         return url_for('inspect_endpoint', schema_name=schema.name, endpoint_hash=self.hash())
 
     def hash(self) -> str:
-        return sha1(f'{self.method} {self.path}'.encode('utf-8')).hexdigest()
+        return sha1(f'{self.method} {self.path}'.encode()).hexdigest()
 
     def schema_with_name(self, name: str):
         return next((s for s in self.schemas if s.name == name), None)
@@ -147,7 +144,6 @@ class DataClassJsonEncoder(json.JSONEncoder):
 def write_to_file(endpoint: GenericEndpoint):
     no = len(endpoint.requests)
     if 'rum' in endpoint.path:
-        pass
         with open(f'fixtures/rum/{no}', 'wb') as f:
             f.write(request.get_data())
     elif 'replay' in endpoint.path:
@@ -162,7 +158,6 @@ def configure_response():
     Store a per-path response override so that subsequent POST requests to
     that path return the configured status/body instead of the default 202.
     """
-    global configured_responses
     data = request.get_json()
     configured_responses[data['path']] = data
     resp = flask.Response('OK', status=200)
@@ -178,7 +173,6 @@ def generic_post(rest = ''):
 
     Record generic (any) POST request sent to `/**/*`
     """
-    global endpoints
 
     gr = GenericRequest(r=request)
 
@@ -215,7 +209,6 @@ def generic_get(rest = ''):
 
     Record generic (any) GET request sent to `/**/*`
     """
-    global endpoints
 
     gr = GenericRequest(r=request)
 
@@ -247,12 +240,11 @@ def inspect_json():
 
     Browse recorded requests serialized as JSON
     """
-    global endpoints
     endpoint_requests = [ { "endpoint": e.path, "requests": e.requests } for e in endpoints ]
     # Remove non-raw schemas
     for endpoint_request in endpoint_requests:
-        for request in endpoint_request["requests"]:
-            request.schemas = [s for s in request.schemas if isinstance(s, RAWSchema)]
+        for recorded_request in endpoint_request["requests"]:
+            recorded_request.schemas = [s for s in recorded_request.schemas if isinstance(s, RAWSchema)]
 
     resp = flask.Response(json.dumps(endpoint_requests, cls=DataClassJsonEncoder))
     resp.headers['Content-Type'] = 'application/json'
@@ -266,7 +258,6 @@ def inspect():
 
     Browse recorded requests.
     """
-    global endpoints
     return render_template('endpoints.html', title='Endpoints', endpoints=endpoints)
 
 @app.route('/reset')
@@ -276,7 +267,6 @@ def reset():
 
     Clear currently logged requests on all endpoints
     """
-    global endpoints, configured_responses
     endpoints.clear()
     configured_responses.clear()
     resp = flask.Response('OK', status=200)
@@ -286,7 +276,6 @@ def reset():
 
 @app.route('/inspect/<schema_name>/<endpoint_hash>')
 def inspect_endpoint(schema_name, endpoint_hash):
-    global endpoints
 
     if endp := next((e for e in endpoints if e.hash() == endpoint_hash), None):
         if schm := endp.schema_with_name(name=schema_name):
@@ -306,7 +295,6 @@ def inspect_endpoint(schema_name, endpoint_hash):
 
 @app.route('/inspect/<schema_name>/<endpoint_hash>/<request_hash>')
 def inspect_request(schema_name, endpoint_hash, request_hash):
-    global endpoints
 
     if endp := next((e for e in endpoints if e.hash() == endpoint_hash), None):
         if req := next((r for r in endp.requests if r.hash() == request_hash), None):

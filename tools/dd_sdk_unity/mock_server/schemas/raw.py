@@ -1,15 +1,12 @@
-#!/usr/bin/python3
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
-
-import zlib
 import gzip
-from typing import Optional
+import zlib
+
 from flask import Request
+
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
 
@@ -24,10 +21,10 @@ class RAWSchema(Schema):
     # RAW-specific:
     headers: [str]  # ['field1: value1', 'field2: value2', ...]
     data_as_text: str
-    decompressed_data: Optional[str]  # `None` if data was not compressed
+    decompressed_data: str | None  # `None` if data was not compressed
 
     def __init__(self, request: Request):
-        self.headers = list(map(lambda h: f'{h[0]}: {h[1]}', request.headers))
+        self.headers = [f'{name}: {value}' for name, value in request.headers]
         self.data_as_text = request.get_data(as_text=True)
         encoding = request.headers.get('Content-Encoding', None)
         if encoding == 'deflate':

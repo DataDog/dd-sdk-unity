@@ -1,19 +1,16 @@
-#!/usr/bin/python3
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
-
-import zlib
 import json
+import zlib
+
 from flask import Request
+
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
 from dd_sdk_unity.mock_server.templates.components.stat import Stat
 from dd_sdk_unity.mock_server.validation.validation import validate_event
-
 
 record_name_by_type = {
     4: 'meta',
@@ -33,7 +30,7 @@ class SRSchema(Schema):
     request_template = 'session-replay/request.html'
 
     # SR-specific
-    stats = [Stat]
+    stats: list[Stat]
     segment_json: dict
 
     def __init__(self, request: Request):
@@ -106,14 +103,14 @@ class SRSchema(Schema):
     @staticmethod
     def create_stats(records: dict) -> [Stat]:
         stats: [Stat] = []
-        for r_type in record_name_by_type:
+        for r_type, record_name in record_name_by_type.items():
             count = 0
 
             for record in records:
                 if record['type'] == r_type:
                     count += 1
 
-            stat = Stat(title=f'"{record_name_by_type[r_type]}" records', value=f'{count}')
+            stat = Stat(title=f'"{record_name}" records', value=f'{count}')
             stats.append(stat)
 
         return stats

@@ -1,14 +1,13 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for modifying the DatadogSettings.asset file for any given Unity project.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
-from dataclasses import dataclass
 from contextlib import contextmanager
-from typing import Optional
+from dataclasses import dataclass
 
 __dd_settings_asset_filename__ = 'DatadogSettings.asset'
 __dd_settings_asset_relpath__ = os.path.join('Assets', 'Resources', __dd_settings_asset_filename__)
@@ -30,25 +29,25 @@ class DatadogRuntimeConfig:
     Subset of DatadogSettings modified at build-time to configure how the Datadog SDK
     will behave at runtime in the packaged build.
     """
-    enabled: Optional[bool] = None
-    sdk_verbosity: Optional[int] = None
-    client_token: Optional[str] = None
-    env: Optional[str] = None
-    service_name: Optional[str] = None
-    custom_endpoint: Optional[str] = None
-    batch_size: Optional[int] = None
-    upload_frequency: Optional[int] = None
-    batch_processing_level: Optional[int] = None
-    crash_reporting_enabled: Optional[bool] = None
-    forward_unity_logs: Optional[bool] = None
-    remote_log_threshold: Optional[int] = None
-    rum_enabled: Optional[bool] = None
-    rum_application_id: Optional[str] = None
-    automatic_scene_tracking: Optional[bool] = None
-    session_sample_rate: Optional[int] = None
-    trace_sample_rate: Optional[int] = None
-    telemetry_sample_rate: Optional[int] = None
-    first_party_hosts: Optional[list[FirstPartyHost]] = None
+    enabled: bool | None = None
+    sdk_verbosity: int | None = None
+    client_token: str | None = None
+    env: str | None = None
+    service_name: str | None = None
+    custom_endpoint: str | None = None
+    batch_size: int | None = None
+    upload_frequency: int | None = None
+    batch_processing_level: int | None = None
+    crash_reporting_enabled: bool | None = None
+    forward_unity_logs: bool | None = None
+    remote_log_threshold: int | None = None
+    rum_enabled: bool | None = None
+    rum_application_id: str | None = None
+    automatic_scene_tracking: bool | None = None
+    session_sample_rate: int | None = None
+    trace_sample_rate: int | None = None
+    telemetry_sample_rate: int | None = None
+    first_party_hosts: list[FirstPartyHost] | None = None
 
     def apply_to(self, path: str):
         with open(path) as fp:

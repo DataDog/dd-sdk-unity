@@ -1,12 +1,7 @@
-#!/usr/bin/python3
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2023-Present Datadog, Inc.
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2023-Present Datadog, Inc.
-# -----------------------------------------------------------
-
-import argparse
 import csv
 from pathlib import Path
 
@@ -36,7 +31,7 @@ def main() -> None:
             csv_reader = csv.reader(csv_file, quotechar='"')
             for row in csv_reader:
                 dependency_info.append(ThirdPartyDependency(row))
-    except:
+    except (OSError, csv.Error, UnicodeError, IndexError):
         print(f"Failed to read 3rd party csv at {third_party_csv}.")
 
     with open(notice_location, "w") as notice_file:

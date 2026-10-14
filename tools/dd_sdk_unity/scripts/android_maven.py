@@ -1,4 +1,4 @@
-# Unless explicitly stated otherwise all files in this repository are licensed under the
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
@@ -9,9 +9,7 @@ versions declared below. Android artifacts are never downloaded into the package
 Gradle resolves them at the user's build time — so there is no stage step here.
 """
 import subprocess
-from typing import Dict, List
 from xml.etree import ElementTree as ET
-
 
 MAVEN_BASE = 'https://repo1.maven.org/maven2'
 MAVEN_GROUP_ID = 'com.datadoghq'
@@ -78,7 +76,7 @@ def check_reachable(log, url: str) -> bool:
     return result.returncode == 0
 
 
-def parse_direct_dependencies(pom_xml: str) -> Dict[str, str]:
+def parse_direct_dependencies(pom_xml: str) -> dict[str, str]:
     root = ET.fromstring(pom_xml)
 
     def local_tag(elem) -> str:
@@ -87,7 +85,7 @@ def parse_direct_dependencies(pom_xml: str) -> Dict[str, str]:
             return tag.split('}', 1)[1]
         return tag
 
-    deps: Dict[str, str] = {}
+    deps: dict[str, str] = {}
     for elem in root.iter():
         if local_tag(elem) != 'dependencies':
             continue
@@ -112,8 +110,8 @@ def parse_direct_dependencies(pom_xml: str) -> Dict[str, str]:
     return deps
 
 
-def verify_artifacts_reachable(log, artifacts: List[str], version: str) -> List[str]:
-    unreachable: List[str] = []
+def verify_artifacts_reachable(log, artifacts: list[str], version: str) -> list[str]:
+    unreachable: list[str] = []
     for artifact in artifacts:
         for url in (pom_url(artifact, version), aar_url(artifact, version)):
             if not check_reachable(log, url):
@@ -124,8 +122,8 @@ def verify_artifacts_reachable(log, artifacts: List[str], version: str) -> List[
     return unreachable
 
 
-def collect_transitives(log, artifacts: List[str], version: str) -> Dict[str, str]:
-    merged: Dict[str, str] = {}
+def collect_transitives(log, artifacts: list[str], version: str) -> dict[str, str]:
+    merged: dict[str, str] = {}
     for artifact in artifacts:
         pom_xml = fetch_text(log, pom_url(artifact, version))
         deps = parse_direct_dependencies(pom_xml)
@@ -140,8 +138,8 @@ def collect_transitives(log, artifacts: List[str], version: str) -> Dict[str, st
     return merged
 
 
-def check_transitive_drift(observed: Dict[str, str]) -> List[str]:
-    drift: List[str] = []
+def check_transitive_drift(observed: dict[str, str]) -> list[str]:
+    drift: list[str] = []
     for coordinate, expected_version in EXPECTED_TRANSITIVES.items():
         observed_version = observed.get(coordinate, 'missing')
         if observed_version != expected_version:

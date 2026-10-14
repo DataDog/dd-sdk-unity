@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Unless explicitly stated otherwise all files in this repository are licensed under the
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
@@ -31,7 +30,6 @@ from dd_sdk_unity.scripts.common.versions.ios_xcframework_deps import (
     IOS_DEPENDENCY_VERSION_RELPATH,
     read_ios_xcframework_pin,
 )
-
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 PIN_PATH = os.path.join(REPO_ROOT, IOS_DEPENDENCY_VERSION_RELPATH)

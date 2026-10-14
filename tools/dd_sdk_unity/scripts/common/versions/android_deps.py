@@ -1,23 +1,21 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+
 """
 Utility code for reading and writing AndroidDependencyVersion.json, which pins the
 dd-sdk-android version and the artifact IDs consumed by DatadogGradlePostProcessor when
 it writes Gradle `implementation` declarations.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 """
+import io
+import json
 import os
 import tempfile
-import json
-import io
 from dataclasses import dataclass
-from typing import IO, List
+from typing import IO
 
 from dd_sdk_unity.scripts.common.log import get_default_logger
-
 from dd_sdk_unity.scripts.common.versions.semver import Version
-
 
 ANDROID_DEPENDENCY_VERSION_RELPATH = os.path.join('packages', 'Datadog.Unity', 'Editor', 'Android', 'AndroidDependencyVersion.json')
 
@@ -25,7 +23,7 @@ ANDROID_DEPENDENCY_VERSION_RELPATH = os.path.join('packages', 'Datadog.Unity', '
 @dataclass
 class AndroidDependencyPin:
     version: Version
-    artifacts: List[str]
+    artifacts: list[str]
 
 
 def read_android_dependency_pin(file_contents: str) -> AndroidDependencyPin:

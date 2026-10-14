@@ -1,12 +1,12 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for modifying AssemblyInfo.cs, which controls the version string that will
 be baked into C# assemblies when the project is built.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-from typing import IO, List
+from typing import IO
 
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
@@ -19,7 +19,7 @@ def modify_assemblyinfo(path: str, new_version: Version):
 
 
 def _modify_assemblyinfo_impl(infile: IO[str], new_version: Version) -> str:
-    lines: List[str] = []
+    lines: list[str] = []
     for line in infile.read().splitlines():
         if line.startswith('[assembly: AssemblyVersion'):
             lines.append(f'[assembly: AssemblyVersion("{new_version}")]')

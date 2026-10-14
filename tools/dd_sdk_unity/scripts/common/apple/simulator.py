@@ -1,22 +1,22 @@
-"""Build exported UTF tests with xcodebuild and run them on an owned iOS Simulator.
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+"""Build exported UTF tests with xcodebuild and run them on an owned iOS Simulator.
 """
 import json
-from pathlib import Path
 import plistlib
 import shlex
-import sys
 import subprocess
+import sys
 import time
 import uuid
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
+from dd_sdk_unity.scripts.common.apple.xcode import run_xcodebuild
 from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.shell import stop_process
-from dd_sdk_unity.scripts.common.apple.xcode import run_xcodebuild
 
 RESULT_FILENAME = 'nunit-integration-test-ios.xml'
 PLAYER_RESULTS_TIMEOUT = 600
@@ -145,7 +145,7 @@ def run_simulator_tests(export_path, nunit_path, log_path):
         if launch is not None:
             try:
                 if bundle_id:
-                    subprocess.run(['xcrun', 'simctl', 'terminate', udid, bundle_id], timeout=15,
+                    subprocess.run(['xcrun', 'simctl', 'terminate', udid, bundle_id], timeout=15, check=False,
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except (OSError, subprocess.TimeoutExpired) as error:
                 cleanup_errors.append(str(error))
@@ -156,7 +156,7 @@ def run_simulator_tests(export_path, nunit_path, log_path):
                     cleanup_errors.append(str(error))
         # The simulator was created by this run, so never shut down a user's device.
         try:
-            subprocess.run(['xcrun', 'simctl', 'shutdown', udid], timeout=30,
+            subprocess.run(['xcrun', 'simctl', 'shutdown', udid], timeout=30, check=False,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except (OSError, subprocess.TimeoutExpired) as error:
             cleanup_errors.append(str(error))

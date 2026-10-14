@@ -48,9 +48,10 @@ dd-unity-unit-test
 After changing dependencies or command definitions in `pyproject.toml`, repeat
 the pip install command.
 
-Run Python tests with:
+Run Python checks from the repository root:
 
 ```bash
+ruff check
 pytest
 ```
 
@@ -72,9 +73,10 @@ syncing it.
 Select `.venv` as your IDE's Python environment to make the development tools
 available there.
 
-Run Python tests:
+Run Python checks from the repository root:
 
 ```bash
+uv run ruff check
 uv run pytest
 ```
 

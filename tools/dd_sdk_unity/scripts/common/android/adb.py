@@ -1,14 +1,13 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for invoking adb (Android Debug Bridge), which manages connected Android
 devices.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-import time
 import subprocess
-
+import time
 from dataclasses import dataclass
 
 from dd_sdk_unity.scripts.common.android.util import resolve_android_binary
@@ -48,7 +47,7 @@ class Adb:
         return AdbDevice(adb_path=self.path, name=device_name)
 
     @classmethod
-    def require(cls) -> 'Adb':
+    def require(cls) -> Adb:
         path, error_message = resolve_android_binary('platform-tools', 'adb')
         if error_message:
             raise RuntimeError(f'Failed to find adb: {error_message}')

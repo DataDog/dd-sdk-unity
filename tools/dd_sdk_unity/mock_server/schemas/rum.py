@@ -1,15 +1,13 @@
-#!/usr/bin/python3
-
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
 import gzip
-import zlib
 import json
+import zlib
+
 from flask import Request
+
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
 from dd_sdk_unity.mock_server.templates.components.stat import Stat
@@ -24,11 +22,11 @@ class RUMSchema(Schema):
     request_template = 'rum/request.html'
 
     # RUM-specific:
-    stats = [Stat]
+    stats: list[Stat]
     event_jsons: [dict]
 
     def __init__(self, request: Request):
-        self.headers = list(map(lambda h: f'{h[0]}: {h[1]}', request.headers))
+        self.headers = [f'{name}: {value}' for name, value in request.headers]
         self.data_as_text = request.get_data(as_text=True)
 
         content_encoding = request.headers.get('Content-Encoding', None)
@@ -39,7 +37,7 @@ class RUMSchema(Schema):
         else:
             self.decompressed_data = request.get_data().decode('utf-8')
 
-        self.event_jsons = list(map(lambda e: json.loads(e), self.decompressed_data.splitlines()))
+        self.event_jsons = [json.loads(event) for event in self.decompressed_data.splitlines()]
         self.stats = [
             Stat(title='number of events', value=f'{len(self.event_jsons)}')
         ]

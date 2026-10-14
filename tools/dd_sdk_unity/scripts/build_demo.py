@@ -1,21 +1,20 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Generates a packaged build of a demo Unity project for either Android or iOS.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-import os
 import argparse
+import os
 import plistlib
 import shutil
 
 from dd_sdk_unity.scripts import ios_xcframework
+from dd_sdk_unity.scripts.common.apple import run_xcodebuild
+from dd_sdk_unity.scripts.common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install
-from dd_sdk_unity.scripts.common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
-from dd_sdk_unity.scripts.common.apple import run_xcodebuild
-
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 

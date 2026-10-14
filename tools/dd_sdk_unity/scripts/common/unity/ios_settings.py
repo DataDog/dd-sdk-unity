@@ -1,18 +1,16 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for modifying a Unity project's ProjectSettings.asset file in order to
 control whether the generate Xcode project targets iOS simulators or physical iOS
 devices.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
 import platform as _platform
 from contextlib import contextmanager
 from enum import Enum
-from typing import Optional
-
 
 __project_settings_asset_filename__ = 'ProjectSettings.asset'
 __project_settings_asset_relpath__ = os.path.join('ProjectSettings', __project_settings_asset_filename__)
@@ -38,7 +36,7 @@ def modified_ios_target_settings(project_root: str, platform: str, target: str):
     
     # Determine what settings to use based on whether we're targeting a simulator or device
     sdk = TargetIosSdk.DEVICE
-    architecture: Optional[TargetIosSimulatorArchitecture] = None
+    architecture: TargetIosSimulatorArchitecture | None = None
     if target != 'device':
         assert target == 'simulator'
         sdk = TargetIosSdk.SIMULATOR
@@ -62,7 +60,7 @@ def modified_ios_target_settings(project_root: str, platform: str, target: str):
             fp.write(old_text)
 
 
-def _modify_project_settings_impl(text: str, sdk: TargetIosSdk, architecture: Optional[TargetIosSimulatorArchitecture]) -> str:
+def _modify_project_settings_impl(text: str, sdk: TargetIosSdk, architecture: TargetIosSimulatorArchitecture | None) -> str:
     lines = text.splitlines()
     to_modify = [
         ('iPhoneSdkVersion', sdk.value),

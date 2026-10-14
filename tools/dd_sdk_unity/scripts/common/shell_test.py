@@ -1,20 +1,18 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 import subprocess
-from typing import List
+
+import pytest
 
 from dd_sdk_unity.scripts.common.shell import run_cmd, run_cmd_streaming
 
 
 @pytest.mark.parametrize('merge_stderr', [False, True])
 def test_run_cmd(merge_stderr: bool) -> None:
-    got_stdout_lines: List[str] = []
-    got_stderr_lines: List[str] = []
+    got_stdout_lines: list[str] = []
+    got_stderr_lines: list[str] = []
     def _handle_output(line: str, is_stderr: bool):
         if is_stderr:
             got_stderr_lines.append(line)

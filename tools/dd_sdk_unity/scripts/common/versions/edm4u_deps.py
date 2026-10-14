@@ -1,3 +1,7 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for parsing the historical DatadogDependencies.xml manifest that used to
 configure External Dependency Manager for Unity (EDM4U) to pull in dd-sdk-android (and,
@@ -8,18 +12,13 @@ anymore: the Android pin now lives in Editor/Android/AndroidDependencyVersion.js
 android_deps.py) and the iOS pin lives in Editor/iOS/IosDependencyVersion.json (see
 ios_xcframework_deps.py). This module is retained solely so release tooling can still
 parse manifests from releases published before those moves; it exposes no write path.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import io
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import IO, Optional
+from typing import IO
 
 from dd_sdk_unity.scripts.common.versions.semver import Version
-
 
 __ios_pods_xpath__ = './iosPods/iosPod'
 __ios_pod_name_datadog_prefix__ = 'Datadog'
@@ -30,8 +29,8 @@ __android_package_spec_datadog_prefix__ = 'com.datadoghq'
 
 @dataclass
 class ExternalDependencyVersions:
-    dd_sdk_android: Optional[Version]
-    dd_sdk_ios: Optional[Version]
+    dd_sdk_android: Version | None
+    dd_sdk_ios: Version | None
 
 
 def read_external_dependency_versions(file_contents: str) -> ExternalDependencyVersions:
@@ -54,10 +53,10 @@ def _read_external_dependency_versions_impl(infile: IO[bytes]) -> ExternalDepend
 # for releases published after it. prepare_release.py still needs this read path to
 # resolve older releases' Android versions, so only the write path was deleted here. Do
 # not delete this function as dead code.
-def _read_android_version(root: ET.Element) -> Optional[Version]:
+def _read_android_version(root: ET.Element) -> Version | None:
     # Iterate through all <androidPackage> elements for Datadog dependencies, and read
     # the version specifier from the end of their package specs
-    version_str: Optional[str] = None
+    version_str: str | None = None
     for android_package_elem in root.findall(__android_packages_xpath__):
         spec = android_package_elem.get('spec', '')
         if spec.startswith(__android_package_spec_datadog_prefix__):
@@ -75,13 +74,13 @@ def _read_android_version(root: ET.Element) -> Optional[Version]:
     return Version.parse(version_str)
 
 
-def _read_ios_version(root: ET.Element) -> Optional[Version]:
+def _read_ios_version(root: ET.Element) -> Version | None:
     # Iterate through all <iosPod> elements for Datadog packages, and read their
     # 'version' attributes. Current manifests no longer declare any <iosPod>
     # elements (the iOS pin moved to IosDependencyVersion.json), so it's expected
     # for this to find none; this function is retained only to still be able to
     # parse manifests from releases published before that move.
-    version_str: Optional[str] = None
+    version_str: str | None = None
     for pod_elem in root.findall(__ios_pods_xpath__):
         name = pod_elem.get('name', '')
         if name.startswith(__ios_pod_name_datadog_prefix__):

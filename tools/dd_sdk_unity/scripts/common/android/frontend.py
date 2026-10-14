@@ -1,25 +1,24 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 High-level interface for the Android emulator; allows you to specify the target AVD
 with AndroidDeviceSpec and use `with run_android_device(spec):` to provision and boot
 the appropriate emulator instance for the duration of the `with` block.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import platform
 import random
 import subprocess
-from dataclasses import dataclass
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Optional, Generator
+from dataclasses import dataclass
 
-from dd_sdk_unity.scripts.common.log import get_default_logger
-
-from dd_sdk_unity.scripts.common.android.sdkmanager import AndroidSdkManager
-from dd_sdk_unity.scripts.common.android.avdmanager import AvdManager, Avd
 from dd_sdk_unity.scripts.common.android.adb import Adb, AdbDevice
+from dd_sdk_unity.scripts.common.android.avdmanager import Avd, AvdManager
 from dd_sdk_unity.scripts.common.android.emulator import AndroidEmulator
+from dd_sdk_unity.scripts.common.android.sdkmanager import AndroidSdkManager
+from dd_sdk_unity.scripts.common.log import get_default_logger
 
 
 @dataclass
@@ -38,7 +37,7 @@ class AndroidDeviceSpec:
         return f"dd-api-{self.api_level}-{self.device.replace('_', '-')}"
     
     @classmethod
-    def default(cls, api_level: int, device: str) -> 'AndroidDeviceSpec':
+    def default(cls, api_level: int, device: str) -> AndroidDeviceSpec:
         abi = 'arm64-v8a' if platform.machine().lower().startswith('arm64') else 'x86_64'
         return cls(
             api_level=api_level,
@@ -49,7 +48,7 @@ class AndroidDeviceSpec:
 
 
 @contextmanager
-def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, None]:
+def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice]:
     log = get_default_logger()
     log.info('Preparing an emulated Android device...')
     log.info(f'- API Level: {spec.api_level}')
@@ -113,7 +112,7 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, No
     )
 
     # We now have an emulator process running: make sure it gets cleaned up on exit
-    device: Optional[AdbDevice] = None
+    device: AdbDevice | None = None
     try:
         # Wait for the device to become available in adb
         log.info(f'{device_name} started; PID {emulator_process.pid}.')
@@ -135,8 +134,8 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice, None, No
                 log.info(f'Cleanly shutting down emulator {device.name}...')
                 device.emu_kill()
                 killed_device = True
-            except Exception as e:
-                log.error(f'Failed to shut down emulator: {e}')
+            except Exception:
+                log.exception('Failed to shut down emulator')
         
         # If we couldn't shut down cleanly (either because 'adb emu kill' failed, or
         # because we never resolved the device in adb to begin with), terminate the

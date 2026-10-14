@@ -1,29 +1,48 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Prepares a new release in the `unity-package` repo, cut from the current state of
 `develop` in `dd-sdk-unity`. Changes are made to your local copies of those two
 repositories, and you will be prompted before each local change is committed, and once
 again before the final set of commits/tags is pushed to GitHub.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
+import argparse
 import os
 import re
 import shutil
-import argparse
-import tempfile
 import subprocess
-from typing import List, Tuple, Set
+import tempfile
+from xml.etree.ElementTree import ParseError
 
 import git
+from requests.exceptions import RequestException
 
 from dd_sdk_unity.scripts import ios_xcframework
-from dd_sdk_unity.scripts.common.log import init_logger, get_default_logger
-from dd_sdk_unity.scripts.common.versions import Version, VersionBump, read_external_dependency_versions, SdkVersionTable, modify_package_json, modify_assemblyinfo, read_ios_xcframework_pin, write_ios_xcframework_pin, IosXcframeworkPin, IOS_DEPENDENCY_VERSION_RELPATH, AndroidDependencyPin, read_android_dependency_pin, write_android_dependency_pin, ANDROID_DEPENDENCY_VERSION_RELPATH
 from dd_sdk_unity.scripts.common.commit import CommitInfo
-from dd_sdk_unity.scripts.common.github import resolve_latest_release_version, get_file_contents, get_releases_between
-
+from dd_sdk_unity.scripts.common.github import (
+    get_file_contents,
+    get_releases_between,
+    resolve_latest_release_version,
+)
+from dd_sdk_unity.scripts.common.log import get_default_logger, init_logger
+from dd_sdk_unity.scripts.common.versions import (
+    ANDROID_DEPENDENCY_VERSION_RELPATH,
+    IOS_DEPENDENCY_VERSION_RELPATH,
+    AndroidDependencyPin,
+    IosXcframeworkPin,
+    SdkVersionTable,
+    Version,
+    VersionBump,
+    modify_assemblyinfo,
+    modify_package_json,
+    read_android_dependency_pin,
+    read_external_dependency_versions,
+    read_ios_xcframework_pin,
+    write_android_dependency_pin,
+    write_ios_xcframework_pin,
+)
 
 __github_org__ = 'DataDog'
 __dev_repo_name__ = 'dd-sdk-unity'
@@ -67,7 +86,7 @@ def _require_clean_repo(root: str, branch_name: str) -> git.Repo:
     # Require that we have no local edits or deletes
     if repo.is_dirty():
         log.error(f'{repo_name} is dirty!')
-        log.error(f'Please stash or revert your local changes.')
+        log.error('Please stash or revert your local changes.')
         raise RuntimeError(f'{repo_name} is dirty')
     
     # Require that there are no untracked files which aren't caught by .gitignore
@@ -75,7 +94,7 @@ def _require_clean_repo(root: str, branch_name: str) -> git.Repo:
         log.error(f'{repo_name} has untracked files!')
         for file in repo.untracked_files:
             log.error(f'- {file}')
-        log.error(f'Please delete these files, add them, or modify .gitignore.')
+        log.error('Please delete these files, add them, or modify .gitignore.')
         raise RuntimeError(f'{repo_name} has untracked files')
 
     return repo
@@ -92,7 +111,7 @@ def _read_unreleased_changes(unity_changelog_text: str) -> str:
     return '\n'.join(lines).strip() + '\n'
 
 
-def _apply_release_changes(unity_changelog_text: str, version: Version, changelog_lines: List[str]) -> str:
+def _apply_release_changes(unity_changelog_text: str, version: Version, changelog_lines: list[str]) -> str:
     lines = unity_changelog_text.splitlines()
     unreleased_heading_index = lines.index(__unreleased_changes_heading__)
     assert unreleased_heading_index >= 0
@@ -150,7 +169,7 @@ def _read_prev_release_ios_version(prev_release_version: Version, prev_release_d
         pin = read_ios_xcframework_pin(prev_release_ios_pin_json)
         log.info(f'Read previous release dd-sdk-ios version {pin.version} from Editor/iOS/IosDependencyVersion.json.')
         return pin.version
-    except Exception as json_error:
+    except (RequestException, RuntimeError, ValueError, TypeError) as json_error:
         legacy_dd_sdk_ios_version = prev_release_dependency_versions.dd_sdk_ios if prev_release_dependency_versions is not None else None
         if legacy_dd_sdk_ios_version is None:
             raise RuntimeError(
@@ -163,7 +182,7 @@ def _read_prev_release_ios_version(prev_release_version: Version, prev_release_d
         return legacy_dd_sdk_ios_version
 
 
-def _read_prev_release_android_version(prev_release_version: Version) -> Tuple[Version, object]:
+def _read_prev_release_android_version(prev_release_version: Version) -> tuple[Version, object]:
     """
     Resolves the dd-sdk-android version pinned in the previous release, and along the way
     fetches the legacy Editor/DatadogDependencies.xml manifest so the caller can pass it
@@ -190,7 +209,7 @@ def _read_prev_release_android_version(prev_release_version: Version) -> Tuple[V
     try:
         prev_release_legacy_manifest = get_file_contents(__github_org__, __release_repo_name__, str(prev_release_version), 'Editor/DatadogDependencies.xml')
         legacy_versions = read_external_dependency_versions(prev_release_legacy_manifest)
-    except Exception as legacy_manifest_error:
+    except (RequestException, RuntimeError, ValueError, ParseError) as legacy_manifest_error:
         log.info(f'Previous release {prev_release_version} does not ship a legacy external-dependency manifest ({legacy_manifest_error}); relying solely on JSON pins.')
         legacy_versions = None
 
@@ -199,7 +218,7 @@ def _read_prev_release_android_version(prev_release_version: Version) -> Tuple[V
         pin = read_android_dependency_pin(prev_release_android_pin_json)
         log.info(f'Read previous release dd-sdk-android version {pin.version} from Editor/Android/AndroidDependencyVersion.json.')
         return pin.version, legacy_versions
-    except Exception as json_error:
+    except (RequestException, RuntimeError, ValueError, TypeError) as json_error:
         legacy_dd_sdk_android_version = legacy_versions.dd_sdk_android if legacy_versions is not None else None
         if legacy_dd_sdk_android_version is None:
             raise RuntimeError(
@@ -215,7 +234,7 @@ def _read_prev_release_android_version(prev_release_version: Version) -> Tuple[V
 def _prepare_ios_changelog(prev_version: Version, target_version: Version) -> str:
     repo_name = 'dd-sdk-ios'
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(f'; Changes from {repo_name} releases since {prev_version}, up to and including {target_version}:')
     lines.append('; Blank lines and lines beginning with `;` will be ignored.')
     lines.append('; To accept a line into the Unity SDK changelog, leave it uncommented.')
@@ -243,7 +262,7 @@ def _prepare_ios_changelog(prev_version: Version, target_version: Version) -> st
 def _prepare_android_changelog(prev_version: Version, target_version: Version) -> str:
     repo_name = 'dd-sdk-android'
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(f'; Changes from {repo_name} releases since {prev_version}, up to and including {target_version}:')
     lines.append('; Blank lines and lines beginning with `;` will be ignored.')
     lines.append('; To accept a line into the Unity SDK changelog, leave it uncommented.')
@@ -252,11 +271,11 @@ def _prepare_android_changelog(prev_version: Version, target_version: Version) -
 
     category_regex = re.compile(r'^\* \[([A-Z]+)\] (.*)')
 
-    def _parse_category(line: str) -> Tuple[str, str]:
+    def _parse_category(line: str) -> tuple[str, str]:
         match = category_regex.match(line)
         if match:
             return match.group(1), match.group(2)
-        return '', line[2:] if line.startswith('* ') else line
+        return '', line.removeprefix('* ')
 
     def _remove_pr_refs(line: str) -> str:
         i = line.index(' See [#')
@@ -286,8 +305,8 @@ def _prepare_android_changelog(prev_version: Version, target_version: Version) -
     return '\n'.join(lines) + '\n'
 
 
-def _condense_edited_changelog(text: str) -> List[str]:
-    keep_lines: List[str] = []
+def _condense_edited_changelog(text: str) -> list[str]:
+    keep_lines: list[str] = []
     for line in text.splitlines():
         stripped_line = line.strip()
         if not stripped_line:
@@ -336,9 +355,7 @@ def _prompt_commit(repo_root: str) -> bool:
         if choice == 'diff':
             subprocess.check_call(['git', 'diff', '--staged'], cwd=repo_root)
             continue
-        if choice == 'commit':
-            return True
-        return False
+        return choice == 'commit'
 
 
 def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str: str, dd_sdk_ios_version_str: str, dd_sdk_android_version_str: str, force: bool) -> int:
@@ -380,7 +397,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
         original_changelog_text = fp.read()
     unreleased_changes_text = _read_unreleased_changes(original_changelog_text)
     if unreleased_changes_text.strip() == '':
-        log.error(f"CHANGELOG.md does not list any changes to be released!")
+        log.error("CHANGELOG.md does not list any changes to be released!")
         log.error(f"Please check for an '{__unreleased_changes_heading__}' heading in {dev_changelog_path}.")
         return 1
     log.info('Unity SDK changes to be released:')
@@ -415,7 +432,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     dev_package_readme_path = _dev_package_path('README.md')
     release_readme_text = ''
     with open(dev_package_readme_path) as fp:
-        for line in fp.readlines():
+        for line in fp:
             if line.startswith('[//]: # (Repo Note)'):
                 release_readme_text += dev_snippet_text
             else:
@@ -447,9 +464,9 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     log.info(f'Release {prev_release_version} was cut from {__dev_repo_name__} at commit {prev_release_tag.commit}')
 
     # Parse the details of all commits in dd-sdk-unity/develop made since the last release
-    intervening_commits: List[CommitInfo] = []
-    jira_refs: Set[str] = set()
-    issue_refs: Set[str] = set()
+    intervening_commits: list[CommitInfo] = []
+    jira_refs: set[str] = set()
+    issue_refs: set[str] = set()
     for commit in dev_repo.iter_commits(f'{prev_release_tag.commit}..develop'):
         commit_info = CommitInfo.parse(str(commit.message))
         intervening_commits.append(commit_info)
@@ -535,7 +552,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
 
     # Prompt the user to select which changes they want to keep, giving them a chance
     # to copy-edit as they see fit
-    ios_changelog_lines: List[str] = []
+    ios_changelog_lines: list[str] = []
     if ios_changelog_text:
         _log_section('Selecting changes from iOS release notes...')
         ios_changelog_text = _prompt_user_to_edit(ios_changelog_text)
@@ -543,7 +560,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
         for line in ios_changelog_lines:
             log.info(line)
 
-    android_changelog_lines: List[str] = []
+    android_changelog_lines: list[str] = []
     if android_changelog_text:
         _log_section('Selecting changes from Android release notes...')
         android_changelog_text = _prompt_user_to_edit(android_changelog_text)   
@@ -710,7 +727,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
 
     # Get a list of tracked files in the dev repo (respecting .gitignore), filter out
     # dev-repo-only files, and copy everything else to the release repo
-    dev_tracked_files: List[str] = dev_repo.git.ls_files(__dev_repo_package_subdir__).splitlines()
+    dev_tracked_files: list[str] = dev_repo.git.ls_files(__dev_repo_package_subdir__).splitlines()
     for repo_relpath in dev_tracked_files:
         # Convert 'packages/Datadog.Unity/Plugins/iOS' to 'Plugins/iOS'
         package_relpath = os.path.relpath(repo_relpath, __dev_repo_package_subdir__)
@@ -718,7 +735,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
         if package_relpath.startswith('.git'):
             continue
         # Exclude Unity package tests
-        if package_relpath.startswith('Tests/') or package_relpath.startswith('Tests.'):
+        if package_relpath.startswith(('Tests/', 'Tests.')):
             continue
 
         # File belongs in the release package: prepare to copy it from the dev repo
@@ -786,7 +803,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     ### Prompt for final confirmation, then push everything to GitHub
     _log_section('⚠️ RELEASE IS PREPARED TO PUSH ⚠️')
 
-    log.info(f'The following operations will be performed:')
+    log.info('The following operations will be performed:')
     log.info('')
     log.info(f'- in {__dev_repo_name__}:')
     log.info(f'  ({dev_repo_root})')
@@ -837,7 +854,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     log.info(f'Release {new_version} is now ready! Summary of changes:')
     log.info(f'- {__release_repo_name__}:')
     log.info(f'  - ✅ Package changes are now 🚀LIVE🚀 in {__release_repo_trunk_branch_name__}!')
-    log.info(f'  - ⚠️ A GitHub release has not yet been published.')
+    log.info('  - ⚠️ A GitHub release has not yet been published.')
     log.info(f'- {__dev_repo_name__}:')
     log.info(f'  - ✅ Branch {dev_release_branch_name} has been pushed for posterity.')
     log.info(f'  - ✅ Branch {dev_chore_branch_name} has been pushed to record persistent changes.')
@@ -858,7 +875,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
     log.info(f'   - https://github.com/{__github_org__}/{__dev_repo_name__}/compare/{__dev_repo_trunk_branch_name__}...{dev_chore_branch_name}')
     log.info('')
 
-    log.info(f'3. Remediate any GitHub issues addressed by this release.')
+    log.info('3. Remediate any GitHub issues addressed by this release.')
     log.info(f'   - https://github.com/{__github_org__}/{__dev_repo_name__}/issues')
     if issue_refs:
         log.info(f'   Possible issue references identified from {__dev_repo_name__} commits:')
@@ -866,19 +883,19 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
             log.info(f'   - https://github.com/{__github_org__}/{__dev_repo_name__}/issues/{issue_num}')
     log.info('')
 
-    log.info(f'4. Close any JIRA tickets resolved by this release.')
+    log.info('4. Close any JIRA tickets resolved by this release.')
     if jira_refs:
         log.info(f'   Possible JIRA references identified from {__dev_repo_name__} commits:')
         for jira_workitem_id in jira_refs:
             log.info(f'   - https://datadoghq.atlassian.net/browse/{jira_workitem_id}')
     log.info('')
 
-    log.info(f'5. Announce the release in Slack.')
+    log.info('5. Announce the release in Slack.')
     log.info('    - #rum-unity')
     log.info('    - #rum-sdk-announce')
     log.info('```')
     log.info(f"🚀 We've shipped Unity SDK {new_version}! Notable changes include:")
-    upgrades: List[str] = []
+    upgrades: list[str] = []
     if needs_dd_sdk_ios_upgrade:
         upgrades.append(f'iOS SDK {dd_sdk_ios_version}')
     if needs_dd_sdk_android_upgrade:
@@ -892,7 +909,7 @@ def prepare_release(dev_repo_root: str, release_repo_root: str, version_bump_str
 
     log.info(f'6. Return to the {__dev_repo_trunk_branch_name__} branch and go about your day.')
     log.info(f'   - git checkout {__dev_repo_trunk_branch_name__}')
-    log.info(f'   - git pull')
+    log.info('   - git pull')
     log.info('')
 
     log.info(f'✅ Release {new_version} prepared!')

@@ -1,12 +1,12 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Starts an emulated device for either iOS or Android, blocking until Ctrl-C is pressed.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-import time
 import argparse
+import time
 
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.simulator import run_default_simulator

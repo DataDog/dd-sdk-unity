@@ -1,15 +1,10 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
-"""
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+
 from dd_sdk_unity.scripts.common.versions.android_deps import AndroidDependencyPin
 from dd_sdk_unity.scripts.common.versions.semver import Version
-from dd_sdk_unity.scripts.update_android_version import (
-    format_drift_message,
-    resolve_artifacts,
-)
-
+from dd_sdk_unity.scripts.update_android_version import format_drift_message, resolve_artifacts
 
 __artifacts__ = ['dd-sdk-android-rum', 'dd-sdk-android-logs', 'dd-sdk-android-ndk']
 

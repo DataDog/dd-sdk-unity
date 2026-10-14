@@ -1,16 +1,14 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for invoking sdkmanager, which manages installed Android SDK components.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 from dataclasses import dataclass
-from typing import List
-
-from dd_sdk_unity.scripts.common.shell import capture_output
 
 from dd_sdk_unity.scripts.common.android.util import resolve_android_binary
+from dd_sdk_unity.scripts.common.shell import capture_output
 
 
 @dataclass
@@ -20,7 +18,7 @@ class AndroidPackage:
     description: str
 
 
-class AndroidSdkManager(object):
+class AndroidSdkManager:
     """
     Wrapper for $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.
     """
@@ -29,7 +27,7 @@ class AndroidSdkManager(object):
     def __init__(self, path: str):
         self.path = path
 
-    def list_installed_packages(self) -> List[AndroidPackage]:
+    def list_installed_packages(self) -> list[AndroidPackage]:
         stdout, _ = capture_output(self.path, '--list')
         return _parse_sdkmanager_list_output(stdout)
     
@@ -37,14 +35,14 @@ class AndroidSdkManager(object):
         capture_output(self.path, '--install', package_path)
 
     @classmethod
-    def require(cls) -> 'AndroidSdkManager':
+    def require(cls) -> AndroidSdkManager:
         path, error_message = resolve_android_binary('cmdline-tools', 'latest', 'bin', 'sdkmanager')
         if error_message:
             raise RuntimeError(f'Failed to find sdkmanager: {error_message}')
         return cls(path)
 
 
-def _parse_sdkmanager_list_output(output: str) -> List[AndroidPackage]:
+def _parse_sdkmanager_list_output(output: str) -> list[AndroidPackage]:
     lines = output.splitlines()
 
     # Grab each line of the table that appears beneath 'Installed packages' in the output
@@ -61,7 +59,7 @@ def _parse_sdkmanager_list_output(output: str) -> List[AndroidPackage]:
     if len(section_lines) < 2:
         raise RuntimeError(f'Unexpected sdkmanager output: unexpected blank line after "{section_header}"')
 
-    def split_row(line: str) -> List[str]:
+    def split_row(line: str) -> list[str]:
         return [s.strip() for s in line.split('|')]
 
     header_tokens = split_row(section_lines[0])
@@ -72,7 +70,7 @@ def _parse_sdkmanager_list_output(output: str) -> List[AndroidPackage]:
         raise RuntimeError(f'Unexpected sdkmanager output: "{section_header}" table has no border after headings')
 
     # Parse the actual rows in the table
-    packages: List[AndroidPackage] = []
+    packages: list[AndroidPackage] = []
     for line in section_lines[2:]:
         path, version, description, _ = split_row(line)
         packages.append(AndroidPackage(path=path, version=version, description=description))

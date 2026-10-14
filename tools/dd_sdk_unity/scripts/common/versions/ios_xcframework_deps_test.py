@@ -1,19 +1,17 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 import io
 
-from dd_sdk_unity.scripts.common.versions.semver import Version
+import pytest
+
 from dd_sdk_unity.scripts.common.versions.ios_xcframework_deps import (
     IosXcframeworkPin,
     _write_ios_xcframework_pin_impl,
     read_ios_xcframework_pin,
 )
-
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 __development_json__ = '''{
   "version": "3.11.1",

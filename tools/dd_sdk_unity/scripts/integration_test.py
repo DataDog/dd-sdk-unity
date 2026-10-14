@@ -1,29 +1,31 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Runs integration tests in a sample project for either iOS or Android, ensuring that the
 mock server app is running, the project is configured appropriately to send the
 requisite requests to the mock server, and any required device emulators are running.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-import os
-import signal
-import shutil
 import argparse
-from pathlib import Path
+import os
+import shutil
+import signal
 from contextlib import contextmanager
-from typing import List
+from pathlib import Path
 
 from junitparser.junitparser import JUnitXml, TestCase
 
-from dd_sdk_unity.scripts.common.log import init_logger
-from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install, modified_ios_target_settings
-from dd_sdk_unity.scripts.integration_test_setup import IntegrationTestEnvironment
-from dd_sdk_unity.scripts.common.simulator import run_default_simulator
-from dd_sdk_unity.scripts.common.xslt import transform_nunit_to_junit
 from dd_sdk_unity.scripts.common.apple.simulator import run_simulator_tests
-
+from dd_sdk_unity.scripts.common.log import init_logger
+from dd_sdk_unity.scripts.common.simulator import run_default_simulator
+from dd_sdk_unity.scripts.common.unity import (
+    UnityCli,
+    modified_ios_target_settings,
+    resolve_unity_install,
+)
+from dd_sdk_unity.scripts.common.xslt import transform_nunit_to_junit
+from dd_sdk_unity.scripts.integration_test_setup import IntegrationTestEnvironment
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
@@ -127,7 +129,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: str
         # Summarize JUnit results in the console
         num_skipped = 0
         num_passed = 0
-        failed_cases: List[TestCase] = []
+        failed_cases: list[TestCase] = []
         for suite in test_results:
             for case in suite:
                 if case.is_skipped:
