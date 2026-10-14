@@ -1,5 +1,11 @@
 <Project>
+    <PropertyGroup>
+        <CodeAnalysisRuleSet Condition="'$(CodeAnalysisRuleSet)' == ''">$(MSBuildThisFileDirectory)Assets/Default.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
     <ItemGroup>
-        <AdditionalFiles Include="stylecop.json" />
+        <!-- Older VS Code project generation omits this; avoid duplicating Rider's entry. -->
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json"
+                         Exclude="@(AdditionalFiles)"
+                         Link="stylecop.json" />
     </ItemGroup>
 </Project>

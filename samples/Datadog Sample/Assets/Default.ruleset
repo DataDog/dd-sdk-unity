@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Datadog Unity" ToolsVersion="10.0">
+    <Rules AnalyzerId="StyleCop.Analyzers"
+           RuleNamespace="StyleCop.Analyzers">
+
+        <!-- Prefix local calls with this -->
+        <Rule Id="SA1101" Action="None" />
+
+        <!-- Field should not begin with an underscore -->
+        <Rule Id="SA1309" Action="None" />
+
+        <!-- Parameter must not span multiple lines -->
+        <Rule Id="SA1118" Action="None" />
+
+        <!-- File name should match first type -->
+        <Rule Id="SA1649" Action="None" />
+
+        <!-- File may only contain a single type -->
+        <Rule Id="SA1402" Action="None" />
+
+        <!-- Do not use #region -->
+        <Rule Id="SA1124" Action="None" />
+
+        <!--
+          dotnet format handles spacing after keywords.
+          This rule also conflicts with our new() spacing.
+        -->
+        <Rule Id="SA1000" Action="None" />
+
+    </Rules>
+</RuleSet>
