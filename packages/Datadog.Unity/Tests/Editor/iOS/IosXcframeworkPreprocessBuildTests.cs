@@ -99,7 +99,7 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsTrue(ex.Message.Contains(RequiredModules[3]));
             Assert.IsTrue(ex.Message.Contains(RequiredModules[4]));
             Assert.IsTrue(ex.Message.Contains(absoluteDir));
-            Assert.IsTrue(ex.Message.Contains("./run-script ios_xcframework"));
+            Assert.IsTrue(ex.Message.Contains("dd-unity-ios-xcframework"));
         }
 
         [Test]

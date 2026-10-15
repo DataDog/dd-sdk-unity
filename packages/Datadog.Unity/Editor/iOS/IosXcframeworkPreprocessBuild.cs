@@ -86,7 +86,7 @@ namespace Datadog.Unity.Editor.iOS
 
             throw new BuildFailedException(
                 $"Datadog: missing required XCFramework module(s) [{string.Join(", ", missing)}] under " +
-                $"{pluginsIosDirectory}. In the development repo, run './run-script ios_xcframework stage' to " +
+                $"{pluginsIosDirectory}. In the development repo, run 'dd-unity-ios-xcframework stage' to " +
                 "fetch and stage the pinned modules. A published package is expected to ship these modules " +
                 "already vendored — see packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json for the " +
                 "pinned dd-sdk-ios version.");

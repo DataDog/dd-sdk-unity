@@ -2,7 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 //
-// Batch-mode iOS build entry point for tools/scripts/verify_ios_build.py. Lives in a
+// Batch-mode iOS build entry point for tools/dd_sdk_unity/scripts/verify_ios_build.py. Lives in a
 // dev-only local package (not referenced by the published com.datadoghq.unity package)
 // so it never ships to consumers. Unity CLI selects the iOS target before invoking it.
 using System;
@@ -15,7 +15,7 @@ using UnityEngine;
 namespace Datadog.Unity.BuildVerification
 {
     /// <summary>
-    /// Batch-mode entry point invoked via -executeMethod by tools/scripts/verify_ios_build.py
+    /// Batch-mode entry point invoked via -executeMethod by tools/dd_sdk_unity/scripts/verify_ios_build.py
     /// to build the active Unity project for iOS and report a machine-parseable result.
     /// </summary>
     public class IosBuildCommands
