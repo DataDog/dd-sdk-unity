@@ -10,7 +10,7 @@ public endpoints in the GitHub API.
 import requests
 from pydantic import BaseModel
 
-from dd_sdk_unity.scripts.common.versions import ExternalDependencyVersions, Version
+from dd_sdk_unity.scripts.common.versions import Version
 
 
 class GitHubRelease(BaseModel):
@@ -18,14 +18,6 @@ class GitHubRelease(BaseModel):
     url: str
     html_url: str
     body: str
-
-
-
-def get_latest_external_dependency_versions() -> ExternalDependencyVersions:
-    return ExternalDependencyVersions(
-        dd_sdk_android=resolve_latest_release_version('DataDog', 'dd-sdk-android'),
-        dd_sdk_ios=resolve_latest_release_version('DataDog', 'dd-sdk-ios'),
-    )
 
 
 def resolve_latest_release_version(owner: str, repo: str) -> Version:

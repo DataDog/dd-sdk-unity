@@ -13,7 +13,6 @@ from logging import Logger
 from xml.etree import ElementTree as ET
 
 MAVEN_BASE = 'https://repo1.maven.org/maven2'
-MAVEN_GROUP_ID = 'com.datadoghq'
 MAVEN_GROUP_PATH = 'com/datadoghq'
 
 # Measured against the 3.10.0 pin; these are the transitive dependencies most likely to

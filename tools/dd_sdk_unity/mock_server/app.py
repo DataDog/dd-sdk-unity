@@ -148,15 +148,6 @@ class DataClassJsonEncoder(json.JSONEncoder):
             return str(o)
         return super().default(o)
 
-def write_to_file(endpoint: GenericEndpoint) -> None:
-    no = len(endpoint.requests)
-    if 'rum' in endpoint.path:
-        with open(f'fixtures/rum/{no}', 'wb') as f:
-            f.write(request.get_data())
-    elif 'replay' in endpoint.path:
-        with open(f'fixtures/replay/{no}', 'wb') as f:
-            f.write(request.get_data())
-
 @app.route('/configure_response', methods=['POST'])
 def configure_response() -> flask.Response:
     """
@@ -219,10 +210,8 @@ def generic_get(rest: str = '') -> flask.Response:
 
     gr = GenericRequest(r=request)
 
-    response_text = ''
     if existing := next((e for e in endpoints if e.hash() == gr.endpoint_hash()), None):
         existing.requests.append(gr)
-        # write_to_file(endpoint=existing)
         response_text = 'OK - request recorded to known endpoint\n'
     else:
         endpoints.append(
