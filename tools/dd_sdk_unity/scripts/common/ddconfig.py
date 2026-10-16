@@ -50,13 +50,6 @@ class DatadogRuntimeConfig:
     telemetry_sample_rate: int | None = None
     first_party_hosts: list[FirstPartyHost] | None = None
 
-    def apply_to(self, path: str) -> None:
-        with open(path) as fp:
-            old_text = fp.read()
-        new_text = _modify_datadog_settings_impl(old_text, self)
-        with open(path, 'w') as fp:
-            fp.write(new_text)
-
 
 @contextmanager
 def modified_datadog_settings(project_root: str, config: DatadogRuntimeConfig) -> Generator[None]:
