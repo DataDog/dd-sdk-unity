@@ -8,12 +8,14 @@ mock server app is running, the project is configured appropriately to send the
 requisite requests to the mock server, and any required device emulators are running.
 """
 import argparse
+import json
 import os
 import shutil
 import signal
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import FrameType
 
 from junitparser.junitparser import JUnitXml, TestCase
@@ -24,7 +26,6 @@ from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.simulator import run_default_simulator
 from dd_sdk_unity.scripts.common.unity import (
     UnityCli,
-    modified_ios_target_settings,
     resolve_unity_install,
 )
 from dd_sdk_unity.scripts.common.xslt import transform_nunit_to_junit
@@ -45,12 +46,11 @@ def _integration_test_env(project_path: str, platform: MobilePlatform, target: D
     try:
         process = environment.start()
         prepared = True
-        with modified_ios_target_settings(project_path, platform, target):
-            if target != 'simulator' or platform == 'ios':
+        if platform == 'android' and target == 'simulator':
+            with run_default_simulator(platform):
                 yield
-            else:
-                with run_default_simulator(platform):
-                    yield
+        else:
+            yield
     finally:
         if prepared:
             environment.stop(process)
@@ -103,7 +103,14 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: Mob
                 shutil.rmtree(export_path)
             export_path.parent.mkdir(parents=True, exist_ok=True)
             args += ['-buildPlayerPath', str(export_path.parent)]
-        exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
+        with TemporaryDirectory(prefix='datadog-integration-tests-') as settings_directory:
+            if platform == 'ios':
+                settings_path = Path(settings_directory) / 'TestSettings.json'
+                settings_path.write_text(json.dumps({
+                    'iOSTargetSDK': 'SimulatorSDK' if target == 'simulator' else 'DeviceSDK',
+                }))
+                args += ['-testSettingsFile', str(settings_path)]
+            exitcode = unity_install.run_batchmode(project_path, *args, log_path=log_abspath)
         if split:
             if exitcode != 0:
                 log.error(f'Unity export exited with status code {exitcode}')
