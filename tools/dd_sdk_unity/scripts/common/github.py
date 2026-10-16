@@ -1,16 +1,16 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for fetching publicly-accessible information about GitHub repositories via
 public endpoints in the GitHub API.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
+
 import requests
 from pydantic import BaseModel
-from typing import List
 
-from dd_sdk_unity.scripts.common.versions import Version, ExternalDependencyVersions
+from dd_sdk_unity.scripts.common.versions import ExternalDependencyVersions, Version
 
 
 class GitHubRelease(BaseModel):
@@ -33,7 +33,7 @@ def resolve_latest_release_version(owner: str, repo: str) -> Version:
     return Version.parse(release.name)
 
 
-def get_releases_between(owner: str, repo: str, start_version_exclusive: Version, end_version_inclusive: Version) -> List[GitHubRelease]:
+def get_releases_between(owner: str, repo: str, start_version_exclusive: Version, end_version_inclusive: Version) -> list[GitHubRelease]:
     # For simplicity, fetch the details of all known releases, ordered by creation date (newest first)
     releases = _fetch_github_releases(owner, repo)
 
@@ -58,8 +58,8 @@ def get_file_contents(owner: str, repo: str, ref: str, path: str) -> str:
     return res.text
 
 
-def _fetch_github_releases(owner: str, repo: str) -> List[GitHubRelease]:
-    releases: List[GitHubRelease] = []
+def _fetch_github_releases(owner: str, repo: str) -> list[GitHubRelease]:
+    releases: list[GitHubRelease] = []
     per_page = 100
     max_pages = 50
     page = 1
@@ -70,7 +70,7 @@ def _fetch_github_releases(owner: str, repo: str) -> List[GitHubRelease]:
             raise RuntimeError(f'GET {url} failed with status code {res.status_code}')
         data = res.json()
         if not isinstance(data, list):
-            raise ValueError(f'GET {url} did not return a JSON array')
+            raise ValueError(f'GET {url} did not return a JSON array')  # noqa: TRY004 -- Invalid API data, not a caller argument.
         if not data:
             break
         for obj in data:

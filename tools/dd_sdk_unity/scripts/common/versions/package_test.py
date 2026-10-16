@@ -1,15 +1,11 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 import io
 
 from dd_sdk_unity.scripts.common.versions.package import _modify_package_json_impl
 from dd_sdk_unity.scripts.common.versions.semver import Version
-
 
 __old_package_json__ = '''{
   "name": "com.datadoghq.unity",

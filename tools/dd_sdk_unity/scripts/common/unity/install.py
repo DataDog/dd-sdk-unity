@@ -1,18 +1,17 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for resolving specific versions of the Unity editor, and for invoking the
 Unity editor binary in order to run headless commands.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
 import re
-import threading
 import subprocess
+import threading
 import time
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -22,8 +21,8 @@ class UnityVersion:
     patch: int
     revision: str
 
-    def __str__(self):
-        return '%d.%d.%d%s' % (self.major, self.minor, self.patch, self.revision)
+    def __str__(self) -> str:
+        return f'{self.major:d}.{self.minor:d}.{self.patch:d}{self.revision}'
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
@@ -34,13 +33,13 @@ class UnityVersion:
         rhs = (other.major, other.minor, other.patch, other.revision)
         return lhs == rhs
 
-    def __lt__(self, other: 'UnityVersion') -> bool:
+    def __lt__(self, other: UnityVersion) -> bool:
         lhs = (self.major, self.minor, self.patch, self._revision_sort_key)
         rhs = (other.major, other.minor, other.patch, other._revision_sort_key)
         return lhs < rhs
 
     @classmethod
-    def parse(cls, s: str) -> 'UnityVersion':
+    def parse(cls, s: str) -> UnityVersion:
         pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc|f|p)\d+)$')
         match = pattern.match(s)
         if not match:
@@ -100,7 +99,7 @@ class UnityInstall:
             with open(log_path, 'w'):
                 pass
 
-        def _read(line: str):
+        def _read(line: str) -> None:
             max_retries = 10
             delay = 0.01
             for attempt in range(max_retries):
@@ -120,7 +119,7 @@ class UnityInstall:
         stop_event = threading.Event()
         ready_event = threading.Event()
 
-        def _tail_log():
+        def _tail_log() -> None:
             with open(log_path, 'r') as fp:
                 # Seek to EOF
                 fp.seek(0, 2)
@@ -163,7 +162,7 @@ class UnityInstall:
             raise
 
 
-def resolve_unity_install(installs: List[UnityInstall], version_prefix: str) -> Optional[UnityInstall]:
+def resolve_unity_install(installs: list[UnityInstall], version_prefix: str) -> UnityInstall | None:
     """
     Given a list of available Unity installations, returns the newest one that matches
     the target version constraint, or None if no matching version is available.
@@ -175,7 +174,7 @@ def resolve_unity_install(installs: List[UnityInstall], version_prefix: str) -> 
     return next((x for x in installs if x.version == matching_version), None)
 
 
-def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Optional[UnityVersion]:
+def match_unity_version(versions: list[UnityVersion], version_prefix: str) -> UnityVersion | None:
     """
     Given a list of available Unity versions and a target version string, returns the
     newest version that satisfies that constraint. '2023.3.55f1' requires an exact
@@ -187,9 +186,9 @@ def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Op
     if not match:
         raise ValueError(f'Invalid Unity version specifier: {version_prefix}')
     required_major = int(match.group(1))
-    required_minor: Optional[int] = int(match.group(2)) if match.group(2) else None
-    required_patch: Optional[int] = int(match.group(3)) if match.group(3) else None
-    required_revision: Optional[str] = match.group(4) or None
+    required_minor: int | None = int(match.group(2)) if match.group(2) else None
+    required_patch: int | None = int(match.group(3)) if match.group(3) else None
+    required_revision: str | None = match.group(4) or None
 
     candidates = [x for x in versions if x.major == required_major]
     if required_minor is not None:
@@ -202,5 +201,4 @@ def match_unity_version(versions: List[UnityVersion], version_prefix: str) -> Op
     if not candidates:
         return None
 
-    newest_candidate = list(sorted(candidates))[-1]
-    return newest_candidate
+    return max(candidates)

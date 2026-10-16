@@ -1,23 +1,21 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for reading and writing IosDependencyVersion.json, which pins the
 dd-sdk-ios prebuilt XCFramework version, its expected zip SHA-256, and the expected
 module list consumed when the XCFramework is fetched and staged for iOS builds.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
+import io
+import json
 import os
 import tempfile
-import json
-import io
 from dataclasses import dataclass
-from typing import IO, List, Optional
+from typing import IO
 
 from dd_sdk_unity.scripts.common.log import get_default_logger
-
 from dd_sdk_unity.scripts.common.versions.semver import Version
-
 
 IOS_DEPENDENCY_VERSION_RELPATH = os.path.join('packages', 'Datadog.Unity', 'Editor', 'iOS', 'IosDependencyVersion.json')
 
@@ -25,8 +23,8 @@ IOS_DEPENDENCY_VERSION_RELPATH = os.path.join('packages', 'Datadog.Unity', 'Edit
 @dataclass
 class IosXcframeworkPin:
     version: Version
-    sha256: Optional[str]
-    modules: List[str]
+    sha256: str | None
+    modules: list[str]
 
 
 def read_ios_xcframework_pin(file_contents: str) -> IosXcframeworkPin:
@@ -51,7 +49,7 @@ def _read_ios_xcframework_pin_impl(infile: IO[str]) -> IosXcframeworkPin:
     )
 
 
-def write_ios_xcframework_pin(path: str, pin: IosXcframeworkPin):
+def write_ios_xcframework_pin(path: str, pin: IosXcframeworkPin) -> None:
     outfile_name = ''
     with tempfile.NamedTemporaryFile('w', delete=False) as outfile:
         outfile_name = outfile.name
@@ -60,7 +58,7 @@ def write_ios_xcframework_pin(path: str, pin: IosXcframeworkPin):
     os.rename(outfile_name, path)
 
 
-def _write_ios_xcframework_pin_impl(infile: IO[str], outfile: IO[str], pin: IosXcframeworkPin):
+def _write_ios_xcframework_pin_impl(infile: IO[str], outfile: IO[str], pin: IosXcframeworkPin) -> None:
     log = get_default_logger()
 
     existing_doc = json.load(infile)

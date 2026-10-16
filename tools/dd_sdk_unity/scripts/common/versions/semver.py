@@ -1,14 +1,13 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for semantic version numbers.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import re
-from enum import Enum
 from dataclasses import dataclass
-from typing import Any
+from enum import Enum
 
 
 class VersionBump(Enum):
@@ -23,7 +22,7 @@ class VersionBump(Enum):
             3: 'major',
         }[self.value]
 
-    def __lt__(self, other: 'VersionBump') -> bool:
+    def __lt__(self, other: VersionBump) -> bool:
         return self.value < other.value
 
 
@@ -39,9 +38,9 @@ class Version:
     patch: int
 
     def __str__(self) -> str:
-        return '%d.%d.%d' % (self.major, self.minor, self.patch)
+        return f'{self.major:d}.{self.minor:d}.{self.patch:d}'
     
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return str(self) == other
         if not isinstance(other, Version):
@@ -50,12 +49,12 @@ class Version:
         rhs = (other.major, other.minor, other.patch)
         return lhs == rhs
 
-    def __lt__(self, other: 'Version') -> bool:
+    def __lt__(self, other: Version) -> bool:
         lhs = (self.major, self.minor, self.patch)
         rhs = (other.major, other.minor, other.patch)
         return lhs < rhs
     
-    def bump(self, type: VersionBump) -> 'Version':
+    def bump(self, type: VersionBump) -> Version:
         if type == VersionBump.MAJOR:
             return Version(self.major + 1, 0, 0)
         if type == VersionBump.MINOR:
@@ -65,7 +64,7 @@ class Version:
         raise ValueError(f'Unexpected version bump type: {type}')
 
     @classmethod
-    def parse(cls, s: str) -> 'Version':
+    def parse(cls, s: str) -> Version:
         match = re.match(r'^([0-9]+)\.([0-9]+)\.([0-9]+)$', s)
         if not match:
             raise ValueError(f'Unexpected format for version string: {s}')

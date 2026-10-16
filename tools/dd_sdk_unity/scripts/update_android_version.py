@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Unless explicitly stated otherwise all files in this repository are licensed under the
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
@@ -32,25 +31,24 @@ from dd_sdk_unity.scripts.common.versions.android_deps import (
 )
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
-
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 PIN_PATH = os.path.join(REPO_ROOT, ANDROID_DEPENDENCY_VERSION_RELPATH)
 
 
-def load_current_pin():
+def load_current_pin() -> AndroidDependencyPin:
     if not os.path.exists(PIN_PATH):
         sys.exit(f'{PIN_PATH} not found; cannot resolve the currently pinned dd-sdk-android version.')
     with open(PIN_PATH, 'r', encoding='utf-8') as infile:
         return read_android_dependency_pin(infile.read())
 
 
-def resolve_artifacts(current_pin):
+def resolve_artifacts(current_pin: AndroidDependencyPin) -> list[str]:
     # Android's artifact set is fixed at the three IDs in the pin; there is no
     # per-invocation override use case (RESEARCH finding #4), unlike iOS's --modules.
     return list(current_pin.artifacts)
 
 
-def format_drift_message(drift_lines):
+def format_drift_message(drift_lines: list[str]) -> str:
     lines = '\n'.join(f'  - {line}' for line in drift_lines)
     return (
         f'Cannot bump: the following transitive coordinate(s) drifted from the recorded '
@@ -60,7 +58,7 @@ def format_drift_message(drift_lines):
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('version', help='The dd-sdk-android version to bump the pin to, e.g. 3.11.0.')
     parser.add_argument('--force', action='store_true', help='Re-run the bump even if the target version equals the current pin.')

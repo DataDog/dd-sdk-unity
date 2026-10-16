@@ -1,27 +1,27 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for running subprocesses and processing their output line-by-line.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-import os
-import subprocess
-import signal
-import selectors
 import io
-from typing import Callable, Optional, cast, Tuple
-
+import os
+import selectors
+import signal
+import subprocess
+from collections.abc import Callable
+from typing import cast
 
 OutputHandlerFunc = Callable[[str, bool], None]
 
 
 def run_cmd(
     *args: str,
-    raise_on_nonzero_exitcode = False,
+    raise_on_nonzero_exitcode: bool = False,
     merge_stderr: bool = False,
     inherit_output: bool = False,
-    output_handler: Optional[OutputHandlerFunc] = None
+    output_handler: OutputHandlerFunc | None = None
 ) -> int:
     if inherit_output:
         if output_handler is not None:
@@ -52,7 +52,7 @@ def run_cmd(
         sel.register(process.stderr, selectors.EVENT_READ)
 
     # Read output from the process until it's finished
-    exitcode: Optional[int] = None
+    exitcode: int | None = None
     while True:
         # Block until new output is available for read
         for key, _ in sel.select(timeout=0.1):
@@ -88,10 +88,10 @@ def run_cmd_streaming(*args: str) -> int:
     return run_cmd(*args, merge_stderr=True, inherit_output=True)
 
 
-def capture_output(*args: str) -> Tuple[str, str]:
+def capture_output(*args: str) -> tuple[str, str]:
     stdout = io.StringIO()
     stderr = io.StringIO()
-    def _read(line: str, is_stderr: bool):
+    def _read(line: str, is_stderr: bool) -> None:
         if is_stderr:
             stderr.write(line + '\n')
         else:
@@ -104,7 +104,7 @@ def capture_output(*args: str) -> Tuple[str, str]:
     return stdout.read(), stderr.read()
 
 
-def stop_process(process):
+def stop_process(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is None:
         try:
             if os.name == 'nt':

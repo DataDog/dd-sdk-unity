@@ -1,20 +1,17 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
-"""
-import json
-from pathlib import Path
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+
 import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-import pytest
 import psutil
+import pytest
 
 from dd_sdk_unity.scripts import integration_test_setup as setup
-
 
 # Exercise real process/HTTP lifetimes without installing Flask or cloning schemas.
 SERVER = """
@@ -112,7 +109,7 @@ def test_startup_retries_health_timeout(environment, port, monkeypatch, probe_er
                 timed_out = True
                 raise probe_error
             return request(*args, **kwargs)
-        opener.open = open_with_timeout
+        monkeypatch.setattr(opener, 'open', open_with_timeout)
         return opener
     monkeypatch.setattr(setup, 'build_opener', timeout_first_request)
     process = environment.start('127.0.0.1', port)
@@ -432,10 +429,12 @@ def test_local_cleanup_preserves_a_replacement_record(environment, port):
     replacement = helper.start('127.0.0.1', replacement_port)
     state = helper._read_state()
     try:
+        assert replacement is not None
         environment.stop(process)
         assert process.poll() is not None
         assert replacement.poll() is None
         assert helper._read_state() == state
+        assert helper.endpoint is not None
         assert setup.server_health(helper.endpoint) is True
     finally:
         helper.stop(replacement)

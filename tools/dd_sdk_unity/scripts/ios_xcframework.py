@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Unless explicitly stated otherwise all files in this repository are licensed under the
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
@@ -25,13 +24,15 @@ import shutil
 import subprocess
 import sys
 import zipfile
+from logging import Logger
 
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.versions.ios_xcframework_deps import (
     IOS_DEPENDENCY_VERSION_RELPATH,
+    IosXcframeworkPin,
     read_ios_xcframework_pin,
 )
-
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 PIN_PATH = os.path.join(REPO_ROOT, IOS_DEPENDENCY_VERSION_RELPATH)
@@ -46,7 +47,7 @@ _XCFRAMEWORK_ZIP_ROOT = 'Datadog.xcframework'
 _XCFRAMEWORK_ZIP_FILENAME = f'{_XCFRAMEWORK_ZIP_ROOT}.zip'
 
 
-def zip_path_for(version):
+def zip_path_for(version: str | Version) -> str:
     # Cached per-version so a stale zip from a previously staged version is never
     # mistaken for the one currently requested (see fetch()/cmd_stage()).
     return os.path.join(DOWNLOAD_DIR, str(version), _XCFRAMEWORK_ZIP_FILENAME)
@@ -58,13 +59,13 @@ RELEASE_URL_TEMPLATE = (
 _XCFRAMEWORK_ENTRY_RE = re.compile(rf'^{re.escape(_XCFRAMEWORK_ZIP_ROOT)}/([^/]+)\.xcframework/$')
 
 
-def check_tools():
+def check_tools() -> None:
     missing = [tool for tool in ('curl', 'unzip') if shutil.which(tool) is None]
     if missing:
         sys.exit(f'Required tool(s) not found on PATH: {", ".join(missing)}. Please install them and retry.')
 
 
-def load_pin():
+def load_pin() -> IosXcframeworkPin:
     if not os.path.exists(PIN_PATH):
         sys.exit(f'{PIN_PATH} not found; cannot resolve the pinned dd-sdk-ios version.')
     with open(PIN_PATH, 'r', encoding='utf-8') as infile:
@@ -72,7 +73,7 @@ def load_pin():
     return read_ios_xcframework_pin(contents)
 
 
-def sha256_of(path):
+def sha256_of(path: str | os.PathLike[str]) -> str:
     digest = hashlib.sha256()
     with open(path, 'rb') as infile:
         for chunk in iter(lambda: infile.read(65536), b''):
@@ -80,18 +81,18 @@ def sha256_of(path):
     return digest.hexdigest()
 
 
-def run(cmd, **kwargs):
+def run(cmd: list[str]) -> None:
     print(f'$ {" ".join(cmd)}')
-    subprocess.run(cmd, check=True, **kwargs)
+    subprocess.run(cmd, check=True)
 
 
-def run_capture(cmd):
+def run_capture(cmd: list[str]) -> str:
     print(f'$ {" ".join(cmd)}')
     result = subprocess.run(cmd, check=True, capture_output=True, text=True)
     return result.stdout
 
 
-def list_zip_modules(zip_path):
+def list_zip_modules(zip_path: str) -> list[str]:
     output = run_capture(['unzip', '-l', zip_path])
     modules = []
     for line in output.splitlines():
@@ -105,7 +106,7 @@ def list_zip_modules(zip_path):
     return modules
 
 
-def fetch(log, version, expected_sha256, force, allow_unknown_sha256):
+def fetch(log: Logger, version: str | Version, expected_sha256: str | None, force: bool, allow_unknown_sha256: bool) -> str:
     check_tools()
     zip_path = zip_path_for(version)
     os.makedirs(os.path.dirname(zip_path), exist_ok=True)
@@ -149,7 +150,7 @@ def fetch(log, version, expected_sha256, force, allow_unknown_sha256):
     return digest
 
 
-def stage(log, version, modules, plugins_ios_dir=None):
+def stage(log: Logger, version: str | Version, modules: list[str], plugins_ios_dir: str | None = None) -> None:
     plugins_ios_dir = plugins_ios_dir or PLUGINS_IOS_DIR
     zip_path = zip_path_for(version)
     if not os.path.exists(zip_path):
@@ -216,7 +217,7 @@ def stage(log, version, modules, plugins_ios_dir=None):
         log.info(f'Staged {dst}')
 
 
-def verify(log, modules, plugins_ios_dir=None):
+def verify(log: Logger, modules: list[str], plugins_ios_dir: str | None = None) -> None:
     plugins_ios_dir = plugins_ios_dir or PLUGINS_IOS_DIR
     failures = []
     for module in modules:
@@ -247,7 +248,7 @@ def verify(log, modules, plugins_ios_dir=None):
         sys.exit('XCFramework verification failed:\n' + '\n'.join(f'  - {f}' for f in failures))
 
 
-def clean(log):
+def clean(log: Logger) -> None:
     if os.path.isdir(WORK_DIR):
         shutil.rmtree(WORK_DIR)
         log.info(f'Removed {WORK_DIR}')
@@ -267,7 +268,7 @@ def clean(log):
                 log.info(f'Removed {meta_path}')
 
 
-def cmd_stage(args, log):
+def cmd_stage(args: argparse.Namespace, log: Logger) -> None:
     pin = load_pin()
     version = args.version or str(pin.version)
     expected_sha256 = pin.sha256 if not args.version or args.version == str(pin.version) else None
@@ -279,16 +280,16 @@ def cmd_stage(args, log):
     verify(log, pin.modules)
 
 
-def cmd_verify(args, log):
+def cmd_verify(args: argparse.Namespace, log: Logger) -> None:
     pin = load_pin()
     verify(log, pin.modules)
 
 
-def cmd_clean(args, log):
+def cmd_clean(args: argparse.Namespace, log: Logger) -> None:
     clean(log)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     subparsers = parser.add_subparsers(dest='command', required=True)
 

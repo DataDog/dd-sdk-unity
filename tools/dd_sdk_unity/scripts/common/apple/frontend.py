@@ -1,18 +1,18 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 High-level interface for iOS simulators; allows you to specify the target device type
 with AppleDeviceSpec and use `with run_apple_device(spec):` to provision and boot the
 appropriate simulator for the duration of the `with` block.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
-from dataclasses import dataclass
+from collections.abc import Generator
 from contextlib import contextmanager
-
-from dd_sdk_unity.scripts.common.log import get_default_logger
+from dataclasses import dataclass
 
 from dd_sdk_unity.scripts.common.apple.xcrun import Xcrun
+from dd_sdk_unity.scripts.common.log import get_default_logger
 
 
 @dataclass
@@ -22,7 +22,7 @@ class AppleDeviceSpec:
 
 
 @contextmanager
-def run_apple_device(spec: AppleDeviceSpec):
+def run_apple_device(spec: AppleDeviceSpec) -> Generator[None]:
     log = get_default_logger()
     log.info('Preparing an emulated Apple device...')
     log.info(f'- Runtime: {spec.runtime}')

@@ -1,17 +1,15 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for modifying NATIVE_SDK_VERSIONS.md, which records for posterity the
 canonical versions of dd-sdk-android and dd-sdk-ios that are included in each Unity SDK
 release.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 from dataclasses import dataclass
-from typing import List
 
 from dd_sdk_unity.scripts.common.versions.semver import Version
-
 
 __heading_unity__ = 'Unity SDK'
 __heading_ios__ = 'iOS SDK'
@@ -27,9 +25,9 @@ class SdkVersionTableRow:
 
 @dataclass
 class SdkVersionTable:
-    rows: List[SdkVersionTableRow]
+    rows: list[SdkVersionTableRow]
 
-    def set(self, unity_version: Version, ios_version: Version, android_version: Version):
+    def set(self, unity_version: Version, ios_version: Version, android_version: Version) -> None:
         row = SdkVersionTableRow(
             unity_version=unity_version,
             ios_version_str=str(ios_version),
@@ -49,7 +47,7 @@ class SdkVersionTable:
         def _render_line(a: str, b: str, c: str) -> str:
             return f'| {a.ljust(pad_a)} | {b.ljust(pad_b)} | {c.ljust(pad_c)} |'
 
-        lines: List[str] = [
+        lines: list[str] = [
             _render_line(__heading_unity__, __heading_ios__, __heading_android__),
             '|' + ('-' * (pad_a + 2)) + '|' + ('-' * (pad_b + 2)) + '|' + ('-' * (pad_c + 2)) + '|',
         ]
@@ -60,8 +58,8 @@ class SdkVersionTable:
 
 
     @classmethod
-    def parse(cls, text: str) -> 'SdkVersionTable':
-        rows: List[SdkVersionTableRow] = []
+    def parse(cls, text: str) -> SdkVersionTable:
+        rows: list[SdkVersionTableRow] = []
         seen_headings = False
         seen_border = False
         for line in text.splitlines():

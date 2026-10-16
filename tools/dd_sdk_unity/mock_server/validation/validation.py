@@ -1,29 +1,27 @@
-#!/usr/bin/python3
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
-
-import os
 import json
-from jsonschema import RefResolver, validate, ValidationError
-from typing import Optional
+import os
+from collections.abc import Mapping
+from typing import Any
+
+from jsonschema import RefResolver, ValidationError, validate
 
 
 class JSONSchemaValidationResult:
     schema_name: str
     all_ok: bool
-    error: Optional[str]  # `None` if `all_ok`
+    error: str | None  # `None` if `all_ok`
 
-    def __init__(self, schema_path: str, all_ok: bool, error: Optional[str]):
+    def __init__(self, schema_path: str, all_ok: bool, error: str | None) -> None:
         self.schema_name = os.path.basename(schema_path)
         self.all_ok = all_ok
         self.error = error
 
 
-def patch_ajv_uri(uri):
+def patch_ajv_uri(uri: str) -> Any:
     """
     For patching $ref and $ids after AJV-required
     change introduced in https://github.com/DataDog/rum-events-format/pull/88
@@ -52,24 +50,23 @@ def patch_ajv_uri(uri):
                 file_url = file_url.replace(pattern, fix)
                 hit = True
 
-    try:
-        return json.load(open(file_url, 'r'))
-    except Exception as error:
-        raise error
+    with open(file_url, 'r') as schema_file:
+        return json.load(schema_file)
 
 
-def validate_event(event: dict, schema_path: str) -> JSONSchemaValidationResult:
+def validate_event(event: Mapping[str, object], schema_path: str) -> JSONSchemaValidationResult:
     try:
-        schema = json.load(open(schema_path, 'r'))
+        with open(schema_path, 'r') as schema_file:
+            schema = json.load(schema_file)
         base_path = os.path.abspath(os.path.dirname(schema_path))
         resolver = RefResolver(base_uri='file://' + base_path + '/', referrer=schema, handlers={'file': patch_ajv_uri})
         validate(event, schema, resolver=resolver)
         return JSONSchemaValidationResult(schema_path=schema_path, all_ok=True, error=None)
     except ValidationError as error:
         return JSONSchemaValidationResult(schema_path=schema_path, all_ok=False, error=pretty_error_message(error))
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001 -- Display all schema loading/resolution failures in the UI.
         return JSONSchemaValidationResult(schema_path=schema_path, all_ok=False, error=f'{error}')
 
 
 def pretty_error_message(error: ValidationError) -> str:
-    return f'{error.message} ({" → ".join(list(map(lambda p: f"{p}", error.schema_path)))})'
+    return f'{error.message} ({" → ".join(str(part) for part in error.schema_path)})'

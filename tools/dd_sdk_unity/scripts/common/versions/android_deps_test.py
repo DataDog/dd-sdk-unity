@@ -1,19 +1,17 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
 import io
 
-from dd_sdk_unity.scripts.common.versions.semver import Version
+import pytest
+
 from dd_sdk_unity.scripts.common.versions.android_deps import (
     AndroidDependencyPin,
     _write_android_dependency_pin_impl,
     read_android_dependency_pin,
 )
-
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 __development_json__ = '''{
   "version": "3.10.0",

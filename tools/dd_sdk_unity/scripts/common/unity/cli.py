@@ -1,19 +1,22 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+
 """
 Utility code for finding and invoking the standalone Unity CLI (the `unity` binary).
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 """
 import json
 import shutil
-from typing import List, Optional, Union
+from typing import Literal, TypedDict, overload
 
+from dd_sdk_unity.scripts.common import TestMode
 from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.shell import run_cmd, run_cmd_streaming
-
-from dd_sdk_unity.scripts.common.unity.install import UnityInstall, UnityVersion, resolve_unity_install
-
+from dd_sdk_unity.scripts.common.unity.install import (
+    UnityInstall,
+    UnityVersion,
+    resolve_unity_install,
+)
 
 # https://docs.unity.com/en-us/unity-cli/unity-cli-reference#exit-codes
 _EXIT_CODE_DESCRIPTIONS = {
@@ -29,13 +32,24 @@ _EXIT_CODE_DESCRIPTIONS = {
 }
 
 
-class UnityCli(object):
+class _InstalledEditor(TypedDict):
+    version: str
+    architecture: str
+    location: str
+
+
+class _InstalledModule(TypedDict):
+    id: str
+    status: str
+
+
+class UnityCli:
     path: str
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
 
-    def list_installs(self) -> List[UnityInstall]:
+    def list_installs(self) -> list[UnityInstall]:
         """Lists installed Unity Editors."""
         log = get_default_logger()
         log.debug('Finding Unity installations...')
@@ -51,7 +65,7 @@ class UnityCli(object):
             log.info(f'Found: {install.version} at {install.path}')
         return installs
 
-    def install_version(self, version: Union[UnityVersion, str], modules: List[str]) -> UnityInstall:
+    def install_version(self, version: UnityVersion | str, modules: list[str]) -> UnityInstall:
         """
         Installs an exact version or numeric version prefix with its modules,
         accepting module license agreements. Unity CLI resolves partial versions.
@@ -69,7 +83,7 @@ class UnityCli(object):
             return install
         raise RuntimeError('Failed to resolve Unity install after successful completion of install command')
 
-    def install_modules(self, version: UnityVersion, modules: List[str]):
+    def install_modules(self, version: UnityVersion, modules: list[str]) -> None:
         """Adds modules and their children, accepting module license agreements."""
         if not modules:
             return
@@ -81,7 +95,7 @@ class UnityCli(object):
             '--accept-eula',
         ]
         # Check for an empty selection before giving the live install the terminal.
-        output: List[str] = []
+        output: list[str] = []
         exitcode = run_cmd(
             *command, '--dry-run',
             merge_stderr=True,
@@ -107,7 +121,7 @@ class UnityCli(object):
         target: str,
         execute_method: str,
         output_path: str,
-        log_path: Optional[str] = None,
+        log_path: str | None = None,
     ) -> int:
         return run_cmd_streaming(
             *self._command('human'), 'build', project_path,
@@ -124,7 +138,7 @@ class UnityCli(object):
         self,
         version: UnityVersion,
         project_path: str,
-        platform: str,
+        platform: TestMode,
         results_path: str,
         log_path: str,
         *editor_args: str,
@@ -137,18 +151,24 @@ class UnityCli(object):
             '--', '-logFile', log_path, *editor_args,
         )
 
-    def _command(self, output_format: str) -> List[str]:
+    def _command(self, output_format: str) -> list[str]:
         return [self.path, '--no-banner', '--no-pager', '--non-interactive', '--format', output_format]
 
-    def _list_items(self, *args: str) -> List[dict]:
-        command = ' '.join(args)
-        stdout: List[str] = []
-        stderr: List[str] = []
+    @overload
+    def _list_items(self, operation: Literal['editors'], *args: str) -> list[_InstalledEditor]: ...
 
-        def _read(line: str, is_stderr: bool):
+    @overload
+    def _list_items(self, operation: Literal['install-modules'], *args: str) -> list[_InstalledModule]: ...
+
+    def _list_items(self, operation: Literal['editors', 'install-modules'], *args: str) -> list[_InstalledEditor] | list[_InstalledModule]:
+        command = ' '.join((operation, *args))
+        stdout: list[str] = []
+        stderr: list[str] = []
+
+        def _read(line: str, is_stderr: bool) -> None:
             (stderr if is_stderr else stdout).append(line)
 
-        exitcode = run_cmd(*self._command('json'), *args, output_handler=_read)
+        exitcode = run_cmd(*self._command('json'), operation, *args, output_handler=_read)
         output = '\n'.join(stdout)
         if exitcode != 0:
             details = '\n'.join(stderr + stdout)
@@ -160,11 +180,11 @@ class UnityCli(object):
         if not isinstance(result, dict) or result.get('success') is not True:
             raise RuntimeError(f'Unity CLI {command} failed: {output}')
         if not isinstance(result.get('data'), list):
-            raise RuntimeError(f'Unexpected list from Unity CLI {command}: {output}')
+            raise RuntimeError(f'Unexpected list from Unity CLI {command}: {output}')  # noqa: TRY004 -- Invalid CLI output, not a caller argument.
         return result['data']
 
     @staticmethod
-    def _raise_for_exitcode(exitcode: int, command: str, details: str = ''):
+    def _raise_for_exitcode(exitcode: int, command: str, details: str = '') -> None:
         if exitcode == 0:
             return
         reason = _EXIT_CODE_DESCRIPTIONS.get(exitcode, 'unrecognized exit code')
@@ -174,11 +194,11 @@ class UnityCli(object):
         raise RuntimeError(message)
 
     @staticmethod
-    def _module_args(modules: List[str]) -> List[str]:
+    def _module_args(modules: list[str]) -> list[str]:
         return ['--module', *modules, '--child-modules'] if modules else []
 
     @classmethod
-    def require(cls) -> 'UnityCli':
+    def require(cls) -> UnityCli:
         """Finds the standalone Unity CLI on PATH, raising if it is missing."""
         path = shutil.which('unity')
         if not path:

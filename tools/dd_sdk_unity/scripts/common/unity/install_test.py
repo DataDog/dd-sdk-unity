@@ -1,13 +1,17 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 import os
 
-from dd_sdk_unity.scripts.common.unity.install import UnityVersion, UnityInstall, resolve_unity_install, match_unity_version
+import pytest
+
+from dd_sdk_unity.scripts.common.unity.install import (
+    UnityInstall,
+    UnityVersion,
+    match_unity_version,
+    resolve_unity_install,
+)
 
 
 def test_UnityVersion_comparison():
@@ -19,12 +23,12 @@ def test_UnityVersion_comparison():
     )
     assert UnityVersion.parse('2022.3.55f1') < UnityVersion.parse('6000.1.7f1')
 
-    ordered = list(sorted([
+    ordered = sorted([
         UnityVersion.parse('2022.3.55f1'),
         UnityVersion.parse('2022.4.22b3'),
         UnityVersion.parse('6000.1.7f1'),
         UnityVersion.parse('2022.4.22a4'),
-    ]))
+    ])
     assert [str(x) for x in ordered] == [
         '2022.3.55f1',
         '2022.4.22a4',

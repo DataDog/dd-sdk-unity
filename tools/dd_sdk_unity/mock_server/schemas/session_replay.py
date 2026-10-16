@@ -1,19 +1,17 @@
-#!/usr/bin/python3
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
-
-import zlib
 import json
+import zlib
+from typing import TypedDict
+
 from flask import Request
+
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.templates.components.card import Card, CardTab
 from dd_sdk_unity.mock_server.templates.components.stat import Stat
 from dd_sdk_unity.mock_server.validation.validation import validate_event
-
 
 record_name_by_type = {
     4: 'meta',
@@ -25,6 +23,14 @@ record_name_by_type = {
 }
 
 
+class _ReplayRecord(TypedDict):
+    type: int
+
+
+class _ReplaySegment(TypedDict):
+    records: list[_ReplayRecord]
+
+
 class SRSchema(Schema):
     name = 'session-replay'
     pretty_name = 'Session Replay'
@@ -33,10 +39,10 @@ class SRSchema(Schema):
     request_template = 'session-replay/request.html'
 
     # SR-specific
-    stats = [Stat]
-    segment_json: dict
+    stats: list[Stat]
+    segment_json: _ReplaySegment
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request) -> None:
         segment_file = request.files['segment'].read()
         segment_json_string = zlib.decompress(segment_file).decode('utf-8')
         self.segment_json = json.loads(segment_json_string)
@@ -100,20 +106,20 @@ class SRSchema(Schema):
         return CardTab(title=f'Records ({records_count})', template='session-replay/records_view.html', object=obj)
 
     @staticmethod
-    def matches(method: str, path: str):
+    def matches(method: str, path: str) -> bool:
         return method == 'POST' and path.startswith('/api/v2/replay')
 
     @staticmethod
-    def create_stats(records: dict) -> [Stat]:
-        stats: [Stat] = []
-        for r_type in record_name_by_type:
+    def create_stats(records: list[_ReplayRecord]) -> list[Stat]:
+        stats: list[Stat] = []
+        for r_type, record_name in record_name_by_type.items():
             count = 0
 
             for record in records:
                 if record['type'] == r_type:
                     count += 1
 
-            stat = Stat(title=f'"{record_name_by_type[r_type]}" records', value=f'{count}')
+            stat = Stat(title=f'"{record_name}" records', value=f'{count}')
             stats.append(stat)
 
         return stats

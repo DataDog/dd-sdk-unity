@@ -1,16 +1,15 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Helpers for Android tool wrappers.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import os
 import platform
-from typing import Tuple
 
 
-def resolve_android_binary(*args: str) -> Tuple[str, str]:
+def resolve_android_binary(*args: str) -> tuple[str, str]:
     android_home = os.getenv('ANDROID_HOME') or ''
     if not android_home:
         return '', 'ANDROID_HOME is not set'

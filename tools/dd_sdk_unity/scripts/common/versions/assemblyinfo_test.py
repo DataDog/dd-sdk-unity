@@ -1,15 +1,11 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 import io
 
 from dd_sdk_unity.scripts.common.versions.assemblyinfo import _modify_assemblyinfo_impl
 from dd_sdk_unity.scripts.common.versions.semver import Version
-
 
 __old_assemblyinfo_cs__ = '''// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).

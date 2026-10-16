@@ -1,20 +1,19 @@
-"""Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
-Regression checks for split test result collection and owned native processes.
+"""Regression checks for split test result collection and owned native processes.
 """
 import json
-from pathlib import Path
 import plistlib
 import subprocess
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
-from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.apple import simulator
-
+from dd_sdk_unity.scripts.common.log import init_logger
 
 FIXTURES = Path(__file__).with_name('fixtures')
 
@@ -35,11 +34,11 @@ def test_empty_wrong_or_partial_result_is_rejected(tmp_path, text):
 
 
 def test_simulator_selection_uses_available_runtime_not_fixed_version():
-    runtimes = [dict(identifier='com.apple.CoreSimulator.SimRuntime.iOS-18-5', version='18.5', isAvailable=True),
-                dict(identifier='com.apple.CoreSimulator.SimRuntime.iOS-26-0', version='26.0', isAvailable=True),
-                dict(identifier='com.apple.CoreSimulator.SimRuntime.iOS-27-0', version='27.0', isAvailable=False)]
-    devices = {runtime['identifier']: [dict(isAvailable=True,
-                deviceTypeIdentifier='com.apple.CoreSimulator.SimDeviceType.iPhone-17')] for runtime in runtimes}
+    runtimes: list[simulator._SimulatorRuntime] = [{'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-18-5', 'version': '18.5', 'isAvailable': True},
+                {'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-0', 'version': '26.0', 'isAvailable': True},
+                {'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0', 'version': '27.0', 'isAvailable': False}]
+    devices: dict[str, list[simulator._SimulatorDevice]] = {runtime['identifier']: [{'isAvailable': True,
+                'deviceTypeIdentifier': 'com.apple.CoreSimulator.SimDeviceType.iPhone-17'}] for runtime in runtimes}
     assert simulator._simulator_type(runtimes, devices)[0].endswith('iOS-26-0')
 
 
@@ -52,9 +51,9 @@ def test_compile_failure_deletes_only_owned_simulator(tmp_path, monkeypatch, shu
 
     def capture(*command, **kwargs):
         if command[2:4] == ('list', 'runtimes'):
-            return json.dumps({'runtimes': [dict(identifier='com.apple.CoreSimulator.SimRuntime.iOS-26-0', version='26.0', isAvailable=True)]})
+            return json.dumps({'runtimes': [{'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-0', 'version': '26.0', 'isAvailable': True}]})
         if command[2:4] == ('list', 'devices'):
-            return json.dumps({'devices': {'com.apple.CoreSimulator.SimRuntime.iOS-26-0': [dict(isAvailable=True, deviceTypeIdentifier='iPhone')]}})
+            return json.dumps({'devices': {'com.apple.CoreSimulator.SimRuntime.iOS-26-0': [{'isAvailable': True, 'deviceTypeIdentifier': 'iPhone'}]}})
         if command[2] == 'create':
             return 'owned-simulator'
         pytest.fail(str(command))
@@ -94,11 +93,11 @@ def test_hung_player_times_out_and_cleans_owned_simulator(tmp_path, monkeypatch)
 
     def capture(*command):
         if command[2:4] == ('list', 'runtimes'):
-            return json.dumps({'runtimes': [dict(identifier='com.apple.CoreSimulator.SimRuntime.iOS-26-0',
-                                                version='26.0', isAvailable=True)]})
+            return json.dumps({'runtimes': [{'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-0',
+                                                'version': '26.0', 'isAvailable': True}]})
         if command[2:4] == ('list', 'devices'):
             return json.dumps({'devices': {'com.apple.CoreSimulator.SimRuntime.iOS-26-0': [
-                dict(isAvailable=True, deviceTypeIdentifier='iPhone')]}})
+                {'isAvailable': True, 'deviceTypeIdentifier': 'iPhone'}]}})
         if command[2] == 'create':
             return 'owned-simulator'
         if command[2] == 'get_app_container':

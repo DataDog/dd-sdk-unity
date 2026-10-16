@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Unless explicitly stated otherwise all files in this repository are licensed under the
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
@@ -27,24 +26,23 @@ from dd_sdk_unity.scripts.common.versions.ios_xcframework_deps import (
 )
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
-
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 PIN_PATH = os.path.join(REPO_ROOT, IOS_DEPENDENCY_VERSION_RELPATH)
 
 
-def load_current_pin():
+def load_current_pin() -> IosXcframeworkPin:
     if not os.path.exists(PIN_PATH):
         sys.exit(f'{PIN_PATH} not found; cannot resolve the currently pinned dd-sdk-ios version.')
     with open(PIN_PATH, 'r', encoding='utf-8') as infile:
         return read_ios_xcframework_pin(infile.read())
 
 
-def find_missing_modules(required_modules, bundle_inventory):
+def find_missing_modules(required_modules: list[str], bundle_inventory: list[str]) -> list[str]:
     bundle_set = set(bundle_inventory)
     return [module for module in required_modules if module not in bundle_set]
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('version', help='The dd-sdk-ios version to bump the pin to, e.g. 3.12.0.')
     parser.add_argument('--force', action='store_true', help='Re-run the bump even if the target version equals the current pin.')

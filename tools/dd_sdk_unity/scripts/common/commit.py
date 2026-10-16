@@ -1,16 +1,14 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for parsing convention commits.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import re
 from dataclasses import dataclass
-from typing import Optional, Tuple, Set
 
 from dd_sdk_unity.scripts.common.versions import VersionBump
-
 
 __conventional_commit_pattern__ = re.compile(r'^([a-z]+)(?:\((.*)\))?(\!)?: (.*)$')
 __refs_pattern__ = re.compile(r'')
@@ -23,7 +21,7 @@ class ConventionalCommitInfo:
     bang: bool
 
     @classmethod
-    def parse(cls, headline) -> Tuple[Optional['ConventionalCommitInfo'], str]:
+    def parse(cls, headline: str) -> tuple[ConventionalCommitInfo | None, str]:
         match = __conventional_commit_pattern__.match(headline)
         if not match:
             return None, headline
@@ -36,14 +34,14 @@ class ConventionalCommitInfo:
 
 @dataclass
 class CommitInfo:
-    conventional: Optional[ConventionalCommitInfo]
+    conventional: ConventionalCommitInfo | None
     headline: str
     body: str
     bump: VersionBump
-    refs: Set[str]
+    refs: set[str]
 
     @classmethod
-    def parse(cls, commit_message: str) -> 'CommitInfo':
+    def parse(cls, commit_message: str) -> CommitInfo:
         lines = commit_message.splitlines()
         headline, tail_lines = lines[0], lines[1:]
         conventional, headline = ConventionalCommitInfo.parse(headline)
@@ -62,7 +60,7 @@ class CommitInfo:
         if 'BREAKING' in headline or 'BREAKING' in body:
             bump = VersionBump.MAJOR
 
-        refs: Set[str] = set()
+        refs: set[str] = set()
         for line in lines:
             if line.lower().startswith('refs:'):
                 refs_str = line[len('refs:'):]

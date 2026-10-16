@@ -1,9 +1,9 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for logging script output.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import logging
 
@@ -13,7 +13,7 @@ class ColoredFormatter(logging.Formatter):
     RED = '\033[31m'
     RESET = '\033[0m'
     
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         message = super().format(record)
         if record.levelno == logging.WARNING:
             return f"{self.YELLOW}{message}{self.RESET}"

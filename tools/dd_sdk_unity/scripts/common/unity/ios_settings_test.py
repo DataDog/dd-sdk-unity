@@ -1,11 +1,14 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 import pytest
 
-from dd_sdk_unity.scripts.common.unity.ios_settings import TargetIosSdk, TargetIosSimulatorArchitecture, _modify_project_settings_impl
+from dd_sdk_unity.scripts.common.unity.ios_settings import (
+    TargetIosSdk,
+    TargetIosSimulatorArchitecture,
+    _modify_project_settings_impl,
+)
 
 __project_settings_device__ = '''%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:

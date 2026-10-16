@@ -1,9 +1,6 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 from dd_sdk_unity.scripts.common.versions.semver import Version, VersionBump
 
@@ -31,7 +28,7 @@ def test_Version():
     assert ver_013 != ver_120
     assert ver_120 == '1.2.0'
 
-    assert list(sorted([ver_120, ver_013])) == [ver_013, ver_120]
+    assert sorted([ver_120, ver_013]) == [ver_013, ver_120]
 
     assert Version.parse('5.4.3').bump(VersionBump.PATCH) == '5.4.4'
     assert Version.parse('5.4.3').bump(VersionBump.MINOR) == '5.5.0'

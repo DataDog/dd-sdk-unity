@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Unless explicitly stated otherwise all files in this repository are licensed under the
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
@@ -25,13 +24,11 @@ import re
 import shutil
 import subprocess
 import sys
-from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import asdict, dataclass
 
 from dd_sdk_unity.scripts import ios_xcframework
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install
-
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
@@ -41,7 +38,7 @@ MATRIX_RELATIVE_PATHS = [
     ('2022.3', 'samples/Datadog Sample'),
     ('6000', 'test_scaffolds/6000 LTS'),
 ]
-MATRIX: Dict[str, str] = {
+MATRIX: dict[str, str] = {
     prefix: os.path.join(REPO_ROOT, *relative_path.split('/'))
     for prefix, relative_path in MATRIX_RELATIVE_PATHS
 }
@@ -55,19 +52,19 @@ VERIFY_LOG_DIR = os.path.join(REPO_ROOT, 'build', 'ios-verify', 'logs')
 @dataclass
 class VerifyResult:
     unity_version_prefix: str
-    resolved_version: Optional[str]
+    resolved_version: str | None
     project: str
-    unity_build_ok: Optional[bool] = None
+    unity_build_ok: bool | None = None
     modules_referenced: bool = False
     embed_frameworks_phase_present: bool = False
     framework_search_paths_present: bool = False
     cocoapods_absent: bool = False
-    xcodebuild_succeeded: Optional[bool] = None
+    xcodebuild_succeeded: bool | None = None
     blocked: bool = False
-    blocked_reason: Optional[str] = None
-    failure_excerpt: Optional[str] = None
-    unity_log_path: Optional[str] = None
-    xcodebuild_log_path: Optional[str] = None
+    blocked_reason: str | None = None
+    failure_excerpt: str | None = None
+    unity_log_path: str | None = None
+    xcodebuild_log_path: str | None = None
 
 
 def _read_tail(path: str, max_lines: int = 80) -> str:
@@ -78,7 +75,7 @@ def _read_tail(path: str, max_lines: int = 80) -> str:
     return ''.join(lines[-max_lines:])
 
 
-def _check_project_not_locked(project_path: str):
+def _check_project_not_locked(project_path: str) -> None:
     """
     Fails fast if a Unity Editor instance is already holding the project's lock file.
     Two concurrent Unity instances against the same project corrupt the build, so this
@@ -106,7 +103,7 @@ def _check_project_not_locked(project_path: str):
         os.close(fd)
 
 
-def _check_pbxproj(pbxproj_path: str, module_names: List[str]) -> Dict[str, bool]:
+def _check_pbxproj(pbxproj_path: str, module_names: list[str]) -> dict[str, bool]:
     with open(pbxproj_path, 'r', encoding='utf-8', errors='replace') as infile:
         contents = infile.read()
 
@@ -145,7 +142,7 @@ def _check_cocoapods_absent(ios_build_dir: str) -> bool:
     return absent
 
 
-def _run_xcodebuild(ios_build_dir: str, xcodebuild_log_path: str):
+def _run_xcodebuild(ios_build_dir: str, xcodebuild_log_path: str) -> None:
     # No -workspace, since no CocoaPods workspace is ever generated on this path:
     #   xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone \
     #       -configuration Release -destination 'generic/platform=iOS' \
@@ -282,9 +279,9 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
             ios_xcframework.clean(log)
 
 
-def _merge_results_into_json(out_json: str, results: List[VerifyResult]):
+def _merge_results_into_json(out_json: str, results: list[VerifyResult]) -> None:
     os.makedirs(os.path.dirname(out_json), exist_ok=True)
-    existing: List[dict] = []
+    existing: list[dict] = []
     if os.path.isfile(out_json):
         with open(out_json, 'r', encoding='utf-8') as infile:
             try:
@@ -332,7 +329,7 @@ def main(unity_version: str, out_json: str, keep_artifacts: bool) -> int:
     return 0 if all_green else 1
 
 
-def cli_main():
+def cli_main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         '--unity-version', required=True, choices=list(MATRIX.keys()),

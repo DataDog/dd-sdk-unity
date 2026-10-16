@@ -1,11 +1,8 @@
-"""
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
-"""
-import pytest
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
-from dd_sdk_unity.scripts.common.android.avdmanager import _parse_list_avd_output, Avd
+from dd_sdk_unity.scripts.common.android.avdmanager import Avd, _parse_list_avd_output
 
 __output__ = '''Available Android Virtual Devices:
     Name: foo-twenty-three

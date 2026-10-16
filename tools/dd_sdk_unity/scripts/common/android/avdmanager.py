@@ -1,47 +1,45 @@
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
+
 """
 Utility code for invoking avdmanager, which is used to list and create the AVDs
 (Android Virtual Devices) which are run in the Android emulator.
-
-Unless explicitly stated otherwise, all files in this repository are licensed under the
-Apache License Version 2.0. This product includes software developed at Datadog
-(https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 """
 import re
 from dataclasses import dataclass
-from typing import Optional, List
-
-from dd_sdk_unity.scripts.common.log import get_default_logger
-from dd_sdk_unity.scripts.common.shell import capture_output
 
 from dd_sdk_unity.scripts.common.android.util import resolve_android_binary
+from dd_sdk_unity.scripts.common.log import get_default_logger
+from dd_sdk_unity.scripts.common.shell import capture_output
 
 
 @dataclass
 class Avd:
     name: str
-    device: Optional[str]
+    device: str | None
     path: str
     api_level: int
     tag: str
     abi: str
-    skin: Optional[str]
-    sdcard: Optional[str]
+    skin: str | None
+    sdcard: str | None
 
 
-class AvdManager(object):
+class AvdManager:
     """
     Wrapper for $ANDROID_HOME/cmdline-tools/latest/avdmanager.
     """
     path: str
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
 
-    def list_avds(self) -> List[Avd]:
+    def list_avds(self) -> list[Avd]:
         stdout, _ = capture_output(self.path, 'list', 'avd')
         return _parse_list_avd_output(stdout)
     
-    def create_avd(self, name: str, system_package_path: str, device: str):
+    def create_avd(self, name: str, system_package_path: str, device: str) -> None:
         capture_output(
             self.path, 'create', 'avd',
             '-n', name,
@@ -51,14 +49,14 @@ class AvdManager(object):
         )
 
     @classmethod
-    def require(cls) -> 'AvdManager':
-        path, error_message = path, error_message = resolve_android_binary('cmdline-tools', 'latest', 'bin', 'avdmanager')
+    def require(cls) -> AvdManager:
+        path, error_message = resolve_android_binary('cmdline-tools', 'latest', 'bin', 'avdmanager')
         if error_message:
             raise RuntimeError(f'Failed to find avdmanager: {error_message}')
         return cls(path)
 
 
-def _parse_list_avd_output(output: str) -> List[Avd]:
+def _parse_list_avd_output(output: str) -> list[Avd]:
     log = get_default_logger()
 
     # Verify that we have a valid header, then skip it
@@ -69,8 +67,8 @@ def _parse_list_avd_output(output: str) -> List[Avd]:
     lines = lines[1:]
 
     # Collect groups of lines delimited by '---------'
-    groups: List[List[str]] = []
-    current: List[str] = []
+    groups: list[list[str]] = []
+    current: list[str] = []
     for line in lines:
         if line.count('-') == len(line.strip()):
             if current:
@@ -82,18 +80,18 @@ def _parse_list_avd_output(output: str) -> List[Avd]:
         groups.append(current)
 
     # Parse the device details from each group of lines
-    avds: List[Avd] = []
+    avds: list[Avd] = []
     for avd_lines in groups:
         # Read line-by-line to accumulate the details of the current device
-        name: Optional[str] = None
-        device: Optional[str] = None
-        path: Optional[str] = None
-        android_version_str: Optional[str] = None
-        api_level: Optional[int] = None
-        tag: Optional[str] = None
-        abi: Optional[str] = None
-        skin: Optional[str] = None
-        sdcard: Optional[str] = None
+        name: str | None = None
+        device: str | None = None
+        path: str | None = None
+        android_version_str: str | None = None
+        api_level: int | None = None
+        tag: str | None = None
+        abi: str | None = None
+        skin: str | None = None
+        sdcard: str | None = None
         for line in avd_lines:
             name_match = re.search(r'Name: ([^\s]+)', line)
             if name_match:
@@ -159,7 +157,7 @@ def _parse_list_avd_output(output: str) -> List[Avd]:
     return avds
 
 
-def _resolve_api_level(android_version_str: str) -> Optional[int]:
+def _resolve_api_level(android_version_str: str) -> int | None:
     # Newer images show API level directly; e.g. 'Android API 36'
     if android_version_str.startswith('API '):
         try:

@@ -1,19 +1,18 @@
 #!/usr/bin/python3
 
-# -----------------------------------------------------------
-# Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
-# This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2019-2020 Datadog, Inc.
-# -----------------------------------------------------------
+# Unless explicitly stated otherwise, all files in this repository are licensed under the
+# Apache License Version 2.0. This product includes software developed at Datadog
+# (https://www.datadoghq.com/). Copyright 2019-2020 Datadog, Inc.
 
 import socket
 
-class ServerAddress():
-    def __init__(self, ip, port):
+
+class ServerAddress:
+    def __init__(self, ip: str, port: int) -> None:
         self.ip = ip
         self.port = port
 
-def get_private_IP_on_subnet(subnet_broadcast: str):
+def get_private_IP_on_subnet(subnet_broadcast: str) -> ServerAddress | None:
     """
     Returns private IP on a specific local network or `None` if the local network is not reachable.
     """
@@ -22,12 +21,12 @@ def get_private_IP_on_subnet(subnet_broadcast: str):
     try:
         s.connect((subnet_broadcast, 1))
         return ServerAddress(s.getsockname()[0], 8000)
-    except:
+    except OSError:
         return None
     finally:
         s.close()
 
-def get_private_IP():
+def get_private_IP() -> ServerAddress | None:
     """
     Returns private IP on the local network or `None` if the local network is not reachable.
     """
@@ -37,14 +36,14 @@ def get_private_IP():
         return private_ip
     return get_private_IP_on_subnet('192.168.255.255')
 
-def get_localhost():
+def get_localhost() -> ServerAddress:
     """
     Returns localhost address.
     """
 
     return ServerAddress('127.0.0.1', 8000)
 
-def get_best_server_address():
+def get_best_server_address() -> ServerAddress:
     """
     Returns private IP if possible, localhost otherwise.
     """
@@ -54,4 +53,4 @@ def get_best_server_address():
 
 if __name__ == "__main__":
     address = get_best_server_address()
-    print("{ip}:{port}".format( ip = address.ip, port = address.port))
+    print(f"{address.ip}:{address.port}")

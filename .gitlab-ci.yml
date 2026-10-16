@@ -69,6 +69,8 @@ lint-and-test:
   after_script: []
   script:
     - !reference [.shared, init-scripts]
+    - ruff check
+    - ty check
     - pytest --junitxml=pytest-results.xml
   artifacts:
     when: always
