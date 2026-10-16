@@ -63,7 +63,7 @@ stages:
 
 lint-and-test:
   stage: unit-test
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-3e443d4d-144969719
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
     - macos:tart
   after_script: []
@@ -80,7 +80,7 @@ lint-and-test:
 
 unit-test:
   stage: unit-test
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-3e443d4d-144969719
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
     - macos:tart
   parallel:
@@ -110,7 +110,7 @@ unit-test:
 
 integration-test-ios:
   stage: integration-test
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-3e443d4d-144969719
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
     - macos:tart
   timeout: 1h
@@ -146,7 +146,7 @@ integration-test-ios:
 
 package-ios:
   stage: package
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-3e443d4d-144969719
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
     - macos:tart
   script:
@@ -173,7 +173,7 @@ package-ios:
 
 package-android:
   stage: package
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-3e443d4d-144969719
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
   tags:
     - macos:tart
   script:
