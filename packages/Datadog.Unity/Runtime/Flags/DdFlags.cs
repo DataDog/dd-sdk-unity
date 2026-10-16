@@ -166,7 +166,10 @@ namespace Datadog.Unity.Flags
                     clientToken: options?.ClientToken ?? string.Empty,
                     applicationId: options?.RumApplicationId,
                     env: options?.Env ?? string.Empty,
-                    logger: _logger);
+                    logger: _logger,
+                    requestTimeoutSeconds: _configuration.AssignmentRequestTimeoutSeconds,
+                    requestRetryCount: _configuration.AssignmentRequestRetryCount,
+                    assignmentRequestTransport: _configuration.AssignmentRequestTransport);
 
                 var client = new FlagsClient(
                     repository: new FlagsRepository(),
