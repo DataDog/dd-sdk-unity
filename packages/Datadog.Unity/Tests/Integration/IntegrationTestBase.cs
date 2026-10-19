@@ -2,15 +2,18 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
+#if UNITY_EDITOR
+using Datadog.Unity.Tests.Editor;
+#endif
 using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration
 {
-    // All integration tests should inherit this class to apply shared SDK settings before
-    // the player build and restore the original settings afterward.
+    // All integration tests should inherit this class to apply shared SDK settings
+    // before the player build and restore the original settings afterward.
 #if UNITY_EDITOR
-    [PrebuildSetup(typeof(IntegrationTestEnvironment))]
-    [PostBuildCleanup(typeof(IntegrationTestEnvironment))]
+    [PrebuildSetup(typeof(IntegrationTestSetup))]
+    [PostBuildCleanup(typeof(IntegrationTestSetup))]
 #endif
     public abstract class IntegrationTestBase
     {

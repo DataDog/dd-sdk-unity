@@ -4,6 +4,7 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "com.datadoghq.unity.editor.tests",
         "com.datadog.unity",
         "com.datadoghq.unity.android",
         "com.datadoghq.unity.flags"

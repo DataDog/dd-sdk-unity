@@ -34,6 +34,9 @@ The development scripts and mock server share one environment.
 Both setups use editable installation, so Python code changes take effect without
 reinstalling.
 
+Select `.venv` as your IDE's Python environment to make the development tools
+available there.
+
 #### Using pip
 
 Install the tooling from the repository root with pip:
@@ -42,19 +45,10 @@ Install the tooling from the repository root with pip:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --editable .
-dd-unity-unit-test
 ```
 
 After changing dependencies or command definitions in `pyproject.toml`, repeat
 the pip install command.
-
-Run Python checks from the repository root:
-
-```bash
-ruff check
-ty check
-pytest
-```
 
 #### Using uv
 
@@ -63,26 +57,11 @@ Install the tooling from the repository root with [uv][uv]:
 ```bash
 uv sync
 source .venv/bin/activate
-dd-unity-unit-test
-python -m dd_sdk_unity.mock_server
 ```
 
 After changing dependencies or command definitions in `pyproject.toml`, run
 `uv sync` again. The `dd-unity-*` commands use the existing environment without
 syncing it.
-
-Select `.venv` as your IDE's Python environment to make the development tools
-available there.
-
-Run Python checks from the repository root:
-
-```bash
-uv run ruff check
-uv run ty check
-uv run pytest
-```
-
-The `uv run` commands update their environment automatically.
 
 [uv]: https://docs.astral.sh/uv/
 
@@ -217,6 +196,17 @@ When you open a pull request, your changes are validated exhaustively against ou
 
 [test-src]: ./packages/Datadog.Unity/Tests/
 
+### Python checks
+
+With the Python tooling environment activated, run these checks from the repository
+root to lint, type-check, and test the Python tools:
+
+```bash
+ruff check
+ty check
+pytest
+```
+
 ### Unity versions
 
 We currently run tests against these versions of Unity:
@@ -297,15 +287,28 @@ New integration tests should inherit [`IntegrationTestBase`][integration-test-ba
 
 [integration-test-base]: ./packages/Datadog.Unity/Tests/Integration/IntegrationTestBase.cs
 
-#### Debugging integration tests
+#### Running integration tests through Editor
 
-To build an integration test player manually from Unity's Test Runner, start the mock server first:
+To build an integration test player manually from Unity's Test Runner, install the
+repository's Python tooling first (see [Python tooling](#python-tooling)).
+The integration test setup starts the mock server automatically, reusing it if it is
+already running. You can also start it from **Datadog > Mock Server > Start** in the
+Unity Editor.
+
+Run the integration tests on an Android or iOS player. The mock server stays available
+after the run for debugging. Use **Datadog > Mock Server > Inspect Requests** to
+inspect recorded requests in your browser. When finished, use **Datadog > Mock Server > Stop**.
+
+#### Managing the mock server
+
+Integration tests start the mock server automatically. To start it separately from
+a terminal, run this command from the repository root:
 
 ```bash
 dd-unity-integration-test-setup start --project 'samples/Datadog Sample'
 ```
 
-Run the integration tests on an Android or iOS player. When finished, stop the server:
+This starts or reuses the server on port 5100. When finished, stop it with:
 
 ```bash
 dd-unity-integration-test-setup stop --project 'samples/Datadog Sample'
