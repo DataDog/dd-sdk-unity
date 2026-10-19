@@ -5,7 +5,10 @@
 """
 Utility code for invoking sdkmanager, which manages installed Android SDK components.
 """
+import os
+import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from dd_sdk_unity.scripts.common.android.util import resolve_android_binary
 from dd_sdk_unity.scripts.common.shell import capture_output
@@ -28,10 +31,14 @@ class AndroidSdkManager:
         self.path = path
 
     def list_installed_packages(self) -> list[AndroidPackage]:
-        stdout, _ = capture_output(self.path, '--list')
+        stdout, _ = capture_output(self.path, '--list_installed')
         return _parse_sdkmanager_list_output(stdout)
     
     def install_package(self, package_path: str) -> None:
+        sdk_root = Path(self.path).parents[3]
+        if not os.access(sdk_root, os.W_OK):
+            raise PermissionError(
+                f'Cannot install {package_path}: the Android SDK at {sdk_root} is not writable.')
         capture_output(self.path, '--install', package_path)
 
     @classmethod
@@ -50,28 +57,25 @@ def _parse_sdkmanager_list_output(output: str) -> list[AndroidPackage]:
     section_header_line_index = next((i for i, s in enumerate(lines) if s.startswith(section_header)), None)
     if section_header_line_index is None:
         raise RuntimeError(f'Unexpected sdkmanager output: "{section_header}" did not appear')
-    next_blank_line_index = next((i for i, s in enumerate(lines) if i > section_header_line_index and s.strip() == ''), None)
-    if next_blank_line_index is None:
-        raise RuntimeError(f'Unexpected sdkmanager output: found no blank line after "{section_header}"')
-    section_lines = lines[section_header_line_index+1:next_blank_line_index]
-
-    # Validate the format of the table
-    if len(section_lines) < 2:
-        raise RuntimeError(f'Unexpected sdkmanager output: unexpected blank line after "{section_header}"')
-
-    def split_row(line: str) -> list[str]:
-        return [s.strip() for s in line.split('|')]
-
-    header_tokens = split_row(section_lines[0])
-    if header_tokens != ['Path', 'Version', 'Description', 'Location']:
-        raise RuntimeError(f'Unexpected sdkmanager output: "{section_header}" table has headings {", ".join(header_tokens)}')
-    border_tokens = split_row(section_lines[1])
-    if not all(s.count('-') == len(s) for s in border_tokens):
-        raise RuntimeError(f'Unexpected sdkmanager output: "{section_header}" table has no border after headings')
-
-    # Parse the actual rows in the table
     packages: list[AndroidPackage] = []
-    for line in section_lines[2:]:
-        path, version, description, _ = split_row(line)
+    for line in lines[section_header_line_index + 1:]:
+        line = line.strip()
+        if not line:
+            if packages:
+                break
+            continue
+        if line.endswith(':'):
+            break
+        # Older sdkmanager uses pipes and column headers. The Android CLI uses
+        # aligned columns, slash-separated package paths, and optional update arrows.
+        fields = [field.strip() for field in line.split('|')] if '|' in line else re.split(r'\s{2,}', line, maxsplit=2)
+        if fields[0] == 'Path' or set(fields[0]) <= {'-'}:
+            continue
+        if len(fields) < 3:
+            raise RuntimeError(f'Unexpected sdkmanager package row: {line}')
+        path, version, description = fields[:3]
+        path = path.replace('/', ';')
+        version = version.split('->')[0].strip()
+        description = re.sub(r'^->\s+\S+\s+', '', description)
         packages.append(AndroidPackage(path=path, version=version, description=description))
     return packages

@@ -9,7 +9,7 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration
 {
-    // All integration tests should inherit this class to apply shared SDK settings
+    // All integration tests should inherit this class to prepare devices and SDK settings
     // before the player build and restore the original settings afterward.
 #if UNITY_EDITOR
     [PrebuildSetup(typeof(IntegrationTestSetup))]
