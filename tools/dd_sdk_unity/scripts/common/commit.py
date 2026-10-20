@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from dd_sdk_unity.scripts.common.versions import VersionBump
 
 __conventional_commit_pattern__ = re.compile(r'^([a-z]+)(?:\((.*)\))?(\!)?: (.*)$')
-__refs_pattern__ = re.compile(r'')
 
 
 @dataclass
