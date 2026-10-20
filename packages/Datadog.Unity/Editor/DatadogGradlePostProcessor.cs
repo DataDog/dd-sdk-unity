@@ -71,7 +71,7 @@ namespace Datadog.Unity.Editor
         /// <summary>
         /// Evaluates whether we need to apply a compatibility fix to build.gradle in order to prevent build errors due
         /// to the inclusion of `androidx.metrics:metrics-performance:1.0.0-beta02`, which requires AGP 8.6.0+. Unity
-        /// 2022 and 2021 use AGP 7.x, so they require the fix; versions of Unity 6 prior to 6000.0.45 use AGP 8.3.0,
+        /// 2022 uses AGP 7.x, so it requires the fix; versions of Unity 6 prior to 6000.0.45 use AGP 8.3.0,
         /// so they also need the fix.
         /// </summary>
         /// <returns>True if the detected Unity version predates Unity 6000.0.45.</returns>
