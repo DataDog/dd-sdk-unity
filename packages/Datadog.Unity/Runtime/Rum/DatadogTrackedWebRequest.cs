@@ -314,47 +314,6 @@ namespace Datadog.Unity.Rum
         {
             return new DatadogTrackedWebRequest(UnityWebRequest.Head(uri));
         }
-#if UNITY_2021
-        public static DatadogTrackedWebRequest Post(string url, string postData)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(url, postData));
-        }
-
-        public static DatadogTrackedWebRequest Post(Uri uri, string postData)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(uri, postData));
-        }
-
-        public static DatadogTrackedWebRequest Post(string url, WWWForm form)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(url, form));
-        }
-
-        public static DatadogTrackedWebRequest Post(Uri uri, WWWForm form)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(uri, form));
-        }
-
-        public static DatadogTrackedWebRequest Post(string url, List<IMultipartFormSection> form)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(url, form));
-        }
-
-        public static DatadogTrackedWebRequest Post(Uri url, List<IMultipartFormSection> form)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(url, form));
-        }
-
-        public static DatadogTrackedWebRequest Post(string uri, List<IMultipartFormSection> form, byte[] boundary)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(uri, form, boundary));
-        }
-
-        public static DatadogTrackedWebRequest Post(Uri uri, List<IMultipartFormSection> form, byte[] boundary)
-        {
-            return new DatadogTrackedWebRequest(UnityWebRequest.Post(uri, form, boundary));
-        }
-#elif UNITY_2022_1_OR_NEWER
         public static DatadogTrackedWebRequest Post(string url, string postData, string contentType)
         {
             return new DatadogTrackedWebRequest(UnityWebRequest.Post(url, postData, contentType));
@@ -374,6 +333,5 @@ namespace Datadog.Unity.Rum
         {
             return new DatadogTrackedWebRequest(UnityWebRequest.PostWwwForm(uri, form));
         }
-#endif
     }
 }

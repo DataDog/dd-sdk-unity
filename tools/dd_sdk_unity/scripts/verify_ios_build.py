@@ -11,8 +11,7 @@ Unity CLI, asserts the generated pbxproj structure and the absence of
 any CocoaPods artifacts, then runs xcodebuild and records a machine-readable result.
 
 Usage (after installing the repository tooling):
-    dd-unity-verify-ios-build --unity-version 2022.3
-    dd-unity-verify-ios-build --unity-version 2021.3 --out-json build/ios-verify/results.json
+    dd-unity-verify-ios-build --unity-version 2022.3 --out-json build/ios-verify/results.json
     dd-unity-verify-ios-build --unity-version 6000 --keep-artifacts
 """
 
@@ -32,9 +31,8 @@ from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-# These three pairs must match .gitlab-ci.yml's `unit-test` job matrix exactly.
+# Keep project selection aligned with .gitlab-ci.yml's unit-test matrix.
 MATRIX_RELATIVE_PATHS = [
-    ('2021.3', 'test_scaffolds/2021 LTS'),
     ('2022.3', 'samples/Datadog Sample'),
     ('6000', 'test_scaffolds/6000 LTS'),
 ]

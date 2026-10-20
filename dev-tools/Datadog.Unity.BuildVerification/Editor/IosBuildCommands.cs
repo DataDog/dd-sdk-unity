@@ -78,10 +78,7 @@ namespace Datadog.Unity.BuildVerification
             EditorApplication.Exit(0);
         }
 
-        // BuildReport's summarize-errors convenience method is not available on Unity
-        // 2021.3's Editor API (it causes a compile error there); this manual walk over
-        // report.steps/messages is stable across 2021.3, 2022.3, and 6000.2, so it is
-        // used here instead.
+        // Include the build step alongside each error to help diagnose failed builds.
         private static string DescribeBuildErrors(BuildReport report)
         {
             var builder = new System.Text.StringBuilder();

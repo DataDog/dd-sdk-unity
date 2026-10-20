@@ -209,11 +209,10 @@ pytest
 
 ### Unity versions
 
-We currently run tests against these versions of Unity:
+The minimum supported Editor version is Unity 2022.3 LTS. We run tests against these versions:
 
 | Test Suite                             | Unity Project                              | Unity Version |
 |----------------------------------------|--------------------------------------------|---------------|
-| [`unit_test`][unit-test]               | [`test_scaffolds/2021 LTS`][scaffold-2021] | Unity 2021.3  |
 | [`unit_test`][unit-test]               | [`samples/Datadog Sample`][datadog-sample] | Unity 2022.3  |
 | [`unit_test`][unit-test]               | [`test_scaffolds/6000 LTS`][scaffold-6000] | Unity 6000.2  |
 | [`integration_test`][integration-test] | [`samples/Datadog Sample`][datadog-sample] | Unity 2022.3  |
@@ -232,7 +231,6 @@ dd-unity-install-unity 2022.3
 [install-unity]: ./tools/dd_sdk_unity/scripts/install_unity.py
 [datadog-sample]: ./samples/Datadog%20Sample/
 [demo-data]: ./samples/Demo%20Data/
-[scaffold-2021]: ./test_scaffolds/2021%20LTS/
 [scaffold-6000]: ./test_scaffolds/6000%20LTS/
 [tests-src]: ./packages/Datadog.Unity/Tests/
 
@@ -246,9 +244,6 @@ dd-unity-unit-test
 
 # Run the same tests in the '6000 LTS' project, with any version of Unity 6
 dd-unity-unit-test --project 'test_scaffolds/6000 LTS' --unity-version 6000
-
-# Run the same tests in the '2021 LTS' project, requiring an exact Unity 2021 build
-dd-unity-unit-test --project 'test_scaffolds/2021 LTS' --unity-version 2021.3.44f1
 ```
 
 When you run any of these commands from the root of this repository, the script locates the appropriate version of the Unity Editor, then boots a headless instance of that editor. That editor instance runs `EditMode` tests, then `PlayMode` tests, and then it exits.

@@ -63,15 +63,8 @@ namespace Datadog.Unity
             var imageNamePtr = IntPtr.Zero;
             try
             {
-#if UNITY_2021_3_OR_NEWER
                 il2cpp_native_stack_trace(exc, out addresses, out numFrames, out imageUuidPtr, out imageNamePtr);
                 imageName = (imageNamePtr == IntPtr.Zero) ? null : Marshal.PtrToStringAnsi(imageNamePtr);
-#else
-                // Method expects a pre-allocated buffer for the UUID. Max length is 40 chars
-                imageUuidPtr = il2cpp_alloc(41);
-                il2cpp_native_stack_trace(exc, out addresses, out numFrames, imageUuidPtr);
-                imageName = null;
-#endif
                 imageUuid = (imageUuidPtr == IntPtr.Zero) ? null : Marshal.PtrToStringAnsi(imageUuidPtr);
             }
             finally
@@ -101,17 +94,8 @@ namespace Datadog.Unity
         private static extern IntPtr il2cpp_gchandle_get_target(int gchandle);
         #endif
 
-#if UNITY_2021_3_OR_NEWER
         [DllImport("__Internal")]
         private static extern void il2cpp_native_stack_trace(IntPtr exc, out IntPtr addresses, out int numFrames, out IntPtr imageUUID, out IntPtr imageName);
-
-#else
-        [DllImport("__Internal")]
-        private static extern IntPtr il2cpp_alloc(uint size);
-
-        [DllImport("__Internal")]
-        private static extern void il2cpp_native_stack_trace(IntPtr exc, out IntPtr addresses, out int numFrames, IntPtr imageUUID);
-#endif
 
         [DllImport("__Internal")]
         private static extern void il2cpp_free(IntPtr ptr);
