@@ -189,7 +189,7 @@ PlayerSettings:
   strictShaderVariantMatching: 0
   VertexChannelCompressionMask: 4054
   iPhoneSdkVersion: 988
-  iOSSimulatorArchitecture: 0
+  iOSSimulatorArchitecture: 1
   iOSTargetOSVersionString: 13.0
   tvOSSdkVersion: 0
   tvOSSimulatorArchitecture: 0
