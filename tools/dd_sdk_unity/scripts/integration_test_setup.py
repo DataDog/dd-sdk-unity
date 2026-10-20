@@ -7,13 +7,16 @@ The Python integration runner calls this module's IntegrationTestEnvironment cla
 directly. To manage the server separately, run these commands from the repository root:
 
     dd-unity-integration-test-setup start --project 'samples/Datadog Sample'
+    dd-unity-integration-test-setup status --project 'samples/Datadog Sample'
     dd-unity-integration-test-setup stop --project 'samples/Datadog Sample'
 
 The required --project selects the Unity project whose Library/DatadogIntegrationTests
 directory holds the server state and log. start reuses a live recorded process after
-checking its PID and creation time, or starts a server on the reachable LAN address at
-port 5100. stop terminates the verified recorded process and its reloader workers. These
-commands manage only the server; they do not run tests or configure SDK settings.
+checking its PID and creation time, or starts a server listening on all IPv4 interfaces at
+port 5100. The endpoint is resolved from the current reachable LAN address on each command.
+stop terminates the verified recorded process and its reloader workers. These commands
+manage only the server; they do not run tests or configure SDK settings. start and status
+print the server endpoint as JSON on stdout; diagnostics use stderr.
 """
 import argparse
 import errno
@@ -50,18 +53,24 @@ class _ProcessIdentity(TypedDict):
 
 class _ServerState(_ProcessIdentity):
     port: int
-    endpoint: str
+
+
+def _server_endpoint(port: int) -> str:
+    host = get_reachable_inet_addr()
+    if not host:
+        raise RuntimeError('Failed to resolve a reachable LAN address for the mock server')
+    return f'http://{host}:{port}'
 
 
 def server_health(endpoint: str, retry_timeout: bool = False) -> bool | None:
-    # macOS can silently drop connections to an unused LAN port. Check whether
-    # this local address is free before issuing HTTP, rather than mistaking that
-    # firewall timeout for an existing server. Still verify any occupied port.
+    # macOS can silently drop connections to an unused LAN port. Probe the wildcard
+    # bind before HTTP, allowing ports left in TIME_WAIT to be reused.
+    # Still verify occupied ports with HTTP.
     address = urlsplit(endpoint)
     with socket.socket() as probe:
         probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            probe.bind((address.hostname, address.port))
+            probe.bind(('0.0.0.0', address.port))
         except OSError as error:
             if error.errno != errno.EADDRINUSE:
                 raise
@@ -185,20 +194,17 @@ class IntegrationTestEnvironment:
         temporary.write_text(json.dumps(state))
         temporary.replace(self.state_path)
 
-    def start(self, host: str | None = None, port: int = PORT) -> psutil.Popen | None:
+    def start(self, port: int = PORT) -> psutil.Popen | None:
         """Reuse a live recorded PID; otherwise start a server and return its Popen reference."""
         state = self._read_state()
         if state and process_is_running(state):
-            self.endpoint = state['endpoint']
-            print(f'Integration mock server reused at {self.endpoint}', flush=True)
+            self.endpoint = _server_endpoint(state['port'])
+            print(f'Integration mock server reused at {self.endpoint}', file=sys.stderr, flush=True)
             return None
         if state:
             self.stop()
 
-        host = host or get_reachable_inet_addr()
-        if not host:
-            raise RuntimeError('Failed to resolve a reachable LAN address for the mock server')
-        self.endpoint = f'http://{host}:{port}'
+        self.endpoint = _server_endpoint(port)
         if server_health(self.endpoint):
             raise RuntimeError(f'Mock server is already running at {self.endpoint} without a live state record')
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -207,12 +213,12 @@ class IntegrationTestEnvironment:
         try:
             with (self.directory / 'mock-server.log').open('ab') as log:
                 process = psutil.Popen(
-                    [sys.executable, '-m', 'dd_sdk_unity.mock_server', '--addr', host, '--port', str(port)],
+                    [sys.executable, '-m', 'dd_sdk_unity.mock_server', '--addr', '0.0.0.0', '--port', str(port)],
                     cwd=__mock_server_root__, stdout=log, stderr=subprocess.STDOUT,
                     stdin=subprocess.DEVNULL, start_new_session=True,
                 )
             self._write_state({'pid': process.pid, 'create_time': process.create_time(),
-                               'port': port, 'endpoint': self.endpoint})
+                               'port': port})
             deadline = time.monotonic() + 15
             while True:
                 if process.poll() is not None:
@@ -227,8 +233,14 @@ class IntegrationTestEnvironment:
             if process is not None:
                 self.stop(process)
             raise
-        print(f'Integration mock server ready at {self.endpoint}', flush=True)
+        print(f'Integration mock server ready at {self.endpoint}', file=sys.stderr, flush=True)
         return process
+
+    def status(self) -> str:
+        state = self._read_state()
+        if state is None or not process_is_running(state):
+            raise RuntimeError('The integration mock server is not running. Start it first.')
+        return _server_endpoint(state['port'])
 
     def stop(self, process: psutil.Popen | None = None) -> None:
         """Stop the recorded process group, including reloader workers."""
@@ -250,12 +262,17 @@ class IntegrationTestEnvironment:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['start', 'stop'])
+    parser.add_argument('action', choices=['start', 'status', 'stop'])
     parser.add_argument('--project', required=True)
     args = parser.parse_args()
     init_logger()
     environment = IntegrationTestEnvironment(args.project)
     if args.action == 'start':
         environment.start()
+        endpoint = environment.endpoint
+    elif args.action == 'status':
+        endpoint = environment.status()
     else:
         environment.stop()
+        return
+    print(json.dumps({'endpoint': endpoint}), flush=True)

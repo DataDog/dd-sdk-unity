@@ -19,8 +19,6 @@ namespace Datadog.Unity.Tests.Integration
 
         private static string ProjectPath => Directory.GetParent(Application.dataPath).FullName;
 
-        private static string StatePath => Path.Combine(ProjectPath, "Library/DatadogIntegrationTests/state.json");
-
         private static IntegrationTestSettings Settings => new IntegrationTestSettings(
             DatadogConfigurationOptions.DefaultDatadogSettingsPath,
             Path.Combine(ProjectPath, "Library/DatadogIntegrationTests/DatadogSettings.original"));
@@ -39,16 +37,28 @@ namespace Datadog.Unity.Tests.Integration
         [MenuItem("Datadog/Mock Server/Start")]
         public static void StartMockServer()
         {
-            PythonScriptUtils.Run("dd-unity-integration-test-setup", $"start --project \"{ProjectPath}\"");
+            RunMockServer("start");
         }
 
         [MenuItem("Datadog/Mock Server/Inspect Requests")]
         public static void InspectMockServer()
         {
-            var serverState = ReadServerState();
-            if (serverState != null)
+            try
             {
+                var serverState = RunMockServer("status");
                 Application.OpenURL($"{serverState.Endpoint}/inspect/");
+            }
+            catch (Exception exception)
+            {
+                if (Application.isBatchMode)
+                {
+                    throw;
+                }
+
+                EditorUtility.DisplayDialog(
+                    "Datadog Mock Server",
+                    $"Could not inspect the mock server. Make sure it is running.\n\n{exception.Message}",
+                    "OK");
             }
         }
 
@@ -62,13 +72,7 @@ namespace Datadog.Unity.Tests.Integration
         {
             settingsApplied = true;
             Settings.Restore();
-            StartMockServer();
-            var serverState = ReadServerState();
-            if (serverState == null)
-            {
-                throw new InvalidOperationException("Cannot prepare integration tests without mock server state.");
-            }
-
+            var serverState = RunMockServer("start");
             Settings.Apply(serverState.Endpoint);
         }
 
@@ -86,26 +90,16 @@ namespace Datadog.Unity.Tests.Integration
             }
         }
 
-        private static ServerState ReadServerState()
+        private static ServerState RunMockServer(string action)
         {
-            try
+            var json = PythonScriptUtils.Run("dd-unity-integration-test-setup", $"{action} --project \"{ProjectPath}\"");
+            var serverState = JsonConvert.DeserializeObject<ServerState>(json);
+            if (string.IsNullOrEmpty(serverState?.Endpoint))
             {
-                return JsonConvert.DeserializeObject<ServerState>(File.ReadAllText(StatePath))
-                       ?? throw new InvalidDataException("The mock server state is empty.");
+                throw new InvalidDataException("The mock server command did not return an endpoint.");
             }
-            catch (Exception exception)
-            {
-                if (Application.isBatchMode)
-                {
-                    throw;
-                }
 
-                EditorUtility.DisplayDialog(
-                    "Datadog Mock Server",
-                    $"Could not read the mock server state. Make sure it is running..\n\n{exception.Message}",
-                    "OK");
-                return null;
-            }
+            return serverState;
         }
 
         private class ServerState
