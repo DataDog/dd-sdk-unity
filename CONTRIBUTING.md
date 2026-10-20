@@ -209,7 +209,7 @@ pytest
 
 ### Unity versions
 
-The minimum supported Editor version is Unity 2022.3 LTS. We run tests against these versions:
+The minimum supported Unity Editor version is 2022.3 LTS. Datadog tests against the following versions:
 
 | Test Suite                             | Unity Project                              | Unity Version |
 |----------------------------------------|--------------------------------------------|---------------|
