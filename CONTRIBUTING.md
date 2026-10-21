@@ -290,9 +290,8 @@ The integration test setup starts the mock server automatically, reusing it if i
 already running. You can also start it from **Datadog > Mock Server > Start** in the
 Unity Editor.
 
-For Android, Editor test setup uses your Android SDK. It reuses a connected device
-or boots the default emulator.
-When the test run finishes or fails, or the Editor closes, it stops the emulator it
+For Android, Editor test setup uses your Android SDK. The Editor uses an already running device or starts the default emulator.
+When the test run finishes or fails, or the Editor closes, the Editor stops the emulator it
 started.
 
 If Android tests lose connection to the player or mock server, disable **Kill external
