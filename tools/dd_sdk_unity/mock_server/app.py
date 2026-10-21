@@ -22,7 +22,7 @@ from dd_sdk_unity.mock_server.schemas.raw import RAWSchema
 from dd_sdk_unity.mock_server.schemas.rum import RUMSchema
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.schemas.session_replay import SRSchema
-from dd_sdk_unity.mock_server.schemas.update import schemas_path_exists, update_schemas
+from dd_sdk_unity.mock_server.schemas.update import ensure_schemas, update_schemas
 from dd_sdk_unity.mock_server.server_address import (
     get_best_server_address,
 )
@@ -35,6 +35,11 @@ CORS(app)
 def healthcheck() -> tuple[str, int]:
     # Keep readiness probes out of the request history inspected by tests.
     return '', 200
+
+
+@app.route('/favicon.ico')
+def favicon() -> tuple[str, int]:
+    return '', 204
 
 configured_responses = {}  # path -> { status, body, content_type }
 
@@ -346,8 +351,7 @@ def main() -> int:
         update_schemas()
         return 0
 
-    if not schemas_path_exists():
-        update_schemas()
+    ensure_schemas()
 
     if args.addr and args.prefer_localhost:
         raise ValueError('--addr and --prefer-localhost are mutually exclusive')

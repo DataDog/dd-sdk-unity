@@ -18,7 +18,9 @@ ENV vars:
   {% for request in endpoint.requests %}
     <tr>
       <td>{{ request.date.strftime('%H:%M:%S') }}</td>
-      <td class="text-center">{{ request.content_length|filesizeformat(true) }}</td>
+      <td class="text-center">
+        {{ request.content_length|filesizeformat(true) if request.content_length is not none else 'Not provided' }}
+      </td>
       <td class="text-center">{{ request.schema_with_name('rum').event_jsons|count }}</td>
       <td class="text-center">
         <a href="{{ request.follow_url(schema=selected_schema) }}" role="button" class="btn btn-primary btn-sm">See details</a>

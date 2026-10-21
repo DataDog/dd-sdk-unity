@@ -60,7 +60,7 @@ class SRSchema(Schema):
     def segment_data(self) -> CardTab:
         vd = validate_event(
             event=self.segment_json,
-            schema_path='.schemas/session-replay-mobile-format.json'
+            schema_path='.schemas/schemas/session-replay-mobile-schema.json'
         )
 
         obj = {
@@ -78,7 +78,7 @@ class SRSchema(Schema):
             7: '.schemas/schemas/session-replay/common/view-end-record-schema.json',
             8: '.schemas/schemas/session-replay/common/visual-viewport-record-schema.json',
             10: '.schemas/schemas/session-replay/mobile/full-snapshot-record-schema.json',
-            11: '.schemas/schemas/schemas/session-replay/mobile/incremental-snapshot-record-schema.json',
+            11: '.schemas/schemas/session-replay/mobile/incremental-snapshot-record-schema.json',
         }
 
         obj = {
