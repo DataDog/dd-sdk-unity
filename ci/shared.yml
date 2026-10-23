@@ -1,0 +1,38 @@
+.shared:
+  init-scripts:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - python -m pip install --editable .
+  install-unity:
+    # Install Unity CLI and other development dependencies
+    - brew install --cask unity-cli
+    - unity --version
+    - brew install xcbeautify
+    # Run install_unity.py to ensure that our requisite version of Unity is installed:
+    # the last line of output will contain the full version string, so export it as
+    # UNITY_VERSION
+    - LOG_TMPFILE=$(mktemp)
+    - dd-unity-install-unity "$UNITY_VERSION_PARTIAL" | tee "$LOG_TMPFILE"
+    - export UNITY_VERSION=$(tail -n 1 "$LOG_TMPFILE")
+    - rm "$LOG_TMPFILE"
+    - echo "Using Unity version $UNITY_VERSION"
+
+.needs-unity-license:
+  before_script:
+    # Grab the Unity Licensing Server configuration and write it to the system-wide
+    # Unity config dir so that the Unity Licensing Client installed alongside our
+    # version of Unity knows how to obtain floating licenses
+    - |
+      if [ -z "${AWS_ACCESS_KEY_ID:-}" ] || [ -z "${AWS_SECRET_ACCESS_KEY:-}" ]; then
+        aws_env="$(aws configure export-credentials --format env)"
+        eval "$aws_env"
+      fi
+    - vault login -method=aws -no-print
+    - export UNITY_SERVER_CONFIG=$(vault kv get -field=config kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/server-config)
+    - echo $UNITY_SERVER_CONFIG
+    - sudo mkdir -p "$UNITY_SUPPORT_PATH"
+    - printf "%s\n" "$UNITY_SERVER_CONFIG" | sudo tee "$UNITY_SUPPORT_PATH/services-config.json"
+    - sudo chmod -R +r "$UNITY_SUPPORT_PATH"
+    - ls -la "$UNITY_SUPPORT_PATH"
+  after_script:
+    - unity license return --yes || true
