@@ -2,7 +2,7 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
-"""Shared release/file reads through PyGithub, including automatic pagination."""
+"""GitHub metadata reads and Depot-aware release asset URLs."""
 
 import os
 from collections.abc import Generator
@@ -22,6 +22,11 @@ class GitHubRelease(BaseModel):
     url: str
     html_url: str
     body: str
+
+
+def get_release_asset_url(owner: str, repo: str, tag: str, asset: str) -> str:
+    base = os.environ.get("DEPOT_GITHUB_RELEASES_BASE", "https://github.com").rstrip("/")
+    return f"{base}/{owner}/{repo}/releases/download/{tag}/{asset}"
 
 
 @contextmanager

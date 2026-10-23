@@ -71,14 +71,7 @@ def run(args: argparse.Namespace) -> None:
                 archive = args.native_archive
                 ios, _ = pins(git, source_sha)
                 if archive is None:
-                    native_client = stack.enter_context(Github(per_page=100))
-                    archive = native_archive(
-                        GitHubOperations(
-                            native_client.get_repo("DataDog/dd-sdk-ios"), read_only=True
-                        ),
-                        ios,
-                        root / "Datadog.xcframework.zip",
-                    )
+                    archive = native_archive(ios, root / "Datadog.xcframework.zip")
                 assemble_package(git, source_sha, archive, args.output)
             return
         source_token = os.getenv("SOURCE_GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN")

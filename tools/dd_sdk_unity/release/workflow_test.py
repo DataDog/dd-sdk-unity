@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from git import GitCommandError, Repo
@@ -453,7 +453,10 @@ def test_publish_and_pending_integration_dry_runs_never_write(workflow, monkeypa
     assert w.package_archive.read_bytes() == original_archive
 
 
-def test_assembly_uses_ci_checkout_without_preparation_or_source_api(workflow, monkeypatch):
+@pytest.mark.parametrize("download_native", [False, True])
+def test_assembly_uses_ci_checkout_without_preparation_or_source_api(
+    workflow, monkeypatch, download_native
+):
     from . import cli
 
     w = workflow
@@ -463,11 +466,25 @@ def test_assembly_uses_ci_checkout_without_preparation_or_source_api(workflow, m
     monkeypatch.setattr(cli, "Github", Mock(side_effect=AssertionError("GitHub client used")))
     monkeypatch.setattr(GitOperations, "clone", Mock(side_effect=AssertionError("Source cloned")))
     output = w.root / "ordinary-package.tar.gz"
-    cli.run(
-        cli.parser().parse_args(
-            ["assemble", "--native-archive", str(w.archive), "--output", str(output)]
+    args = ["assemble", "--output", str(output)]
+    if download_native:
+        monkeypatch.setenv("DEPOT_GITHUB_RELEASES_BASE", "https://depot.example.invalid")
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.iter_content.return_value = [w.archive.read_bytes()]
+        download = Mock(return_value=response)
+        monkeypatch.setattr("dd_sdk_unity.release.package.requests.get", download)
+    else:
+        args.extend(["--native-archive", str(w.archive)])
+    cli.run(cli.parser().parse_args(args))
+    if download_native:
+        download.assert_called_once_with(
+            "https://depot.example.invalid/DataDog/dd-sdk-ios/releases/download/"
+            "1.0.0/Datadog.xcframework.zip",
+            stream=True,
+            timeout=180,
         )
-    )
+        response.raise_for_status.assert_called_once()
     payload = w.root / "ordinary-package"
     extract_package(output, payload)
     assert json.loads((payload / "package.json").read_text())["version"] == "1.7.1"

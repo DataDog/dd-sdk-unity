@@ -16,11 +16,13 @@ import uuid
 import zipfile
 from pathlib import Path, PurePosixPath
 
+import requests
 from git.objects import Blob, Tree
+
+from dd_sdk_unity.scripts.common.github import get_release_asset_url
 
 from . import ANDROID_PIN_PATH, IOS_PIN_PATH, PACKAGE_PATH
 from .git_ops import GitOperations
-from .github_ops import GitHubOperations
 from .models import AndroidPin, IosPin
 
 ADMINISTRATION = {".git", ".github", ".gitignore", ".gitattributes"}
@@ -44,13 +46,16 @@ def pins(git: GitOperations, sha: str) -> tuple[IosPin, AndroidPin]:
     return ios, android
 
 
-def native_archive(github: GitHubOperations, pin: IosPin, output: Path) -> Path:
-    release = github.release(pin.version)
-    if release is None or release.draft or release.prerelease:
-        raise ValueError(f"Missing native release {pin.version}")
+def native_archive(pin: IosPin, output: Path) -> Path:
+    url = get_release_asset_url("DataDog", "dd-sdk-ios", pin.version, "Datadog.xcframework.zip")
+    print(f"Downloading native archive: {url}")
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(".download")
-    github.download_asset(release, "Datadog.xcframework.zip", temporary)
+    with requests.get(url, stream=True, timeout=180) as response:
+        response.raise_for_status()
+        with temporary.open("wb") as stream:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                stream.write(chunk)
     if sha256(temporary) != pin.sha256:
         temporary.unlink()
         raise ValueError(f"Native archive SHA-256 does not match pin {pin.version}")

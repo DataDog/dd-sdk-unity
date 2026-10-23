@@ -4,8 +4,6 @@
 
 """GitHub reads and metadata writes through PyGithub; commit pushes live in git_ops."""
 
-from pathlib import Path
-
 from github.GitCommit import GitCommit
 from github.GithubException import GithubException
 from github.GitRelease import GitRelease
@@ -49,12 +47,6 @@ class GitHubOperations:
             if error.status == 404:
                 return None
             raise
-
-    def download_asset(self, release: GitRelease, name: str, output: Path) -> None:
-        assets = [asset for asset in release.get_assets() if asset.name == name]
-        if len(assets) != 1:
-            raise ValueError(f"Expected one {name} asset on release {release.tag_name}")
-        assets[0].download_asset(str(output), chunk_size=1024 * 1024)
 
     def delete_branch(self, name: str, expected_sha: str) -> None:
         current = self.reference_sha(f"heads/{name}")

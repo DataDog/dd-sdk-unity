@@ -64,3 +64,15 @@ def test_file_reads_use_pygithub_contents_api_and_preserve_failure_contract(repo
     repository.get_contents.side_effect = GithubException(404, {"message": "Not found"})
     with pytest.raises(RuntimeError, match="HTTP 404"):
         github.get_file_contents("example", "sdk", "3.0.0", "old-path.json")
+
+
+@pytest.mark.parametrize("base", [None, "https://depot.example.invalid/github-releases/"])
+def test_release_asset_url_uses_configured_depot_or_github(monkeypatch, base):
+    if base is None:
+        monkeypatch.delenv("DEPOT_GITHUB_RELEASES_BASE", raising=False)
+    else:
+        monkeypatch.setenv("DEPOT_GITHUB_RELEASES_BASE", base)
+    expected_base = base.rstrip("/") if base else "https://github.com"
+    assert github.get_release_asset_url("DataDog", "dd-sdk-ios", "3.11.1", "sdk.zip") == (
+        f"{expected_base}/DataDog/dd-sdk-ios/releases/download/3.11.1/sdk.zip"
+    )

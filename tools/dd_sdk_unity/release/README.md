@@ -42,6 +42,8 @@ prove that arbitrary branch code contains a manual job.
 
 Release sources must contain the JSON dependency pins. Assembly bundles the
 SHA-256-verified XCFrameworks from the iOS pin.
+CI downloads native release assets through `DEPOT_GITHUB_RELEASES_BASE` without
+GitHub API lookups. Local downloads use GitHub when that variable is unset.
 
 There is no source `main`, retained release branch, pre-bump, `Unreleased` section,
 publication resource group, or dedicated release functional-test stage. Existing
@@ -136,7 +138,7 @@ publication started; preparation does not add a separate recovery state machine.
 - `integration.py`: ancestry-preserving integration PR, normalization, and preview.
 - `release_state.py`: published source/package tags and GitHub release lookup.
 - `git_ops.py`: GitPython operations and encapsulated `commit-headless` signing.
-- `github_ops.py`: PyGithub refs, PRs, releases, and streaming asset operations.
+- `github_ops.py`: PyGithub refs, PRs, and releases.
 
 ## Deployment prerequisites
 
@@ -145,7 +147,6 @@ publication started; preparation does not add a separate recovery state machine.
   [ci/Dockerfile.gitlab](../../../ci/Dockerfile.gitlab): GBI Ubuntu 26.04, Python 3.14,
   Git, `commit-headless` 3.4.0, `dd-octo-sts` 1.11.4, and `authanywhere`. Build-time
   checks run as UID 501. Increment `CURRENT_CI_IMAGE` when changing the image.
-  An actual ARM64 image build/Linux runtime check is pending; the local daemon was stopped.
 - Merge the source repository's `.github/chainguard/self.release*.sts.yaml` policies.
   Install [the package policy](../../../ci/unity-package.release.sts.yaml) as
   `.github/chainguard/dd-sdk-unity.release.sts.yaml` in `unity-package`. Confirm the

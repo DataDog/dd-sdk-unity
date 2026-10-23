@@ -22,6 +22,7 @@ variables:
   CURRENT_CI_IMAGE: "1"
   LINUX_IMAGE: registry.ddbuild.io/ci/dd-sdk-unity:$CURRENT_CI_IMAGE
   MAC_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/ci-platform-machine-images/tart-vm:dd-sdk-unity-sequoia-latest
+  DEPOT_GITHUB_RELEASES_BASE: https://depot-read-api-github-releases.us1.ddbuild.io/internal/mirror/github-releases
   UNITY_NON_INTERACTIVE: "1"
   UNITY_VERSION_PARTIAL: 2022.3
   UNITY_SUPPORT_PATH: "/Library/Application Support/Unity/config"
