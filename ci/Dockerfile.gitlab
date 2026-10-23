@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1
+
+FROM registry.ddbuild.io/images/base/gbi-ubuntu_2604:release
+
+USER root
+
+RUN clean-apt install git python3 python3-venv
+
+COPY --from=registry.ddbuild.io/dd-octo-sts:v1.11.4 \
+    /usr/local/bin/dd-octo-sts /usr/local/bin/dd-octo-sts
+COPY --from=registry.ddbuild.io/commit-headless:v3.4.0 \
+    /commit-headless /usr/local/bin/commit-headless
+
+ARG TARGETARCH
+ADD --chmod=0755 https://binaries.ddbuild.io/dd-source/authanywhere/LATEST/authanywhere-linux-${TARGETARCH} /usr/local/bin/authanywhere
+
+# Restore the GBI base image's non-root dog user (UID 501).
+USER 501
+
+# Check the runtime as the same user that runs CI, without exchanging credentials.
+RUN set -eu; \
+    python3 --version; \
+    python3 -m venv /tmp/release-image-check; \
+    /tmp/release-image-check/bin/python -m pip --version; \
+    rm -rf /tmp/release-image-check; \
+    git --version; \
+    commit-headless version; \
+    dd-octo-sts version; \
+    authanywhere --help >/dev/null

@@ -1,0 +1,65 @@
+assemble-package:
+  stage: package
+  image: "$LINUX_IMAGE"
+  tags: ["arch:arm64"]
+  before_script:
+    - !reference [.shared, init-scripts]
+  needs: []
+  rules:
+    - when: always
+  script:
+    - dd-unity-release assemble
+  artifacts:
+    expire_in: 30 days
+    paths: [package.tar.gz]
+
+package-ios:
+  extends: .needs-unity-license
+  stage: package
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
+    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
+    - cd $CI_PROJECT_DIR/tools/dd_sdk_unity/scripts
+    - ./setup_demo_signing.sh
+    - cd $CI_PROJECT_DIR
+    - dd-unity-build-demo --platform ios --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+  artifacts:
+    when: on_success
+    expire_in: "30 days"
+    paths:
+      - samples/Demo Data/Build/iOS/export/*
+  retry:
+    max: 2
+    exit_codes:
+      # Retry Unity CLI operation failures (6) and unavailable services (7).
+      - 6
+      - 7
+
+package-android:
+  extends: .needs-unity-license
+  stage: package
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - export DEMO_CLIENT_TOKEN=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_client_token)
+    - export DEMO_APPLICATION_ID=$(vault kv get -field=value kv/aws/arn:aws:iam::486234852809:role/ci-dd-sdk-unity/demo_application_id)
+    - dd-unity-build-demo --platform android --client-token $DEMO_CLIENT_TOKEN --application-id $DEMO_APPLICATION_ID
+  artifacts:
+    when: on_success
+    expire_in: "30 days"
+    paths:
+      - samples/Demo Data/Build/Android/datadog-demo.apk
+  retry:
+    max: 2
+    exit_codes:
+      # Retry Unity CLI operation failures (6) and unavailable services (7).
+      - 6
+      - 7
