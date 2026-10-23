@@ -9,7 +9,7 @@ description = "Development and test tooling for the Datadog Unity SDK"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "GitPython==3.1.62",
-    "PyGithub==2.5.0",
+    "PyGithub==2.10.0",
     "saxonche==13.0.0",
     "requests==2.33.1",
     "junitparser==3.2.0",
@@ -30,7 +30,6 @@ dd-unity-install-unity = "dd_sdk_unity.scripts.install_unity:main"
 dd-unity-integration-test = "dd_sdk_unity.scripts.integration_test:main"
 dd-unity-integration-test-setup = "dd_sdk_unity.scripts.integration_test_setup:main"
 dd-unity-ios-xcframework = "dd_sdk_unity.scripts.ios_xcframework:main"
-dd-unity-prepare-release = "dd_sdk_unity.scripts.prepare_release:main"
 dd-unity-start-simulator = "dd_sdk_unity.scripts.start_simulator:main"
 dd-unity-unit-test = "dd_sdk_unity.scripts.unit_test:main"
 dd-unity-update-android-version = "dd_sdk_unity.scripts.update_android_version:main"

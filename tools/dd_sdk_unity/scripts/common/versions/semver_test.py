@@ -2,13 +2,7 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
-from dd_sdk_unity.scripts.common.versions.semver import Version, VersionBump
-
-
-def test_VersionBump():
-    assert VersionBump.PATCH < VersionBump.MINOR
-    assert VersionBump.MINOR < VersionBump.MAJOR
-    assert max(VersionBump.PATCH, VersionBump.MAJOR) == VersionBump.MAJOR
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 
 def test_Version():
@@ -29,7 +23,3 @@ def test_Version():
     assert ver_120 == '1.2.0'
 
     assert sorted([ver_120, ver_013]) == [ver_013, ver_120]
-
-    assert Version.parse('5.4.3').bump(VersionBump.PATCH) == '5.4.4'
-    assert Version.parse('5.4.3').bump(VersionBump.MINOR) == '5.5.0'
-    assert Version.parse('5.4.3').bump(VersionBump.MAJOR) == '6.0.0'
