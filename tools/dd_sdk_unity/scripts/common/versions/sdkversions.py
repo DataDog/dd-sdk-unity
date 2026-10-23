@@ -27,18 +27,6 @@ class SdkVersionTableRow:
 class SdkVersionTable:
     rows: list[SdkVersionTableRow]
 
-    def set(self, unity_version: Version, ios_version: Version, android_version: Version) -> None:
-        row = SdkVersionTableRow(
-            unity_version=unity_version,
-            ios_version_str=str(ios_version),
-            android_version_str=str(android_version)
-        )
-        row_index = next((i for i, x in enumerate(self.rows) if x.unity_version == unity_version), -1)
-        if row_index >= 0:
-            self.rows[row_index] = row
-        else:
-            self.rows.insert(0, row)
-
     def render(self) -> str:
         pad_a = max([len(str(row.unity_version)) for row in self.rows] + [len(__heading_unity__)])
         pad_b = max([len(row.ios_version_str) for row in self.rows] + [len(__heading_ios__)])

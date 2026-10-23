@@ -26,6 +26,7 @@ import sys
 import zipfile
 from logging import Logger
 
+from dd_sdk_unity.scripts.common.github import get_release_asset_url
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.versions.ios_xcframework_deps import (
     IOS_DEPENDENCY_VERSION_RELPATH,
@@ -51,10 +52,6 @@ def zip_path_for(version: str | Version) -> str:
     # Cached per-version so a stale zip from a previously staged version is never
     # mistaken for the one currently requested (see fetch()/cmd_stage()).
     return os.path.join(DOWNLOAD_DIR, str(version), _XCFRAMEWORK_ZIP_FILENAME)
-
-RELEASE_URL_TEMPLATE = (
-    'https://github.com/DataDog/dd-sdk-ios/releases/download/{version}/' + _XCFRAMEWORK_ZIP_FILENAME
-)
 
 _XCFRAMEWORK_ENTRY_RE = re.compile(rf'^{re.escape(_XCFRAMEWORK_ZIP_ROOT)}/([^/]+)\.xcframework/$')
 
@@ -110,7 +107,7 @@ def fetch(log: Logger, version: str | Version, expected_sha256: str | None, forc
     check_tools()
     zip_path = zip_path_for(version)
     os.makedirs(os.path.dirname(zip_path), exist_ok=True)
-    url = RELEASE_URL_TEMPLATE.format(version=version)
+    url = get_release_asset_url('DataDog', 'dd-sdk-ios', str(version), _XCFRAMEWORK_ZIP_FILENAME)
 
     if os.path.exists(zip_path) and not force:
         log.info(f'{zip_path} already exists; skipping download (use --force to re-download).')

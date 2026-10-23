@@ -2,79 +2,32 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
-"""
-Utility code for fetching publicly-accessible information about GitHub repositories via
-public endpoints in the GitHub API.
-"""
+"""Repository file reads and release asset URLs."""
+
+import os
 
 import requests
-from pydantic import BaseModel
-
-from dd_sdk_unity.scripts.common.versions import Version
+from github import Auth, Github
 
 
-class GitHubRelease(BaseModel):
-    name: str
-    url: str
-    html_url: str
-    body: str
-
-
-def resolve_latest_release_version(owner: str, repo: str) -> Version:
-    release = _fetch_github_release(owner, repo, 'latest')
-    return Version.parse(release.name)
-
-
-def get_releases_between(owner: str, repo: str, start_version_exclusive: Version, end_version_inclusive: Version) -> list[GitHubRelease]:
-    # For simplicity, fetch the details of all known releases, ordered by creation date (newest first)
-    releases = _fetch_github_releases(owner, repo)
-
-    # Find the version at the end of our range, and omit any releases that are newer
-    newest_index = next((i for i, x in enumerate(releases) if x.name == end_version_inclusive), None)
-    if newest_index is None:
-        raise RuntimeError(f'List of releases fetched from repo {owner}/{repo} does not include version {end_version_inclusive}')
-    releases = releases[newest_index:]
-
-    # Find the version that we want to start from, and omit it and releases that are older
-    oldest_index = next((i for i, x in enumerate(releases) if x.name == start_version_exclusive), None)
-    if oldest_index is None:
-        raise RuntimeError(f'List of releases fetched from repo {owner}/{repo} does not include version {start_version_exclusive}')
-    return releases[0:oldest_index]
+def get_release_asset_url(owner: str, repo: str, tag: str, asset: str) -> str:
+    base = os.environ.get("DEPOT_GITHUB_RELEASES_BASE", "https://github.com").rstrip("/")
+    return f"{base}/{owner}/{repo}/releases/download/{tag}/{asset}"
 
 
 def get_file_contents(owner: str, repo: str, ref: str, path: str) -> str:
-    url = f'https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}'
-    res = requests.get(url)
-    if not res.ok:
-        raise RuntimeError(f'GET {url} failed with status code {res.status_code}')
-    return res.text
-
-
-def _fetch_github_releases(owner: str, repo: str) -> list[GitHubRelease]:
-    releases: list[GitHubRelease] = []
-    per_page = 100
-    max_pages = 50
-    page = 1
-    for i in range(max_pages):
-        url = f'https://api.github.com/repos/{owner}/{repo}/releases?per_page={per_page}&page={page}'
-        res = requests.get(url)
-        if not res.ok:
-            raise RuntimeError(f'GET {url} failed with status code {res.status_code}')
-        data = res.json()
-        if not isinstance(data, list):
-            raise ValueError(f'GET {url} did not return a JSON array')  # noqa: TRY004 -- Invalid API data, not a caller argument.
-        if not data:
-            break
-        for obj in data:
-            releases.append(GitHubRelease(**obj))
-        page += 1
-    return releases
-
-
-def _fetch_github_release(owner: str, repo: str, release: str) -> GitHubRelease:
-    url = f'https://api.github.com/repos/{owner}/{repo}/releases/{release}'
-    res = requests.get(url)
-    if not res.ok:
-        raise RuntimeError(f'GET {url} failed with status code {res.status_code}')
-    data = res.json()
-    return GitHubRelease(**data)
+    if token := os.environ.get("CI_JOB_TOKEN"):
+        response = requests.get(
+            "https://gitretriever.us1.ddbuild.io/api/file",
+            params={"repo": f"{owner}/{repo}", "ref": ref, "path": path},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.content.decode("utf-8")
+    token = os.environ.get("GITHUB_TOKEN")
+    with Github(auth=Auth.Token(token) if token else None, per_page=100, timeout=30) as client:
+        contents = client.get_repo(f"{owner}/{repo}").get_contents(path, ref=ref)
+        if isinstance(contents, list):
+            raise TypeError(f"Expected a file at {path}, found a directory")
+        return contents.decoded_content.decode("utf-8")
