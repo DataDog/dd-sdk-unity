@@ -1,3 +1,18 @@
+assemble-package:
+  stage: package
+  image: "$LINUX_IMAGE"
+  tags: ["arch:amd64"]
+  before_script:
+    - !reference [.shared, init-scripts]
+  needs: []
+  rules:
+    - when: always
+  script:
+    - dd-unity-release assemble
+  artifacts:
+    expire_in: 30 days
+    paths: [package.tar.gz]
+
 package-ios:
   extends: .needs-unity-license
   stage: package

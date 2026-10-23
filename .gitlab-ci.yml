@@ -4,6 +4,7 @@ include:
   - local: ci/build-image.yml
   - local: ci/test.yml
   - local: ci/package.yml
+  - local: ci/release.yml
 
 workflow:
   auto_cancel:
@@ -31,6 +32,9 @@ stages:
   - unit-test
   - integration-test
   - package
+  - release-prepare
+  - release-publish
+  - release-integrate
   - post
 
 notify-pipeline-succeeded:
