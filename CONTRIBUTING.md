@@ -290,6 +290,15 @@ The integration test setup starts the mock server automatically, reusing it if i
 already running. You can also start it from **Datadog > Mock Server > Start** in the
 Unity Editor.
 
+For Android, Editor test setup uses your Android SDK. The Editor uses an already running device or starts the default emulator.
+When the test run finishes or fails, or the Editor closes, the Editor stops the emulator it
+started.
+
+If Android tests lose connection to the player or mock server, disable **Kill external
+ADB instances** in Unity's **Preferences > External Tools**. This prevents Unity from
+terminating the ADB server shared with Rider or other Android tools. This preference
+applies to your user across projects on this machine.
+
 Run the integration tests on an Android or iOS player. The mock server stays available
 after the run for debugging. Use **Datadog > Mock Server > Inspect Requests** to
 inspect recorded requests in your browser. When finished, use **Datadog > Mock Server > Stop**.

@@ -16,7 +16,8 @@ namespace Datadog.Unity.Tests
             string scriptName,
             string arguments,
             int timeoutSeconds = 60,
-            IReadOnlyDictionary<string, string> environmentVariables = null)
+            IReadOnlyDictionary<string, string> environmentVariables = null,
+            Action<string> onOutput = null)
         {
             var package = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(PythonScriptUtils).Assembly);
             var repositoryPath = Path.GetFullPath(Path.Combine(package.resolvedPath, "../.."));
@@ -42,9 +43,16 @@ namespace Datadog.Unity.Tests
             {
                 var output = process.StandardOutput.ReadToEndAsync();
                 var error = process.StandardError.ReadToEndAsync();
-                if (!process.WaitForExit(timeoutSeconds * 1000))
+                var exited = process.WaitForExit(timeoutSeconds * 1000);
+                if (!exited)
                 {
                     process.Kill();
+                }
+
+                var standardOutput = output.GetAwaiter().GetResult().Trim();
+                onOutput?.Invoke(standardOutput);
+                if (!exited)
+                {
                     throw new TimeoutException($"Timed out running {scriptName}.");
                 }
 
@@ -54,7 +62,7 @@ namespace Datadog.Unity.Tests
                         $"Failed to run {scriptName}:\n{output.GetAwaiter().GetResult()}\n{error.GetAwaiter().GetResult()}");
                 }
 
-                return output.GetAwaiter().GetResult().Trim();
+                return standardOutput;
             }
         }
 

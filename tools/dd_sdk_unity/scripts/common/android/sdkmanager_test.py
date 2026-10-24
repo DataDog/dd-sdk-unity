@@ -2,10 +2,28 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
+from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
+
+from dd_sdk_unity.scripts.common.android import sdkmanager as module
 from dd_sdk_unity.scripts.common.android.sdkmanager import (
     AndroidPackage,
     _parse_sdkmanager_list_output,
 )
+
+
+def test_install_reports_read_only_sdk(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    manager = module.AndroidSdkManager(str(tmp_path / 'cmdline-tools/6.0/bin/sdkmanager'))
+    monkeypatch.setattr(module.os, 'access', lambda path, mode: False)
+    command = Mock()
+    monkeypatch.setattr(module, 'capture_output', command)
+
+    with pytest.raises(PermissionError, match=f'the Android SDK at {tmp_path} is not writable'):
+        manager.install_package('emulator')
+
+    command.assert_not_called()
 
 __output__ = '''Loading package information...
 Loading local repository...
@@ -51,3 +69,21 @@ def test_parse_sdkmanager_list_output():
         AndroidPackage(path='platforms;android-36', version='2', description='Android SDK Platform 36'),
         AndroidPackage(path='system-images;android-36;google_apis_playstore;arm64-v8a', version='6', description='Google Play ARM 64 v8a System Image'),
     ]
+
+
+def test_parse_android_cli_installed_packages():
+    output = '''Installed packages:
+  emulator                                           37.2.10  ->  37.2.12  Android Emulator
+  system-images/android-33/google_apis/arm64-v8a       17.0.0                 Google APIs ARM 64 v8a System Image
+
+A new version of Android CLI is available.
+'''
+    assert _parse_sdkmanager_list_output(output) == [
+        AndroidPackage('emulator', '37.2.10', 'Android Emulator'),
+        AndroidPackage('system-images;android-33;google_apis;arm64-v8a', '17.0.0',
+                       'Google APIs ARM 64 v8a System Image'),
+    ]
+
+
+def test_parse_empty_installed_packages():
+    assert _parse_sdkmanager_list_output('Installed packages:\n') == []
