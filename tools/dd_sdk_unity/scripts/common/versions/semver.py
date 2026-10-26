@@ -7,23 +7,6 @@ Utility code for semantic version numbers.
 """
 import re
 from dataclasses import dataclass
-from enum import Enum
-
-
-class VersionBump(Enum):
-    PATCH = 1
-    MINOR = 2
-    MAJOR = 3
-
-    def __str__(self) -> str:
-        return {
-            1: 'patch',
-            2: 'minor',
-            3: 'major',
-        }[self.value]
-
-    def __lt__(self, other: VersionBump) -> bool:
-        return self.value < other.value
 
 
 @dataclass
@@ -48,20 +31,6 @@ class Version:
         lhs = (self.major, self.minor, self.patch)
         rhs = (other.major, other.minor, other.patch)
         return lhs == rhs
-
-    def __lt__(self, other: Version) -> bool:
-        lhs = (self.major, self.minor, self.patch)
-        rhs = (other.major, other.minor, other.patch)
-        return lhs < rhs
-    
-    def bump(self, type: VersionBump) -> Version:
-        if type == VersionBump.MAJOR:
-            return Version(self.major + 1, 0, 0)
-        if type == VersionBump.MINOR:
-            return Version(self.major, self.minor + 1, 0)
-        if type == VersionBump.PATCH:
-            return Version(self.major, self.minor, self.patch + 1)
-        raise ValueError(f'Unexpected version bump type: {type}')
 
     @classmethod
     def parse(cls, s: str) -> Version:
