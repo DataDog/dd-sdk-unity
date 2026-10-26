@@ -41,7 +41,7 @@ packages = ["dd_sdk_unity"]
 package-dir = {"" = "tools"}
 
 [tool.pytest.ini_options]
-testpaths = ["tools/dd_sdk_unity/scripts"]
+testpaths = ["tools/dd_sdk_unity/scripts", "tools/dd_sdk_unity/release"]
 
 [tool.ruff]
 line-length = 100
