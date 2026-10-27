@@ -12,7 +12,7 @@
     # the last line of output will contain the full version string, so export it as
     # UNITY_VERSION
     - LOG_TMPFILE=$(mktemp)
-    - dd-unity-install-unity "$UNITY_VERSION_PARTIAL" | tee "$LOG_TMPFILE"
+    - sudo env "PATH=$PATH" dd-unity-install-unity "$UNITY_VERSION_PARTIAL" | tee "$LOG_TMPFILE"
     - export UNITY_VERSION=$(tail -n 1 "$LOG_TMPFILE")
     - rm "$LOG_TMPFILE"
     - echo "Using Unity version $UNITY_VERSION"

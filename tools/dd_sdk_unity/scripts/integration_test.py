@@ -3,7 +3,7 @@
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 """
-Runs integration tests in a sample project for either iOS or Android, ensuring that the
+Runs integration tests in a sample project for iOS, Android, or WebGL, ensuring that the
 mock server app is running, the project is configured appropriately to send the
 requisite requests to the mock server, and any required device emulators are running.
 """
@@ -20,7 +20,7 @@ from types import FrameType
 
 from junitparser.junitparser import JUnitXml, TestCase
 
-from dd_sdk_unity.scripts.common import DeviceTarget, MobilePlatform
+from dd_sdk_unity.scripts.common import DeviceTarget, TargetPlatform
 from dd_sdk_unity.scripts.common.apple.simulator import run_simulator_tests
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.simulator import run_default_simulator
@@ -30,6 +30,7 @@ from dd_sdk_unity.scripts.common.unity import (
 )
 from dd_sdk_unity.scripts.common.xslt import transform_nunit_to_junit
 from dd_sdk_unity.scripts.integration_test_setup import IntegrationTestEnvironment
+from dd_sdk_unity.tests.webgl import run_webgl_tests
 
 __repo_root__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
@@ -38,7 +39,7 @@ __default_test_project_unity_version__ = '2022'
 
 
 @contextmanager
-def _integration_test_env(project_path: str, platform: MobilePlatform, target: DeviceTarget) -> Generator[None]:
+def _integration_test_env(project_path: str, platform: TargetPlatform, target: DeviceTarget) -> Generator[None]:
     # Keep the mock server alive through the complete player run.
     environment = IntegrationTestEnvironment(project_path)
     process = None
@@ -55,7 +56,7 @@ def _integration_test_env(project_path: str, platform: MobilePlatform, target: D
         if prepared:
             environment.stop(process)
 
-def integration_test(unity_version_prefix: str, project_path: str, platform: MobilePlatform, target: DeviceTarget, out_junit_path_pattern: str) -> int:
+def integration_test(unity_version_prefix: str, project_path: str, platform: TargetPlatform, target: DeviceTarget, out_junit_path_pattern: str) -> int:
     log = init_logger()
 
     # Check to see if we have the requisite Unity version installed
@@ -87,7 +88,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: Mob
     with _integration_test_env(project_path, platform, target):
         # Run our Unity project's integration tests in the editor
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
-        build_target = {'ios': 'iOS', 'android': 'Android'}[platform]
+        build_target = {'ios': 'iOS', 'android': 'Android', 'webgl': 'WebGL'}[platform]
         args = [
             '-runTests',
             '-buildTarget', build_target,
@@ -96,7 +97,7 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: Mob
             '-testResults', nunit_abspath,
             '-nographics',
         ]
-        split = platform == 'ios' and target == 'simulator'
+        split = platform == 'webgl' or (platform == 'ios' and target == 'simulator')
         if split:
             export_path = Path(project_path).resolve() / 'Build/DatadogIntegrationTests/PlayerWithTests'
             if export_path.exists():
@@ -115,9 +116,14 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: Mob
             if exitcode != 0:
                 log.error(f'Unity export exited with status code {exitcode}')
                 return exitcode
-            log.info('Unity export finished; compiling and running the test player.')
-            run_simulator_tests(export_path, nunit_abspath,
-                                Path(log_abspath).with_name(junit_filename_noext + '-native.log'))
+            if platform == 'webgl':
+                log.info('Unity export finished; running the test player in Chrome.')
+                run_webgl_tests(export_path, nunit_abspath,
+                                Path(log_abspath).with_name(junit_filename_noext + '-browser.log'))
+            else:
+                log.info('Unity export finished; compiling and running the test player.')
+                run_simulator_tests(export_path, nunit_abspath,
+                                    Path(log_abspath).with_name(junit_filename_noext + '-native.log'))
         elif exitcode == 0:
             log.info('Tests finished successfully.')
         elif exitcode == 2:
@@ -167,7 +173,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Run integration tests on the provided version of Unity and on the specified platform.')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
-    parser.add_argument('--platform', choices=['ios', 'android'], required=True, help='The platform to build an app bundle for')
+    parser.add_argument('--platform', choices=['ios', 'android', 'webgl'], required=True, help='The platform to build a test player for')
     parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', your must have a phone connected and ready for debugging.")
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()

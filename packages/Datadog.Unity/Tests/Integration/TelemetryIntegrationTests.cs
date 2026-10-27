@@ -17,6 +17,8 @@ namespace Datadog.Unity.Tests.Integration
     {
         [UnityTest]
         [Category("integration")]
+        // Unity telemetry forwarding is not implemented on WebGL.
+        [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
         public IEnumerator TelemetryIntegrationScenario()
         {
             var mockServerHelper = new MockServerHelper();

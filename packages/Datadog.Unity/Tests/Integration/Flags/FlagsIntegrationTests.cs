@@ -408,6 +408,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
         [UnityTest]
         [Category("integration")]
+        // System.Threading.Timer callbacks do not run in WebGL players.
+        [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
         public IEnumerator TimerFlush_SendsEvaluationBatchAfterInterval()
         {
             yield return InitFlags("user-123", flushInterval: 1.0f);

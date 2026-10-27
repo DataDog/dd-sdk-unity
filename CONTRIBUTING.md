@@ -222,7 +222,7 @@ Our test scripts use the [Unity CLI][unity-cli] binary to locate and manage inst
 To install the latest release of a specific editor version, along with all required components for testing the Datadog SDK, you can use the [`install_unity`][install-unity] script:
 
 ```bash
-# Install Unity 2022.3 and its required iOS/Android modules through Unity CLI
+# Install Unity 2022.3 and its required iOS/Android/WebGL modules through Unity CLI
 dd-unity-install-unity 2022.3
 ```
 
@@ -266,13 +266,16 @@ dd-unity-integration-test --platform ios --target simulator
 
 # Run integration tests on iOS, using a physically-connected iPhone
 dd-unity-integration-test --platform ios --target device
+
+# Run integration tests in headless Chrome
+dd-unity-integration-test --platform webgl
 ```
 
 As with the unit test script, these commands launch the Unity Editor in headless mode to invoke the tests, but the integration test script also performs some additional setup:
 
 - It launches a mock server that records incoming SDK requests so the tests can inspect and validate them.
 - It configures the project's Datadog Settings to use that server and enable the features under test.
-- It runs the tests on Android or iOS players, exercising the underlying native SDKs.
+- It runs the tests on Android, iOS, or WebGL players, exercising the underlying SDKs.
 
 Use `--project` and `--unity-version` to select another project and Editor.
 

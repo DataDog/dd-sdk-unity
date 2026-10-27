@@ -77,3 +77,40 @@ integration-test-ios:
     exit_codes:
       # Integration tests invoke the Editor directly rather than Unity CLI.
       - 198
+
+integration-test-webgl:
+  extends: .needs-unity-license
+  stage: integration-test
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  timeout: 1h
+  variables:
+    # Reserve time for cleanup and artifact upload before the job limit.
+    RUNNER_SCRIPT_TIMEOUT: 50m
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: '2022.3'
+        PROJECT_PATH: 'samples/Datadog Sample'
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - test -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" || python -m playwright install chrome
+    - '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --version'
+    - dd-unity-integration-test --platform webgl --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: integration-test-webgl.xml
+    paths:
+      - integration-test-webgl.xml
+      - integration-test-webgl*.log
+      - integration-test-webgl-browser.png
+      - integration-test-webgl-browser.zip
+      - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+  retry:
+    max: 2
+    exit_codes:
+      # Integration tests invoke the Editor directly rather than Unity CLI.
+      - 198
