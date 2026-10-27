@@ -1,12 +1,12 @@
 # Policy for release prep, publication, and integration.
 issuer: https://gitlab.ddbuild.io
-subject_pattern: 'project_path:DataDog/dd-sdk-unity:ref_type:branch:ref:(develop|release/[^/]+/v\d+(\.\d+)?\.x|release-prep/\d+\.\d+\.\d+)'
+subject_pattern: 'project_path:DataDog/dd-sdk-unity:ref_type:branch:ref:(develop|release/\d+\.\d+\.\d+)'
 claim_pattern:
-  ci_config_ref_uri: 'gitlab\.ddbuild\.io/DataDog/dd-sdk-unity//\.gitlab-ci\.yml@refs/heads/(develop|release/[^/]+/v\d+(\.\d+)?\.x|release-prep/\d+\.\d+\.\d+)'
+  ci_config_ref_uri: 'gitlab\.ddbuild\.io/DataDog/dd-sdk-unity//\.gitlab-ci\.yml@refs/heads/(develop|release/\d+\.\d+\.\d+)'
   pipeline_source: 'push'
   project_path: 'DataDog/dd-sdk-unity'
-  ref: '^(develop|release/[^/]+/v\d+(\.\d+)?\.x|release-prep/\d+\.\d+\.\d+)$'
-  ref_path: '^refs/heads/(develop|release/[^/]+/v\d+(\.\d+)?\.x|release-prep/\d+\.\d+\.\d+)$'
+  ref: '^(develop|release/\d+\.\d+\.\d+)$'
+  ref_path: '^refs/heads/(develop|release/\d+\.\d+\.\d+)$'
   ref_type: 'branch'
 permissions:
   contents: write

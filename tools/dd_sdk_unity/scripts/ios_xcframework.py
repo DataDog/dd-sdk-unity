@@ -26,7 +26,8 @@ import sys
 import zipfile
 from logging import Logger
 
-from dd_sdk_unity.scripts.common.log import init_logger
+from dd_sdk_unity.scripts.common.github import GitHubOperations
+from dd_sdk_unity.scripts.common.log import get_default_logger, init_logger
 from dd_sdk_unity.scripts.common.versions.ios_xcframework_deps import (
     IOS_DEPENDENCY_VERSION_RELPATH,
     IosXcframeworkPin,
@@ -52,10 +53,6 @@ def zip_path_for(version: str | Version) -> str:
     # mistaken for the one currently requested (see fetch()/cmd_stage()).
     return os.path.join(DOWNLOAD_DIR, str(version), _XCFRAMEWORK_ZIP_FILENAME)
 
-RELEASE_URL_TEMPLATE = (
-    'https://github.com/DataDog/dd-sdk-ios/releases/download/{version}/' + _XCFRAMEWORK_ZIP_FILENAME
-)
-
 _XCFRAMEWORK_ENTRY_RE = re.compile(rf'^{re.escape(_XCFRAMEWORK_ZIP_ROOT)}/([^/]+)\.xcframework/$')
 
 
@@ -74,20 +71,17 @@ def load_pin() -> IosXcframeworkPin:
 
 
 def sha256_of(path: str | os.PathLike[str]) -> str:
-    digest = hashlib.sha256()
     with open(path, 'rb') as infile:
-        for chunk in iter(lambda: infile.read(65536), b''):
-            digest.update(chunk)
-    return digest.hexdigest()
+        return hashlib.file_digest(infile, 'sha256').hexdigest()
 
 
 def run(cmd: list[str]) -> None:
-    print(f'$ {" ".join(cmd)}')
+    get_default_logger().info(f'$ {" ".join(cmd)}')
     subprocess.run(cmd, check=True)
 
 
 def run_capture(cmd: list[str]) -> str:
-    print(f'$ {" ".join(cmd)}')
+    get_default_logger().info(f'$ {" ".join(cmd)}')
     result = subprocess.run(cmd, check=True, capture_output=True, text=True)
     return result.stdout
 
@@ -110,7 +104,8 @@ def fetch(log: Logger, version: str | Version, expected_sha256: str | None, forc
     check_tools()
     zip_path = zip_path_for(version)
     os.makedirs(os.path.dirname(zip_path), exist_ok=True)
-    url = RELEASE_URL_TEMPLATE.format(version=version)
+    with GitHubOperations('DataDog/dd-sdk-ios') as github:
+        url = github.get_release_asset_url(str(version), _XCFRAMEWORK_ZIP_FILENAME)
 
     if os.path.exists(zip_path) and not force:
         log.info(f'{zip_path} already exists; skipping download (use --force to re-download).')

@@ -3,8 +3,9 @@
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 import io
+import json
 
-from dd_sdk_unity.scripts.common.versions.package import _modify_package_json_impl
+from dd_sdk_unity.release.package_version import _modify_package_json_impl, merge_package_version
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
 __old_package_json__ = '''{
@@ -50,3 +51,11 @@ def test_modify_package_json_impl():
     infile = io.StringIO(__old_package_json__)
     got = _modify_package_json_impl(infile, __new_version__)
     assert got == __new_package_json__
+
+
+def test_package_integration_keeps_higher_version_and_other_development_fields():
+    development = '{"version":"3.10.0","dependencies":{"new":"1.0.0"},"displayName":"Current"}\n'
+    assert merge_package_version(development, "3.9.1") == development
+    assert merge_package_version(development, "3.10.0") == development
+    updated = json.loads(merge_package_version(development, "3.11.0"))
+    assert updated == {**json.loads(development), "version": "3.11.0"}
