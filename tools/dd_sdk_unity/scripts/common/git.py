@@ -24,6 +24,10 @@ class GitOperations:
             raise ValueError("Release operations require a working tree")
         return Path(self.repository.working_tree_dir)
 
+    @property
+    def head_sha(self) -> str:
+        return self.repository.head.commit.hexsha
+
     def read(self, revision: str, path: str) -> bytes:
         return (self.repository.commit(revision).tree / path).data_stream.read()
 

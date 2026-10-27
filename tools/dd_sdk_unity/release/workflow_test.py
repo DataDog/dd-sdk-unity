@@ -40,6 +40,7 @@ from .package import (
     archive_package,
     assemble,
     assemble_package,
+    check_versions,
     extract_package,
     sha256,
 )
@@ -114,12 +115,13 @@ class RepositoryFixture:
             raise GithubException(404, {})
         return self.releases[version]
 
-    def create_git_release(self, *, tag, name, message, target_commitish):
+    def create_git_release(self, *, tag, name, message, target_commitish, prerelease=False):
         if tag not in self.git.tags:
             self.git.create_tag(tag, ref=target_commitish)
         release = SimpleNamespace(
             tag_name=tag,
             body=message,
+            prerelease=prerelease,
         )
         self.releases[tag] = release
         return release
@@ -153,7 +155,10 @@ def workflow(tmp_path, monkeypatch):
     source_repo = initialize(tmp_path / "source-remote", "develop")
     documents = {
         f"{PACKAGE_PATH}/package.json": json.dumps({"version": "1.7.1", "name": "fixture"}),
-        ASSEMBLY_PATH: '[assembly: AssemblyVersion("1.7.1")]\n',
+        ASSEMBLY_PATH: (
+            '[assembly: AssemblyVersion("1.7.1")]\n'
+            '[assembly: AssemblyInformationalVersion("1.7.1")]\n'
+        ),
         CHANGELOG_PATH: "# Change Log\n\n## 1.7.1\n\n- Original notes.\n",
         NATIVE_HISTORY_PATH: "| Unity SDK | iOS SDK | Android SDK |\n|---|---|---|\n| 1.7.1 | 1.0.0 | 1.0.0 |\n",
         IOS_PIN_PATH: json.dumps(
@@ -236,9 +241,9 @@ def workflow(tmp_path, monkeypatch):
     )
 
 
-def prepare_and_merge(w):
+def prepare_and_merge(w, **versions):
     git = GitOperations.clone(w.source.repository.clone_url, w.root / "prepare", revision=w.cut)
-    plan = prepare_plan(git, w.source, w.cut)
+    plan = prepare_plan(git, w.source, w.cut, **versions)
     pull = open_preparation(git, w.source, plan, "- Fixed a crash.", token="fake-token")
     pull = w.source.repository.pulls[pull.number]
     remote = w.source.repository.git
@@ -267,6 +272,42 @@ def publish_fixture(w, *, dry_run=False):
         dry_run=dry_run,
     )
     return w.package.reference_sha(f"tags/{w.plan.release.version}")
+
+
+@pytest.mark.parametrize("version", ["2.0.0-preview1", "2.0.0-preview.1+build.5"])
+def test_prerelease_preparation_publication_and_integration(workflow, version):
+    w = prepare_and_merge(workflow, base_version="1.7.1", release_version=version)
+    assert w.plan.release.version == version
+    assert w.pull.base.ref == f"release/{version}"
+    assert publish_fixture(w)
+    assert w.package.repository.get_release(version).prerelease is True
+    package = w.package.repository.git
+    assert json.loads((package.head.commit.tree / "package.json").data_stream.read())["version"] == version
+    metadata = (package.head.commit.tree / "Runtime/AssemblyInfo.cs").data_stream.read().decode()
+    assert 'AssemblyVersion("2.0.0")' in metadata
+    assert f'AssemblyInformationalVersion("{version}")' in metadata
+
+    integrate(w.source, source_sha=w.source_sha, version=version, source_token="fake-source")
+    incoming = w.source.repository.git.heads[f"merge-back/{version}"].commit
+    assert json.loads((incoming.tree / f"{PACKAGE_PATH}/package.json").data_stream.read())["version"] == version
+    assert f"## {version}" in (incoming.tree / CHANGELOG_PATH).data_stream.read().decode()
+    assert version in (incoming.tree / NATIVE_HISTORY_PATH).data_stream.read().decode()
+
+
+@pytest.mark.parametrize("attribute", ["AssemblyVersion", "AssemblyInformationalVersion"])
+def test_publication_rejects_stale_prerelease_assembly_metadata(tmp_path, attribute):
+    (tmp_path / "Runtime").mkdir()
+    (tmp_path / "package.json").write_text('{"version":"2.0.0-preview1"}')
+    metadata = (
+        '[assembly: AssemblyVersion("2.0.0")]\n'
+        '[assembly: AssemblyInformationalVersion("2.0.0-preview1")]\n'
+    )
+    assembly = tmp_path / "Runtime/AssemblyInfo.cs"
+    assembly.write_text(metadata)
+    check_versions(tmp_path, "2.0.0-preview1")
+    assembly.write_text(metadata.replace(f'{attribute}("2.0.0', f'{attribute}("1.0.0'))
+    with pytest.raises(ValueError, match="version differs"):
+        check_versions(tmp_path, "2.0.0-preview1")
 
 
 @pytest.mark.parametrize(
@@ -475,6 +516,34 @@ def test_publish_and_pending_integration_dry_runs_never_write(workflow, monkeypa
     assert "Skipping branch push and PR creation due to dry run." in integration_log
     assert "Proposed PR diff:" in integration_log
     assert w.package_archive.read_bytes() == original_archive
+
+
+@pytest.mark.parametrize("use_ci_sha", [False, True])
+def test_prepare_uses_local_head_unless_ci_provides_a_commit(workflow, monkeypatch, use_ci_sha):
+    from . import cli
+
+    w = workflow
+    repo = w.source.repository.git
+    local_head = commit(repo, "later.txt", "later\n", "chore: Later development").hexsha
+    monkeypatch.delenv("CI_PROJECT_DIR", raising=False)
+    if use_ci_sha:
+        monkeypatch.setenv("CI_COMMIT_SHA", w.cut)
+        # No local repository is needed when CI supplies the source commit.
+        monkeypatch.chdir(w.root)
+    else:
+        monkeypatch.delenv("CI_COMMIT_SHA", raising=False)
+        monkeypatch.chdir(repo.working_tree_dir)
+    w.source.token = "fake-source"
+    monkeypatch.setattr(cli, "GitHubOperations", Mock(return_value=w.source))
+    monkeypatch.setattr(cli, "native_release_notes", Mock(return_value=""))
+    monkeypatch.setattr(cli, "draft_notes", Mock(return_value=("- Fixed a crash.", ())))
+
+    cli.run(cli.parser().parse_args([
+        "prepare", "--base-version", "1.7.1", "--release-version", "2.0.0-preview.1",
+    ]))
+
+    expected = w.cut if use_ci_sha else local_head
+    assert w.source.reference_sha("heads/release/2.0.0-preview.1") == expected
 
 
 def test_assembly_uses_ci_checkout_without_preparation_or_source_api(workflow, monkeypatch):

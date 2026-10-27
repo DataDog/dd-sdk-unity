@@ -5,6 +5,8 @@
 import io
 import json
 
+import pytest
+
 from dd_sdk_unity.release.package_version import _modify_package_json_impl, merge_package_version
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
@@ -59,3 +61,17 @@ def test_package_integration_keeps_higher_version_and_other_development_fields()
     assert merge_package_version(development, "3.10.0") == development
     updated = json.loads(merge_package_version(development, "3.11.0"))
     assert updated == {**json.loads(development), "version": "3.11.0"}
+
+
+@pytest.mark.parametrize(("development", "incoming", "expected"), [
+    ("2.0.0", "2.0.0-preview1", "2.0.0"),
+    ("2.0.0-preview1", "2.0.0", "2.0.0"),
+    ("2.0.0-preview.2", "2.0.0-preview.10", "2.0.0-preview.10"),
+    ("2.0.0-preview.10", "2.0.0-preview.2", "2.0.0-preview.10"),
+    ("2.0.0+build.1", "2.0.0+build.2", "2.0.0+build.1"),
+])
+def test_package_integration_uses_semver_precedence(development, incoming, expected):
+    original = json.dumps({"version": development, "name": "preserved"})
+    assert json.loads(merge_package_version(original, incoming)) == {
+        "version": expected, "name": "preserved",
+    }

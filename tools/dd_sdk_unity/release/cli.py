@@ -93,17 +93,21 @@ def run(args: argparse.Namespace) -> None:
             return
         with tempfile.TemporaryDirectory(prefix="unity-release-") as scratch:
             root = Path(scratch)
+            source_sha = os.getenv("CI_COMMIT_SHA")
+            if not source_sha:
+                local = GitOperations(Repo("."))
+                source_sha = local.head_sha
             git = GitOperations.clone(
                 source.repository.clone_url,
                 root / "source",
-                revision=os.environ["CI_COMMIT_SHA"],
+                revision=source_sha,
             )
             if not source_token:
                 raise ValueError("SOURCE_GITHUB_TOKEN is required for preparation")
             plan = prepare_plan(
                 git,
                 source,
-                git.repository.head.commit.hexsha,
+                git.head_sha,
                 base_version=args.base_version,
                 release_version=args.release_version,
             )

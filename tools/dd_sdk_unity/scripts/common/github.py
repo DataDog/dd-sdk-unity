@@ -15,6 +15,7 @@ from github.GitRelease import GitRelease
 from github.Repository import Repository
 
 from dd_sdk_unity.scripts.common.log import get_default_logger
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 
 class GitHubOperations:
@@ -93,5 +94,6 @@ class GitHubOperations:
 
     def create_release(self, version: str, sha: str, notes: str) -> None:
         self.repository.create_git_release(
-            tag=version, name=version, message=notes, target_commitish=sha
+            tag=version, name=version, message=notes, target_commitish=sha,
+            prerelease=bool(Version.parse(version).prerelease),
         )

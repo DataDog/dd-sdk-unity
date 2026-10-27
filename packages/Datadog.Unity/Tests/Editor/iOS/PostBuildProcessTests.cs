@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 
 // Disable "Scriptable Objects should not be instantiated directly"
@@ -317,9 +318,8 @@ namespace Datadog.Unity.Editor.iOS
         [Test]
         public void ConfigWritesSdkVersion()
         {
-            var sdkVersion = typeof(DatadogSdk).Assembly.GetName().Version;
-            Assert.IsNotNull(sdkVersion);
-            var expectedVersion = $"{sdkVersion.Major}.{sdkVersion.Minor}.{sdkVersion.Build}";
+            var expectedVersion = typeof(DatadogSdk).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
 
             var options = new DatadogConfigurationOptions()
             {

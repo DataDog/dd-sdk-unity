@@ -18,6 +18,7 @@ from dd_sdk_unity.scripts.common.github import GitHubOperations
 
 from . import CHANGELOG_PATH, PACKAGE_PATH
 from .changelog import classify, collect_changes, merge_sections
+from .cli import parser
 from .release_version import select_release
 
 AUTHOR = Actor("Release test", "release-test@example.invalid")
@@ -118,6 +119,29 @@ def test_changelog_order_and_published_content_protection():
     assert merge_sections(merged, {"3.0.1": "- Patch."}) == merged
     with pytest.raises(ValueError, match="published"):
         merge_sections(merged, {"3.1.0": "- Rewritten."})
+
+
+def test_prerelease_cli_and_changelog_ordering():
+    args = parser().parse_args([
+        "prepare", "--base-version", "1.7.1", "--release-version", "2.0.0-preview1",
+    ])
+    assert args.base_version == "1.7.1"
+    assert args.release_version == "2.0.0-preview1"
+    versions = ["2.0.0", "2.0.0-preview.10", "2.0.0-preview.2", "1.7.1"]
+    text = merge_sections("# Change Log\n", {version: f"- {version}" for version in reversed(versions)})
+    positions = [text.index(f"## {version}\n") for version in versions]
+    assert positions == sorted(positions)
+
+
+def test_prerelease_can_be_the_base_for_a_final_release(history):
+    repo, _ = history
+    commit(repo, f"{PACKAGE_PATH}/package.json", '{"version":"4.0.0-preview1"}', "chore: Preview")
+    commit(repo, CHANGELOG_PATH, "# Change Log\n\n## 4.0.0-preview1\n\n- Preview.\n", "chore: Notes")
+    repo.create_tag("4.0.0-preview1")
+    change = direct_change(repo)
+    plan = select_release(repo, repo.head.commit.hexsha, (change,), release_version="4.0.0")
+    assert plan.base_version == "4.0.0-preview1"
+    assert plan.version == "4.0.0"
 
 
 def test_merge_history_keeps_pr_changes_once_and_does_not_push_merges(history):

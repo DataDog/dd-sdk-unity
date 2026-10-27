@@ -145,7 +145,7 @@ def reviewed_pull(
     """Require a merged preparation PR for this exact candidate branch and commit."""
     version = ref.removeprefix("release/")
     if not re.fullmatch(VERSION_PATTERN, version) or ref != f"release/{version}":
-        raise ValueError("Expected a release/X.Y.Z candidate branch")
+        raise ValueError("Expected a release/<SemVer> candidate branch")
     pulls = [
         pull
         for pull in source.repository.get_pulls(state="closed", base=ref)

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -27,14 +28,21 @@ namespace Datadog.Unity
         private GameObject _performanceTrackerObject;
 
         /// <summary>
-        /// Gets the version of the SDK reported to Datadog. This strips the final (revision) part of the version.
-        /// to be more compliant with "SemVer" standards.
+        /// Gets the full semantic version of the SDK reported to Datadog.
         /// </summary>
         public static string SdkVersion
         {
             get
             {
-                var version = typeof(DatadogSdk).Assembly.GetName().Version;
+                var assembly = typeof(DatadogSdk).Assembly;
+                var informationalVersion = assembly
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                if (!string.IsNullOrEmpty(informationalVersion))
+                {
+                    return informationalVersion;
+                }
+
+                var version = assembly.GetName().Version;
                 return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
             }
         }

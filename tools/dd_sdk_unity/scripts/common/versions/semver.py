@@ -8,6 +8,15 @@ Utility code for semantic version numbers.
 import re
 from dataclasses import dataclass
 from enum import Enum
+from functools import total_ordering
+
+_NUMBER = r"(?:0|[1-9][0-9]*)"
+_PRERELEASE = rf"(?:{_NUMBER}|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+VERSION_PATTERN = (
+    rf"{_NUMBER}\.{_NUMBER}\.{_NUMBER}"
+    rf"(?:-{_PRERELEASE}(?:\.{_PRERELEASE})*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
 
 
 class VersionBump(Enum):
@@ -26,33 +35,55 @@ class VersionBump(Enum):
         return self.value < other.value
 
 
+@total_ordering
 @dataclass
 class Version:
-    """
-    Represents a release of a Datadog SDK, which is canonically formatted '%d.%d.%d';
-    no additional suffixes, no 'v' prefix, e.g. '1.3.2'. This format is used in exactly
-    this format for both git tags and GitHub releases.
-    """
+    """A SemVer version; build metadata is preserved but ignored in comparisons."""
     major: int
     minor: int
     patch: int
+    prerelease: str = ""
+    build: str = ""
+
+    @property
+    def core(self) -> str:
+        return f'{self.major:d}.{self.minor:d}.{self.patch:d}'
 
     def __str__(self) -> str:
-        return f'{self.major:d}.{self.minor:d}.{self.patch:d}'
+        suffix = f"-{self.prerelease}" if self.prerelease else ""
+        metadata = f"+{self.build}" if self.build else ""
+        return f"{self.core}{suffix}{metadata}"
     
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return str(self) == other
         if not isinstance(other, Version):
             return NotImplemented
-        lhs = (self.major, self.minor, self.patch)
-        rhs = (other.major, other.minor, other.patch)
+        lhs = (self.major, self.minor, self.patch, self.prerelease)
+        rhs = (other.major, other.minor, other.patch, other.prerelease)
         return lhs == rhs
 
     def __lt__(self, other: Version) -> bool:
         lhs = (self.major, self.minor, self.patch)
         rhs = (other.major, other.minor, other.patch)
-        return lhs < rhs
+        if lhs != rhs:
+            return lhs < rhs
+        if not self.prerelease:
+            return False
+        if not other.prerelease:
+            return True
+
+        left = self.prerelease.split(".")
+        right = other.prerelease.split(".")
+        for first, second in zip(left, right):
+            if first == second:
+                continue
+            if first.isdigit() and second.isdigit():
+                return int(first) < int(second)
+            if first.isdigit() != second.isdigit():
+                return first.isdigit()
+            return first < second
+        return len(left) < len(right)
     
     def bump(self, type: VersionBump) -> Version:
         if type == VersionBump.MAJOR:
@@ -65,11 +96,15 @@ class Version:
 
     @classmethod
     def parse(cls, s: str) -> Version:
-        match = re.match(r'^([0-9]+)\.([0-9]+)\.([0-9]+)$', s)
-        if not match:
-            raise ValueError(f'Unexpected format for version string: {s}')
+        if not re.fullmatch(VERSION_PATTERN, s):
+            raise ValueError(f'Expected a SemVer version, got {s!r}')
+        version, _, build = s.partition("+")
+        core, _, prerelease = version.partition("-")
+        major, minor, patch = core.split(".")
         return cls(
-            major=int(match.group(1)),
-            minor=int(match.group(2)),
-            patch=int(match.group(3)),
+            major=int(major),
+            minor=int(minor),
+            patch=int(patch),
+            prerelease=prerelease,
+            build=build,
         )

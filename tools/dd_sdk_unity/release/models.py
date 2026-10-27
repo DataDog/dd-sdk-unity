@@ -8,7 +8,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-VERSION_PATTERN = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+from dd_sdk_unity.scripts.common.versions.semver import VERSION_PATTERN
+
 VersionString = Annotated[str, Field(pattern=rf"^{VERSION_PATTERN}$")]
 CommitSha = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
