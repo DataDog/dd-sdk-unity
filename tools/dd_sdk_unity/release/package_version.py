@@ -6,6 +6,7 @@
 Utility code for modifying package.json, which specifies the version number used for
 the Datadog.Unity package in Unity Package Manager (UPM).
 """
+import io
 import json
 from typing import IO
 
@@ -23,3 +24,14 @@ def _modify_package_json_impl(infile: IO[str], new_version: Version) -> str:
     json_obj = json.load(infile)
     json_obj['version'] = str(new_version)
     return json.dumps(json_obj, indent=2) + '\n'
+
+
+def merge_package_version(development_json: str, incoming_version: str) -> str:
+    """Advance only the version field; preserve a higher development version/fields."""
+    package = json.loads(development_json)
+    if not isinstance(package, dict) or not isinstance(package.get("version"), str):
+        raise TypeError("Development package.json must contain a string version")
+    incoming = Version.parse(incoming_version)
+    if not Version.parse(package["version"]) < incoming:
+        return development_json
+    return _modify_package_json_impl(io.StringIO(development_json), incoming)
