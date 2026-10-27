@@ -1,0 +1,79 @@
+lint-and-test:
+  stage: unit-test
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  script:
+    - !reference [.shared, init-scripts]
+    - ruff check
+    - ty check
+    - pytest --junitxml=pytest-results.xml
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: pytest-results.xml
+
+unit-test:
+  extends: .needs-unity-license
+  stage: unit-test
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: '2022.3'
+        PROJECT_PATH: 'samples/Datadog Sample'
+      - UNITY_VERSION_PARTIAL: '6000.2'
+        PROJECT_PATH: 'test_scaffolds/6000 LTS'
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - dd-unity-unit-test --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: unit-test*.xml
+  retry:
+    max: 2
+    exit_codes:
+      # Retry Unity CLI operation failures (6) and unavailable services (7).
+      - 6
+      - 7
+
+integration-test-ios:
+  extends: .needs-unity-license
+  stage: integration-test
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  timeout: 1h
+  variables:
+    # Reserve time for cleanup and artifact upload before the job limit.
+    RUNNER_SCRIPT_TIMEOUT: 20m
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: '2022.3'
+        PROJECT_PATH: 'samples/Datadog Sample'
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - xcodebuild -version
+    - xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
+    - dd-unity-ios-xcframework stage
+    - dd-unity-integration-test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: integration-test-ios.xml
+    paths:
+      - integration-test-ios.xml
+      - integration-test-ios*.log
+      - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+  retry:
+    max: 2
+    exit_codes:
+      # Integration tests invoke the Editor directly rather than Unity CLI.
+      - 198

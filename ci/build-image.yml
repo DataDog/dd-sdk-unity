@@ -1,0 +1,14 @@
+ci-image:
+  stage: ci-image
+  interruptible: false
+  when: manual
+  except: [tags, schedules]
+  tags: ["arch:amd64"]
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:24.0.4-jammy
+  id_tokens:
+    DDSIGN_ID_TOKEN:
+      aud: image-integrity
+  script:
+    - METADATA_FILE=$(mktemp)
+    - docker buildx build --platform linux/amd64 --tag "$LINUX_IMAGE" --label target=build -f ci/Dockerfile.gitlab --push --metadata-file "$METADATA_FILE" .
+    - ddsign sign "$LINUX_IMAGE" --docker-metadata-file "$METADATA_FILE"
