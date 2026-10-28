@@ -6,6 +6,43 @@
 * **Breaking:** `SetUserInfo` now requires a non-null `id`. Calls with a null `id` are rejected with a warning log.
 * Fixed Android builds on Unity 2022 and older: `androidx.core 1.15.0+` ships Java 21 bytecode that D8 in AGP 7.x cannot process; the Gradle post-processor now pins `androidx.core` to 1.13.1 in the root build.gradle for affected Unity versions.
 
+## 2.0.0-preivew.1
+
+### Breaking Changes
+
+- The v3 native libraries change the `SetUserInfo` contract, so existing calls may need updating.
+
+### Features
+
+- The SDK no longer requires EDM4U to resolve native dependencies: iOS dependencies are bundled as a vendored XCFramework, and Android dependencies are added to Gradle during builds.
+- Flag details expose assignment allocation keys through `FlagDetails.AllocationKey` and `FlagDetails.Metadata` (`allocationKey`), and OpenFeature resolution details include this metadata.
+- Unity SDK releases support SemVer prerelease versions, and telemetry reports the full version, including prerelease labels.
+
+### Fixes
+
+- Test-only .NET assemblies in the 2021 scaffold are marked as Editor-only, preventing Unity from including them in game builds.
+
+### Native SDK updates
+
+- iOS SDK: 2.30.1 → [3.11.1](https://github.com/DataDog/dd-sdk-ios/releases/tag/3.11.1).
+  - Malformed RUM attributes are skipped individually instead of causing the entire event to be dropped, with clear errors logged.
+  - Malformed log attributes are skipped individually instead of causing the entire log to be dropped, with clear errors logged.
+  - Log requests include service and SDK version tags.
+  - A logger race condition is fixed.
+  - Log events report corrected device types.
+  - Crash reporting avoids crashes when native exception handling functions are swapped.
+  - Crash reporting fixes app-hang backtrace generation.
+  - Crash reporting fixes C-string conversion in crash context injection.
+  - Logs no longer report fatal errors.
+- Android SDK: 2.26.3 → [3.10.0](https://github.com/DataDog/dd-sdk-android/releases/tag/3.10.0).
+  - RUM session sampling is deterministic, so sessions are selected consistently for a given sampling rate.
+  - RUM no longer sends context for events when the session ID is null.
+  - The Android NDK module fixes memory corruption that could affect Unity apps.
+  - RUM resource duration breakdowns are reported correctly.
+  - Fatal errors are sent to RUM only, rather than also being sent to Logs.
+  - Logs can include anonymous user IDs, and log tags include the service name.
+  - RUM no longer starts a new session solely to report a Time to Initial Display (TTID) event.
+
 ## 1.7.1
 
 * Setting `VitalsUpdateFrequency` to `None` now properly takes effect in iOS builds.
