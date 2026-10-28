@@ -21,6 +21,7 @@ dependencies = [
     "pytest==9.1.1",
     "ruff==0.17.0",
     "ty==0.0.88",
+    "playwright==1.64.1",
 ]
 
 [project.scripts]
@@ -42,7 +43,7 @@ packages = ["dd_sdk_unity"]
 package-dir = {"" = "tools"}
 
 [tool.pytest.ini_options]
-testpaths = ["tools/dd_sdk_unity/scripts", "tools/dd_sdk_unity/release"]
+testpaths = ["tools/dd_sdk_unity/scripts", "tools/dd_sdk_unity/release", "tools/dd_sdk_unity/tests"]
 
 [tool.ruff]
 line-length = 100

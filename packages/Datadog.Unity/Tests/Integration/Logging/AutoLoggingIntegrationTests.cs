@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Datadog.Unity.Tests.Integration;
 using NUnit.Framework;
 using UnityEngine;
@@ -31,25 +32,25 @@ namespace Datadog.Unity.Tests.Integration.Logging
             var logs = new List<LogDecoder>();
             yield return mockServerHelper.PollRequests(timeoutTime, (serverLog) =>
             {
-                logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 3;
+                // The Browser SDK can also send automatic logs from earlier scenarios.
+                logs = LogDecoder.LogsFromMockServer(serverLog)
+                    .Where(log => log.Message == "Testing logging" || log.Message == "Test warning")
+                    .ToList();
+                return logs.Count >= 2;
             });
 
-            Assert.AreEqual(3, logs.Count);
+            Assert.AreEqual(2, logs.Count);
 
-            // The first log is from Unity about `ignoreFailingMessages` being set and can be ignored
-            // All other logs have the attribute set
-            for (int i = 1; i < logs.Count; ++i)
+            foreach (var log in logs)
             {
-                var log = logs[i];
                 Assert.AreEqual("attribute_value", (string)log.RawJson["attribute_1"]);
             }
 
-            var infoLog = logs[1];
+            var infoLog = logs[0];
             Assert.AreEqual("info", infoLog.Status);
             Assert.AreEqual("Testing logging", infoLog.Message);
 
-            var warnLog = logs[2];
+            var warnLog = logs[1];
             Assert.AreEqual("warn", warnLog.Status);
             Assert.AreEqual("Test warning", warnLog.Message);
         }

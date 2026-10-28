@@ -4,12 +4,13 @@
 
 #if UNITY_EDITOR
 using System;
+using System.IO;
 using System.Linq;
+using Datadog.Unity.Tests.Integration;
 using UnityEditor;
 using UnityEditor.TestTools;
 using UnityEngine;
 using UnityEngine.TestTools;
-using Datadog.Unity.Tests.Integration;
 
 [assembly: TestPlayerBuildModifier(typeof(IntegrationTestSplitBuild))]
 [assembly: PostBuildCleanup(typeof(IntegrationTestSplitBuild))]
@@ -26,20 +27,30 @@ namespace Datadog.Unity.Tests.Integration
 
         public BuildPlayerOptions ModifyOptions(BuildPlayerOptions options)
         {
-            if (!Application.isBatchMode || options.target != BuildTarget.iOS ||
-                PlayerSettings.iOS.sdkVersion != iOSSdkVersion.SimulatorSDK)
+            var webgl = options.target == BuildTarget.WebGL;
+            var iosSimulator = options.target == BuildTarget.iOS &&
+                PlayerSettings.iOS.sdkVersion == iOSSdkVersion.SimulatorSDK;
+            if (!Application.isBatchMode || (!webgl && !iosSimulator))
             {
                 return options;
             }
 
-            // CoreAudio initialization can abort in virtualized iOS Simulators.
+            // Split test players do not need audio; CoreAudio can abort in virtualized iOS Simulators.
             _originalAudioDisabled = SetAudioDisabled(true);
+
+            if (webgl)
+            {
+                // UTF appends an executable name; WebGL takes the output directory.
+                options.locationPathName = Path.GetDirectoryName(options.locationPathName);
+            }
+
             options.options &= ~(BuildOptions.AutoRunPlayer | BuildOptions.ConnectToHost);
-            // Include the file result writer only in this exported player.
+
+            // Include the runtime result callback only in this exported player.
             options.extraScriptingDefines = (options.extraScriptingDefines ?? Array.Empty<string>())
                 .Concat(new[] { "DATADOG_INTEGRATION_SPLIT" }).Distinct().ToArray();
             _exporting = true;
-            Debug.Log($"Exporting integration test player without launching Xcode: {options.locationPathName}");
+            Debug.Log($"Exporting integration test player without launching it: {options.locationPathName}");
             return options;
         }
 
@@ -62,10 +73,12 @@ namespace Datadog.Unity.Tests.Integration
             {
                 return;
             }
+
             // UTF skips restoring its temporary engine-stripping change when AutoRunPlayer is cleared.
             PlayerSettings.stripEngineCode = OriginalStripping;
             SetAudioDisabled(_originalAudioDisabled);
             _exporting = false;
+
             // Let every asset cleanup finish before closing the batch Editor.
             EditorApplication.delayCall += () => EditorApplication.Exit(0);
         }

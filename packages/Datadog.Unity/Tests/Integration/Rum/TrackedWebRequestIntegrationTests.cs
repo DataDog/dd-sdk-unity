@@ -116,7 +116,12 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 Debug.Log($"Web request failed: {firstPartyGetRequest.error}");
             }
 
+#if UNITY_WEBGL
+            // Browser views close when a successor starts; StopView is a no-op.
+            rum?.StartView($"{ViewKey}-complete");
+#else
             rum?.StopView(ViewKey);
+#endif
 
             IsTestFinished = true;
         }

@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 import uuid
-import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from pathlib import Path
 from typing import NotRequired, TypedDict
@@ -19,6 +18,7 @@ from typing import NotRequired, TypedDict
 from dd_sdk_unity.scripts.common.apple.xcode import run_xcodebuild
 from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.shell import stop_process
+from dd_sdk_unity.scripts.common.xslt import collect_results
 
 RESULT_FILENAME = 'nunit-integration-test-ios.xml'
 PLAYER_RESULTS_TIMEOUT = 600
@@ -66,18 +66,6 @@ def _simulator_type(runtimes: list[_SimulatorRuntime], devices: dict[str, list[_
         if phones:
             return runtime['identifier'], phones[0]['deviceTypeIdentifier']
     raise RuntimeError('No available iOS runtime with an iPhone device type; check simctl list devices available')
-
-
-def collect_results(source: str | Path, destination: str | Path) -> None:
-    """Wrap Unity's runtime suite in a NUnit <test-run> root for JUnit conversion."""
-    root = ET.parse(source).getroot()
-    if root.tag == 'test-suite':
-        run = ET.Element('test-run', dict(root.attrib))
-        run.append(root)
-        root = run
-    if root.tag != 'test-run' or not root.findall('.//test-case'):
-        raise RuntimeError('Expected a Simulator NUnit test-run document containing at least one test case')
-    ET.ElementTree(root).write(destination, encoding='utf-8', xml_declaration=True)
 
 
 def _print_player_progress(reader: Iterable[str]) -> None:

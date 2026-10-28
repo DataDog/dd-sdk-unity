@@ -5,6 +5,9 @@
 #if DATADOG_INTEGRATION_SPLIT
 using System;
 using System.IO;
+#if UNITY_WEBGL
+using System.Runtime.InteropServices;
+#endif
 using System.Xml;
 using NUnit.Framework.Interfaces;
 using UnityEngine;
@@ -37,6 +40,17 @@ namespace Datadog.Unity.Tests.Integration
 
         public void RunFinished(ITestResult result)
         {
+#if UNITY_WEBGL
+            using (var text = new StringWriter())
+            {
+                using (var writer = XmlWriter.Create(text, new XmlWriterSettings { OmitXmlDeclaration = true }))
+                {
+                    result.ToXml(true).WriteTo(writer);
+                }
+
+                DDTests_SetResult(text.ToString());
+            }
+#else
             var path = Path.Combine(Application.persistentDataPath, "nunit-integration-test-ios.xml");
             var temporary = path + ".tmp";
             using (var writer = XmlWriter.Create(temporary, new XmlWriterSettings { Indent = true }))
@@ -48,10 +62,18 @@ namespace Datadog.Unity.Tests.Integration
                 File.Delete(path);
             }
             File.Move(temporary, path);
+#endif
             Console.WriteLine($"[Integration tests] Finished: {result.PassCount} passed, {result.FailCount} failed, {result.SkipCount} skipped");
+#if !UNITY_WEBGL
             Console.WriteLine($"[Integration tests] NUnit results written to: {path}");
             Application.Quit(result.FailCount > 0 ? 1 : 0);
+#endif
         }
+
+#if UNITY_WEBGL
+        [DllImport("__Internal")]
+        private static extern void DDTests_SetResult(string xml);
+#endif
     }
 }
 #endif
