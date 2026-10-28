@@ -36,7 +36,7 @@ namespace Datadog.Unity.Rum
                 .Select(x => new FirstPartyHost(x.Host, x.TracingHeaderType))
                 .ToList();
             _traceContextInjection = options.TraceContextInjection;
-            _headerFilter = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders);
+            _headerFilter = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders, options.IncludeDefaultHeaders);
         }
 
         /// <summary>

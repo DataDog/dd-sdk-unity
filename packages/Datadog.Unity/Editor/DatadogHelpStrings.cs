@@ -90,11 +90,15 @@ namespace Datadog.Unity.Editor
             "To enable distributed tracing, you must specify which hosts are considered “first party” and have trace information injected.";
 
         public const string TrackResourceHeadersTooltip =
-            "Capture HTTP request and response headers on RUM resources tracked through DatadogTrackedWebRequest. 'Custom' " +
-            "captures the headers you list. Headers whose names suggest sensitive data (tokens, cookies, keys, ...) are never captured.";
+            "Capture HTTP request and response headers on RUM resources tracked through DatadogTrackedWebRequest. 'Defaults' " +
+            "captures a set of safe headers (such as cache-control and content-type); 'Custom' captures the headers you list. " +
+            "Headers whose names suggest sensitive data (tokens, cookies, keys, ...) are never captured.";
 
         public const string CustomResourceHeadersTooltip =
             "Header names to capture, matched exactly and case-insensitively on both the request and the response.";
+
+        public const string IncludeDefaultHeadersTooltip =
+            "Also capture the default headers (such as cache-control and content-type) in addition to the headers you list.";
 
         public const string CustomEndpointTooltip =
             "Send data to a custom endpoint instead of the default Datadog endpoint. This is useful for proxying data through a custom server.";

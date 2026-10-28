@@ -78,6 +78,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(TimeseriesTypes.Default, options.TimeseriesTypes);
             Assert.AreEqual(TrackResourceHeadersMode.Disabled, options.TrackResourceHeaders);
             Assert.IsEmpty(options.CustomResourceHeaders);
+            Assert.IsFalse(options.IncludeDefaultHeaders);
         }
     }
 }

@@ -97,17 +97,19 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.IsNotNull(visit, $"No RUM view received for {scenario.component.ViewKey}");
             var resource = visit.ResourceEvents.First(r => r.Url == TestTrackedWebRequestHeadersMonoBehavior.HeadersUrl);
 
-            // Integration settings capture x-request-id, etag and x-api-key, which is sensitive and must be dropped
+            // Integration settings capture the default headers plus x-request-id, etag and x-api-key, which is
+            // sensitive and must be dropped
             var requestHeaders = resource.RequestHeaders;
             Assert.IsNotNull(requestHeaders, "resource.request.headers is missing");
+            Assert.AreEqual("no-cache", requestHeaders["cache-control"]?.Value<string>());
             Assert.AreEqual("request-abc", requestHeaders["x-request-id"]?.Value<string>());
             Assert.IsNull(requestHeaders["x-api-key"], "Sensitive request headers must not be captured");
-            Assert.IsNull(requestHeaders["cache-control"]);
 
             var responseHeaders = resource.ResponseHeaders;
             Assert.IsNotNull(responseHeaders, "resource.response.headers is missing");
             Assert.AreEqual("\"poc-etag\"", responseHeaders["etag"]?.Value<string>());
             Assert.AreEqual("response-abc", responseHeaders["x-request-id"]?.Value<string>());
+            Assert.IsNotNull(responseHeaders["content-type"]);
             Assert.IsNull(responseHeaders["x-not-listed"]);
             foreach (var header in responseHeaders.Properties())
             {
