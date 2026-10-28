@@ -88,3 +88,15 @@ def test_client_owns_auth_lazy_setup_and_cleanup(monkeypatch, token):
         raise RuntimeError("operation failed")
     client.get_repo.assert_called_once_with("example/sdk")
     client.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(("version", "prerelease"), [
+    ("2.0.0", False), ("2.0.0-preview1", True),
+    ("2.0.0-preview.1+build.5", True), ("2.0.0+build.5", False),
+])
+def test_github_release_marks_prereleases(repository, version, prerelease):
+    github.GitHubOperations(repository.full_name).create_release(version, "a" * 40, "Release notes")
+    repository.create_git_release.assert_called_once_with(
+        tag=version, name=version, message="Release notes", target_commitish="a" * 40,
+        prerelease=prerelease,
+    )

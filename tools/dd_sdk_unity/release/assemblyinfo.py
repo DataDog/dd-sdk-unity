@@ -22,7 +22,11 @@ def _modify_assemblyinfo_impl(infile: IO[str], new_version: Version) -> str:
     lines: list[str] = []
     for line in infile.read().splitlines():
         if line.startswith('[assembly: AssemblyVersion'):
-            lines.append(f'[assembly: AssemblyVersion("{new_version}")]')
+            lines.append(f'[assembly: AssemblyVersion("{new_version.core}")]')
+            lines.append(f'[assembly: AssemblyInformationalVersion("{new_version}")]')
+        elif line.startswith('[assembly: AssemblyInformationalVersion'):
+            # Drop the old value; the AssemblyVersion branch writes its replacement.
+            continue
         else:
             lines.append(line)
     return '\n'.join(lines) + '\n'

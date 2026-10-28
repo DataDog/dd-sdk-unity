@@ -18,6 +18,7 @@ from dd_sdk_unity.scripts.common.git import GitOperations
 from dd_sdk_unity.scripts.common.github import GitHubOperations
 from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.versions.sdkversions import SdkVersionTable
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 from . import ANDROID_PIN_PATH, IOS_PIN_PATH, NATIVE_HISTORY_PATH
 from .changelog_prompts import (
@@ -37,10 +38,8 @@ CONVENTIONAL_TITLE = re.compile(
 HEADINGS = re.compile(rf"^## ({VERSION_PATTERN})\s*$", re.MULTILINE)
 
 
-def version_key(value: str) -> tuple[int, ...]:
-    if not re.fullmatch(VERSION_PATTERN, value):
-        raise ValueError(f"Expected an exact X.Y.Z version, got {value!r}")
-    return tuple(int(part) for part in value.split("."))
+def version_key(value: str) -> Version:
+    return Version.parse(value)
 
 
 def classify(title: str, body: str = "", **fields) -> Change:

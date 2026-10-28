@@ -21,6 +21,7 @@ from git.objects import Blob, Tree
 from dd_sdk_unity.scripts.common.git import GitOperations
 from dd_sdk_unity.scripts.common.github import GitHubOperations
 from dd_sdk_unity.scripts.common.log import get_default_logger
+from dd_sdk_unity.scripts.common.versions.semver import Version
 
 from . import ANDROID_PIN_PATH, IOS_PIN_PATH, PACKAGE_PATH
 from .models import AndroidPin, IosPin
@@ -229,5 +230,8 @@ def install(payload: Path, checkout: Path) -> None:
 def check_versions(payload: Path, version: str) -> None:
     if json.loads((payload / "package.json").read_text())["version"] != version:
         raise ValueError("Assembled package version differs from the release plan")
-    if f'AssemblyVersion("{version}")' not in (payload / "Runtime/AssemblyInfo.cs").read_text():
+    assembly = (payload / "Runtime/AssemblyInfo.cs").read_text()
+    if f'AssemblyVersion("{Version.parse(version).core}")' not in assembly:
         raise ValueError("Assembled assembly version differs from the release plan")
+    if f'AssemblyInformationalVersion("{version}")' not in assembly:
+        raise ValueError("Assembled informational version differs from the release plan")
