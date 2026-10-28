@@ -92,7 +92,17 @@ func DatadogRum_StopResource(key: CString?, resourceType: CString?, statusCode: 
     if let key = decodeCString(cString: key),
        let resourceType = decodeResourceType(fromCString: resourceType) {
 
-        let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+        var decodedAttributes = decodeJsonAttributes(fromCString: attributes)
+
+        // The native SDK reads captured headers as plain `[String: String]` values, but `decodeJsonAttributes` wraps
+        // nested JSON objects, which the native SDK cannot decode. Pass the header maps through unwrapped.
+        if let rawAttributes = decodeJsonCString(cString: attributes) {
+            for key in ["_dd.request_headers", "_dd.response_headers"] {
+                if let headers = rawAttributes[key] as? [String: String] {
+                    decodedAttributes[key] = headers
+                }
+            }
+        }
 
         // Using -1 as a special value to mean nil, as passing optional ints in C# is difficult.
         let statusCode = statusCode == -1 ? nil : statusCode
