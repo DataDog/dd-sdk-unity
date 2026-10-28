@@ -25,20 +25,56 @@ namespace Datadog.Unity.Rum
         public const string RequestHeadersAttribute = "_dd.request_headers";
         public const string ResponseHeadersAttribute = "_dd.response_headers";
 
+        internal static readonly string[] DefaultRequestHeaders =
+        {
+            "cache-control",
+            "content-type",
+        };
+
+        internal static readonly string[] DefaultResponseHeaders =
+        {
+            "cache-control",
+            "etag",
+            "age",
+            "expires",
+            "content-type",
+            "content-encoding",
+            "content-length",
+            "vary",
+            "server-timing",
+            "x-cache",
+            "cf-cache-status",
+            "x-vercel-cache",
+        };
+
         private static readonly Regex SensitiveHeaderPattern = new Regex(
             "(token|cookie|secret|authorization|password|credential|bearer|(api|secret|access|app).?key|forwarded|real.?ip|connecting.?ip|client.?ip)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private readonly List<string> _headerNames = new List<string>();
+        private readonly TrackResourceHeadersMode _mode;
+        private readonly List<string> _requestHeaderNames = new List<string>();
+        private readonly List<string> _responseHeaderNames = new List<string>();
 
-        public ResourceHeaderFilter(TrackResourceHeadersMode mode, IEnumerable<string> customHeaders = null)
+        public ResourceHeaderFilter(TrackResourceHeadersMode mode, IEnumerable<string> customHeaders = null, bool includeDefaultHeaders = false)
         {
+            _mode = mode;
+            if (mode == TrackResourceHeadersMode.Disabled)
+            {
+                return;
+            }
+
+            // Defaults are listed first so that they take priority when the size budget runs out
+            if (mode == TrackResourceHeadersMode.Defaults || includeDefaultHeaders)
+            {
+                _requestHeaderNames.AddRange(DefaultRequestHeaders);
+                _responseHeaderNames.AddRange(DefaultResponseHeaders);
+            }
+
             if (mode != TrackResourceHeadersMode.Custom || customHeaders == null)
             {
                 return;
             }
 
-            var seen = new HashSet<string>();
             foreach (var name in customHeaders)
             {
                 if (string.IsNullOrWhiteSpace(name))
@@ -48,14 +84,24 @@ namespace Datadog.Unity.Rum
 
                 // Sensitive headers are never captured, even when explicitly listed
                 var lowercased = name.Trim().ToLowerInvariant();
-                if (!SensitiveHeaderPattern.IsMatch(lowercased) && seen.Add(lowercased))
+                if (SensitiveHeaderPattern.IsMatch(lowercased))
                 {
-                    _headerNames.Add(lowercased);
+                    continue;
+                }
+
+                if (!_requestHeaderNames.Contains(lowercased))
+                {
+                    _requestHeaderNames.Add(lowercased);
+                }
+
+                if (!_responseHeaderNames.Contains(lowercased))
+                {
+                    _responseHeaderNames.Add(lowercased);
                 }
             }
         }
 
-        public bool IsEnabled => _headerNames.Count > 0;
+        public bool IsEnabled => _requestHeaderNames.Count > 0 || _responseHeaderNames.Count > 0;
 
         /// <summary>
         /// Converts the configuration to the Browser SDK's `trackResourceHeaders` init option, used on WebGL where the
@@ -69,7 +115,15 @@ namespace Datadog.Unity.Rum
                 return null;
             }
 
-            return _headerNames.Select(name => new Dictionary<string, object> { { "name", name } }).ToList();
+            if (_mode == TrackResourceHeadersMode.Defaults)
+            {
+                return true;
+            }
+
+            // The Browser SDK cannot combine its own defaults with custom matchers, so defaults are listed by name
+            return _requestHeaderNames.Union(_responseHeaderNames)
+                .Select(name => new Dictionary<string, object> { { "name", name } })
+                .ToList();
         }
 
         /// <summary>
@@ -84,7 +138,7 @@ namespace Datadog.Unity.Rum
                 return null;
             }
 
-            return Filter(getHeader, logger);
+            return Filter(_requestHeaderNames, getHeader, logger);
         }
 
         /// <summary>
@@ -107,7 +161,7 @@ namespace Datadog.Unity.Rum
                 }
             }
 
-            return Filter(name => normalized.TryGetValue(name, out var value) ? value : null, logger);
+            return Filter(_responseHeaderNames, name => normalized.TryGetValue(name, out var value) ? value : null, logger);
         }
 
         internal static string TruncateToBytes(string value, int maxBytes)
@@ -136,13 +190,13 @@ namespace Datadog.Unity.Rum
             return value.Substring(0, end);
         }
 
-        private Dictionary<string, object> Filter(Func<string, string> getHeader, IInternalLogger logger)
+        private static Dictionary<string, object> Filter(List<string> names, Func<string, string> getHeader, IInternalLogger logger)
         {
             // The Android bridge only converts Dictionary<string, object> to a Java map
             var result = new Dictionary<string, object>();
             var totalBytes = 0;
 
-            foreach (var name in _headerNames)
+            foreach (var name in names)
             {
                 if (result.Count >= MaxHeaderCount)
                 {

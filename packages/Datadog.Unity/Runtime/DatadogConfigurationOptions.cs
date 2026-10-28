@@ -204,7 +204,14 @@ namespace Datadog.Unity
         Disabled = 0,
 
         /// <summary>
-        /// Capture the headers named in <see cref="DatadogConfigurationOptions.CustomResourceHeaders"/>.
+        /// Capture the default set of request and response headers.
+        /// </summary>
+        [InspectorName("Defaults")]
+        Defaults = 1,
+
+        /// <summary>
+        /// Capture the headers named in <see cref="DatadogConfigurationOptions.CustomResourceHeaders"/>, plus the
+        /// default headers if <see cref="DatadogConfigurationOptions.IncludeDefaultHeaders"/> is set.
         /// </summary>
         [InspectorName("Custom")]
         Custom = 2,
@@ -269,6 +276,7 @@ namespace Datadog.Unity
         public float NonFatalAppHangThreshold = 0.25f;
         public TrackResourceHeadersMode TrackResourceHeaders = TrackResourceHeadersMode.Disabled;
         public List<string> CustomResourceHeaders = new ();
+        public bool IncludeDefaultHeaders = false;
 
         // Advanced RUM
         public float TelemetrySampleRate;

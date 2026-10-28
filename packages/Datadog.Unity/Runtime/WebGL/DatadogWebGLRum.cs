@@ -57,7 +57,7 @@ namespace Datadog.Unity.WebGL
                 allowedTracingUrls = allowedTracingUrls,
                 traceContextInjection = options.TraceContextInjection.ToWebValue(),
                 source = "unity",
-                trackResourceHeaders = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders).ToBrowserSdkOption(),
+                trackResourceHeaders = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders, options.IncludeDefaultHeaders).ToBrowserSdkOption(),
             };
 
             // Header capture is an experimental feature in Browser SDK v6

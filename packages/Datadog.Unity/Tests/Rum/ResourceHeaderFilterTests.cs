@@ -110,16 +110,64 @@ namespace Datadog.Unity.Rum.Tests
         {
             // Given
             var custom = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, new[] { "X-Request-Id", "authorization" });
+            var customWithDefaults = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, new[] { "x-request-id" }, includeDefaultHeaders: true);
+            var defaults = new ResourceHeaderFilter(TrackResourceHeadersMode.Defaults);
             var disabled = new ResourceHeaderFilter(TrackResourceHeadersMode.Disabled, new[] { "x-request-id" });
 
             // When
             var customOption = (List<Dictionary<string, object>>)custom.ToBrowserSdkOption();
+            var customWithDefaultsOption = (List<Dictionary<string, object>>)customWithDefaults.ToBrowserSdkOption();
+            var defaultsOption = defaults.ToBrowserSdkOption();
             var disabledOption = disabled.ToBrowserSdkOption();
 
             // Then
             Assert.AreEqual(1, customOption.Count);
             Assert.AreEqual("x-request-id", customOption[0]["name"]);
+            // The Browser SDK cannot combine its defaults with custom matchers, so the defaults are listed by name
+            CollectionAssert.IsSupersetOf(customWithDefaultsOption.Select(matcher => matcher["name"]), new[] { "cache-control", "cf-cache-status", "x-request-id" });
+            Assert.AreEqual(true, defaultsOption);
             Assert.IsNull(disabledOption);
+        }
+
+        [Test]
+        public void DefaultsCaptureTheDefaultRequestAndResponseHeaders()
+        {
+            // Given
+            var filter = new ResourceHeaderFilter(TrackResourceHeadersMode.Defaults);
+            var defaultResponseHeaders = new[]
+            {
+                "cache-control", "etag", "age", "expires", "content-type", "content-encoding", "content-length", "vary",
+                "server-timing", "x-cache", "cf-cache-status", "x-vercel-cache",
+            };
+            var headers = defaultResponseHeaders.Append("x-request-id").ToDictionary(name => name, _ => "v");
+
+            // When
+            var request = filter.FilterRequestHeaders(name => headers.TryGetValue(name, out var value) ? value : null, null);
+            var response = filter.FilterResponseHeaders(headers, null);
+
+            // Then
+            CollectionAssert.AreEquivalent(new[] { "cache-control", "content-type" }, request.Keys);
+            CollectionAssert.AreEquivalent(defaultResponseHeaders, response.Keys);
+        }
+
+        [Test]
+        public void CustomCapturesTheDefaultHeadersFirstOnlyWhenIncluded()
+        {
+            // Given
+            // The custom headers alone fill the 2 KB budget
+            var bigNames = Enumerable.Range(0, 20).Select(i => $"x-big-{i:D2}").ToList();
+            var withDefaults = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, bigNames, includeDefaultHeaders: true);
+            var withoutDefaults = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, bigNames);
+            var headers = bigNames.ToDictionary(name => name, _ => new string('v', 128));
+            headers["etag"] = "\"1\"";
+
+            // When
+            var resultWithDefaults = withDefaults.FilterResponseHeaders(headers, null);
+            var resultWithoutDefaults = withoutDefaults.FilterResponseHeaders(headers, null);
+
+            // Then
+            Assert.AreEqual("\"1\"", resultWithDefaults["etag"]);
+            Assert.IsFalse(resultWithoutDefaults.ContainsKey("etag"));
         }
     }
 }
