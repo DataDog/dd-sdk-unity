@@ -831,6 +831,7 @@ def test_gateway_prompt_uses_luna_structured_responses(monkeypatch):
     request = post.call_args.kwargs
     assert request["headers"]["provider"] == "openai"
     assert request["json"]["model"] == "gpt-6-luna"
+    assert request["json"]["max_output_tokens"] == 8192
     assert request["json"]["input"] == [{"role": "user", "content": "Draft notes."}]
     assert request["json"]["text"]["format"] == {
         "type": "json_schema",

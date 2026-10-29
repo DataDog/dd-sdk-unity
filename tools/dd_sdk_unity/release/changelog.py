@@ -168,7 +168,7 @@ def gateway_prompt(text: str, schema: type[BaseModel]) -> BaseModel:
         },
         json={
             "model": "gpt-6-luna",
-            "max_output_tokens": 4096,
+            "max_output_tokens": 8192,
             "text": {
                 "format": {
                     "type": "json_schema",
