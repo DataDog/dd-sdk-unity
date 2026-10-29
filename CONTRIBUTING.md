@@ -188,6 +188,53 @@ To get started, open `samples/Datadog Sample` in Unity 2022.3, then open the sam
 [scripts]: ./tools/dd_sdk_unity/scripts/
 [package-root]: ./packages/Datadog.Unity/
 
+## Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for
+pull request titles and at least one non-merge commit describing the main change
+before requesting review:
+
+```text
+<type>[optional scope][!]: <description>
+```
+
+For example, use `feat(rum): add resource tracking`,
+`fix(ios): embed native frameworks`, or `docs: clarify test setup`.
+
+Use `feat:` for features and `fix:` for bug fixes. Use types such as `docs:`,
+`test:`, `ci:`, or `chore:` for other changes. Mark breaking changes with `!`
+and explain their impact in the PR description.
+
+Use the `infra` scope for Python tooling changes, for example
+`fix(infra): handle missing test results`.
+
+The release tooling groups related PRs and uses their titles and descriptions to
+generate changelog entries. Use the title to identify the change and its type,
+and the description to explain user-visible behavior and any migration steps.
+
+Review follow-up commits can use descriptive subjects without this format. The
+Conventional Commit does not need to be the last commit. For squash merges, ensure the
+resulting commit subject also uses the format; the PR title can supply it.
+
+Leave changelog entries to the release workflow.
+
+## Documentation and comments
+
+Keep documentation concise and describe how the code currently works. Put
+contributor workflows in this guide, SDK usage in the package documentation,
+and public API contracts in C# XML documentation. Use `<see cref="..."/>` to
+link API symbols.
+
+Comments should briefly explain behavior, intent, or a constraint that is not
+obvious from the code. Avoid restating the code or narrating its history with
+phrases such as "previously X, now Y" or "no longer does X". Describe changes
+and their rationale in the PR description.
+
+State behavior directly. Mention an alternative approach only when it explains
+a deliberate deviation from an obvious or standard approach. Document unsupported
+platforms, API limitations, and other constraints that callers need to use the SDK
+correctly.
+
 ## Running tests locally
 
 The Datadog SDK includes a suite of tests in [`packages/Datadog.Unity/Tests`][test-src]. All significant code changes to the SDK must have adequate test coverage.
