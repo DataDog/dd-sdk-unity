@@ -45,10 +45,9 @@ publish-release:
     - job: assemble-package
       artifacts: true
   script:
-    # Keep publication in dry-run mode until CI testing is complete.
     - source ci/release-auth.sh dd-sdk-unity
     - source ci/release-auth.sh unity-package
-    - dd-unity-release publish --dry-run
+    - dd-unity-release publish
 
 integrate-release:
   extends: .release-job
@@ -60,6 +59,5 @@ integrate-release:
     - job: publish-release
       artifacts: false
   script:
-    # Keep integration in dry-run mode until CI testing is complete.
     - source ci/release-auth.sh dd-sdk-unity
-    - dd-unity-release integrate --dry-run
+    - dd-unity-release integrate
