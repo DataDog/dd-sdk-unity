@@ -6,6 +6,7 @@
 
 import json
 import re
+from textwrap import dedent
 
 from github.PullRequest import PullRequest
 
@@ -118,7 +119,14 @@ def open_preparation(
             + "\n".join(f"- #{number}" for number in others)
         )
     changes = "\n\n".join(change_sections)
-    body = f"Prepare **{version}** with changes since **{plan.release.base_version}**.\n"
+    body = dedent(f"""\
+        Prepare **{version}** with changes since **{plan.release.base_version}**.
+
+        > If you need to modify this changelog, check out `{review_ref}` locally,
+        > edit `{CHANGELOG_PATH}`, then amend the preparation commit and push
+        > with `git push --force-with-lease`. Do not use GitHub's suggestion UI.
+        > **Never rebase this branch.**
+        """)
     native_deltas = [
         f"- **{sdk}**: `{previous[sdk]}` → `{current}`"
         for sdk, current in (("iOS", plan.ios.version), ("Android", plan.android.version))
