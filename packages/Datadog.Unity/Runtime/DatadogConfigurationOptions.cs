@@ -242,6 +242,10 @@ namespace Datadog.Unity
         public bool AutomaticSceneTracking;
         public VitalsUpdateFrequency VitalsUpdateFrequency = VitalsUpdateFrequency.Average;
         public float SessionSampleRate = 100.0f;
+        /// <summary>
+        /// Percentage of sampled RUM sessions whose first-party requests are traced. Requests in
+        /// one session share a decision. Without a session, sampling uses each request's trace ID.
+        /// </summary>
         public float TraceSampleRate = 20.0f;
         public TraceContextInjection TraceContextInjection = TraceContextInjection.All;
         public List<FirstPartyHostOption> FirstPartyHosts = new ();

@@ -25,6 +25,8 @@ namespace Datadog.Unity
         private DatadogWorker _worker;
         private IInternalLogger _internalLogger = new PassThroughInternalLogger();
         private ResourceTrackingHelper _resourceTrackingHelper;
+        private IRumContextProvider _rumContextProvider;
+
         private GameObject _performanceTrackerObject;
 
         /// <summary>
@@ -82,6 +84,13 @@ namespace Datadog.Unity
         /// trace context into requests made with a different HTTP client implementation.
         /// </summary>
         public ResourceTrackingHelper ResourceTrackingHelper => _resourceTrackingHelper;
+
+        internal RumSessionContext CurrentRumSessionContext => _rumContextProvider?.Current;
+
+        internal IRumContextProvider CreateRumContextProvider()
+        {
+            return _platform?.CreateRumContextProvider() ?? NoOpRumContextProvider.Instance;
+        }
 
         /// <summary>
         /// Shutdown the Datadog SDK. Note, this method is primarily for internal use.
@@ -270,7 +279,10 @@ namespace Datadog.Unity
 
                 _worker.AddProcessor(DdLogsProcessor.LogsTargetName, new DdLogsProcessor());
                 _internalLogger = new InternalLogger(_worker, _platform);
-                _resourceTrackingHelper = new ResourceTrackingHelper(options);
+                _rumContextProvider = options.RumEnabled
+                    ? CreateRumContextProvider()
+                    : NoOpRumContextProvider.Instance;
+                _resourceTrackingHelper = new ResourceTrackingHelper(options, _rumContextProvider);
 
                 var loggingOptions = new DatadogLoggingOptions()
                 {
@@ -295,6 +307,9 @@ namespace Datadog.Unity
             }
             catch (Exception e)
             {
+                _rumContextProvider?.Dispose();
+                _rumContextProvider = null;
+                _resourceTrackingHelper = null;
                 _internalLogger?.TelemetryError("Error initializing DatadogSdk", e);
             }
         }
@@ -381,6 +396,9 @@ namespace Datadog.Unity
             }
 
             // Always clean up SDK state
+            _rumContextProvider?.Dispose();
+            _rumContextProvider = null;
+            _resourceTrackingHelper = null;
             _platform = null;
             DefaultLogger = null;
             _logHandler?.Detach();

@@ -26,6 +26,11 @@ namespace Datadog.Unity
         {
         }
 
+        public IRumContextProvider CreateRumContextProvider()
+        {
+            return NoOpRumContextProvider.Instance;
+        }
+
         public DatadogWorker CreateWorker(IInternalLogger logger)
         {
             return new NoOpWorker();
