@@ -17,13 +17,24 @@ namespace Datadog.Unity.Rum
         public readonly TracingUuid spanId;
         public readonly TracingUuid? parentSpanId;
         public readonly bool sampled;
+        internal readonly float? rulePsr;
 
+        /// <summary>
+        /// Creates a context with caller-provided identifiers and a sampling decision.
+        /// RUM sampling-rate metadata uses the resource-tracking helper's configured trace rate.
+        /// </summary>
         public TraceContext(TracingUuid traceId, TracingUuid spanId, TracingUuid? parentSpanId, bool sampled)
         {
             this.traceId = traceId;
             this.spanId = spanId;
             this.parentSpanId = parentSpanId;
             this.sampled = sampled;
+        }
+
+        internal TraceContext(TracingUuid traceId, TracingUuid spanId, TracingUuid? parentSpanId, bool sampled,
+            float rulePsr) : this(traceId, spanId, parentSpanId, sampled)
+        {
+            this.rulePsr = rulePsr;
         }
 
         /// <summary>

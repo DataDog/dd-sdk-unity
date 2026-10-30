@@ -65,8 +65,9 @@ namespace Datadog.Unity.Editor
             "Datadog. 50 means 50% of sessions are sampled and sent to Datadog.";
 
         public const string TraceSampleRateTooltip =
-            "The percentage rate at which distributed traces are sampled. A value of 100 means all traces are sampled and sent to " +
-            "Datadog. 50 means 50% of traces are sampled and sent to Datadog.";
+            "The percentage of sampled RUM sessions whose first-party requests are traced. A value of 50 means all " +
+            "requests in approximately 50% of sampled RUM sessions are traced. Requests within a session share the same " +
+            "sampling decision when session information is available.";
 
         public const string TraceContextInjectionTooltip =
             "Defines whether the context for a distributed trace should be injected into all requests or only into requests that are sampled in.";

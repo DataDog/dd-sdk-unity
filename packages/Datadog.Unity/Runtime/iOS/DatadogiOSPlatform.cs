@@ -50,6 +50,11 @@ namespace Datadog.Unity.iOS
             _shouldTranslateCsStacks = options.OutputSymbols && options.PerformNativeStackMapping && !Debug.isDebugBuild;
         }
 
+        public IRumContextProvider CreateRumContextProvider()
+        {
+            return new DatadogiOSRumContextProvider();
+        }
+
         public DatadogWorker CreateWorker(IInternalLogger logger)
         {
             return new ThreadedWorker(logger);
