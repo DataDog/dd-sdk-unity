@@ -17,13 +17,16 @@ namespace Datadog.Unity.Rum
         public readonly TracingUuid spanId;
         public readonly TracingUuid? parentSpanId;
         public readonly bool sampled;
+        internal readonly float rulePsr;
 
-        public TraceContext(TracingUuid traceId, TracingUuid spanId, TracingUuid? parentSpanId, bool sampled)
+        internal TraceContext(TracingUuid traceId, TracingUuid spanId, TracingUuid? parentSpanId, bool sampled,
+            float rulePsr)
         {
             this.traceId = traceId;
             this.spanId = spanId;
             this.parentSpanId = parentSpanId;
             this.sampled = sampled;
+            this.rulePsr = rulePsr;
         }
 
         /// <summary>

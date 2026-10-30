@@ -45,6 +45,8 @@ namespace Datadog.Unity.Rum
         private readonly ulong _high;
         private readonly ulong _low;
 
+        internal ulong Low => _low;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TracingUuid"/> struct, given the high and
         /// low parts of its full 128-bit value.
