@@ -61,6 +61,8 @@ namespace Datadog.Unity.Tests.Integration
                     new FirstPartyHostOption(serverUri.Authority,
                         TracingHeaderType.Datadog | TracingHeaderType.TraceContext),
                 };
+                settings.TrackResourceHeaders = TrackResourceHeadersMode.Custom;
+                settings.CustomResourceHeaders = new List<string> { "x-request-id", "etag", "x-api-key" };
                 EditorUtility.SetDirty(settings);
                 AssetDatabase.SaveAssetIfDirty(settings);
                 // Finish importing the test settings before cleanup can restore the original file.

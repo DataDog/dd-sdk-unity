@@ -7,6 +7,7 @@ using System.Collections;
 using System.Linq;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -69,6 +70,90 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.IsNotNull(getFirstPartyResource);
             Assert.IsNotNull(getFirstPartyResource.TraceId);
             Assert.AreEqual(getFirstPartyResource.SpanId, headers["X-Datadog-Parent-Id"]);
+        }
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator TrackedWebRequestHeadersScenario()
+        {
+            var mockServerHelper = new MockServerHelper();
+            yield return mockServerHelper.Clear();
+
+            var scenario = new MonoBehaviourTest<TestTrackedWebRequestHeadersMonoBehavior>();
+            yield return scenario;
+
+            RumViewVisit visit = null;
+            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (logs) =>
+            {
+                var events = RumDecoderHelpers.RumEventsFromMockServer(logs);
+                var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
+                visit = sessions.SelectMany(session => session.Visits)
+                    .SingleOrDefault(candidate => candidate.Name == scenario.component.ViewKey);
+
+                return visit != null
+                    && visit.ResourceEvents.Any(resource => resource.Url == TestTrackedWebRequestHeadersMonoBehavior.HeadersUrl);
+            });
+
+            Assert.IsNotNull(visit, $"No RUM view received for {scenario.component.ViewKey}");
+            var resource = visit.ResourceEvents.First(r => r.Url == TestTrackedWebRequestHeadersMonoBehavior.HeadersUrl);
+
+            // Integration settings capture x-request-id, etag and x-api-key, which is sensitive and must be dropped
+            var requestHeaders = resource.RequestHeaders;
+            Assert.IsNotNull(requestHeaders, "resource.request.headers is missing");
+            Assert.AreEqual("request-abc", requestHeaders["x-request-id"]?.Value<string>());
+            Assert.IsNull(requestHeaders["x-api-key"], "Sensitive request headers must not be captured");
+            Assert.IsNull(requestHeaders["cache-control"]);
+
+            var responseHeaders = resource.ResponseHeaders;
+            Assert.IsNotNull(responseHeaders, "resource.response.headers is missing");
+            Assert.AreEqual("\"poc-etag\"", responseHeaders["etag"]?.Value<string>());
+            Assert.AreEqual("response-abc", responseHeaders["x-request-id"]?.Value<string>());
+            Assert.IsNull(responseHeaders["x-not-listed"]);
+            foreach (var header in responseHeaders.Properties())
+            {
+                Assert.AreEqual(header.Name.ToLowerInvariant(), header.Name, "Header keys must be lowercased");
+            }
+        }
+    }
+
+    public class TestTrackedWebRequestHeadersMonoBehavior : MonoBehaviour, IMonoBehaviourTest
+    {
+        // httpbin echoes the query parameters back as response headers
+        public const string HeadersUrl =
+            "https://httpbin.org/response-headers?ETag=%22poc-etag%22&X-Request-Id=response-abc&X-Not-Listed=ignored";
+
+        public string ViewKey { get; } = $"TrackedWebRequestHeadersScenario-{Guid.NewGuid():N}";
+
+        public bool IsTestFinished { get; private set; }
+
+        public void Awake()
+        {
+            IsTestFinished = false;
+            DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
+
+            StartCoroutine(RunTest());
+        }
+
+        public IEnumerator RunTest()
+        {
+            var rum = DatadogSdk.Instance.Rum;
+            rum?.StartView(ViewKey, name: ViewKey);
+
+            var request = new DatadogTrackedWebRequest(HeadersUrl);
+            request.SetRequestHeader("Cache-Control", "no-cache");
+            request.SetRequestHeader("X-Request-Id", "request-abc");
+            request.SetRequestHeader("X-Api-Key", "secret");
+            request.SetRequestHeader("X-Not-Listed", "ignored");
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                Debug.Log($"Web request failed: {request.error}");
+            }
+
+            rum?.StopView(ViewKey);
+
+            IsTestFinished = true;
         }
     }
 

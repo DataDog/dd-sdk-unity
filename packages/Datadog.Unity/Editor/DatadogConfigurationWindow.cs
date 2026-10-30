@@ -144,6 +144,41 @@ namespace Datadog.Unity.Editor
 
             EditorGUILayout.EndHorizontal();
 
+            GUILayout.Space(12.0f);
+
+            _options.TrackResourceHeaders = (TrackResourceHeadersMode)EditorGUILayout.EnumPopup(
+                new GUIContent("Track Resource Headers", DatadogHelpStrings.TrackResourceHeadersTooltip),
+                _options.TrackResourceHeaders);
+            if (_options.TrackResourceHeaders == TrackResourceHeadersMode.Custom)
+            {
+                GUILayout.Label(new GUIContent("Custom Resource Headers", DatadogHelpStrings.CustomResourceHeadersTooltip), EditorStyles.boldLabel);
+                int headerToRemove = -1;
+                for (int i = 0; i < _options.CustomResourceHeaders.Count; ++i)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    _options.CustomResourceHeaders[i] = EditorGUILayout.TextField(_options.CustomResourceHeaders[i]);
+                    if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
+                    {
+                        headerToRemove = i;
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                if (headerToRemove >= 0)
+                {
+                    _options.CustomResourceHeaders.RemoveAt(headerToRemove);
+                }
+
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Add Header", GUILayout.ExpandWidth(false)))
+                {
+                    _options.CustomResourceHeaders.Add(string.Empty);
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+
             EditorGUILayout.Space();
             _showAdvancedOptions = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvancedOptions, "Advanced RUM Options");
             if (_showAdvancedOptions)

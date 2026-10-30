@@ -191,6 +191,25 @@ namespace Datadog.Unity
         Rare,
     }
 
+    /// <summary>
+    /// Determines which HTTP headers are captured on RUM resources tracked through
+    /// <see cref="Rum.DatadogTrackedWebRequest"/>.
+    /// </summary>
+    public enum TrackResourceHeadersMode
+    {
+        /// <summary>
+        /// Do not capture any request or response headers.
+        /// </summary>
+        [InspectorName("Disabled")]
+        Disabled = 0,
+
+        /// <summary>
+        /// Capture the headers named in <see cref="DatadogConfigurationOptions.CustomResourceHeaders"/>.
+        /// </summary>
+        [InspectorName("Custom")]
+        Custom = 2,
+    }
+
     [Serializable]
     public class FirstPartyHostOption
     {
@@ -248,6 +267,8 @@ namespace Datadog.Unity
         public NonFatalAnrDetectionOption TrackNonFatalAnrs = NonFatalAnrDetectionOption.Disabled;
         public bool TrackNonFatalAppHangs = false;
         public float NonFatalAppHangThreshold = 0.25f;
+        public TrackResourceHeadersMode TrackResourceHeaders = TrackResourceHeadersMode.Disabled;
+        public List<string> CustomResourceHeaders = new ();
 
         // Advanced RUM
         public float TelemetrySampleRate;

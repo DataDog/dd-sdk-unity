@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Datadog.Unity.Core;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -181,6 +182,10 @@ namespace Datadog.Unity.Rum
             // as such
             var rumKey = Guid.NewGuid().ToString();
 
+            var headerFilter = trackingHelper?.HeaderFilter;
+            var internalLogger = DatadogSdk.Instance.InternalLogger;
+            Dictionary<string, object> requestHeaders = null;
+
             // Preprocess the request before sending it, handling errors gracefully
             try
             {
@@ -196,6 +201,8 @@ namespace Datadog.Unity.Rum
                         SetRequestHeader(header.Key, header.Value);
                     }
                 }
+
+                requestHeaders = CaptureRequestHeaders(headerFilter, internalLogger);
 
                 // Begin a RUM "resource" to track this request in the context of the current RUM view
                 DatadogSdk.Instance.Rum.StartResource(
@@ -232,7 +239,8 @@ namespace Datadog.Unity.Rum
                                     rumKey,
                                     EnumHelpers.ResourceTypeFromContentType(contentType),
                                     (int)responseCode,
-                                    (long)downloadedBytes);
+                                    (long)downloadedBytes,
+                                    CreateHeaderAttributes(requestHeaders, headerFilter, internalLogger));
                                 break;
                             case UnityWebRequest.Result.ConnectionError:
                             case UnityWebRequest.Result.DataProcessingError:
@@ -262,6 +270,47 @@ namespace Datadog.Unity.Rum
 
             return operation;
 #endif
+        }
+
+        /// <summary>
+        /// Reads the request headers selected by <paramref name="filter"/>. UnityWebRequest cannot list its request
+        /// headers, so every wanted header is read by name from the wrapped request, which also covers headers set
+        /// before the request was wrapped.
+        /// </summary>
+        internal Dictionary<string, object> CaptureRequestHeaders(ResourceHeaderFilter filter, IInternalLogger logger)
+        {
+            if (filter == null || !filter.IsEnabled)
+            {
+                return null;
+            }
+
+            return filter.FilterRequestHeaders(_innerRequest.GetRequestHeader, logger);
+        }
+
+        /// <summary>
+        /// Builds the internal attributes which carry the captured headers to the native SDKs. Response headers
+        /// are read now, as they are only available once the request has completed.
+        /// </summary>
+        private Dictionary<string, object> CreateHeaderAttributes(Dictionary<string, object> requestHeaders, ResourceHeaderFilter filter, IInternalLogger logger)
+        {
+            if (filter == null || !filter.IsEnabled)
+            {
+                return null;
+            }
+
+            var attributes = new Dictionary<string, object>();
+            if (requestHeaders != null)
+            {
+                attributes[ResourceHeaderFilter.RequestHeadersAttribute] = requestHeaders;
+            }
+
+            var responseHeaders = filter.FilterResponseHeaders(_innerRequest.GetResponseHeaders(), logger);
+            if (responseHeaders != null)
+            {
+                attributes[ResourceHeaderFilter.ResponseHeadersAttribute] = responseHeaders;
+            }
+
+            return attributes.Count > 0 ? attributes : null;
         }
 
         public string GetRequestHeader(string name)

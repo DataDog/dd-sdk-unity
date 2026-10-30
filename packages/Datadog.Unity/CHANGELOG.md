@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* Add HTTP header capture to `DatadogTrackedWebRequest`. Set `Track Resource Headers` to `Custom` in the Datadog settings and list the header names to capture them on RUM resources. Headers that may contain sensitive data are never captured.
 * Upgraded iOS SDK dependency to 3.11.1 and Android SDK dependency to 3.10.0.
 * **Breaking:** `SetUserInfo` now requires a non-null `id`. Calls with a null `id` are rejected with a warning log.
 * Fixed Android builds on Unity 2022 and older: `androidx.core 1.15.0+` ships Java 21 bytecode that D8 in AGP 7.x cannot process; the Gradle post-processor now pins `androidx.core` to 1.13.1 in the root build.gradle for affected Unity versions.
