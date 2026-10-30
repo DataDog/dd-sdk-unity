@@ -67,17 +67,21 @@ class RUMSchema(Schema):
         for event in self.event_jsons:
             vd = validate_event(
                 event=event,
-                schema_path='.schemas/rum-events-format.json'
+                schema_path=(
+                    '.schemas/schemas/telemetry-events-schema.json'
+                    if event.get('type') == 'telemetry'
+                    else '.schemas/schemas/rum-events-schema.json'
+                )
             )
 
             pills = []  # pills rendered below validation result
             if vd.all_ok:
                 pills = [
                     f"{event['type']}",
-                    f"view.id: {event['view']['id']}",
-                    f"session.id: {event['session']['id']}",
-                    f"application.id: {event['application']['id']}"
                 ]
+                for name in ('view', 'session', 'application'):
+                    if identifier := event.get(name, {}).get('id'):
+                        pills.append(f'{name}.id: {identifier}')
 
             obj['events'].append({
                 'pills': pills,

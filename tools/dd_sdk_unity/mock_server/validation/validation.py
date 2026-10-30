@@ -7,7 +7,7 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
-from jsonschema import RefResolver, ValidationError, validate
+from jsonschema import Draft7Validator, RefResolver, ValidationError
 
 
 class JSONSchemaValidationResult:
@@ -60,7 +60,7 @@ def validate_event(event: Mapping[str, object], schema_path: str) -> JSONSchemaV
             schema = json.load(schema_file)
         base_path = os.path.abspath(os.path.dirname(schema_path))
         resolver = RefResolver(base_uri='file://' + base_path + '/', referrer=schema, handlers={'file': patch_ajv_uri})
-        validate(event, schema, resolver=resolver)
+        Draft7Validator(schema, resolver=resolver).validate(event)
         return JSONSchemaValidationResult(schema_path=schema_path, all_ok=True, error=None)
     except ValidationError as error:
         return JSONSchemaValidationResult(schema_path=schema_path, all_ok=False, error=pretty_error_message(error))
