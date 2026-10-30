@@ -76,6 +76,7 @@ namespace Datadog.Unity.Editor.Tests
             Assert.AreEqual(0.25f, options.NonFatalAppHangThreshold);
             Assert.AreEqual(TrackResourceHeadersMode.Disabled, options.TrackResourceHeaders);
             Assert.IsEmpty(options.CustomResourceHeaders);
+            Assert.IsFalse(options.IncludeDefaultHeaders);
         }
     }
 }

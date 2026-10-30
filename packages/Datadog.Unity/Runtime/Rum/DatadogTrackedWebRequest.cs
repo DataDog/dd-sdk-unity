@@ -284,7 +284,18 @@ namespace Datadog.Unity.Rum
                 return null;
             }
 
-            return filter.FilterRequestHeaders(_innerRequest.GetRequestHeader, logger);
+            return filter.FilterRequestHeaders(name =>
+            {
+                var value = _innerRequest.GetRequestHeader(name);
+
+                // The content type of an upload is usually set on the upload handler, not as a request header
+                if (value == null && name == "content-type")
+                {
+                    value = _innerRequest.uploadHandler?.contentType;
+                }
+
+                return value;
+            }, logger);
         }
 
         /// <summary>

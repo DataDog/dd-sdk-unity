@@ -151,6 +151,9 @@ namespace Datadog.Unity.Editor
                 _options.TrackResourceHeaders);
             if (_options.TrackResourceHeaders == TrackResourceHeadersMode.Custom)
             {
+                _options.IncludeDefaultHeaders = EditorGUILayout.Toggle(
+                    new GUIContent("Include Default Headers", DatadogHelpStrings.IncludeDefaultHeadersTooltip),
+                    _options.IncludeDefaultHeaders);
                 GUILayout.Label(new GUIContent("Custom Resource Headers", DatadogHelpStrings.CustomResourceHeadersTooltip), EditorStyles.boldLabel);
                 int headerToRemove = -1;
                 for (int i = 0; i < _options.CustomResourceHeaders.Count; ++i)

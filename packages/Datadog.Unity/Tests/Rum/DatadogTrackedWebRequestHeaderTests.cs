@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
+using System.Text;
 using NUnit.Framework;
 using UnityEngine.Networking;
 
@@ -29,6 +30,24 @@ namespace Datadog.Unity.Rum.Tests
             Assert.AreEqual("1", headers["x-before"]);
             Assert.AreEqual("2", headers["x-after"]);
             Assert.IsNull(disabledHeaders);
+        }
+
+        [Test]
+        public void FallsBackToTheUploadHandlerContentType()
+        {
+            // Given
+            var filter = new ResourceHeaderFilter(TrackResourceHeadersMode.Defaults);
+            var inner = new UnityWebRequest("https://example.com/", "POST")
+            {
+                uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("{}")) { contentType = "application/json" },
+            };
+            using var request = new DatadogTrackedWebRequest(inner);
+
+            // When
+            var headers = request.CaptureRequestHeaders(filter, null);
+
+            // Then
+            Assert.AreEqual("application/json", headers["content-type"]);
         }
     }
 }
