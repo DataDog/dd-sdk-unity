@@ -6,11 +6,12 @@
 Utility code providing a platform-agnostic abstraction layer for running emulated iOS
 or Android devices.
 """
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
 from dd_sdk_unity.scripts.common import MobilePlatform
 from dd_sdk_unity.scripts.common.android import AndroidDeviceSpec, run_android_device
+from dd_sdk_unity.scripts.common.android.adb import AdbDevice
 from dd_sdk_unity.scripts.common.apple import AppleDeviceSpec, run_apple_device
 
 __default_ios_device__ = AppleDeviceSpec('iOS 18.5', 'iPhone 15 Pro')
@@ -18,11 +19,16 @@ __default_android_device__ = AndroidDeviceSpec.default(api_level=33, device='pix
 
 
 @contextmanager
-def run_default_simulator(platform: MobilePlatform) -> Generator[None]:
+def run_default_simulator(
+    platform: MobilePlatform, *, keep_running: bool = False,
+    on_started: Callable[[str], None] | None = None,
+) -> Generator[AdbDevice | None]:
     if platform.lower() == 'ios':
         with run_apple_device(__default_ios_device__):
             yield
     else:
         assert platform.lower() == 'android'
-        with run_android_device(__default_android_device__):
-            yield
+        with run_android_device(
+            __default_android_device__, keep_running=keep_running, on_started=on_started,
+        ) as device:
+            yield device

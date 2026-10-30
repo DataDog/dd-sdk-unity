@@ -13,6 +13,8 @@ import subprocess
 from collections.abc import Callable
 from typing import cast
 
+from dd_sdk_unity.scripts.common.log import get_default_logger
+
 OutputHandlerFunc = Callable[[str, bool], None]
 
 
@@ -97,11 +99,13 @@ def capture_output(*args: str) -> tuple[str, str]:
         else:
             stdout.write(line + '\n')
 
-    run_cmd(*args, raise_on_nonzero_exitcode=True, output_handler=_read)
+    exitcode = run_cmd(*args, output_handler=_read)
+    output, error = stdout.getvalue(), stderr.getvalue()
+    if exitcode != 0:
+        get_default_logger().error((output + error).rstrip())
+        raise subprocess.CalledProcessError(exitcode, args, output=output, stderr=error)
 
-    stdout.seek(0)
-    stderr.seek(0)
-    return stdout.read(), stderr.read()
+    return output, error
 
 
 def stop_process(process: subprocess.Popen[bytes]) -> None:

@@ -20,9 +20,10 @@ namespace Datadog.Unity.Tests.Editor
             TestRunnerApi.RegisterTestCallback(new RunCallbacks(), 100);
             if (!Application.isBatchMode)
             {
-                // The CLI runner owns the server lifecycle in batch mode.
+                // The CLI runner owns the server and device lifecycles in batch mode.
                 EditorApplication.quitting += () => RunAll(
                     () => new IntegrationTestEnvironment().Cleanup(),
+                    () => AndroidTestDeviceSetup.Stop(),
                     () => IntegrationTestEnvironment.StopMockServer());
             }
         }
@@ -30,10 +31,13 @@ namespace Datadog.Unity.Tests.Editor
         public void Setup()
         {
             var exceptions = CollectErrors(
+                () => new AndroidTestDeviceSetup().Setup(),
                 () => new IntegrationTestEnvironment().Setup());
             if (exceptions.Count > 0)
             {
-                exceptions.AddRange(CollectErrors(() => new IntegrationTestEnvironment().Cleanup()));
+                exceptions.AddRange(CollectErrors(
+                    () => new IntegrationTestEnvironment().Cleanup(),
+                    () => AndroidTestDeviceSetup.Stop()));
                 throw new AggregateException("Integration test setup failed.", exceptions);
             }
         }
@@ -75,12 +79,40 @@ namespace Datadog.Unity.Tests.Editor
             public void RunStarted(ITestAdaptor testsToRun) { }
             public void TestStarted(ITestAdaptor test) { }
             public void TestFinished(ITestResultAdaptor result) { }
-            public void RunFinished(ITestResultAdaptor result) => Cleanup();
-            public void OnError(string message) => Cleanup();
+            public void RunFinished(ITestResultAdaptor result)
+            {
+                if (result.FailCount > 0)
+                {
+                    WarnAboutAdbPreference();
+                }
+
+                Cleanup();
+            }
+
+            public void OnError(string message)
+            {
+                WarnAboutAdbPreference();
+                Cleanup();
+            }
+
+            private static void WarnAboutAdbPreference()
+            {
+                if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android &&
+                    EditorPrefs.GetBool("AndroidADBKillExternalInstance", true))
+                {
+                    Debug.LogWarning(
+                        "If Android tests lose connection to the player or mock server, disable " +
+                        "'Kill external ADB instances' in Unity Preferences > External Tools. " +
+                        "Unity can otherwise terminate the ADB server used by Rider or other Android tools. " +
+                        "This preference applies to your user across projects on this machine.");
+                }
+            }
 
             private static void Cleanup()
             {
-                RunAll(() => new IntegrationTestEnvironment().Cleanup());
+                RunAll(
+                    () => new IntegrationTestEnvironment().Cleanup(),
+                    () => AndroidTestDeviceSetup.Stop());
             }
         }
     }

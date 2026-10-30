@@ -7,12 +7,14 @@ High-level interface for the Android emulator; allows you to specify the target 
 with AndroidDeviceSpec and use `with run_android_device(spec):` to provision and boot
 the appropriate emulator instance for the duration of the `with` block.
 """
+import os
 import platform
 import random
 import subprocess
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 
 from dd_sdk_unity.scripts.common.android.adb import Adb, AdbDevice
 from dd_sdk_unity.scripts.common.android.avdmanager import Avd, AvdManager
@@ -48,7 +50,10 @@ class AndroidDeviceSpec:
 
 
 @contextmanager
-def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice]:
+def run_android_device(
+    spec: AndroidDeviceSpec, *, keep_running: bool = False,
+    on_started: Callable[[str], None] | None = None,
+) -> Generator[AdbDevice]:
     log = get_default_logger()
     log.info('Preparing an emulated Android device...')
     log.info(f'- API Level: {spec.api_level}')
@@ -56,7 +61,7 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice]:
     log.info(f'- Tag: {spec.tag}')
     log.info(f'- ABI: {spec.abi}')
 
-    # Ensure that we have all required Android SDK tools preinstalled
+    # Require SDK tools to be installed before preparing the system image.
     sdkmanager = AndroidSdkManager.require()
     log.info(f'Using sdkmanager at: {sdkmanager.path}')
     avdmanager = AvdManager.require()
@@ -64,12 +69,11 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice]:
     adb = Adb.require()
     log.info(f'Using adb at: {adb.path}')
     emulator = AndroidEmulator.require()
-    log.info(f'Using emulator at: {adb.path}')
+    log.info(f'Using emulator at: {emulator.path}')
 
-    # Use sdkmanager to ensure that we have the required system image installed
+    # Only install the required system image; SDK tools are prerequisites.
     installed_packages = sdkmanager.list_installed_packages()
-    existing_system_package = next((x for x in installed_packages if x.path == spec.system_image_package), None)
-    if not existing_system_package:
+    if not any(package.path == spec.system_image_package for package in installed_packages):
         log.info(f'Installing Android package {spec.system_image_package}...')
         sdkmanager.install_package(spec.system_image_package)
     log.info(f'{spec.system_image_package} is installed.')
@@ -88,6 +92,8 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice]:
         avdmanager.create_avd(avd_name, spec.system_image_package, spec.device)
     log.info(f'Using AVD {avd_name}.')
 
+    adb.start_server()
+
     # Pick a random port to start our emulated device on
     emulator_port = _choose_random_emulator_port()
     device_name = f'emulator-{emulator_port}'
@@ -95,59 +101,68 @@ def run_android_device(spec: AndroidDeviceSpec) -> Generator[AdbDevice]:
     # Use the Android emulator to start up an emulated device
     emulator_args = [
         emulator.path,
+        '-adb-path', adb.path,
         '-avd', avd_name,
         '-port', str(emulator_port),
         '-verbose',
         '-show-kernel',
         '-no-audio',
+        '-no-boot-anim',
         '-netdelay', 'none',
         '-no-snapshot',
         '-wipe-data',
     ]
+    # Keep emulator child tools on the same SDK's ADB client.
+    environment = os.environ.copy()
+    environment['PATH'] = os.pathsep.join(filter(None, [str(Path(adb.path).parent), environment.get('PATH')]))
     emulator_process = subprocess.Popen(
         emulator_args,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
         universal_newlines=True,
+        start_new_session=keep_running,
+        env=environment,
     )
 
     # We now have an emulator process running: make sure it gets cleaned up on exit
     device: AdbDevice | None = None
+    detached = False
     try:
+        if on_started is not None:
+            on_started(device_name)
         # Wait for the device to become available in adb
         log.info(f'{device_name} started; PID {emulator_process.pid}.')
-        device = adb.wait_for_device(device_name)
+        device = adb.wait_for_device(device_name, timeout_seconds=120)
 
         # Wait until 'sys.boot_completed' is 1
         log.info(f'{device.name} is running; waiting for boot...')
-        device.wait_for_boot()
+        device.wait_for_boot(timeout_seconds=120)
 
         # Device is ready to use; yield it to the caller
         log.info(f'{device.name} is ready!')
         yield device
+        detached = keep_running
     finally:
-        # Attempt a clean shutdown with 'adb emu kill', which should cause our emulator
-        # process to shut down as well
-        killed_device = False
-        if device:
-            try:
-                log.info(f'Cleanly shutting down emulator {device.name}...')
-                device.emu_kill()
-                killed_device = True
-            except Exception:
-                log.exception('Failed to shut down emulator')
-        
-        # If we couldn't shut down cleanly (either because 'adb emu kill' failed, or
-        # because we never resolved the device in adb to begin with), terminate the
-        # emulator process directly
-        if not killed_device:
-            log.warning('Emulator could not be shut down via adb; sending SIGKILL to emulator process')
-            emulator_process.kill()
+        if not detached:
+            _stop_android_device(emulator_process, device)
 
-        # Block until the emulator process has exited
-        log.info(f'Waiting for emulator (PID {emulator_process.pid}) to shut down...')
-        emulator_exitcode = emulator_process.wait(30.0)
-        log.info(f'emulator exited with status code {emulator_exitcode}.')
+
+def _stop_android_device(process: subprocess.Popen[str], device: AdbDevice | None) -> None:
+    log = get_default_logger()
+    killed_device = False
+    if device:
+        try:
+            log.info(f'Cleanly shutting down emulator {device.name}...')
+            device.emu_kill()
+            killed_device = True
+        except Exception:
+            log.exception('Failed to shut down emulator')
+    if not killed_device:
+        log.warning('Emulator could not be shut down via adb; sending SIGKILL to emulator process')
+        process.kill()
+    log.info(f'Waiting for emulator (PID {process.pid}) to shut down...')
+    log.info(f'emulator exited with status code {process.wait(30.0)}.')
 
 
 def _choose_random_emulator_port() -> int:
