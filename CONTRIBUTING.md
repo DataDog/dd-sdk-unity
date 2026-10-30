@@ -201,6 +201,10 @@ before requesting review:
 For example, use `feat(rum): add resource tracking`,
 `fix(ios): embed native frameworks`, or `docs: clarify test setup`.
 
+PR titles may begin with an optional Jira issue key, with brackets and/or a colon.
+Follow the prefix with a space and the Conventional Commit title. The release
+tooling ignores this prefix when classifying the change.
+
 Use `feat:` for features and `fix:` for bug fixes. Use types such as `docs:`,
 `test:`, `ci:`, or `chore:` for other changes. Mark breaking changes with `!`
 and explain their impact in the PR description.
