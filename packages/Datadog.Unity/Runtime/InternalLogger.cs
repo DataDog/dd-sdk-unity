@@ -68,7 +68,7 @@ namespace Datadog.Unity.Core
         {
             _worker.AddMessage(DdTelemetryProcessor.TelemetryErrorMessage.Create(
                 message,
-                exception?.StackTrace?.ToString(),
+                GetExceptionStack(exception),
                 exception?.GetType().ToString()));
         }
 
@@ -76,6 +76,26 @@ namespace Datadog.Unity.Core
         {
             _worker.AddMessage(DdTelemetryProcessor.TelemetryDebugMessage.Create(
                 message));
+        }
+
+        private static string GetExceptionStack(Exception exception)
+        {
+            try
+            {
+                return exception?.ToString();
+            }
+            catch (Exception)
+            {
+                // Custom exception formatting must not interrupt error reporting.
+                try
+                {
+                    return exception.StackTrace;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
         }
     }
 

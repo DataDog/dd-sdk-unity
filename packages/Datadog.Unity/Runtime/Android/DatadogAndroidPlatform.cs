@@ -319,7 +319,7 @@ namespace Datadog.Unity.Android
             }
             catch(Exception e)
             {
-                SendErrorTelemetry("Failed to get native stack", e.StackTrace, e.GetType().ToString());
+                DatadogSdk.Instance.InternalLogger.TelemetryError("Failed to get native stack", e);
             }
 
             return resultStack;
