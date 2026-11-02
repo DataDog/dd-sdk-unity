@@ -54,8 +54,7 @@ def port():
         return sock.getsockname()[1]
 
 
-def test_unused_local_port_does_not_require_http_response(port, monkeypatch):
-    monkeypatch.setattr(setup, 'build_opener', lambda *args: pytest.fail('Unused ports must not require HTTP'))
+def test_unused_local_port_is_not_healthy(port):
     assert setup.server_health(f'http://127.0.0.1:{port}') is None
 
 
@@ -135,16 +134,17 @@ def test_runs_use_lan_address(environment, port, monkeypatch, ci):
 
 
 @pytest.mark.parametrize('probe_error', [setup.URLError(TimeoutError('starting')), TimeoutError('starting')])
-def test_startup_retries_health_timeout(environment, port, monkeypatch, probe_error):
+@pytest.mark.parametrize('phase', ['preflight', 'startup'])
+def test_startup_handles_health_timeout(environment, port, monkeypatch, probe_error, phase):
     build_opener = setup.build_opener
-    timed_out = False
+    timeout_phase = None
     def timeout_first_request(*args):
         opener = build_opener(*args)
         request = opener.open
         def open_with_timeout(*args, **kwargs):
-            nonlocal timed_out
-            if not timed_out:
-                timed_out = True
+            nonlocal timeout_phase
+            if timeout_phase is None and (phase == 'preflight' or environment.state_path.exists()):
+                timeout_phase = 'startup' if environment.state_path.exists() else 'preflight'
                 raise probe_error
             return request(*args, **kwargs)
         monkeypatch.setattr(opener, 'open', open_with_timeout)
@@ -152,7 +152,7 @@ def test_startup_retries_health_timeout(environment, port, monkeypatch, probe_er
     monkeypatch.setattr(setup, 'build_opener', timeout_first_request)
     process = environment.start(port=port)
     try:
-        assert timed_out
+        assert timeout_phase == phase
         assert setup.server_health(environment.endpoint) is True
     finally:
         environment.stop(process)

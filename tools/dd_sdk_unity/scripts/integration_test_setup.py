@@ -19,11 +19,9 @@ manage only the server; they do not run tests or configure SDK settings. start a
 print the server endpoint as JSON on stdout; diagnostics use stderr.
 """
 import argparse
-import errno
 import json
 import os
 import signal
-import socket
 import subprocess
 import sys
 import time
@@ -31,7 +29,6 @@ from http.client import RemoteDisconnected
 from pathlib import Path
 from typing import NotRequired, TypedDict
 from urllib.error import URLError
-from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, build_opener
 
 import psutil
@@ -62,20 +59,7 @@ def _server_endpoint(port: int) -> str:
     return f'http://{host}:{port}'
 
 
-def server_health(endpoint: str, retry_timeout: bool = False) -> bool | None:
-    # macOS can silently drop connections to an unused LAN port. Probe the wildcard
-    # bind before HTTP, allowing ports left in TIME_WAIT to be reused.
-    # Still verify occupied ports with HTTP.
-    address = urlsplit(endpoint)
-    with socket.socket() as probe:
-        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            probe.bind(('0.0.0.0', address.port))
-        except OSError as error:
-            if error.errno != errno.EADDRINUSE:
-                raise
-        else:
-            return None
+def server_health(endpoint: str) -> bool | None:
     # Local test traffic must not go through a machine's HTTP proxy.
     try:
         with build_opener(ProxyHandler({})).open(endpoint + HEALTH_PATH, timeout=1) as response:
@@ -83,16 +67,12 @@ def server_health(endpoint: str, retry_timeout: bool = False) -> bool | None:
                 raise RuntimeError(f'Healthcheck at {endpoint} returned HTTP {response.status}')
             return True
     except URLError as error:
-        if isinstance(error.reason, ConnectionError) or (retry_timeout and isinstance(error.reason, TimeoutError)):
+        if isinstance(error.reason, (ConnectionError, TimeoutError)):
             return None
         raise RuntimeError(f'Cannot probe mock server at {endpoint}: {error}') from error
-    except (ConnectionError, RemoteDisconnected):
-        # A server can close an in-flight health request during shutdown.
+    except (ConnectionError, RemoteDisconnected, TimeoutError):
+        # The server may still be starting or close an in-flight request during shutdown.
         return None
-    except TimeoutError as error:
-        if retry_timeout:
-            return None
-        raise RuntimeError(f'Cannot probe mock server at {endpoint}: {error}') from error
 
 
 def _verified_process(state: _ProcessIdentity) -> psutil.Process | None:
@@ -223,7 +203,7 @@ class IntegrationTestEnvironment:
             while True:
                 if process.poll() is not None:
                     raise RuntimeError(f'Mock server exited; see {self.directory / "mock-server.log"}')
-                health = server_health(self.endpoint, retry_timeout=True)
+                health = server_health(self.endpoint)
                 if health:
                     break
                 if time.monotonic() >= deadline:
