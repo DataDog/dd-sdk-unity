@@ -15,6 +15,15 @@ let ddCoreLib = {
         }
     },
 
+    DDCore_ClearUserInfo: function() {
+        if (DD_LOGS) {
+            DD_LOGS.clearUser();
+        }
+        if (DD_RUM) {
+            DD_RUM.clearUser();
+        }
+    },
+
     DDCore_SetTrackingConsent: function(rawTrackingConsent) {
         let trackingConsent = UTF8ToString(rawTrackingConsent);
         if (DD_LOGS) {

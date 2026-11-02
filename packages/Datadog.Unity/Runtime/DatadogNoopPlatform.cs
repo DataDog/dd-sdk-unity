@@ -48,6 +48,10 @@ namespace Datadog.Unity
         {
         }
 
+        public void ClearUserInfo()
+        {
+        }
+
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
         }

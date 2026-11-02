@@ -26,6 +26,9 @@ namespace Datadog.Unity.Worker
                 case SetUserInfoMessage msg:
                     _platform.SetUserInfo(msg.Id, msg.Name, msg.Email, msg.ExtraInfo);
                     break;
+                case ClearUserInfoMessage:
+                    _platform.ClearUserInfo();
+                    break;
                 case AddUserExtraInfoMessage msg:
                     _platform.AddUserExtraInfo(msg.ExtraInfo);
                     break;
@@ -63,6 +66,15 @@ namespace Datadog.Unity.Worker
             public void Discard()
             {
                 // Nothing to do here
+            }
+        }
+
+        internal class ClearUserInfoMessage : IDatadogWorkerMessage
+        {
+            public string FeatureTarget => SdkTargetName;
+
+            public void Discard()
+            {
             }
         }
 

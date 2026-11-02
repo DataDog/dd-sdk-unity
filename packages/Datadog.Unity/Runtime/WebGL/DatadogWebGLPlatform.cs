@@ -114,6 +114,11 @@ namespace Datadog.Unity.WebGL
             DDCore_SetUserInfo(jsonString);
         }
 
+        public void ClearUserInfo()
+        {
+            DDCore_ClearUserInfo();
+        }
+
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
             if (extraInfo == null)
@@ -159,6 +164,9 @@ namespace Datadog.Unity.WebGL
 
         [DllImport("__Internal")]
         private static extern void DDLogs_RemoveGlobalAttribute(string key);
+
+        [DllImport("__Internal")]
+        private static extern void DDCore_ClearUserInfo();
 
         [DllImport("__Internal")]
         private static extern void DDCore_SetUserInfo(string jsonUserInfo);
