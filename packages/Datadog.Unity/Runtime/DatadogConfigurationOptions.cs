@@ -220,6 +220,25 @@ namespace Datadog.Unity
         Default = Memory | Cpu,
     }
 
+    /// <summary>
+    /// Determines which HTTP headers are captured on RUM resources tracked through
+    /// <see cref="Rum.DatadogTrackedWebRequest"/>.
+    /// </summary>
+    public enum TrackResourceHeadersMode
+    {
+        /// <summary>
+        /// Do not capture any request or response headers.
+        /// </summary>
+        [InspectorName("Disabled")]
+        Disabled = 0,
+
+        /// <summary>
+        /// Capture the custom headers listed in the settings.
+        /// </summary>
+        [InspectorName("Custom")]
+        Custom = 2,
+    }
+
     [Serializable]
     public class FirstPartyHostOption
     {
