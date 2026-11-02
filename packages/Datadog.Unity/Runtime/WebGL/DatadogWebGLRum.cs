@@ -57,7 +57,15 @@ namespace Datadog.Unity.WebGL
                 allowedTracingUrls = allowedTracingUrls,
                 traceContextInjection = options.TraceContextInjection.ToWebValue(),
                 source = "unity",
+                trackResourceHeaders = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders).ToBrowserSdkOption(),
             };
+
+            // Header capture is an experimental feature in Browser SDK v6
+            if (browserSdkConfig.trackResourceHeaders != null)
+            {
+                browserSdkConfig.enableExperimentalFeatures.Add("track_resource_headers");
+            }
+
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
 
             // TODO: Check the return value of this
@@ -343,6 +351,9 @@ namespace Datadog.Unity.WebGL
             public List<string> enableExperimentalFeatures { get; set; } = new List<string>();
             [Preserve]
             public string source { get; set; }
+            [Preserve]
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public object trackResourceHeaders { get; set; }
         }
 
         [Preserve]

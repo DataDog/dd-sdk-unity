@@ -26,6 +26,7 @@ namespace Datadog.Unity.Rum
         private readonly RateBasedSampler _traceSampler;
         private readonly List<FirstPartyHost> _firstPartyHosts;
         private readonly TraceContextInjection _traceContextInjection;
+        private readonly ResourceHeaderFilter _headerFilter;
 
         internal ResourceTrackingHelper(DatadogConfigurationOptions options)
         {
@@ -35,7 +36,13 @@ namespace Datadog.Unity.Rum
                 .Select(x => new FirstPartyHost(x.Host, x.TracingHeaderType))
                 .ToList();
             _traceContextInjection = options.TraceContextInjection;
+            _headerFilter = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders);
         }
+
+        /// <summary>
+        /// Gets the filter that selects which request and response headers are captured on resources.
+        /// </summary>
+        internal ResourceHeaderFilter HeaderFilter => _headerFilter;
 
         /// <summary>
         /// Generates a new <see cref="TraceContext"/> for an outgoing HTTP request.

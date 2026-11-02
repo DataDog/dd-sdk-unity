@@ -233,7 +233,7 @@ namespace Datadog.Unity
         Disabled = 0,
 
         /// <summary>
-        /// Capture the custom headers listed in the settings.
+        /// Capture the headers named in <see cref="DatadogConfigurationOptions.CustomResourceHeaders"/>.
         /// </summary>
         [InspectorName("Custom")]
         Custom = 2,
@@ -299,6 +299,8 @@ namespace Datadog.Unity
         // Experimental: Timeseries collection. This API is experimental and may change without notice.
         public bool EnableTimeseries;
         public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.Default;
+        public TrackResourceHeadersMode TrackResourceHeaders = TrackResourceHeadersMode.Disabled;
+        public List<string> CustomResourceHeaders = new ();
 
         // Advanced RUM
         public float TelemetrySampleRate;
