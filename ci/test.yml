@@ -42,6 +42,40 @@ unit-test:
       - 6
       - 7
 
+integration-test-android:
+  extends: .needs-unity-license
+  stage: integration-test
+  image: "$LINUX_IMAGE"
+  tags:
+    - kvm:amd64
+  timeout: 1h
+  variables:
+    RUNNER_SCRIPT_TIMEOUT: 50m
+    UNITY_SUPPORT_PATH: /usr/share/unity3d/config
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: '2022.3'
+        PROJECT_PATH: 'samples/Datadog Sample'
+  script:
+    - test -c /dev/kvm && test -r /dev/kvm && test -w /dev/kvm
+    - emulator -accel-check
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity-linux]
+    - dd-unity-integration-test --platform android --unity-version "$UNITY_VERSION_PARTIAL" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: integration-test-android.xml
+    paths:
+      - integration-test-android.xml
+      - integration-test-android*.log
+      - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+  retry:
+    max: 2
+    exit_codes:
+      - 198
+
 integration-test-ios:
   extends: .needs-unity-license
   stage: integration-test

@@ -4,7 +4,13 @@ FROM registry.ddbuild.io/images/base/gbi-ubuntu_2604:release
 
 USER root
 
-RUN clean-apt install git python3 python3-venv
+RUN clean-apt install \
+    build-essential ca-certificates curl git openjdk-17-jre-headless \
+    python3 python3-venv unzip xz-utils \
+    libasound2t64 libgbm1 libgl1 libglu1-mesa libgssapi-krb5-2 libgtk-3-0t64 \
+    libnss3 libpulse0 libsecret-1-0 libvulkan1 libx11-6 libx11-xcb1 libxcb1 \
+    libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxkbcommon0 libxkbfile1 \
+    libxrandr2 libxrender1 libxss1 libxtst6
 
 COPY --from=registry.ddbuild.io/dd-octo-sts:v1.11.4 \
     /usr/local/bin/dd-octo-sts /usr/local/bin/dd-octo-sts
@@ -14,8 +20,55 @@ COPY --from=registry.ddbuild.io/commit-headless:v3.4.0 \
 ARG TARGETARCH
 ADD --chmod=0755 https://binaries.ddbuild.io/dd-source/authanywhere/LATEST/authanywhere-linux-${TARGETARCH} /usr/local/bin/authanywhere
 
+ARG VAULT_VERSION=1.21.4
+ARG VAULT_SHA256=889b681990fe221b884b7932fa9c9dd0ee9811b9349554f1aa287ab63c9f3dae
+RUN set -eu; \
+    test "${TARGETARCH}" = amd64; \
+    curl -fsSL "https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip" -o /tmp/vault.zip; \
+    echo "${VAULT_SHA256}  /tmp/vault.zip" | sha256sum -c -; \
+    unzip -q /tmp/vault.zip vault -d /usr/local/bin; \
+    rm /tmp/vault.zip
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-${TARGETARCH} \
+    ANDROID_HOME=/opt/android-sdk \
+    UNITY_CLI_HOME=/opt/unity-cli \
+    UNITY_NON_INTERACTIVE=1
+ENV PATH="${UNITY_CLI_HOME}/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator:${PATH}"
+
+ARG ANDROID_COMMAND_LINE_TOOLS_VERSION=13114758
+RUN set -eu; \
+    curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_COMMAND_LINE_TOOLS_VERSION}_latest.zip" -o /tmp/android-tools.zip; \
+    mkdir -p "${ANDROID_HOME}/cmdline-tools"; \
+    unzip -q /tmp/android-tools.zip -d "${ANDROID_HOME}/cmdline-tools"; \
+    mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest"; \
+    rm /tmp/android-tools.zip; \
+    yes | sdkmanager --licenses >/dev/null; \
+    sdkmanager 'platform-tools' 'emulator' 'system-images;android-33;google_apis;x86_64'
+
+RUN set -eu; \
+    curl -fsSL https://unity.com/install.sh -o /tmp/install-unity-cli.sh; \
+    bash /tmp/install-unity-cli.sh; \
+    rm /tmp/install-unity-cli.sh
+
+# The CI job writes its floating-license configuration as dog.
+RUN mkdir -p /usr/share/unity3d/config \
+    && chown dog:dog /usr/share/unity3d/config
+
 # Restore the GBI base image's non-root dog user.
 USER dog
+
+ARG UNITY_VERSION_PARTIAL=2022.3
+RUN --mount=type=bind,source=tools,target=/tmp/dd-unity-source/tools \
+    --mount=type=bind,source=pyproject.toml,target=/tmp/dd-unity-source/pyproject.toml \
+    set -eu; \
+    unity_setup_dir=$(mktemp -d); \
+    mkdir "$unity_setup_dir/source"; \
+    cp -R /tmp/dd-unity-source/. "$unity_setup_dir/source"; \
+    python3 -m venv "$unity_setup_dir/venv"; \
+    . "$unity_setup_dir/venv/bin/activate"; \
+    TMPDIR="$unity_setup_dir" PIP_NO_CACHE_DIR=1 python -m pip install --no-deps --editable "$unity_setup_dir/source"; \
+    dd-unity-install-unity "$UNITY_VERSION_PARTIAL" --modules android; \
+    rm -rf "$unity_setup_dir"
 
 # Check the runtime as the same user that runs CI, without exchanging credentials.
 RUN set -eu; \
@@ -26,4 +79,12 @@ RUN set -eu; \
     git --version; \
     commit-headless version; \
     dd-octo-sts version; \
-    authanywhere --help >/dev/null
+    authanywhere --help >/dev/null; \
+    test -w /usr/share/unity3d/config; \
+    vault version; \
+    unity --version; \
+    java -version; \
+    sdkmanager --list_installed; \
+    avdmanager list avd; \
+    adb version; \
+    emulator -version

@@ -10,5 +10,5 @@ ci-image:
       aud: image-integrity
   script:
     - METADATA_FILE=$(mktemp)
-    - docker buildx build --platform linux/amd64 --tag "$LINUX_IMAGE" --label target=build -f ci/Dockerfile.gitlab --push --metadata-file "$METADATA_FILE" .
+    - docker buildx build --platform linux/amd64 --build-arg UNITY_VERSION_PARTIAL="$UNITY_VERSION_PARTIAL" --tag "$LINUX_IMAGE" --label target=build -f ci/Dockerfile.gitlab --push --metadata-file "$METADATA_FILE" .
     - ddsign sign "$LINUX_IMAGE" --docker-metadata-file "$METADATA_FILE"

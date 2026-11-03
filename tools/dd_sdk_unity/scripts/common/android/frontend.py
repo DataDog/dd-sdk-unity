@@ -112,6 +112,9 @@ def run_android_device(
         '-no-snapshot',
         '-wipe-data',
     ]
+    headless = platform.system() == 'Linux' and not os.environ.get('DISPLAY')
+    if headless:
+        emulator_args += ['-no-window']
     # Keep emulator child tools on the same SDK's ADB client.
     environment = os.environ.copy()
     environment['PATH'] = os.pathsep.join(filter(None, [str(Path(adb.path).parent), environment.get('PATH')]))
