@@ -147,7 +147,7 @@ namespace Datadog.Unity
         /// Clears the current user's ID, name, email, and custom attributes.
         /// Subsequent logs and RUM events will not include this information.
         ///
-        /// Active RUM sessions and views also use the cleared user information in subsequent updates.
+        /// After this call, subsequent updates for any still-active RUM sessions or views will carry no user information.
         /// On iOS and Android, call <see cref="IDdRum.StopSession"/> or <see cref="IDdRum.StopView"/>
         /// before clearing to retain user information on that session or view.
         /// Stopping views is not supported on WebGL.
