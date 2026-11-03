@@ -55,6 +55,14 @@ namespace Datadog.Unity.Worker
 
         public override void AddMessage(IDatadogWorkerMessage message)
         {
+            // Send telemetry directly from this worker so reporting does not depend on the queue.
+            if (Thread.CurrentThread == _workerThread &&
+                message.FeatureTarget == DdTelemetryProcessor.TelemetryTargetName)
+            {
+                HandleMessage(message);
+                return;
+            }
+
             // Only restart the worker thread if it was previously started
             if (_workerThread != null)
             {
@@ -100,14 +108,7 @@ namespace Datadog.Unity.Worker
                 }
                 catch (Exception e)
                 {
-                    // Since we're already on the worker thread, send telemetry information
-                    // directly without going through the work queue. This should also
-                    // hopefully log things even if Telemetry is the issue.
-                    var message = DdTelemetryProcessor.TelemetryErrorMessage.Create(
-                        "Exception on worker thread",
-                        e.StackTrace,
-                        e.GetType().ToString());
-                    HandleMessage(message);
+                    DatadogSdk.Instance.InternalLogger.TelemetryError("Exception on worker thread", e);
                 }
             }
 

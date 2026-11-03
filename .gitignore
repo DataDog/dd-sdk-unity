@@ -6,6 +6,7 @@ Build/
 **/*.xcframework~
 **/*.aar
 .vscode/settings.json
+.idea/
 *.keystore
 test_scaffolds/6000 LTS/.utmp
 unit-test*

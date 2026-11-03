@@ -14,13 +14,16 @@ namespace Datadog.Unity.Worker.Tests
     {
         private IDatadogWorkerProcessor _mockProcessor;
         private IInternalLogger _mockLogger;
+        private IInternalLogger _originalLogger;
         private ThreadedWorker _worker;
 
         [SetUp]
         public void SetUp()
         {
+            _originalLogger = DatadogSdk.Instance.InternalLogger;
             _mockProcessor = Substitute.For<IDatadogWorkerProcessor>();
             _mockLogger = Substitute.For<IInternalLogger>();
+            DatadogSdk.Instance.InternalLogger = _mockLogger;
             _worker = new ThreadedWorker(_mockLogger);
         }
 
@@ -28,6 +31,7 @@ namespace Datadog.Unity.Worker.Tests
         public void TearDown()
         {
             _worker.Stop();
+            DatadogSdk.Instance.InternalLogger = _originalLogger;
         }
 
         [Test]
@@ -99,6 +103,54 @@ namespace Datadog.Unity.Worker.Tests
             _worker.Stop();
 
             _mockProcessor.Received(1).Process(messageB);
+        }
+
+        [Test]
+        public void WorkerThreadReportsExceptionMessagesAndStacks()
+        {
+            var platform = Substitute.For<IDatadogPlatform>();
+            DatadogSdk.Instance.InternalLogger = new InternalLogger(_worker, platform);
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
+            var exception = new FormatException("Discard failed", new ArgumentException("Invalid message"));
+            var failingMessage = Substitute.For<IDatadogWorkerMessage>();
+            failingMessage.FeatureTarget.Returns(MockWorkerMessage.ProcessorName);
+            failingMessage.When(m => m.Discard()).Throw(exception);
+
+            _worker.Start();
+            _worker.AddMessage(failingMessage);
+            _worker.Stop();
+
+            platform.Received(1).SendErrorTelemetry(
+                "Exception on worker thread",
+                Arg.Is<string>(stack => stack.Contains("System.FormatException: Discard failed") &&
+                                        stack.Contains("System.ArgumentException: Invalid message") &&
+                                        stack.Contains(exception.StackTrace)),
+                "System.FormatException");
+        }
+
+        [Test]
+        public void TelemetryOnWorkerIsSentBeforeProcessorReturns()
+        {
+            var platform = Substitute.For<IDatadogPlatform>();
+            DatadogSdk.Instance.InternalLogger = new InternalLogger(_worker, platform);
+            var telemetrySent = false;
+            var sentBeforeReturn = false;
+            platform.When(p => p.SendErrorTelemetry("Telemetry from worker", Arg.Any<string>(), Arg.Any<string>()))
+                .Do(_ => telemetrySent = true);
+            _worker.AddProcessor(MockWorkerMessage.ProcessorName, _mockProcessor);
+            _mockProcessor.When(p => p.Process(Arg.Any<IDatadogWorkerMessage>()))
+                .Do(_ =>
+                {
+                    DatadogSdk.Instance.InternalLogger.TelemetryError(
+                        "Telemetry from worker", new InvalidOperationException("Test exception"));
+                    sentBeforeReturn = telemetrySent;
+                });
+
+            _worker.Start();
+            _worker.AddMessage(new MockWorkerMessage("Test message"));
+            _worker.Stop();
+
+            Assert.IsTrue(sentBeforeReturn);
         }
 
         [Test]

@@ -114,14 +114,79 @@ namespace Datadog.Unity.Tests
 
             // When
             worker.Start();
-            Thread.Sleep(10);
+            worker.Stop();
 
             // Then
             mockPlatform.Received().SendErrorTelemetry(
                 "Telemetry error message",
-                thrownException.StackTrace.ToString(),
+                thrownException.ToString(),
                 "System.InvalidOperationException");
-            worker.Stop();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TelemetryErrorPreservesExceptionMessagesAndStacks(bool withInnerException)
+        {
+            var innerException = withInnerException
+                ? PopulateStackTrace(new ArgumentException("Inner exception message"))
+                : null;
+            var exception = PopulateStackTrace(new InvalidOperationException("Outer exception message", innerException));
+
+            var stack = SendTelemetryError(exception);
+
+            StringAssert.Contains("System.InvalidOperationException: Outer exception message", stack);
+            StringAssert.Contains(exception.StackTrace, stack);
+            if (innerException != null)
+            {
+                StringAssert.Contains("System.ArgumentException: Inner exception message", stack);
+                StringAssert.Contains(innerException.StackTrace, stack);
+            }
+        }
+
+        [Test]
+        public void TelemetryErrorPreservesExceptionMessageWithoutStackTrace()
+        {
+            var exception = new InvalidOperationException("Exception without stack trace");
+            Assert.IsNull(exception.StackTrace);
+
+            var stack = SendTelemetryError(exception);
+
+            StringAssert.Contains("System.InvalidOperationException: Exception without stack trace", stack);
+        }
+
+        [Test]
+        public void TelemetryErrorFallsBackToStackWhenToStringThrows()
+        {
+            var exception = PopulateStackTrace(new ThrowingToStringException());
+            Assert.Throws<InvalidOperationException>(() => exception.ToString());
+
+            var stack = SendTelemetryError(exception);
+
+            Assert.IsNotEmpty(stack);
+            Assert.AreEqual(exception.StackTrace, stack);
+        }
+
+        [Test]
+        public void TelemetryErrorFallsBackToStackWhenMessageThrows()
+        {
+            var exception = PopulateStackTrace(new ThrowingMessageException());
+            Assert.Throws<InvalidOperationException>(() => exception.ToString());
+
+            var stack = SendTelemetryError(exception);
+
+            Assert.IsNotEmpty(stack);
+            Assert.AreEqual(exception.StackTrace, stack);
+        }
+
+        [Test]
+        public void TelemetryErrorStillSendsWhenFormattingAndStackTraceThrow()
+        {
+            var exception = new ThrowingStackTraceException();
+            Assert.Throws<InvalidOperationException>(() => exception.ToString());
+
+            var stack = SendTelemetryError(exception);
+
+            Assert.IsNull(stack);
         }
 
         [Test]
@@ -149,6 +214,48 @@ namespace Datadog.Unity.Tests
             // Then
             mockPlatform.Received().SendErrorTelemetry("Telemetry error message",  null, null);
             worker.Stop();
+        }
+
+        private static string SendTelemetryError(Exception exception)
+        {
+            var platform = Substitute.For<IDatadogPlatform>();
+            string stack = null;
+            platform.When(p => p.SendErrorTelemetry(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>()))
+                .Do(call => stack = call.ArgAt<string>(1));
+            var logger = new InternalLogger(new PassthroughWorker(), platform);
+
+            logger.TelemetryError("Telemetry error message", exception);
+
+            platform.Received(1).SendErrorTelemetry(
+                "Telemetry error message", Arg.Any<string>(), exception.GetType().ToString());
+            return stack;
+        }
+
+        private static Exception PopulateStackTrace(Exception exception)
+        {
+            try
+            {
+                throw exception;
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        private class ThrowingToStringException : Exception
+        {
+            public override string ToString() => throw new InvalidOperationException("ToString failed");
+        }
+
+        private class ThrowingMessageException : Exception
+        {
+            public override string Message => throw new InvalidOperationException("Message failed");
+        }
+
+        private class ThrowingStackTraceException : ThrowingToStringException
+        {
+            public override string StackTrace => throw new InvalidOperationException("StackTrace failed");
         }
     }
 }
