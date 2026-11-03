@@ -32,6 +32,8 @@ namespace Datadog.Unity
 
         void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo);
 
+        void ClearUserInfo();
+
         void AddUserExtraInfo(Dictionary<string, object> extraInfo);
 
         IDdRumInternal InitRum(DatadogConfigurationOptions options);

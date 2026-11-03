@@ -31,7 +31,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             {
                 serverLog = requests;
                 logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 6;
+                return logs.Count >= 7;
             });
 
             foreach (var log in serverLog)
@@ -42,7 +42,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 }
             }
 
-            Assert.AreEqual(6, logs.Count);
+            Assert.AreEqual(7, logs.Count);
 
             var debugLog = logs[0];
             Assert.AreEqual("debug", debugLog.Status);
@@ -108,7 +108,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("value", (string)errorLog.RawJson["attribute"]);
             Assert.AreEqual("user-id", errorLog.UserId);
             Assert.AreEqual("user-name", errorLog.UserName);
-            Assert.IsNull(errorLog.UserEmail);
+            Assert.AreEqual("user@example.com", errorLog.UserEmail);
             Assert.AreEqual("property", errorLog.UserExtraInfo["extra"].ToString());
 
             var userInfoLog = logs[4];
@@ -126,7 +126,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(userInfoLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("user-id", userInfoLog.UserId);
             Assert.AreEqual("user-name", userInfoLog.UserName);
-            Assert.IsNull(userInfoLog.UserEmail);
+            Assert.AreEqual("user@example.com", userInfoLog.UserEmail);
             Assert.AreEqual("property", userInfoLog.UserExtraInfo["extra"].ToString());
             Assert.AreEqual("error message", userInfoLog.UserExtraInfo["saw_error"].ToString());
 
@@ -146,6 +146,13 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
             Assert.NotNull(exceptionLog.ErrorStack);
+
+            var clearedUserLog = logs[6];
+            Assert.AreEqual("cleared user info message", clearedUserLog.Message);
+            foreach (var key in new[] { "id", "name", "email", "extra", "saw_error" })
+            {
+                Assert.IsFalse(clearedUserLog.UserExtraInfo.ContainsKey(key), $"User field {key} was not cleared");
+            }
 
             foreach (var log in logs)
             {
@@ -208,7 +215,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 logger.RemoveTagsWithKey("tag1");
                 DatadogSdk.Instance.RemoveLogsAttribute("global-attribute-2");
 
-                DatadogSdk.Instance.SetUserInfo("user-id", "user-name", extraInfo: new()
+                DatadogSdk.Instance.SetUserInfo("user-id", "user-name", "user@example.com", extraInfo: new()
                 {
                     { "extra", "property" },
                 });
@@ -229,6 +236,9 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 {
                     logger.Warn("Warning: this error occurred", error: e);
                 }
+
+                DatadogSdk.Instance.ClearUserInfo();
+                logger.Info("cleared user info message");
 
                 _didSendLog = true;
             }

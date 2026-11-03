@@ -69,6 +69,11 @@ func Datadog_SetUserInfo(
     Datadog.setUserInfo(id: idString, name: nameString, email: emailString, extraInfo: decodedExtraInfo)
 }
 
+@_cdecl("Datadog_ClearUserInfo")
+func Datadog_ClearUserInfo() {
+    Datadog.clearUserInfo()
+}
+
 @_cdecl("Datadog_AddUserExtraInfo")
 func Datadog_AddUserExtraInfo(extraInfo: CString) {
     let decodedExtraInfo = decodeJsonAttributes(fromCString: extraInfo)

@@ -190,6 +190,11 @@ namespace Datadog.Unity.Android
             _datadogClass.CallStatic("setUserInfo", id, name, email, javaExtraInfo);
         }
 
+        public void ClearUserInfo()
+        {
+            _datadogClass.CallStatic("clearUserInfo");
+        }
+
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
             if (extraInfo == null)

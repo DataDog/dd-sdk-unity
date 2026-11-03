@@ -66,6 +66,11 @@ namespace Datadog.Unity.iOS
             Datadog_SetUserInfo(id, name, email, jsonAttributes);
         }
 
+        public void ClearUserInfo()
+        {
+            Datadog_ClearUserInfo();
+        }
+
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
             if (extraInfo == null)
@@ -219,6 +224,9 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_SetTrackingConsent(int trackingConsent);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_ClearUserInfo();
 
         [DllImport("__Internal")]
         private static extern void Datadog_SetUserInfo(string id, string name, string email, string extraInfo);
