@@ -74,6 +74,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
         [UnityTest]
         [Category("integration")]
+        // On WebGL the Browser SDK captures headers itself: it does not capture XHR request headers, and it only sees
+        // response headers that the server exposes through CORS.
+        [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
         public IEnumerator TrackedWebRequestHeadersScenario()
         {
             var mockServerHelper = new MockServerHelper();
