@@ -60,6 +60,28 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public string Reason { get; }
 
+        private bool IsCompatible(Type type)
+        {
+            var tokenType = VariationValue.Type;
+            if (type == typeof(bool))
+                return VariationType == "boolean" && tokenType == JTokenType.Boolean;
+            if (type == typeof(string))
+                return VariationType == "string" && tokenType == JTokenType.String;
+            if (type == typeof(int))
+            {
+                if (VariationType != "integer" && VariationType != "number") return false;
+                if (tokenType != JTokenType.Integer && tokenType != JTokenType.Float) return false;
+                var number = VariationValue.Value<double>();
+                return !double.IsNaN(number) && !double.IsInfinity(number)
+                    && number >= int.MinValue && number <= int.MaxValue
+                    && Math.Truncate(number) == number;
+            }
+            if (type == typeof(double))
+                return (VariationType == "float" || VariationType == "number")
+                    && (tokenType == JTokenType.Integer || tokenType == JTokenType.Float);
+            return VariationType == "object" && tokenType == JTokenType.Object;
+        }
+
         /// <summary>
         /// Attempts to get the variation value as the specified type.
         /// </summary>
@@ -68,7 +90,7 @@ namespace Datadog.Unity.Flags
         /// <param name="logger">Optional logger; receives a warning when conversion fails.</param>
         public bool TryGetValue<T>(out T value, string flagKey = null, IInternalLogger logger = null)
         {
-            if (VariationValue == null || VariationValue.Type == JTokenType.Null)
+            if (VariationValue == null || VariationValue.Type == JTokenType.Null || !IsCompatible(typeof(T)))
             {
                 value = default;
                 return false;

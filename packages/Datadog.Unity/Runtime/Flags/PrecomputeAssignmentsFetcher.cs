@@ -177,12 +177,31 @@ namespace Datadog.Unity.Flags
                 return flags;
             }
 
+            JObject document;
+            try
+            {
+                document = JObject.Parse(json);
+            }
+            catch (JsonException)
+            {
+                return flags;
+            }
+
+            var data = document["data"] as JObject;
+            var attributes = data?["attributes"] as JObject;
+            var marker = attributes?["obfuscated"];
+            if (attributes?.Property("obfuscation") != null ||
+                (marker != null && (marker.Type != JTokenType.Boolean || marker.Value<bool>())))
+            {
+                throw new JsonSerializationException("Flag-key obfuscation is not supported.");
+            }
+
             AssignmentsResponseDto response;
             try
             {
-                response = JsonConvert.DeserializeObject<AssignmentsResponseDto>(json);
+                response = document.ToObject<AssignmentsResponseDto>();
             }
-            catch
+            catch (JsonException)
             {
                 return flags;
             }
@@ -196,6 +215,9 @@ namespace Datadog.Unity.Flags
             foreach (var kvp in flagsDict)
             {
                 var dto = kvp.Value;
+                if (dto == null || (dto.VariationType != "boolean" && dto.VariationType != "string"
+                    && dto.VariationType != "integer" && dto.VariationType != "number"
+                    && dto.VariationType != "float" && dto.VariationType != "object")) continue;
                 flags[kvp.Key] = new FlagAssignment(
                     variationType: dto.VariationType,
                     variationValue: dto.VariationValue,
