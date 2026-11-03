@@ -111,6 +111,34 @@ namespace Datadog.Unity.Editor.iOS
             Assert.DoesNotThrow(() => IosXcframeworkPreprocessBuild.Validate(absoluteDir, RequiredModules));
         }
 
+        [TestCase("12.0")]
+        [TestCase("14.0")]
+        [TestCase("14.9")]
+        [TestCase("0.0")]
+        [TestCase("")]
+        [TestCase(null)]
+        [TestCase("invalid")]
+        public void ValidateDeploymentTargetRejectsUnsupportedOrInvalidVersion(string targetVersion)
+        {
+            var exception = Assert.Throws<BuildFailedException>(
+                () => IosXcframeworkPreprocessBuild.ValidateDeploymentTarget(targetVersion));
+
+            StringAssert.Contains("iOS 15.0 or later", exception.Message);
+            StringAssert.Contains("Player Settings > Other Settings > Target minimum iOS Version", exception.Message);
+            StringAssert.Contains($"currently '{targetVersion}'", exception.Message);
+        }
+
+        [TestCase("15")]
+        [TestCase("15.0")]
+        [TestCase("15.0.1")]
+        [TestCase("15.1")]
+        [TestCase("16.0")]
+        [TestCase("26.0")]
+        public void ValidateDeploymentTargetAcceptsSupportedVersion(string targetVersion)
+        {
+            Assert.DoesNotThrow(() => IosXcframeworkPreprocessBuild.ValidateDeploymentTarget(targetVersion));
+        }
+
         [Test]
         public void IosDependencyVersionParseYieldsExpectedFiveModules()
         {
