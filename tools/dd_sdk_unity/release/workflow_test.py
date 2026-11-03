@@ -782,11 +782,14 @@ def test_ai_drafting_checks_coverage_and_runs_group_draft_cleanup():
         )
 
 
-def test_changelog_skips_ordinary_chores_but_includes_breaking_chores():
+@pytest.mark.parametrize(
+    "prefix", ["", "RUM-12494 ", "RUM-12494: ", "[RUM-12494] ", "[RUM-12494]: "]
+)
+def test_changelog_skips_ordinary_chores_but_includes_breaking_chores(prefix):
     from .changelog import classify
 
     prompt = Mock()
-    notes, groups = draft_notes((classify("chore: Internal cleanup", number=1),), "", prompt)
+    notes, groups = draft_notes((classify(prefix + "chore: Internal cleanup", number=1),), "", prompt)
     assert notes == "- Maintenance release; no significant changes."
     assert groups == ()
     prompt.assert_not_called()
@@ -795,12 +798,14 @@ def test_changelog_skips_ordinary_chores_but_includes_breaking_chores():
     )
     prompt.side_effect = [
         GroupedPRs(
-            groups=[PRGroup(label="API", prs=[GroupedPR(number=1, title="chore!: Remove API")])]
+            groups=[
+                PRGroup(label="API", prs=[GroupedPR(number=1, title=prefix + "chore!: Remove API")])
+            ]
         ),
         draft,
         draft,
     ]
-    notes, _ = draft_notes((classify("chore!: Remove API", number=1),), "", prompt)
+    notes, _ = draft_notes((classify(prefix + "chore!: Remove API", number=1),), "", prompt)
     assert "### Breaking Changes\n\n- Removes the old API." in notes
     assert prompt.call_count == 3
 

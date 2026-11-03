@@ -76,6 +76,30 @@ def test_bump_policy_has_no_automatic_major(history, title, body, version):
     assert plan.base_sha == base.hexsha
 
 
+@pytest.mark.parametrize(
+    "prefix", ["RUM-12494 ", "RUM-12494: ", "[RUM-12494] ", "[RUM-12494]: "]
+)
+@pytest.mark.parametrize(
+    ("title", "kind", "version"),
+    [
+        ("feat: Add setting", "feat", "3.1.0"),
+        ("feat(rum)!: Sample request traces deterministically by session", "feat", "3.1.0"),
+        ("fix(ios)!: Change behavior", "fix", "3.0.1"),
+        ("chore: Update native pins", "chore", "3.0.1"),
+    ],
+)
+def test_jira_prefixed_titles_preserve_details_and_choose_release_version(
+    history, prefix, title, kind, version
+):
+    repo, _ = history
+    full_title = prefix + title
+    change = direct_change(repo, full_title, "Change details")
+    assert change.kind == kind
+    assert change.title == full_title
+    assert change.body == "Change details"
+    assert select_release(repo, repo.head.commit.hexsha, (change,)).version == version
+
+
 def test_prebumped_package_uses_explicit_base_without_rewriting_source(history):
     repo, _ = history
     c = commit(repo, f"{PACKAGE_PATH}/package.json", '{"version":"4.0.0"}', "feat: Next SDK")

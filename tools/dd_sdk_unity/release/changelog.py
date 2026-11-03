@@ -31,6 +31,9 @@ from .changelog_prompts import (
 )
 from .models import VERSION_PATTERN, Change, Preparation
 
+JIRA_PREFIX = re.compile(
+    r"^(?:[A-Z][A-Z0-9_]*-[0-9]+|\[[A-Z][A-Z0-9_]*-[0-9]+\]):?[ \t]+"
+)
 CONVENTIONAL_TITLE = re.compile(
     r"^(feat|fix|perf|refactor|docs|chore|build|ci|test|style|revert)"
     r"(?:\([^()\n]+\))?!?:\s+\S"
@@ -43,7 +46,7 @@ def version_key(value: str) -> Version:
 
 
 def classify(title: str, body: str = "", **fields) -> Change:
-    match = CONVENTIONAL_TITLE.match(title)
+    match = CONVENTIONAL_TITLE.match(JIRA_PREFIX.sub("", title))
     return Change(
         title=title,
         body=body,
@@ -123,7 +126,7 @@ def draft_notes(
     significant_prs = [
         change
         for change in changes
-        if not change.title.startswith("chore:") or "BREAKING" in change.title
+        if not JIRA_PREFIX.sub("", change.title).startswith("chore:") or "BREAKING" in change.title
     ]
     groups = []
     changelog = ChangelogEntryList(breaking_changes=[], features=[], fixes=[])
