@@ -20,7 +20,8 @@ namespace Datadog.Unity.Flags
             bool doLog,
             string allocationKey,
             string variationKey,
-            string reason)
+            string reason,
+            long? serialId = null)
         {
             VariationType = variationType ?? string.Empty;
             VariationValue = variationValue;
@@ -28,12 +29,15 @@ namespace Datadog.Unity.Flags
             AllocationKey = allocationKey;
             VariationKey = variationKey ?? string.Empty;
             Reason = reason ?? string.Empty;
+            SerialId = serialId;
         }
 
         /// <summary>
         /// Gets the type of the variation value (boolean, string, integer, number, float, object).
         /// </summary>
         public string VariationType { get; }
+
+        public long? SerialId { get; }
 
         /// <summary>
         /// Gets the raw variation value token.

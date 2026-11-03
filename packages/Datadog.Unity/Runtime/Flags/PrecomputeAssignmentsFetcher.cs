@@ -224,7 +224,8 @@ namespace Datadog.Unity.Flags
                     doLog: dto.DoLog,
                     allocationKey: dto.AllocationKey,
                     variationKey: dto.VariationKey,
-                    reason: dto.Reason);
+                    reason: dto.Reason,
+                    serialId: dto.SerialId);
             }
 
             return flags;
@@ -309,6 +310,10 @@ namespace Datadog.Unity.Flags
         [Preserve]
         private class FlagAssignmentDto
         {
+            [Preserve]
+            [JsonProperty("serialId")]
+            public long? SerialId { get; set; }
+
             [Preserve]
             [JsonProperty("variationType")]
             public string VariationType { get; set; }
