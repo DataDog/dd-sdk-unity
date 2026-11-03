@@ -284,7 +284,12 @@ namespace Datadog.Unity.Rum
                 return null;
             }
 
-            return filter.FilterRequestHeaders(_innerRequest.GetRequestHeader, logger);
+            // An unset header can read back as an empty string, which is treated as absent
+            return filter.FilterRequestHeaders(name =>
+            {
+                var value = _innerRequest.GetRequestHeader(name);
+                return string.IsNullOrEmpty(value) ? null : value;
+            }, logger);
         }
 
         /// <summary>

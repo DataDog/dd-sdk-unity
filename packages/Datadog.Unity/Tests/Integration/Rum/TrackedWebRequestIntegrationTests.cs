@@ -123,7 +123,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
     {
         // httpbin echoes the query parameters back as response headers
         public const string HeadersUrl =
-            "https://httpbin.org/response-headers?ETag=%22poc-etag%22&X-Request-Id=response-abc&X-Not-Listed=ignored";
+            "https://httpbin.org/response-headers?ETag=%22poc-etag%22&X-Request-Id=response-abc&X-Not-Listed=ignored&Access-Control-Expose-Headers=ETag%2CX-Request-Id";
 
         public string ViewKey { get; } = $"TrackedWebRequestHeadersScenario-{Guid.NewGuid():N}";
 
