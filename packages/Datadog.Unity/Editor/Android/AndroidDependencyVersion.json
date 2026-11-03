@@ -1,5 +1,5 @@
 {
-  "version": "3.10.0",
+  "version": "3.16.0",
   "artifacts": [
     "dd-sdk-android-rum",
     "dd-sdk-android-logs",
