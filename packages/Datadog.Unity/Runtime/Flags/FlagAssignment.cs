@@ -3,6 +3,8 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
+using System.Numerics;
+using Newtonsoft.Json;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Newtonsoft.Json.Linq;
@@ -64,6 +66,9 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public string Reason { get; }
 
+        private bool IsNumericType() =>
+            VariationType == "integer" || VariationType == "number" || VariationType == "float";
+
         private bool IsCompatible(Type type)
         {
             var tokenType = VariationValue.Type;
@@ -73,7 +78,7 @@ namespace Datadog.Unity.Flags
                 return VariationType == "string" && tokenType == JTokenType.String;
             if (type == typeof(int))
             {
-                if (VariationType != "integer" && VariationType != "number") return false;
+                if (!IsNumericType()) return false;
                 if (tokenType != JTokenType.Integer && tokenType != JTokenType.Float) return false;
                 var number = VariationValue.Value<double>();
                 return !double.IsNaN(number) && !double.IsInfinity(number)
@@ -81,8 +86,15 @@ namespace Datadog.Unity.Flags
                     && Math.Truncate(number) == number;
             }
             if (type == typeof(double))
-                return (VariationType == "float" || VariationType == "number")
-                    && (tokenType == JTokenType.Integer || tokenType == JTokenType.Float);
+            {
+                if (!IsNumericType() || (tokenType != JTokenType.Integer && tokenType != JTokenType.Float))
+                    return false;
+                var number = VariationValue.Value<double>();
+                if (double.IsNaN(number) || double.IsInfinity(number)) return false;
+                return tokenType != JTokenType.Integer ||
+                    (BigInteger.TryParse(VariationValue.ToString(Formatting.None), out var integer) &&
+                        integer == new BigInteger(number));
+            }
             return VariationType == "object" && tokenType == JTokenType.Object;
         }
 

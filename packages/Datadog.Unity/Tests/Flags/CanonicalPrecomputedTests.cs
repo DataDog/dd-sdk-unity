@@ -4,6 +4,7 @@
 
 #if UNITY_EDITOR
 using System;
+using System.Numerics;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -88,7 +89,7 @@ namespace Datadog.Unity.Flags.Tests
                 },
             };
             Assert.IsTrue(Matches(actual["value"], evaluation["expectedResult"]["value"])
-                && Matches(evaluation["expectedResult"]["value"], actual["value"]), "Exact flag value");
+                && Matches(evaluation["expectedResult"]["value"], actual["value"]), $"{evaluation["flag"]}: exact value {actual["value"]}, expected {evaluation["expectedResult"]["value"]}");
             foreach (var field in ((JObject)evaluation["expectedResult"]).Properties())
                 Assert.IsTrue(Matches(actual[field.Name], field.Value),
                     $"{evaluation["flag"]}: {field.Name}: {actual[field.Name]} ({actual[field.Name]?.Type}), expected {field.Value} ({field.Value.Type})");
@@ -124,7 +125,17 @@ namespace Datadog.Unity.Flags.Tests
                 return actual is JObject && fields.Properties().All(field => Matches(actual[field.Name], field.Value));
             if (actual != null && (actual.Type == JTokenType.Integer || actual.Type == JTokenType.Float)
                 && (expected.Type == JTokenType.Integer || expected.Type == JTokenType.Float))
-                return actual.Value<decimal>() == expected.Value<decimal>();
+            {
+                BigInteger? Integer(JToken token) => token.Type == JTokenType.Integer
+                    ? BigInteger.Parse(token.ToString())
+                    : Math.Truncate(token.Value<double>()) == token.Value<double>()
+                        ? new BigInteger(token.Value<double>()) : (BigInteger?)null;
+                var actualInteger = Integer(actual);
+                var expectedInteger = Integer(expected);
+                return actualInteger.HasValue || expectedInteger.HasValue
+                    ? actualInteger == expectedInteger
+                    : actual.Value<double>() == expected.Value<double>();
+            }
             return JToken.DeepEquals(actual, expected);
         }
     }
