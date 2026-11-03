@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2023-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -11,12 +12,14 @@ using UnityEditor.Build.Reporting;
 namespace Datadog.Unity.Editor.iOS
 {
     /// <summary>
-    /// Fails an iOS build early, with a clear message, if any of the pinned dd-sdk-ios
-    /// XCFramework modules are missing from Plugins/iOS -- rather than letting the build
-    /// proceed and fail deep inside Xcode's link step with a much less helpful error.
+    /// Validates the consuming project's iOS deployment target and required XCFramework modules
+    /// before building, and enables embedding for the native frameworks.
     /// </summary>
     public class IosXcframeworkPreprocessBuild : IPreprocessBuildWithReport
     {
+        // Keep in sync with the minimum deployment target of the pinned dd-sdk-ios frameworks.
+        private static readonly Version MinimumIosVersion = new Version(15, 0);
+
         public int callbackOrder => 0;
 
         public void OnPreprocessBuild(BuildReport report)
@@ -25,6 +28,8 @@ namespace Datadog.Unity.Editor.iOS
             {
                 return;
             }
+
+            ValidateDeploymentTarget(PlayerSettings.iOS.targetOSVersionString);
 
             var pluginsIosDirectory = IosDependencyVersion.ResolvePluginsIosDirectory();
             var requiredModules = IosDependencyVersion.Load().modules;
@@ -53,6 +58,22 @@ namespace Datadog.Unity.Editor.iOS
                     importer.SaveAndReimport();
                 }
             }
+        }
+
+        internal static void ValidateDeploymentTarget(string targetVersion)
+        {
+            var versionString = targetVersion != null && !targetVersion.Contains(".")
+                ? $"{targetVersion}.0"
+                : targetVersion;
+            if (Version.TryParse(versionString, out var version) && version >= MinimumIosVersion)
+            {
+                return;
+            }
+
+            throw new BuildFailedException(
+                $"Datadog requires iOS {MinimumIosVersion} or later. " +
+                "Set Player Settings > Other Settings > Target minimum iOS Version to " +
+                $"{MinimumIosVersion} or later (currently '{targetVersion}').");
         }
 
         internal static List<string> FindMissingModules(string pluginsIosDirectory, IEnumerable<string> requiredModules)
