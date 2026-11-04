@@ -179,9 +179,10 @@ class UnityCli:
             raise RuntimeError(f'Invalid JSON from Unity CLI {command}: {output}') from error
         if not isinstance(result, dict) or result.get('success') is not True:
             raise RuntimeError(f'Unity CLI {command} failed: {output}')
-        if not isinstance(result.get('data'), list):
+        data = result.get('data')
+        if not isinstance(data, dict) or not isinstance(data.get('items'), list):
             raise RuntimeError(f'Unexpected list from Unity CLI {command}: {output}')  # noqa: TRY004 -- Invalid CLI output, not a caller argument.
-        return result['data']
+        return data['items']
 
     @staticmethod
     def _raise_for_exitcode(exitcode: int, command: str, details: str = '') -> None:

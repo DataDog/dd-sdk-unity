@@ -29,7 +29,7 @@ unit-test:
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
-    - dd-unity-unit-test --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+    - dd-unity-unit-test --unity-version "$UNITY_VERSION_PARTIAL" --project "$PROJECT_PATH"
   artifacts:
     when: always
     expire_in: "30 days"
@@ -62,7 +62,7 @@ integration-test-ios:
     - xcodebuild -version
     - xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
     - dd-unity-ios-xcframework stage
-    - dd-unity-integration-test --platform ios --target simulator --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+    - dd-unity-integration-test --platform ios --target simulator --unity-version "$UNITY_VERSION_PARTIAL" --project "$PROJECT_PATH"
   artifacts:
     when: always
     expire_in: "30 days"
@@ -97,7 +97,7 @@ integration-test-webgl:
     - !reference [.shared, install-unity]
     - test -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" || python -m playwright install chrome
     - '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --version'
-    - dd-unity-integration-test --platform webgl --unity-version "$UNITY_VERSION" --project "$PROJECT_PATH"
+    - dd-unity-integration-test --platform webgl --unity-version "$UNITY_VERSION_PARTIAL" --project "$PROJECT_PATH"
   artifacts:
     when: always
     expire_in: "30 days"
