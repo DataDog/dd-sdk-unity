@@ -37,6 +37,19 @@ namespace Datadog.Unity.Rum.Tests
         }
 
         [Test]
+        public void TreatsEmptyRequestHeaderLookupsAsAbsent()
+        {
+            // Given
+            var filter = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, new[] { "x-set", "x-unset" });
+
+            // When
+            var result = filter.FilterRequestHeaders(name => name == "x-set" ? "1" : string.Empty, null);
+
+            // Then
+            CollectionAssert.AreEquivalent(new[] { "x-set" }, result.Keys);
+        }
+
+        [Test]
         public void NeverCapturesSensitiveHeadersEvenWhenListed()
         {
             // Given

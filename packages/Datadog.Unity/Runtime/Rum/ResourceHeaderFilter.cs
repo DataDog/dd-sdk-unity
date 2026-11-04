@@ -74,7 +74,7 @@ namespace Datadog.Unity.Rum
 
         /// <summary>
         /// Captures request headers. UnityWebRequest cannot list its request headers, so each wanted header is read
-        /// by name through <paramref name="getHeader"/>, which returns null when the header is not set.
+        /// by name through <paramref name="getHeader"/>, which returns null or an empty string when the header is not set.
         /// </summary>
         /// <returns>The captured headers, or null if there are none.</returns>
         public Dictionary<string, object> FilterRequestHeaders(Func<string, string> getHeader, IInternalLogger logger)
@@ -84,7 +84,12 @@ namespace Datadog.Unity.Rum
                 return null;
             }
 
-            return Filter(getHeader, logger);
+            // UnityWebRequest can read back an unset header as an empty string, which is treated as absent
+            return Filter(name =>
+            {
+                var value = getHeader(name);
+                return string.IsNullOrEmpty(value) ? null : value;
+            }, logger);
         }
 
         /// <summary>

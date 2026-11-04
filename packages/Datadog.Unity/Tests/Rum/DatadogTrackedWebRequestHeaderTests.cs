@@ -13,7 +13,8 @@ namespace Datadog.Unity.Rum.Tests
         public void CapturesListedRequestHeadersSetBeforeAndAfterWrapping()
         {
             // Given
-            var filter = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, new[] { "x-before", "x-after" });
+            // x-unset is listed but never set on the request, so it must not be captured
+            var filter = new ResourceHeaderFilter(TrackResourceHeadersMode.Custom, new[] { "x-before", "x-after", "x-unset" });
             var inner = new UnityWebRequest("https://example.com/", "GET");
             inner.SetRequestHeader("X-Before", "1");
             using var request = new DatadogTrackedWebRequest(inner);
