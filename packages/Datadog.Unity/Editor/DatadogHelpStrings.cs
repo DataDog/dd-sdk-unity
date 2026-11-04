@@ -103,6 +103,6 @@ namespace Datadog.Unity.Editor
             "the RUM session. This API is experimental and may change without notice.";
 
         public const string TimeseriesTypesTooltip =
-            "Experimental: The specific timeseries types to collect. Defaults to collecting all available types.";
+            "Experimental: The specific timeseries types to collect. Defaults to memory and CPU.";
     }
 }

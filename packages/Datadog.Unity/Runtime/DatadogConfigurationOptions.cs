@@ -279,7 +279,7 @@ namespace Datadog.Unity
         public float NonFatalAppHangThreshold = 0.25f;
         // Experimental: Timeseries collection. This API is experimental and may change without notice.
         public bool EnableTimeseries;
-        public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.None;
+        public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.Default;
 
         // Advanced RUM
         public float TelemetrySampleRate;
