@@ -136,8 +136,12 @@ namespace Datadog.Unity.Rum.Tests
             // Then
             Assert.AreEqual(1, customOption.Count);
             Assert.AreEqual("x-request-id", customOption[0]["name"]);
-            // The Browser SDK cannot combine its defaults with custom matchers, so the defaults are listed by name
-            CollectionAssert.IsSupersetOf(customWithDefaultsOption.Select(matcher => matcher["name"]), new[] { "cache-control", "cf-cache-status", "x-request-id" });
+            // The Browser SDK cannot combine its defaults with custom matchers, so the defaults are listed by name with
+            // their direction, while custom headers apply to both directions
+            Assert.IsTrue(customWithDefaultsOption.Any(m => (string)m["name"] == "etag" && (string)m["location"] == "response"));
+            Assert.IsFalse(customWithDefaultsOption.Any(m => (string)m["name"] == "etag" && (string)m["location"] == "request"));
+            Assert.IsTrue(customWithDefaultsOption.Any(m => (string)m["name"] == "content-type" && (string)m["location"] == "request"));
+            Assert.IsTrue(customWithDefaultsOption.Any(m => (string)m["name"] == "x-request-id" && !m.ContainsKey("location")));
             Assert.AreEqual(true, defaultsOption);
             Assert.IsNull(disabledOption);
         }

@@ -52,6 +52,8 @@ namespace Datadog.Unity.Rum
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private readonly TrackResourceHeadersMode _mode;
+        private readonly bool _includesDefaultHeaders;
+        private readonly List<string> _customHeaderNames = new List<string>();
         private readonly List<string> _requestHeaderNames = new List<string>();
         private readonly List<string> _responseHeaderNames = new List<string>();
 
@@ -64,7 +66,8 @@ namespace Datadog.Unity.Rum
             }
 
             // Defaults are listed first so that they take priority when the size budget runs out
-            if (mode == TrackResourceHeadersMode.Defaults || includeDefaultHeaders)
+            _includesDefaultHeaders = mode == TrackResourceHeadersMode.Defaults || includeDefaultHeaders;
+            if (_includesDefaultHeaders)
             {
                 _requestHeaderNames.AddRange(DefaultRequestHeaders);
                 _responseHeaderNames.AddRange(DefaultResponseHeaders);
@@ -87,6 +90,11 @@ namespace Datadog.Unity.Rum
                 if (SensitiveHeaderPattern.IsMatch(lowercased))
                 {
                     continue;
+                }
+
+                if (!_customHeaderNames.Contains(lowercased))
+                {
+                    _customHeaderNames.Add(lowercased);
                 }
 
                 if (!_requestHeaderNames.Contains(lowercased))
@@ -121,9 +129,27 @@ namespace Datadog.Unity.Rum
             }
 
             // The Browser SDK cannot combine its own defaults with custom matchers, so defaults are listed by name
-            return _requestHeaderNames.Union(_responseHeaderNames)
-                .Select(name => new Dictionary<string, object> { { "name", name } })
-                .ToList();
+            // with their direction, while custom headers apply to both directions
+            var matchers = new List<Dictionary<string, object>>();
+            if (_includesDefaultHeaders)
+            {
+                matchers.AddRange(DefaultRequestHeaders.Select(name => BrowserSdkMatcher(name, "request")));
+                matchers.AddRange(DefaultResponseHeaders.Select(name => BrowserSdkMatcher(name, "response")));
+            }
+
+            matchers.AddRange(_customHeaderNames.Select(name => BrowserSdkMatcher(name, null)));
+            return matchers;
+        }
+
+        private static Dictionary<string, object> BrowserSdkMatcher(string name, string location)
+        {
+            var matcher = new Dictionary<string, object> { { "name", name } };
+            if (location != null)
+            {
+                matcher["location"] = location;
+            }
+
+            return matcher;
         }
 
         /// <summary>
