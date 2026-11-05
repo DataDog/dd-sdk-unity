@@ -27,6 +27,10 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
         public string SpanId => jsonGetProp<string>(rumEvent, "_dd.span_id");
 
+        public JObject RequestHeaders => jsonGetProp<JObject>(rumEvent, "resource.request.headers");
+
+        public JObject ResponseHeaders => jsonGetProp<JObject>(rumEvent, "resource.response.headers");
+
         public RumResourceEventDecoder(JObject rawJson)
             : base(rawJson)
         {

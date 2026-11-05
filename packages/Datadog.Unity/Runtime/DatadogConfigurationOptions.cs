@@ -220,6 +220,32 @@ namespace Datadog.Unity
         Default = Memory | Cpu,
     }
 
+    /// <summary>
+    /// Determines which HTTP headers are captured on RUM resources tracked through
+    /// <see cref="Rum.DatadogTrackedWebRequest"/>.
+    /// </summary>
+    public enum TrackResourceHeadersMode
+    {
+        /// <summary>
+        /// Do not capture any request or response headers.
+        /// </summary>
+        [InspectorName("Disabled")]
+        Disabled = 0,
+
+        /// <summary>
+        /// Capture the default set of request and response headers.
+        /// </summary>
+        [InspectorName("Defaults")]
+        Defaults = 1,
+
+        /// <summary>
+        /// Capture the headers named in <see cref="DatadogConfigurationOptions.CustomResourceHeaders"/>, plus the
+        /// default headers if <see cref="DatadogConfigurationOptions.IncludeDefaultHeaders"/> is set.
+        /// </summary>
+        [InspectorName("Custom")]
+        Custom = 2,
+    }
+
     [Serializable]
     public class FirstPartyHostOption
     {
@@ -280,6 +306,9 @@ namespace Datadog.Unity
         // Experimental: Timeseries collection. This API is experimental and may change without notice.
         public bool EnableTimeseries;
         public TimeseriesTypes TimeseriesTypes = TimeseriesTypes.Default;
+        public TrackResourceHeadersMode TrackResourceHeaders = TrackResourceHeadersMode.Disabled;
+        public List<string> CustomResourceHeaders = new ();
+        public bool IncludeDefaultHeaders = false;
 
         // Advanced RUM
         public float TelemetrySampleRate;
