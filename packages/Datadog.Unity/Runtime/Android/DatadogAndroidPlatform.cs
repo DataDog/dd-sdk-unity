@@ -132,6 +132,15 @@ namespace Datadog.Unity.Android
                 using var updateFrequency = DatadogConfigurationHelpers.GetVitalsUpdateFrequency(options.VitalsUpdateFrequency);
                 rumConfigBuilder.Call<AndroidJavaObject>("setVitalsUpdateFrequency", updateFrequency);
 
+                if (options.EnableTimeseries)
+                {
+                    // setTimeseriesConfiguration is @ExperimentalRumApi in dd-sdk-android, but that annotation is a
+                    // Kotlin compiler opt-in check with no bytecode/runtime enforcement, so calling it via JNI
+                    // reflection here requires no special handling.
+                    using var timeseriesConfig = DatadogConfigurationHelpers.GetTimeseriesConfiguration(options.TimeseriesTypes);
+                    rumConfigBuilder.Call<AndroidJavaObject>("setTimeseriesConfiguration", timeseriesConfig);
+                }
+
                 switch (options.TrackNonFatalAnrs)
                 {
                     case NonFatalAnrDetectionOption.Disabled:

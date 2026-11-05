@@ -98,7 +98,7 @@ namespace Datadog.Unity.Editor.iOS
 import Foundation
 import DatadogCore
 import DatadogLogs
-import DatadogRUM
+@_spi(Experimental) import DatadogRUM
 import DatadogCrashReporting
 
 @_cdecl(""initializeDatadog"")
@@ -178,6 +178,12 @@ func initializeDatadog() {{
                     options.TrackNonFatalAppHangs ? options.NonFatalAppHangThreshold.ToString(CultureInfo.InvariantCulture) : "nil";
                 sb.AppendLine(
                     $"    rumConfig.appHangThreshold = {appHangThreshold}");
+
+                if (options.EnableTimeseries)
+                {
+                    sb.AppendLine(
+                        $"    rumConfig.timeseries = RUM.Configuration.Timeseries(collectTypes: {GetSwiftTimeseriesCollectTypes(options.TimeseriesTypes)})");
+                }
 
                 // Uncomment to enable RUM Configuration Telemetry
                 // sb.AppendLine(@"    rumConfig._internal_mutation {
@@ -341,6 +347,23 @@ find . -type d -name '*.dSYM' -exec cp -r '{{}}' ""$PROJECT_DIR/{SymbolAssemblyB
                 VitalsUpdateFrequency.Frequent => ".frequent",
                 _ => "nil",
             };
+        }
+
+        private static string GetSwiftTimeseriesCollectTypes(TimeseriesTypes collectTypes)
+        {
+            // DatadogRUM requires a non-optional Set<TimeseriesType>, so always emit an explicit array literal.
+            var swiftTypes = new List<string>();
+            if (collectTypes.HasFlag(TimeseriesTypes.Memory))
+            {
+                swiftTypes.Add(".memory");
+            }
+
+            if (collectTypes.HasFlag(TimeseriesTypes.Cpu))
+            {
+                swiftTypes.Add(".cpu");
+            }
+
+            return $"[{string.Join(", ", swiftTypes)}]";
         }
 
         private static string GetSwiftSite(DatadogSite site)

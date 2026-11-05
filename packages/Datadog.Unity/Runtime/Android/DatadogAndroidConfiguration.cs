@@ -93,6 +93,26 @@ namespace Datadog.Unity.Android
             return updateFrequencyClass.GetStatic<AndroidJavaObject>(frequencyName);
         }
 
+        internal static AndroidJavaObject GetTimeseriesConfiguration(TimeseriesTypes collectTypes)
+        {
+            using var timeseriesTypeClass = new AndroidJavaClass("com.datadog.android.rum.timeseries.TimeseriesType");
+            using var collectTypesSet = new AndroidJavaObject("java.util.HashSet");
+
+            if (collectTypes.HasFlag(TimeseriesTypes.Memory))
+            {
+                using var memoryType = timeseriesTypeClass.GetStatic<AndroidJavaObject>("MEMORY");
+                collectTypesSet.Call<bool>("add", memoryType);
+            }
+
+            if (collectTypes.HasFlag(TimeseriesTypes.Cpu))
+            {
+                using var cpuType = timeseriesTypeClass.GetStatic<AndroidJavaObject>("CPU");
+                collectTypesSet.Call<bool>("add", cpuType);
+            }
+
+            return new AndroidJavaObject("com.datadog.android.rum.timeseries.TimeseriesConfiguration", collectTypesSet);
+        }
+
         internal static AndroidJavaObject GetTrackingConsent(TrackingConsent consent)
         {
             string consentName = consent switch
