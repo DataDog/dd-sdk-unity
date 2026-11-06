@@ -14,7 +14,7 @@ The required --project selects the Unity project whose Library/DatadogIntegratio
 directory holds the server state and log. start reuses a live recorded process after
 checking its PID and creation time, or starts a server listening on all IPv4 interfaces at
 port 5100. The endpoint is resolved from the current reachable LAN address on each command.
-stop terminates the verified recorded process and its reloader workers. These commands
+stop terminates the verified recorded process and its owned child processes. These commands
 manage only the server; they do not run tests or configure SDK settings. start and status
 print the server endpoint as JSON on stdout; diagnostics use stderr.
 """
@@ -223,7 +223,7 @@ class IntegrationTestEnvironment:
         return _server_endpoint(state['port'])
 
     def stop(self, process: psutil.Popen | None = None) -> None:
-        """Stop the recorded process group, including reloader workers."""
+        """Stop the recorded process group, including owned child processes."""
         state = self._read_state()
         identity: _ProcessIdentity
         if process is not None:
