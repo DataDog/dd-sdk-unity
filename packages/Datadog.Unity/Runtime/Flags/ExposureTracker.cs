@@ -20,13 +20,15 @@ namespace Datadog.Unity.Flags
             public readonly string FlagKey;
             public readonly string AllocationKey;
             public readonly string VariationKey;
+            public readonly long? SerialId;
 
-            public ExposureKey(string targetingKey, string flagKey, string allocationKey, string variationKey)
+            public ExposureKey(string targetingKey, string flagKey, string allocationKey, string variationKey, long? serialId = null)
             {
                 TargetingKey = targetingKey;
                 FlagKey = flagKey;
                 AllocationKey = allocationKey;
                 VariationKey = variationKey;
+                SerialId = serialId;
             }
 
             public bool Equals(ExposureKey other)
@@ -34,7 +36,8 @@ namespace Datadog.Unity.Flags
                 return TargetingKey == other.TargetingKey
                     && FlagKey == other.FlagKey
                     && AllocationKey == other.AllocationKey
-                    && VariationKey == other.VariationKey;
+                    && VariationKey == other.VariationKey
+                    && SerialId == other.SerialId;
             }
 
             public override bool Equals(object obj)
@@ -43,7 +46,7 @@ namespace Datadog.Unity.Flags
             }
 
             public override int GetHashCode()
-                => HashCode.Combine(TargetingKey, FlagKey, AllocationKey, VariationKey);
+                => HashCode.Combine(TargetingKey, FlagKey, AllocationKey, VariationKey, SerialId);
         }
 
         public const int DefaultCountLimit = 1_000;
