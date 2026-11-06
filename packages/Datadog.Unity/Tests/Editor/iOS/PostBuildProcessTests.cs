@@ -43,6 +43,28 @@ namespace Datadog.Unity.Editor.iOS
             Directory.Delete("tmp", true);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ContextReceiverRegistrationMatchesRumConfiguration(bool rumEnabled)
+        {
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath,
+                new DatadogConfigurationOptions() { RumEnabled = rumEnabled }, null);
+            var source = File.ReadAllText(_initializationFilePath);
+            const string registration = "DatadogUnityRumContextFeature.register()";
+            if (rumEnabled)
+            {
+                Assert.AreEqual(1, source.Split(new[] { registration }, StringSplitOptions.None).Length - 1);
+                Assert.Greater(source.IndexOf(registration, StringComparison.Ordinal),
+                    source.IndexOf("Datadog.initialize(", StringComparison.Ordinal));
+                Assert.Less(source.IndexOf(registration, StringComparison.Ordinal),
+                    source.IndexOf("RUM.enable(", StringComparison.Ordinal));
+            }
+            else
+            {
+                StringAssert.DoesNotContain(registration, source);
+            }
+        }
+
         [Test]
         public void GenerateOptionsFileCreatesFile()
         {

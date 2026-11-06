@@ -38,6 +38,8 @@ namespace Datadog.Unity
 
         IDdRumInternal InitRum(DatadogConfigurationOptions options);
 
+        IRumContextProvider CreateRumContextProvider();
+
         void SendDebugTelemetry(string message);
 
         void SendErrorTelemetry(string message, string stack, string kind);

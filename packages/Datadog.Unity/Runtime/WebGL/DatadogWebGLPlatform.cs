@@ -44,6 +44,11 @@ namespace Datadog.Unity.WebGL
             _logs.Init(options);
         }
 
+        public IRumContextProvider CreateRumContextProvider()
+        {
+            return NoOpRumContextProvider.Instance;
+        }
+
         public DatadogWorker CreateWorker(IInternalLogger logger)
         {
             return new PassthroughWorker();
