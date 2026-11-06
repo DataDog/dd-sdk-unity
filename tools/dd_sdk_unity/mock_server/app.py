@@ -329,12 +329,12 @@ def run(preferred_address: str, port: int) -> None:
     if not preferred_address:
         preferred_address = get_best_server_address().ip
 
-    # Keep Flask's debugger/reloader while bypassing reverse DNS for every startup.
+    # Keep request history in one process while bypassing startup reverse DNS.
     original_server = _serving.ThreadedWSGIServer
     # Replacing Werkzeug's class symbol with our subclass is intentional.
     _serving.ThreadedWSGIServer = _MockServer  # ty: ignore[invalid-assignment]
     try:
-        app.run(debug=True, host=preferred_address, port=port)
+        app.run(debug=True, use_reloader=False, host=preferred_address, port=port)
     finally:
         _serving.ThreadedWSGIServer = original_server
 
