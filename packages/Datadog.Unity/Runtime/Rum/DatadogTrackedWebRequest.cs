@@ -169,7 +169,7 @@ namespace Datadog.Unity.Rum
         public UnityWebRequestAsyncOperation SendWebRequest()
         {
 #if UNITY_WEBGL
-            // The browser SDK takes care of tracing requests for us, as UnityWebRequest uses fetch/XHR under the hood,
+            // The browser SDK takes care of tracing requests for us, as UnityWebRequest uses fetch under the hood,
             // so we can just directly pass through this call without any additional logic
             return _innerRequest.SendWebRequest();
 #else

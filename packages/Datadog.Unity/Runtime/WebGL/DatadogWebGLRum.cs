@@ -31,11 +31,11 @@ namespace Datadog.Unity.WebGL
         {
             var allowedTracingUrls = options.FirstPartyHosts.Select((e) =>
             {
-                // Match http and https, and any subdomains (consistent with other platforms)
-                var hostRegex = $@"^http[s]?:\/\/(.*\.)*{Regex.Escape(e.Host)}\/";
+                // Browser SDK matchers receive the full URL; native wrappers match the parsed host and port.
+                var hostRegex = $@"^https?:\/\/(?:[^/?#:]+\.)*{Regex.Escape(e.Host)}\/";
                 return new AllowedTracingUrl()
                 {
-                    match = e.Host,
+                    match = hostRegex,
                     propagatorTypes = e.TracingHeaderType.ToWebValue(),
                 };
             }).ToList();
@@ -50,6 +50,7 @@ namespace Datadog.Unity.WebGL
                 env = options.Env,
                 version = Application.version,
                 traceSampleRate = options.TraceSampleRate,
+                trackUserInteractions = false,
                 trackFrustrations = true,
                 trackResources = true,
                 trackLongTasks = true,
@@ -59,12 +60,6 @@ namespace Datadog.Unity.WebGL
                 source = "unity",
                 trackResourceHeaders = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders, options.IncludeDefaultHeaders).ToBrowserSdkOption(),
             };
-
-            // Header capture is an experimental feature in Browser SDK v6
-            if (browserSdkConfig.trackResourceHeaders != null)
-            {
-                browserSdkConfig.enableExperimentalFeatures.Add("track_resource_headers");
-            }
 
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
 
@@ -342,13 +337,13 @@ namespace Datadog.Unity.WebGL
             [Preserve]
             public bool trackFrustrations { get; set; }
             [Preserve]
+            public bool trackUserInteractions { get; set; }
+            [Preserve]
             public bool trackViewsManually { get; set; } = true;
             [Preserve]
             public bool trackResources { get; set; }
             [Preserve]
             public bool trackLongTasks { get; set; }
-            [Preserve]
-            public List<string> enableExperimentalFeatures { get; set; } = new List<string>();
             [Preserve]
             public string source { get; set; }
             [Preserve]

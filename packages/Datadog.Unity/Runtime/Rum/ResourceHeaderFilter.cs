@@ -128,13 +128,11 @@ namespace Datadog.Unity.Rum
                 return true;
             }
 
-            // The Browser SDK cannot combine its own defaults with custom matchers, so defaults are listed by name
-            // with their direction, while custom headers apply to both directions
             var matchers = new List<Dictionary<string, object>>();
             if (_includesDefaultHeaders)
             {
-                matchers.AddRange(DefaultRequestHeaders.Select(name => BrowserSdkMatcher(name, "request")));
-                matchers.AddRange(DefaultResponseHeaders.Select(name => BrowserSdkMatcher(name, "response")));
+                // An unnamed matcher selects the Browser SDK's default headers.
+                matchers.Add(new Dictionary<string, object>());
             }
 
             matchers.AddRange(_customHeaderNames.Select(name => BrowserSdkMatcher(name, null)));
