@@ -387,27 +387,29 @@ Do not add local exclusions to hide failures.
 Numeric getters use lossless conversion regardless of the `integer`, `float`, or `number` wire label.
 Integer getters accept whole values within their native range. Double getters reject integer values that lose precision.
 Fractional Integer reads, range overflow, and inexact conversions return `TYPE_MISMATCH`.
-React Native exposes one Number getter. Its tests exclude cases that require a separate Integer getter or native integer precision.
+Unity exposes a 32-bit Integer getter. Generic numeric reads also support lossless conversions to `long` and `float`.
+Double exactness checks apply to JSON Integer tokens. Decimal and exponent forms use Json.NET double parsing and can round before evaluation.
+For example, `9007199254740993` is rejected by the Double getter; `9007199254740993.0` parses as `9007199254740992`.
 The service keeps sending `number`. This work adds no numeric capability.
 
 Upstream CI requires a generated obfuscated companion for each applicable plain fixture. It rejects missing, stale, or orphaned companions. Edit the plain case upstream and regenerate; do not maintain two sets of expectations. Dedicated malformed-encoding cases and fixed digest vectors remain separate.
 
 Cases cover values, defaults, errors, reasons, variants, emission gates, duplicate evaluations, and numeric boundaries.
 Obfuscation cases cover fixed digests, salts, Unicode, whitespace, malformed metadata, and plaintext event identity.
-The Editor suite checks the real decoder, public getters, exposure tracker, and evaluation aggregator. Player and native bridge tests remain separate. Encoded responses are rejected because Unity does not support key obfuscation.
+The Editor suite checks the C# parser, public getters, exposure tracker, and evaluation aggregator. Player integration tests remain separate. Encoded responses are rejected because Unity does not support key obfuscation.
 
 Run from the repository root:
 
 ```sh
-python3 ci/sync-precomputed-fixtures.py --verify
+dd-unity-sync-precomputed-fixtures --verify
 dd-unity-unit-test
 ```
 
 Refresh the snapshot from a reviewed upstream commit:
 
 ```sh
-python3 ci/sync-precomputed-fixtures.py --ref <full-upstream-sha>
-python3 ci/sync-precomputed-fixtures.py --check
+dd-unity-sync-precomputed-fixtures --ref <full-upstream-sha>
+dd-unity-sync-precomputed-fixtures --check
 ```
 
 The importer copies committed bytes, regenerates the index, and removes deleted cases.

@@ -24,21 +24,21 @@ namespace Datadog.Unity.Flags.Tests
             var root = Path.Combine(Path.GetDirectoryName(script), "Fixtures", "precomputed");
             var paths = Directory.GetFiles(Path.Combine(root, "cases"), "*.json", SearchOption.AllDirectories);
             if (paths.Length == 0) throw new InvalidDataException("Empty canonical precompute corpus");
-            var fixtures = paths.OrderBy(path => path).Select(path => JObject.Parse(File.ReadAllText(path))).ToList();
-            if (!fixtures.Any(Applies)) throw new InvalidDataException("All canonical fixtures excluded");
             var source = JObject.Parse(File.ReadAllText(Path.Combine(root, "SOURCE.json")));
-            foreach (var fixture in fixtures)
-            {
-                var test = new TestCaseData(fixture).SetName($"Canonical/{source["commit"]}/{fixture["name"]}");
-                if (!Applies(fixture)) test.Ignore("Canonical platform exclusion");
-                yield return test;
-            }
+            foreach (var path in paths.OrderBy(path => path))
+                yield return new TestCaseData(path).SetName($"Canonical/{source["commit"]}/{Path.GetFileNameWithoutExtension(path)}");
         }
 
         [TestCaseSource(nameof(Fixtures))]
-        public void SatisfiesCanonicalContract(JObject fixture)
+        public void SatisfiesCanonicalContract(string path)
         {
-            var response = fixture["response"].ToString(Formatting.None);
+            var text = File.ReadAllText(path);
+            var fixture = JObject.Parse(text, new JsonLoadSettings { LineInfoHandling = LineInfoHandling.Load });
+            var evaluations = fixture["evaluations"].Cast<JObject>().ToList();
+            var executed = Applies(fixture) ? evaluations.Count(Applies) : 0;
+            TestContext.WriteLine($"{path}: executed evaluations={executed}; excluded evaluations={evaluations.Count - executed}");
+            if (!Applies(fixture)) Assert.Ignore("Canonical platform exclusion");
+            var response = RawResponse(text, fixture);
             if (fixture["expectedResponseError"] != null)
             {
                 Assert.AreEqual("INVALID_RESPONSE", (string)fixture["expectedResponseError"]);
@@ -71,13 +71,57 @@ namespace Datadog.Unity.Flags.Tests
             AssertEvents(events, fixture["expectations"], "evaluationEvents");
         }
 
+        internal static string RawResponse(string text, JObject fixture)
+        {
+            var location = (IJsonLineInfo)fixture["response"];
+            var start = 0;
+            for (var line = 1; line < location.LineNumber; line++)
+                start = text.IndexOf('\n', start) + 1;
+            start += location.LinePosition - 1;
+            if (text[start] != '{') throw new InvalidDataException("Expected a response object");
+            var depth = 0;
+            var quoted = false;
+            var escaped = false;
+            for (var i = start; i < text.Length; i++)
+            {
+                var c = text[i];
+                if (quoted)
+                {
+                    if (escaped) escaped = false;
+                    else if (c == '\\') escaped = true;
+                    else if (c == '"') quoted = false;
+                }
+                else if (c == '"') quoted = true;
+                else if (c == '{') depth++;
+                else if (c == '}' && --depth == 0) return text.Substring(start, i - start + 1);
+            }
+            throw new InvalidDataException("Incomplete response object");
+        }
+
+        [Test]
+        public void PreservesOriginalNumericResponseText()
+        {
+            const string text = "{\"response\":{\"value\":9007199254740993.0,\"text\":\"}\"},\"evaluations\":[]}";
+            Assert.AreEqual("{\"value\":9007199254740993.0,\"text\":\"}\"}", RawResponse(text, JObject.Parse(text)));
+        }
+
+        [Test]
+        public void IntegrationPayloadRetainsAllAssignments()
+        {
+            var script = AssetDatabase.FindAssets("CanonicalPrecomputedTests t:MonoScript")
+                .Select(AssetDatabase.GUIDToAssetPath).Single();
+            var path = Path.Combine(Path.GetDirectoryName(script), "..", "Integration", "Flags", "Resources", "PrecomputePayload.json");
+            var assignments = PrecomputeAssignmentsFetcher.ParseResponse(File.ReadAllText(path));
+            Assert.AreEqual(6, assignments.Count);
+        }
+
         private static void Check<T>(FlagsClient client, JObject evaluation)
         {
             var details = client.GetDetails((string)evaluation["flag"], evaluation["defaultValue"].ToObject<T>());
             var actual = new JObject
             {
                 ["value"] = details.Value == null ? JValue.CreateNull() : JToken.FromObject(details.Value),
-                ["reason"] = details.Error == null ? details.Reason : "ERROR",
+                ["reason"] = details.Reason,
                 ["variantKey"] = details.Variant,
                 ["errorCode"] = details.Error switch
                 {

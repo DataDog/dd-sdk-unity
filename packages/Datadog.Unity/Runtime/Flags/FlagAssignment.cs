@@ -76,21 +76,36 @@ namespace Datadog.Unity.Flags
                 return VariationType == "boolean" && tokenType == JTokenType.Boolean;
             if (type == typeof(string))
                 return VariationType == "string" && tokenType == JTokenType.String;
-            if (type == typeof(int))
-            {
-                if (!IsNumericType()) return false;
-                if (tokenType != JTokenType.Integer && tokenType != JTokenType.Float) return false;
-                var number = VariationValue.Value<double>();
-                return !double.IsNaN(number) && !double.IsInfinity(number)
-                    && number >= int.MinValue && number <= int.MaxValue
-                    && Math.Truncate(number) == number;
-            }
-            if (type == typeof(double))
+            if (type == typeof(object))
+                return (VariationType == "object" && tokenType == JTokenType.Object)
+                    || (VariationType == "string" && tokenType == JTokenType.String)
+                    || (VariationType == "boolean" && tokenType == JTokenType.Boolean)
+                    || (IsNumericType() && (tokenType == JTokenType.Integer || tokenType == JTokenType.Float));
+            if (type == typeof(int) || type == typeof(long))
             {
                 if (!IsNumericType() || (tokenType != JTokenType.Integer && tokenType != JTokenType.Float))
                     return false;
-                var number = VariationValue.Value<double>();
+                BigInteger integer;
+                if (tokenType == JTokenType.Integer)
+                    integer = BigInteger.Parse(VariationValue.ToString(Formatting.None));
+                else
+                {
+                    var number = (double)VariationValue;
+                    if (double.IsNaN(number) || double.IsInfinity(number) || Math.Truncate(number) != number)
+                        return false;
+                    integer = new BigInteger(number);
+                }
+                return type == typeof(int)
+                    ? integer >= int.MinValue && integer <= int.MaxValue
+                    : integer >= long.MinValue && integer <= long.MaxValue;
+            }
+            if (type == typeof(double) || type == typeof(float))
+            {
+                if (!IsNumericType() || (tokenType != JTokenType.Integer && tokenType != JTokenType.Float))
+                    return false;
+                var number = (double)VariationValue;
                 if (double.IsNaN(number) || double.IsInfinity(number)) return false;
+                if (type == typeof(float) && (double)(float)number != number) return false;
                 return tokenType != JTokenType.Integer ||
                     (BigInteger.TryParse(VariationValue.ToString(Formatting.None), out var integer) &&
                         integer == new BigInteger(number));
@@ -106,14 +121,13 @@ namespace Datadog.Unity.Flags
         /// <param name="logger">Optional logger; receives a warning when conversion fails.</param>
         public bool TryGetValue<T>(out T value, string flagKey = null, IInternalLogger logger = null)
         {
-            if (VariationValue == null || VariationValue.Type == JTokenType.Null || !IsCompatible(typeof(T)))
-            {
-                value = default;
-                return false;
-            }
-
             try
             {
+                if (VariationValue == null || VariationValue.Type == JTokenType.Null || !IsCompatible(typeof(T)))
+                {
+                    value = default;
+                    return false;
+                }
                 value = VariationValue.ToObject<T>();
                 return true;
             }

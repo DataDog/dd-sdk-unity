@@ -43,10 +43,3 @@ For more information, read the [Contributing guidelines](https://github.com/Data
 ## License
 
 For more information, see [Apache License, v2.0](https://github.com/DataDog/dd-sdk-unity/blob/develop/LICENSE).
-
-## Feature Flag response consistency
-
-The Flags SDK uses shared JSON response tests with the other mobile SDKs.
-These tests check typed getters, default values, and event behavior. They add no runtime dependency.
-Unity rejects encoded flag-key responses because it does not support that encoding.
-See [shared precomputed response tests](../../CONTRIBUTING.md#shared-precomputed-response-tests) for the fixture update process.

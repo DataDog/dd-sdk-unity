@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Unless explicitly stated otherwise, all files in this repository are licensed under the
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
@@ -111,7 +110,7 @@ def main():
     parser.add_argument('--verify', action='store_true', help='Verify local checksums and discovery index without network access')
     parser.add_argument('--check', action='store_true', help='Compare with the recorded upstream SHA; do not write')
     args = parser.parse_args()
-    root = Path(__file__).resolve().parent.parent
+    root = Path(__file__).resolve().parents[3]
     config = json.loads((root / 'ci/precomputed-fixtures.json').read_text())
     relative = Path(config['destination'])
     if relative.is_absolute() or '..' in relative.parts:

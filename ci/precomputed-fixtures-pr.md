@@ -4,4 +4,4 @@ Refresh precomputed response fixtures to `SOURCE_COMMIT` to keep mobile behavior
 
 ### Review checklist
 
-- [ ] This pull request has appropriate unit and / or integration tests
+- [ ] Review the fixture changes and their SDK test results before merging.

@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'ci/*precomputed*'
+      - 'tools/dd_sdk_unity/scripts/sync_precomputed_fixtures.py'
+      - 'pyproject.toml'
       - 'packages/Datadog.Unity/Tests/Flags/Fixtures/precomputed/**'
       - '.github/workflows/precomputed-fixtures.yml'
   schedule:
@@ -21,10 +23,15 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.14"
+      - name: Install fixture tool
+        run: pip install --no-deps -e .
       - name: Verify the local snapshot
-        run: python3 ci/sync-precomputed-fixtures.py --verify
+        run: dd-unity-sync-precomputed-fixtures --verify
       - name: Compare with the recorded upstream commit
-        run: python3 ci/sync-precomputed-fixtures.py --check
+        run: dd-unity-sync-precomputed-fixtures --check
   update:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
@@ -41,9 +48,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.14"
+      - name: Install fixture tool
+        run: pip install --no-deps -e .
       - name: Import upstream fixtures
         id: sync
-        run: python3 ci/sync-precomputed-fixtures.py --ref main
+        run: dd-unity-sync-precomputed-fixtures --ref main
       - name: Prepare a draft update
         id: prepare
         if: steps.sync.outputs.changed == 'true'

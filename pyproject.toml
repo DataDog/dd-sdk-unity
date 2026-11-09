@@ -25,6 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
+dd-unity-sync-precomputed-fixtures = "dd_sdk_unity.scripts.sync_precomputed_fixtures:main"
 dd-unity-build-demo = "dd_sdk_unity.scripts.build_demo:main"
 dd-unity-generate-notice-file = "dd_sdk_unity.scripts.generate_notice_file:main"
 dd-unity-install-unity = "dd_sdk_unity.scripts.install_unity:main"
