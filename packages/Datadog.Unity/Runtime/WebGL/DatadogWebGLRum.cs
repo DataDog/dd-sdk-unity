@@ -32,7 +32,8 @@ namespace Datadog.Unity.WebGL
             var allowedTracingUrls = options.FirstPartyHosts.Select((e) =>
             {
                 // Browser SDK matchers receive the full URL; native wrappers match the parsed host and port.
-                var hostRegex = $@"^https?:\/\/(?:[^/?#:]+\.)*{Regex.Escape(e.Host)}\/";
+                // Exclude dots from each subdomain label to prevent overlapping repetitions and excessive backtracking.
+                var hostRegex = $@"^https?:\/\/(?:[^./?#:]+\.)*{Regex.Escape(e.Host)}\/";
                 return new AllowedTracingUrl()
                 {
                     match = hostRegex,
