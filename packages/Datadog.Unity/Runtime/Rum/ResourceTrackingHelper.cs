@@ -22,16 +22,18 @@ namespace Datadog.Unity.Rum
     /// </summary>
     public class ResourceTrackingHelper
     {
-        private readonly DatadogConfigurationOptions _options;
-        private readonly RateBasedSampler _traceSampler;
+        private readonly float _sessionSampleRate;
+        private readonly float _traceSampleRate;
+        private readonly IRumContextProvider _contextProvider;
         private readonly List<FirstPartyHost> _firstPartyHosts;
         private readonly TraceContextInjection _traceContextInjection;
         private readonly ResourceHeaderFilter _headerFilter;
 
-        internal ResourceTrackingHelper(DatadogConfigurationOptions options)
+        internal ResourceTrackingHelper(DatadogConfigurationOptions options, IRumContextProvider contextProvider = null)
         {
-            _options = options;
-            _traceSampler = new RateBasedSampler(options.TraceSampleRate / 100.0f);
+            _sessionSampleRate = DeterministicSampler.NormalizeRate(options.SessionSampleRate);
+            _traceSampleRate = DeterministicSampler.NormalizeRate(options.TraceSampleRate);
+            _contextProvider = contextProvider ?? NoOpRumContextProvider.Instance;
             _firstPartyHosts = options.FirstPartyHosts
                 .Select(x => new FirstPartyHost(x.Host, x.TracingHeaderType))
                 .ToList();
@@ -46,14 +48,18 @@ namespace Datadog.Unity.Rum
 
         /// <summary>
         /// Generates a new <see cref="TraceContext"/> for an outgoing HTTP request.
+        /// On Android and iOS, sampling uses the latest published session identity and the combined
+        /// session and trace rates. Otherwise, sampling uses the trace ID and configured trace rate.
         /// </summary>
         public TraceContext GenerateTraceContext()
         {
-            return new TraceContext(
-                TracingUuid.Create128Bit(),
-                TracingUuid.Create63Bit(),
-                null,
-                _traceSampler.Sample());
+            var traceId = TracingUuid.Create128Bit();
+            var spanId = TracingUuid.Create63Bit();
+            var session = _contextProvider.Current;
+            var sampler = session != null
+                ? new DeterministicSampler(session.SamplingSeed, _sessionSampleRate).CombineWith(_traceSampleRate)
+                : new DeterministicSampler(traceId.Low, _traceSampleRate);
+            return new TraceContext(traceId, spanId, null, sampler.Sample(), sampler.RulePsr);
         }
 
         /// <summary>
@@ -63,7 +69,7 @@ namespace Datadog.Unity.Rum
         public Dictionary<string, object> GenerateDatadogAttributes(TraceContext traceContext)
         {
             var attributes = new Dictionary<string, object>();
-            attributes[DatadogAttributeKeys.RulePsr] = _options.TraceSampleRate / 100.0f;
+            attributes[DatadogAttributeKeys.RulePsr] = traceContext.rulePsr ?? _traceSampleRate / 100.0f;
             if (traceContext.sampled)
             {
                 attributes[DatadogAttributeKeys.TraceId] = traceContext.traceId.ToString(TraceIdRepresentation.Hex32Chars);

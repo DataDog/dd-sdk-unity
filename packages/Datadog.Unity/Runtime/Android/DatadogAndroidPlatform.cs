@@ -45,6 +45,11 @@ namespace Datadog.Unity.Android
             _datadogClass = new AndroidJavaClass("com.datadog.android.Datadog");
         }
 
+        public IRumContextProvider CreateRumContextProvider()
+        {
+            return new DatadogAndroidRumContextProvider(_datadogClass.CallStatic<AndroidJavaObject>("getInstance"));
+        }
+
         public DatadogWorker CreateWorker(IInternalLogger logger)
         {
             return new ThreadedWorker(logger);

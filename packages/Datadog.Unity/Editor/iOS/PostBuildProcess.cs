@@ -161,6 +161,7 @@ func initializeDatadog() {{
             if (options.RumEnabled)
             {
                 sb.Append($@"
+    DatadogUnityRumContextFeature.register()
     var rumConfig = RUM.Configuration(
         applicationID: ""{options.RumApplicationId}""
     )
