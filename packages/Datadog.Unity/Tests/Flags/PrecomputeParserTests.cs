@@ -65,7 +65,9 @@ namespace Datadog.Unity.Flags.Tests
             var nested = ParseFlag("object", "{\"date\":\"2026-01-01T00:00:00Z\"}")["flag"].VariationValue;
             Assert.AreEqual(JTokenType.String, nested["date"].Type);
             Assert.AreEqual("2026-01-01T00:00:00Z", (string)nested["date"]);
-            Assert.IsEmpty(PrecomputeAssignmentsFetcher.ParseResponse("{} {}"));
+            const string response = "{\"data\":{\"attributes\":{\"flags\":{\"flag\":{\"variationType\":\"boolean\",\"variationValue\":true}}}}}";
+            Assert.AreEqual(1, PrecomputeAssignmentsFetcher.ParseResponse(response).Count);
+            Assert.IsEmpty(PrecomputeAssignmentsFetcher.ParseResponse(response + " {}"));
         }
 
         [Test]
