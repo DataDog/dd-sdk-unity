@@ -135,19 +135,13 @@ namespace Datadog.Unity.Rum
                 matchers.Add(new Dictionary<string, object>());
             }
 
-            matchers.AddRange(_customHeaderNames.Select(name => BrowserSdkMatcher(name, null)));
+            matchers.AddRange(_customHeaderNames.Select(BrowserSdkMatcher));
             return matchers;
         }
 
-        private static Dictionary<string, object> BrowserSdkMatcher(string name, string location)
+        private static Dictionary<string, object> BrowserSdkMatcher(string name)
         {
-            var matcher = new Dictionary<string, object> { { "name", name } };
-            if (location != null)
-            {
-                matcher["location"] = location;
-            }
-
-            return matcher;
+            return new Dictionary<string, object> { { "name", name } };
         }
 
         /// <summary>
