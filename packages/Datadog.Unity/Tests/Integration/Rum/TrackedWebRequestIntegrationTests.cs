@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
@@ -16,60 +17,42 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class TrackedWebRequestIntegrationTests : IntegrationTestBase
     {
+        private const string NonFirstPartyUrl = "https://httpbin.org/status/200";
+
+        // httpbin echoes the query parameters back as response headers.
+        private const string HeadersUrl =
+            "https://httpbin.org/response-headers?ETag=%22poc-etag%22&X-Request-Id=response-abc&X-Not-Listed=ignored&Access-Control-Expose-Headers=ETag%2CX-Request-Id";
+
         [UnityTest]
         [Category("integration")]
-        public IEnumerator TrackedWebRequestScenario()
+        public IEnumerator FirstPartyWrappedRequestsAreTraced()
         {
-            var mockServerHelper = new MockServerHelper();
-            yield return mockServerHelper.Clear();
+            return RunTracingScenario(firstParty: true, direct: false, requestCount: 2);
+        }
 
-            var scenario = new MonoBehaviourTest<TestTrackedWebRequestMonoBehavior>();
-            yield return scenario;
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator NonFirstPartyWrappedRequestIsNotTraced()
+        {
+            return RunTracingScenario(firstParty: false, direct: false);
+        }
 
-            RumViewVisit visit = null;
-            MockServerRequest testRequest = null;
-            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (logs) =>
-            {
-                testRequest = logs.Where(log => log.Endpoint == "/integration_get")
-                    .SelectMany(log => log.Requests).FirstOrDefault();
-                var events = RumDecoderHelpers.RumEventsFromMockServer(logs);
-                var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
-                visit = sessions.SelectMany(session => session.Visits)
-                    .SingleOrDefault(candidate => candidate.Name == scenario.component.ViewKey);
+        // Only the Browser SDK auto-instruments direct UnityWebRequest calls.
+        [UnityTest]
+        [Category("integration")]
+        [UnityPlatform(include = new[] { RuntimePlatform.WebGLPlayer })]
+        public IEnumerator FirstPartyDirectBrowserRequestIsTraced()
+        {
+            return RunTracingScenario(firstParty: true, direct: true);
+        }
 
-                // Earlier tests can still upload view updates after the server is reset.
-                // Wait only for this scenario's closed view and its two resources.
-                return visit != null && testRequest != null
-                    && visit.ViewEvents.Any(viewEvent => !viewEvent.View.IsActive)
-                    && visit.ResourceEvents.Any(resource => resource.Url == TestTrackedWebRequestMonoBehavior.NonFirstPartyUrl)
-                    && visit.ResourceEvents.Any(resource => resource.Url == scenario.component.FirstPartyUrl);
-            });
-
-            Assert.IsNotNull(visit, $"No RUM view received for {scenario.component.ViewKey}");
-            Assert.IsTrue(visit.ViewEvents.Any(viewEvent => !viewEvent.View.IsActive),
-                "The scenario's RUM view did not close");
-
-            var getResource = visit.ResourceEvents.FirstOrDefault(r => r.Url == TestTrackedWebRequestMonoBehavior.NonFirstPartyUrl);
-            Assert.IsNotNull(getResource);
-            Assert.AreEqual("https://httpbin.org/status/200", getResource.Url);
-            Assert.IsNull(getResource.TraceId);
-            Assert.IsNull(getResource.SpanId);
-
-            Assert.IsNotNull(testRequest, "The mock server did not receive the first-party request");
-            var schema = testRequest.Schemas.First();
-            var headers = schema.ParsedHeaders;
-
-            // This is mostly just checking that the headers exist. We could make this test more thorough
-            // by decoding the trace and span ids and checking the values match the resource event.
-            // For now, we'll only check the SpanId and assume unit testing covers the rest.
-            Assert.AreEqual("rum", headers["x-datadog-origin"]);
-            Assert.AreEqual("1", headers["x-datadog-sampling-priority"]);
-            Assert.IsTrue(headers.ContainsKey("traceparent"));
-
-            var getFirstPartyResource = visit.ResourceEvents.FirstOrDefault(r => r.Url == scenario.component.FirstPartyUrl);
-            Assert.IsNotNull(getFirstPartyResource);
-            Assert.IsNotNull(getFirstPartyResource.TraceId);
-            Assert.AreEqual(getFirstPartyResource.SpanId, headers["X-Datadog-Parent-Id"]);
+        // The Browser SDK matches full URLs; native wrappers match the parsed host and port.
+        [UnityTest]
+        [Category("integration")]
+        [UnityPlatform(include = new[] { RuntimePlatform.WebGLPlayer })]
+        public IEnumerator FirstPartyHostInPathDoesNotTraceUnrelatedBrowserOrigin()
+        {
+            return RunTracingScenario(firstParty: false, direct: true);
         }
 
         [UnityTest]
@@ -79,23 +62,24 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var mockServerHelper = new MockServerHelper();
             yield return mockServerHelper.Clear();
 
-            var scenario = new MonoBehaviourTest<TestTrackedWebRequestHeadersMonoBehavior>();
-            yield return scenario;
+            var viewKey = StartScenarioView();
+            using (var request = new DatadogTrackedWebRequest(HeadersUrl))
+            {
+                request.SetRequestHeader("Cache-Control", "no-cache");
+                request.SetRequestHeader("X-Request-Id", "request-abc");
+                request.SetRequestHeader("X-Api-Key", "secret");
+                request.SetRequestHeader("X-Not-Listed", "ignored");
+                yield return WaitForCompletion(request.SendWebRequest());
+                Assert.AreEqual(UnityEngine.Networking.UnityWebRequest.Result.Success, request.result, request.error);
+            }
 
             RumViewVisit visit = null;
-            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (logs) =>
-            {
-                var events = RumDecoderHelpers.RumEventsFromMockServer(logs);
-                var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
-                visit = sessions.SelectMany(session => session.Visits)
-                    .SingleOrDefault(candidate => candidate.Name == scenario.component.ViewKey);
-
-                return visit != null
-                    && visit.ResourceEvents.Any(resource => resource.Url == TestTrackedWebRequestHeadersMonoBehavior.HeadersUrl);
-            });
-
-            Assert.IsNotNull(visit, $"No RUM view received for {scenario.component.ViewKey}");
-            var resource = visit.ResourceEvents.First(r => r.Url == TestTrackedWebRequestHeadersMonoBehavior.HeadersUrl);
+            yield return CompleteScenario(
+                mockServerHelper,
+                viewKey,
+                new[] { HeadersUrl },
+                (receivedVisit, _) => visit = receivedVisit);
+            var resource = visit.ResourceEvents.Single(r => r.Url == HeadersUrl);
 
             // Integration settings capture the default headers plus x-request-id, etag and x-api-key, which is
             // sensitive and must be dropped
@@ -116,101 +100,190 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 Assert.AreEqual(header.Name.ToLowerInvariant(), header.Name, "Header keys must be lowercased");
             }
         }
-    }
 
-    public class TestTrackedWebRequestHeadersMonoBehavior : MonoBehaviour, IMonoBehaviourTest
-    {
-        // httpbin echoes the query parameters back as response headers
-        public const string HeadersUrl =
-            "https://httpbin.org/response-headers?ETag=%22poc-etag%22&X-Request-Id=response-abc&X-Not-Listed=ignored&Access-Control-Expose-Headers=ETag%2CX-Request-Id";
-
-        public string ViewKey { get; } = $"TrackedWebRequestHeadersScenario-{Guid.NewGuid():N}";
-
-        public bool IsTestFinished { get; private set; }
-
-        public void Awake()
+        private static IEnumerator RunTracingScenario(bool firstParty, bool direct, int requestCount = 1)
         {
-            IsTestFinished = false;
-            DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
-
-            StartCoroutine(RunTest());
-        }
-
-        public IEnumerator RunTest()
-        {
-            var rum = DatadogSdk.Instance.Rum;
-            rum?.StartView(ViewKey, name: ViewKey);
-
-            var request = new DatadogTrackedWebRequest(HeadersUrl);
-            request.SetRequestHeader("Cache-Control", "no-cache");
-            request.SetRequestHeader("X-Request-Id", "request-abc");
-            request.SetRequestHeader("X-Api-Key", "secret");
-            request.SetRequestHeader("X-Not-Listed", "ignored");
-            yield return request.SendWebRequest();
-
-            if (request.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            var mockServerHelper = new MockServerHelper();
+            yield return mockServerHelper.Clear();
+            var viewKey = StartScenarioView();
+            var endpoint = new Uri(DatadogConfigurationOptions.Load().CustomEndpoint);
+            var requests = CreateRequests(endpoint, viewKey, firstParty, direct, requestCount).ToList();
+            foreach (var requestInfo in requests)
             {
-                Debug.Log($"Web request failed: {request.error}");
+                if (requestInfo.Direct)
+                {
+                    using var request = UnityEngine.Networking.UnityWebRequest.Get(requestInfo.Url);
+                    yield return WaitForCompletion(request.SendWebRequest());
+                    Assert.AreEqual(UnityEngine.Networking.UnityWebRequest.Result.Success, request.result, request.error);
+                }
+                else
+                {
+                    using var request = DatadogTrackedWebRequest.Get(requestInfo.Url);
+                    yield return WaitForCompletion(request.SendWebRequest());
+                    Assert.AreEqual(UnityEngine.Networking.UnityWebRequest.Result.Success, request.result, request.error);
+                }
             }
 
-            rum?.StopView(ViewKey);
+            RumViewVisit visit = null;
+            List<MockServerLog> recorded = null;
+            yield return CompleteScenario(
+                mockServerHelper,
+                viewKey,
+                requests.Select(request => request.Url),
+                (receivedVisit, receivedLogs) =>
+                {
+                    visit = receivedVisit;
+                    recorded = receivedLogs;
+                });
+            var sessionId = visit.ResourceEvents.First(resource => resource.Url == requests[0].Url).Session;
 
-            IsTestFinished = true;
-        }
-    }
-
-    public class TestTrackedWebRequestMonoBehavior : MonoBehaviour, IMonoBehaviourTest
-    {
-        public const string NonFirstPartyUrl = "https://httpbin.org/status/200";
-
-        public string ViewKey { get; } = $"TrackedWebRequestScenario-{Guid.NewGuid():N}";
-
-        public string FirstPartyUrl { get; private set; }
-
-        public bool IsTestFinished { get; private set; }
-
-        public void Awake()
-        {
-            IsTestFinished = false;
-            DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
-
-            StartCoroutine(RunTest());
-        }
-
-        public IEnumerator RunTest()
-        {
-            var rum = DatadogSdk.Instance.Rum;
-            rum?.StartView(ViewKey, name: ViewKey);
-
-            // Make a tracked web request, not first party
-            var getRequest = new DatadogTrackedWebRequest(NonFirstPartyUrl);
-            yield return getRequest.SendWebRequest();
-
-            if (getRequest.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            foreach (var requestInfo in requests)
             {
-                Debug.Log($"Web request failed: {getRequest.error}");
+                var url = requestInfo.Url;
+                var resources = visit.ResourceEvents.Where(resource => resource.Url == url).ToList();
+                Assert.AreEqual(1, resources.Count, $"Expected exactly one RUM resource for {url}");
+                var resource = resources[0];
+                Assert.AreEqual(sessionId, resource.Session);
+                if (url == NonFirstPartyUrl)
+                {
+                    Assert.IsNull(resource.TraceId);
+                    Assert.IsNull(resource.SpanId);
+                    continue;
+                }
+
+                var recordedRequests = recorded.Where(log => log.Endpoint == new Uri(url).AbsolutePath)
+                    .SelectMany(log => log.Requests).ToList();
+                Assert.AreEqual(1, recordedRequests.Count, $"Expected exactly one HTTP request for {url}");
+                AssertTracing(recordedRequests[0].Schemas.First().ParsedHeaders, resource, requestInfo.FirstParty);
             }
+        }
 
-            // The integration prebuild setup configures the mock server as a first-party host.
-            var datadogSettings = DatadogConfigurationOptions.Load();
-            var endpoint = datadogSettings.CustomEndpoint;
-            FirstPartyUrl = $"{endpoint}/integration_get";
-            var firstPartyGetRequest = new DatadogTrackedWebRequest(FirstPartyUrl);
-            yield return firstPartyGetRequest.SendWebRequest();
+        private static string StartScenarioView()
+        {
+            var sdk = DatadogSdk.Instance;
+            sdk.SetTrackingConsent(TrackingConsent.Granted);
+            var viewKey = $"TrackedWebRequest-{Guid.NewGuid():N}";
+            sdk.Rum.StartView(viewKey, viewKey);
+            return viewKey;
+        }
 
-            if (firstPartyGetRequest.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
-            {
-                Debug.Log($"Web request failed: {firstPartyGetRequest.error}");
-            }
-
+        private static IEnumerator CompleteScenario(
+            MockServerHelper mockServerHelper,
+            string viewKey,
+            IEnumerable<string> urls,
+            Action<RumViewVisit, List<MockServerLog>> receive)
+        {
+            var sdk = DatadogSdk.Instance;
 #if UNITY_WEBGL
             // Browser views close when a successor starts; StopView is a no-op.
-            rum?.StartView($"{ViewKey}-complete");
+            sdk.Rum.StartView($"{viewKey}-complete");
 #else
-            rum?.StopView(ViewKey);
+            sdk.Rum.StopView(viewKey);
 #endif
+            RumViewVisit visit = null;
+            List<MockServerLog> recorded = null;
+            yield return mockServerHelper.PollRequests(TimeSpan.FromSeconds(30), logs =>
+            {
+                recorded = logs;
+                var events = RumDecoderHelpers.RumEventsFromMockServer(logs);
+                visit = RumDecoderHelpers.RumSessionsFromEvents(events).SelectMany(session => session.Visits)
+                    .SingleOrDefault(candidate => candidate.Name == viewKey);
 
-            IsTestFinished = true;
+                // Earlier tests can still upload view updates after the server is reset.
+                return visit != null && visit.ViewEvents.Any(view => !view.View.IsActive)
+                    && urls.All(url => visit.ResourceEvents.Any(resource => resource.Url == url));
+            });
+
+            Assert.IsNotNull(visit, $"No RUM view received for {viewKey}");
+            Assert.IsTrue(visit.ViewEvents.Any(view => !view.View.IsActive), "The scenario's RUM view did not close");
+            receive(visit, recorded);
+        }
+
+        private static IEnumerable<(string Url, bool FirstParty, bool Direct)> CreateRequests(
+            Uri endpoint, string viewKey, bool firstParty, bool direct, int requestCount)
+        {
+            if (!firstParty && !direct)
+            {
+                yield return (NonFirstPartyUrl, false, false);
+                yield break;
+            }
+
+            var origin = firstParty ? endpoint : new UriBuilder(endpoint)
+            {
+                Host = endpoint.Host == "127.0.0.1" ? "localhost" : "127.0.0.1",
+            }.Uri;
+            for (var i = 0; i < requestCount; i++)
+            {
+                // A configured host in the path must not make an unrelated origin traceable.
+                var path = firstParty ? $"/integration_get/{viewKey}/{i}"
+                    : $"/integration_get/{viewKey}/unrelated.{endpoint.Authority}/{i}";
+                yield return (new Uri(origin, path).AbsoluteUri, firstParty, direct);
+            }
+        }
+
+        private static IEnumerator WaitForCompletion(UnityEngine.Networking.UnityWebRequestAsyncOperation operation)
+        {
+            // Keep the request alive until the wrapper's completion callback has recorded its resource.
+            var completed = false;
+            operation.completed += _ => completed = true;
+            yield return operation;
+            while (!completed)
+            {
+                yield return null;
+            }
+        }
+
+        private static void AssertTracing(Dictionary<string, string> headers, RumResourceEventDecoder resource, bool firstParty)
+        {
+            var session = RumSessionContext.FromSessionId(resource.Session);
+            Assert.IsNotNull(session, "Resources must have a valid RUM session ID");
+            var options = DatadogConfigurationOptions.Load();
+            var rate = options.TraceSampleRate;
+            var injectAll = options.TraceContextInjection == TraceContextInjection.All;
+            var sampler = new DeterministicSampler(session.SamplingSeed, options.SessionSampleRate).CombineWith(rate);
+            var sampled = firstParty && sampler.Sample();
+            var inject = firstParty && (sampled || injectAll);
+            Assert.AreEqual(inject, headers.ContainsKey("traceparent"));
+            Assert.AreEqual(inject, headers.ContainsKey("tracestate"));
+            Assert.AreEqual(inject, headers.ContainsKey("x-datadog-trace-id"));
+#if UNITY_WEBGL
+            // TODO(RUM-13050): Support baggage on all platforms.
+            // Baggage is injected by the Browser SDK; the native Unity request wrapper does not implement it.
+            Assert.AreEqual(inject, headers.ContainsKey("baggage"));
+            if (inject)
+            {
+                StringAssert.Contains($"session.id={resource.Session}", headers["baggage"]);
+            }
+#endif
+            if (inject)
+            {
+                Assert.AreEqual("rum", headers["x-datadog-origin"]);
+                Assert.AreEqual(sampled ? "1" : "0", headers["x-datadog-sampling-priority"]);
+                var traceParent = headers["traceparent"].Split('-');
+                Assert.AreEqual(4, traceParent.Length);
+                Assert.AreEqual("00", traceParent[0]);
+                Assert.AreEqual(sampled ? "01" : "00", traceParent[3]);
+                Assert.AreEqual(ulong.Parse(headers["x-datadog-trace-id"]).ToString("x16"), traceParent[1].Substring(16));
+                Assert.AreEqual(ulong.Parse(headers["x-datadog-parent-id"]).ToString("x16"), traceParent[2]);
+            }
+
+            if (sampled)
+            {
+                Assert.IsNotNull(resource.TraceId);
+#if UNITY_WEBGL
+                Assert.AreEqual(headers["x-datadog-trace-id"], resource.TraceId);
+#else
+                // Native resources use hexadecimal trace IDs; iOS omits leading zeros.
+                Assert.AreEqual(headers["traceparent"].Split('-')[1].TrimStart('0'), resource.TraceId.TrimStart('0'));
+#endif
+                Assert.AreEqual(headers["x-datadog-parent-id"], resource.SpanId);
+                Assert.AreEqual(sampler.RulePsr, (float)resource.rumEvent["_dd"]["rule_psr"]);
+            }
+            else
+            {
+                Assert.IsNull(resource.TraceId);
+                Assert.IsNull(resource.SpanId);
+            }
         }
     }
 }

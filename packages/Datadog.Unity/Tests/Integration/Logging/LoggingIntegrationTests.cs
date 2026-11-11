@@ -52,6 +52,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-1"));
             Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
 #if !UNITY_WEBGL
+            // The WebGL logger bridge does not apply per-logger service overrides.
             Assert.AreEqual("logging.service", debugLog.ServiceName);
 #endif
             Assert.Contains("tag1:tag-value", debugLog.Tags);

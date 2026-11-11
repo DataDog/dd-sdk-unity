@@ -17,6 +17,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
     {
         [UnityTest]
         [Category("integration")]
+        // WebGL delegates tracing to the Browser SDK and has no managed session-context provider.
         [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
         public IEnumerator StartedSessionIsAvailableToManagedCode()
         {
