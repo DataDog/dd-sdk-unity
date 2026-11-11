@@ -43,18 +43,23 @@ namespace Datadog.Unity.Flags
         [JsonProperty("subject")]
         public readonly ExposureSubject Subject;
 
+        [JsonProperty("serial_id", NullValueHandling = NullValueHandling.Ignore)]
+        public readonly int? SerialId;
+
         public ExposureEvent(
             long timestamp,
             FlagRef flag,
             FlagRef allocation,
             FlagRef variant,
-            ExposureSubject subject)
+            ExposureSubject subject,
+            int? serialId = null)
         {
             Timestamp = timestamp;
             Flag = flag;
             Allocation = allocation;
             Variant = variant;
             Subject = subject;
+            SerialId = serialId;
         }
     }
 }

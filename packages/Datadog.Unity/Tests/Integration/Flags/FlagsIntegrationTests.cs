@@ -223,6 +223,7 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual("allocation-124", exp.AllocationKey);
             Assert.AreEqual("variation-124", exp.VariantKey);
             Assert.AreEqual("user-123", exp.SubjectId);
+            Assert.AreEqual(0, exp.SerialId);
 
             // Check headers on exposure request
             MockServerLog expEndpoint = null;
@@ -290,6 +291,46 @@ namespace Datadog.Unity.Tests.Integration.Flags
             var subjects = exposures.Select(e => e.SubjectId).ToList();
             CollectionAssert.Contains(subjects, "user-A");
             CollectionAssert.Contains(subjects, "user-B");
+        }
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator SerialId_OmittedWhenServerSendsNull()
+        {
+            yield return InitFlags("user-123");
+
+            DdFlags.Instance.GetClient().GetStringValue("string-flag", "default");
+
+            var exposures = new List<ExposureEventDecoder>();
+            yield return _mockServer.PollRequests(PollTimeout, logs =>
+            {
+                exposures = ExposureEventDecoder.FromMockServer(logs);
+                return exposures.Count >= 1;
+            });
+
+            Assert.AreEqual(1, exposures.Count);
+            Assert.AreEqual("string-flag", exposures[0].FlagKey);
+            Assert.IsFalse(exposures[0].HasSerialId);
+        }
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator SerialId_SentWhenServerSendsValue()
+        {
+            yield return InitFlags("user-123");
+
+            DdFlags.Instance.GetClient().GetIntegerValue("integer-flag", 0);
+
+            var exposures = new List<ExposureEventDecoder>();
+            yield return _mockServer.PollRequests(PollTimeout, logs =>
+            {
+                exposures = ExposureEventDecoder.FromMockServer(logs);
+                return exposures.Count >= 1;
+            });
+
+            Assert.AreEqual(1, exposures.Count);
+            Assert.AreEqual("integer-flag", exposures[0].FlagKey);
+            Assert.AreEqual(7, exposures[0].SerialId);
         }
 
         // ─── Group 4: Evaluation telemetry ───────────────────────────────────────────
