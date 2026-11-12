@@ -92,6 +92,22 @@ func Datadog_SendDebugTelemetry(message: UnsafeMutablePointer<CChar>?) {
     }
 }
 
+// The internal telemetry proxy has no attributes parameter, so this reports through the core's telemetry.
+// The id includes the attributes, because telemetry is deduplicated by id.
+@_cdecl("Datadog_SendDebugTelemetryWithAttributes")
+func Datadog_SendDebugTelemetryWithAttributes(message: CString?, attributes: CString?) {
+    guard let messageString = decodeCString(cString: message) else {
+        return
+    }
+
+    let attributesString = decodeCString(cString: attributes) ?? ""
+    CoreRegistry.default.telemetry.debug(
+        id: "datadog_unity:\(messageString):\(attributesString)",
+        message: messageString,
+        attributes: decodeJsonAttributes(fromCString: attributes)
+    )
+}
+
 @_cdecl("Datadog_SendErrorTelemetry")
 func Datadog_SendErrorTelemetry(
     message: UnsafeMutablePointer<CChar>?,

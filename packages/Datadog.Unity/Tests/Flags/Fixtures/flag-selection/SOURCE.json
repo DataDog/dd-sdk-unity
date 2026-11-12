@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/DataDog/ffe-system-test-data.git",
+  "commit": "29ba6bf2e7514cf1b75c046b8956a22565221ee8",
+  "files": {
+    "flag-selection/selection-vectors.json": "59bffcdee51681dc2c467193b7786575ffce0479b512203a96d4620198aa37d8"
+  }
+}

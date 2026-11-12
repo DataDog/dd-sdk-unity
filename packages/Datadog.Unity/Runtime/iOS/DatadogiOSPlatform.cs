@@ -132,6 +132,12 @@ namespace Datadog.Unity.iOS
             Datadog_SendDebugTelemetry(message);
         }
 
+        public void SendDebugTelemetry(string message, IDictionary<string, object> attributes)
+        {
+            var jsonAttributes = JsonConvert.SerializeObject(attributes);
+            Datadog_SendDebugTelemetryWithAttributes(message, jsonAttributes);
+        }
+
         public void SendErrorTelemetry(string message, string stack, string kind)
         {
             Datadog_SendErrorTelemetry(message, stack, kind);
@@ -247,6 +253,9 @@ namespace Datadog.Unity.iOS
 
         [DllImport("__Internal")]
         private static extern void Datadog_SendDebugTelemetry(string message);
+
+        [DllImport("__Internal")]
+        private static extern void Datadog_SendDebugTelemetryWithAttributes(string message, string attributes);
 
         [DllImport("__Internal")]
         private static extern void Datadog_SendErrorTelemetry(string message, string stack, string kind);

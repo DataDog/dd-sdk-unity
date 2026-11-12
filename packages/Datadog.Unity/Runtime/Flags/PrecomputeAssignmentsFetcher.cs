@@ -25,19 +25,25 @@ namespace Datadog.Unity.Flags
         private readonly string _applicationId;
         private readonly string _env;
         private readonly IInternalLogger _logger;
+        private readonly CanonicalFlagSelection _flagSelection;
+        private readonly FlagSelectionReporter _flagSelectionReporter;
 
         public PrecomputeAssignmentsFetcher(
             string endpointUrl,
             string clientToken,
             string applicationId,
             string env,
-            IInternalLogger logger)
+            IInternalLogger logger,
+            CanonicalFlagSelection flagSelection = null,
+            FlagSelectionReporter flagSelectionReporter = null)
         {
             _endpointUrl = endpointUrl;
             _clientToken = clientToken;
             _applicationId = applicationId;
             _env = env;
             _logger = logger;
+            _flagSelection = flagSelection;
+            _flagSelectionReporter = flagSelectionReporter;
         }
 
         /// <summary>
@@ -48,7 +54,7 @@ namespace Datadog.Unity.Flags
         {
             try
             {
-                var requestBody = BuildRequestBody(context);
+                var requestBody = BuildRequestBody(_env, context, _flagSelection);
                 var bodyBytes = Encoding.UTF8.GetBytes(requestBody);
 
                 var request = new UnityWebRequest(_endpointUrl, "POST");
@@ -78,8 +84,23 @@ namespace Datadog.Unity.Flags
                         }
 
                         var responseText = request.downloadHandler.text;
-                        var flags = ParseResponse(responseText);
-                        onComplete?.Invoke(flags);
+                        var parsed = TryParseResponse(responseText, out var flags);
+                        var ignoredReason = parsed && _flagSelection != null
+                            ? FlagSelectionIgnoredReason.Sanitize(
+                                request.GetResponseHeader(FlagSelectionIgnoredReason.HeaderName))
+                            : null;
+                        try
+                        {
+                            onComplete?.Invoke(flags);
+                        }
+                        finally
+                        {
+                            // Reported after the callback installs the flags, so the report describes the loaded set.
+                            if (ignoredReason != null)
+                            {
+                                _flagSelectionReporter?.ReportIgnored(ignoredReason);
+                            }
+                        }
                     }
                     catch (Exception e)
                     {
@@ -101,7 +122,10 @@ namespace Datadog.Unity.Flags
             }
         }
 
-        private string BuildRequestBody(FlagsEvaluationContext context)
+        internal static string BuildRequestBody(
+            string env,
+            FlagsEvaluationContext context,
+            CanonicalFlagSelection flagSelection)
         {
             var dto = new AssignmentsRequestDto
             {
@@ -109,7 +133,7 @@ namespace Datadog.Unity.Flags
                 {
                     Attributes = new AssignmentsRequestAttributesDto
                     {
-                        Env = new AssignmentsEnvDto { Name = _env, DdEnv = _env },
+                        Env = new AssignmentsEnvDto { Name = env, DdEnv = env },
                         Subject = new AssignmentsSubjectDto
                         {
                             TargetingKey = context.TargetingKey,
@@ -117,6 +141,13 @@ namespace Datadog.Unity.Flags
                                 ? context.Attributes
                                 : null,
                         },
+                        FlagSelection = flagSelection == null
+                            ? null
+                            : new FlagSelectionDto
+                            {
+                                Tags = flagSelection.Tags,
+                                KeyPatterns = flagSelection.KeyPatterns,
+                            },
                     },
                 },
             };
@@ -170,11 +201,18 @@ namespace Datadog.Unity.Flags
 
         internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
         {
-            var flags = new Dictionary<string, FlagAssignment>();
+            TryParseResponse(json, out var flags);
+            return flags;
+        }
+
+        // Returns false when the body has no flags object. The flags are then empty, as ParseResponse returns.
+        internal static bool TryParseResponse(string json, out Dictionary<string, FlagAssignment> flags)
+        {
+            flags = new Dictionary<string, FlagAssignment>();
 
             if (string.IsNullOrEmpty(json))
             {
-                return flags;
+                return false;
             }
 
             AssignmentsResponseDto response;
@@ -184,13 +222,13 @@ namespace Datadog.Unity.Flags
             }
             catch
             {
-                return flags;
+                return false;
             }
 
             var flagsDict = response?.Data?.Attributes?.Flags;
             if (flagsDict == null)
             {
-                return flags;
+                return false;
             }
 
             foreach (var kvp in flagsDict)
@@ -205,7 +243,7 @@ namespace Datadog.Unity.Flags
                     reason: dto.Reason);
             }
 
-            return flags;
+            return true;
         }
 
         // Json.NET uses these accessors through reflection; keep them in IL2CPP players.
@@ -236,6 +274,21 @@ namespace Datadog.Unity.Flags
             [Preserve]
             [JsonProperty("subject")]
             public AssignmentsSubjectDto Subject { get; set; }
+
+            [Preserve]
+            [JsonProperty("flag_selection", NullValueHandling = NullValueHandling.Ignore)]
+            public FlagSelectionDto FlagSelection { get; set; }
+        }
+
+        private class FlagSelectionDto
+        {
+            [Preserve]
+            [JsonProperty("tags")]
+            public string[] Tags { get; set; }
+
+            [Preserve]
+            [JsonProperty("key_patterns")]
+            public string[] KeyPatterns { get; set; }
         }
 
         private class AssignmentsEnvDto
