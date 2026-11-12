@@ -2,10 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Datadog.Unity.Rum;
@@ -17,15 +15,7 @@ namespace Datadog.Unity.WebGL
 {
     public class DatadogWebGLRum : IDdRumInternal
     {
-        // The DateProvider is needed here to get timestamps in nanoseconds for resource tracking. It can
-        // be used in Web safely only because web does not have multithreading.
-        private readonly IDateProvider _dateProvider;
-        private readonly ResourceTracker _resourceTracker = new ();
-
-        public DatadogWebGLRum(IDateProvider dateProvider = null)
-        {
-            _dateProvider = dateProvider ?? new DefaultDateProvider();
-        }
+        private readonly Dictionary<string, ResourceInfo> _resourceInfos = new ();
 
         public void Init(DatadogConfigurationOptions options)
         {
@@ -142,9 +132,11 @@ namespace Datadog.Unity.WebGL
 
         public void StartResource(string key, RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes)
         {
-            // Pull out the timestamp from attributes
-            var timestamp = _dateProvider.Now;
-            _resourceTracker.StartResource(timestamp, key, httpMethod, url, attributes);
+            _resourceInfos[key] = new ResourceInfo(httpMethod, url, attributes);
+
+            var attributesJson = attributes != null ? JsonConvert.SerializeObject(attributes) : "{}";
+
+            DDRum_StartResource(key, httpMethod.ToWebValue(), url, attributesJson);
         }
 
         public void StopResource(
@@ -154,45 +146,35 @@ namespace Datadog.Unity.WebGL
             long? size = null,
             Dictionary<string, object> attributes = null)
         {
-            var timestamp = _dateProvider.Now;
-            var resourceInfo = _resourceTracker.StopResource(timestamp, key, kind, statusCode, size, attributes);
+            _resourceInfos.Remove(key, out ResourceInfo resourceInfo);
             if (resourceInfo == null)
             {
                 return;
             }
 
-            var uuid = Guid.NewGuid().ToString();
-
-            var dd = ExtractDdData(resourceInfo.Attributes);
-
-            // Create and serialize the RUM resource event.
-            // Because longs can't be sent to JavaScript easily, we put them in the attributes
-            // to be serialized as part of the JSON.
-            var date = new DateTimeOffset(timestamp).ToUnixTimeMilliseconds();
-            resourceInfo.Attributes[DdRumProcessor.DdRumTimestampAttribute] = date;
-
-            // Ticks are 100 ns each by standard .NET definition. This is the best resolution we can get
-            // prior to .NET 7 which adds DateTime.TotalNanoseconds.
-            var durationNs = (resourceInfo.StopTimestamp - resourceInfo.StartTimestamp).Value.Ticks * 100;
-            var resourceEvent = new WebResourceEvent()
+            // Serialize options so omitted nullable numbers remain undefined in JavaScript.
+            var stopOptions = new Dictionary<string, object>()
             {
-                date = date,
-                resource = new ()
-                {
-                    id = uuid,
-                    type = resourceInfo.Kind.ToWebValue(),
-                    url = resourceInfo.Url,
-                    duration = durationNs,
-                    method = resourceInfo.Method.ToWebValue(),
-                    status_code = resourceInfo.StatusCode,
-                    size = resourceInfo.Size,
-                },
-                dd = dd,
-                context = resourceInfo.Attributes,
+                { "resourceKey", key },
+                { "type", kind.ToWebValue() },
             };
-            var resourceEventJson = JsonConvert.SerializeObject(resourceEvent);
 
-            DDRum_AddResource(resourceEventJson);
+            if (attributes != null)
+            {
+                stopOptions["context"] = attributes;
+            }
+
+            if (statusCode.HasValue)
+            {
+                stopOptions["statusCode"] = statusCode.Value;
+            }
+
+            if (size.HasValue)
+            {
+                stopOptions["size"] = size.Value;
+            }
+
+            DDRum_StopResource(resourceInfo.Url, JsonConvert.SerializeObject(stopOptions));
         }
 
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
@@ -200,22 +182,32 @@ namespace Datadog.Unity.WebGL
             StopResourceWithError(key, new ErrorInfo(errorType, errorMessage), attributes);
         }
 
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
-        {
-            StopResourceWithError(key, new ErrorInfo(error), attributes);
-        }
-
         public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
         {
-            var timestamp = _dateProvider.Now;
-            var resourceInfo = _resourceTracker.StopResourceWithError(timestamp, key, error.Type, error.Message, attributes);
-            if (resourceInfo == null)
+            if (!_resourceInfos.TryGetValue(key, out ResourceInfo resourceInfo))
             {
                 return;
             }
 
-            var attributesJson = JsonConvert.SerializeObject(resourceInfo.Attributes);
-            DDRum_AddResourceError(resourceInfo.Method.ToWebValue(), resourceInfo.Url, resourceInfo.ErrorType, resourceInfo.ErrorMessage, error.StackTrace, attributesJson);
+            StopResource(key, RumResourceType.Other, attributes: attributes);
+
+            var errorAttributes = resourceInfo.Attributes;
+            if (attributes != null)
+            {
+                if (errorAttributes == null)
+                {
+                    errorAttributes = new Dictionary<string, object>();
+                }
+
+                foreach (var attribute in attributes)
+                {
+                    errorAttributes[attribute.Key] = attribute.Value;
+                }
+            }
+
+            var attributesJson = errorAttributes != null ? JsonConvert.SerializeObject(errorAttributes) : "{}";
+
+            DDRum_AddResourceError(resourceInfo.Method.ToWebValue(), resourceInfo.Url, error.Type, error.Message, error.StackTrace, attributesJson);
         }
 
         public void AddAttribute(string key, object value)
@@ -273,27 +265,20 @@ namespace Datadog.Unity.WebGL
             // Browser SDK does not support frame rate tracking
         }
 
-        private WebResourceEventDdData ExtractDdData(Dictionary<string, object> attributes)
+        private class ResourceInfo
         {
-            if (attributes == null)
+            public ResourceInfo(RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes)
             {
-                return null;
+                Method = httpMethod;
+                Url = url;
+                Attributes = attributes;
             }
 
-            attributes.TryGetValue(ResourceTrackingHelper.DatadogAttributeKeys.TraceId, out var traceId);
-            attributes.Remove(ResourceTrackingHelper.DatadogAttributeKeys.TraceId);
-            attributes.TryGetValue(ResourceTrackingHelper.DatadogAttributeKeys.SpanId, out var spanId);
-            attributes.Remove(ResourceTrackingHelper.DatadogAttributeKeys.SpanId);
-            attributes.TryGetValue(ResourceTrackingHelper.DatadogAttributeKeys.RulePsr, out var rulePsr);
-            attributes.Remove(ResourceTrackingHelper.DatadogAttributeKeys.RulePsr);
+            public RumHttpMethod Method { get; private set; }
 
-            return new ()
-            {
-                trace_id = traceId as string,
-                span_id = spanId as string,
-                rule_psr = (float?)rulePsr,
-                discarded = false,
-            };
+            public string Url { get; private set; }
+
+            public Dictionary<string, object> Attributes { get; private set; }
         }
 
         // Disable warning about fields being lower case to match the JSON we need to produce for web
@@ -352,52 +337,6 @@ namespace Datadog.Unity.WebGL
             public object trackResourceHeaders { get; set; }
         }
 
-        [Preserve]
-        private class WebResourceEvent
-        {
-            [Preserve]
-            public long date { get; set; }
-            [Preserve]
-            public string type { get; set; } = "resource";
-            [Preserve]
-            public WebResourceEventData resource { get; set; }
-            [Preserve]
-            public Dictionary<string, object> context { get; set; }
-            [Preserve]
-            public WebResourceEventDdData dd { get; set; }
-        }
-
-        [Preserve]
-        private class WebResourceEventDdData
-        {
-            [Preserve]
-            public string trace_id { get; set; }
-            [Preserve]
-            public string span_id { get; set; }
-            [Preserve]
-            public float? rule_psr { get; set; }
-            [Preserve]
-            public bool discarded { get; set; }
-        }
-
-        [Preserve]
-        private class WebResourceEventData
-        {
-            [Preserve]
-            public string id { get; set; }
-            [Preserve]
-            public string type { get; set; }
-            [Preserve]
-            public string url { get; set; }
-            [Preserve]
-            public long duration { get; set; }
-            [Preserve]
-            public string method { get; set; }
-            [Preserve]
-            public int? status_code { get; set; }
-            [Preserve]
-            public long? size { get; set; }
-        }
 #pragma warning restore SA1310
 #pragma warning restore SA1307
 
@@ -420,7 +359,10 @@ namespace Datadog.Unity.WebGL
         private static extern void DDRum_AddError(string errorKind, string errorMessage, string errorStackTrace, string errorSource, string attributeJson);
 
         [DllImport("__Internal")]
-        private static extern void DDRum_AddResource(string resourceEventJson);
+        private static extern void DDRum_StartResource(string key, string httpMethod, string url, string attributeJson);
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_StopResource(string url, string optionsJson);
 
         [DllImport("__Internal")]
         private static extern void DDRum_AddResourceError(string method, string url, string errorKind,

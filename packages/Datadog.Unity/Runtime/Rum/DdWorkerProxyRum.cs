@@ -178,12 +178,7 @@ namespace Datadog.Unity.Rum
             Dictionary<string, object> attributes = null)
         {
             string stackTrace = null;
-            StopResourceWithError(key, new ErrorInfo(errorType, errorMessage, stackTrace));
-        }
-
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
-        {
-            StopResourceWithError(key, error, attributes);
+            StopResourceWithError(key, new ErrorInfo(errorType, errorMessage, stackTrace), attributes);
         }
 
         public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)

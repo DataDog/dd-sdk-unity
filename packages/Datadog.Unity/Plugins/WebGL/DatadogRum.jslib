@@ -178,19 +178,29 @@ let ddRumLib = {
         );
     },
 
-    DDRum_AddResource: function(rawEvent) {
-        let eventStr = UTF8ToString(rawEvent);
-        let event = JSON.parse(eventStr);
+    DDRum_StartResource: function (rawKey, rawHttpMethod, rawUrl, rawAttributes) {
+        let key = UTF8ToString(rawKey);
+        let httpMethod = UTF8ToString(rawHttpMethod);
+        let url = UTF8ToString(rawUrl);
+        let attributesStr = UTF8ToString(rawAttributes);
+        let attributes = JSON.parse(attributesStr) ?? {};
 
-        let attributes = event.context;
-        let timestampMs = this.extractEventTimestamp(attributes);
-        let eventTime = this.getEventRelativeTime(timestampMs);
+        DD_RUM.startResource(
+            url,
+            {
+                type: 'other',
+                method: httpMethod,
+                resourceKey: key,
+                context: attributes,
+            }
+        )
+    },
 
-        this.addEvent(
-            eventTime,
-            event,
-            {},
-        );
+    DDRum_StopResource: function (rawUrl, rawOptions) {
+        let url = UTF8ToString(rawUrl);
+        let options = JSON.parse(UTF8ToString(rawOptions));
+
+        DD_RUM.stopResource(url, options);
     },
 
     DDRum_AddFeatureFlagEvaluation: function(rawAttribute) {

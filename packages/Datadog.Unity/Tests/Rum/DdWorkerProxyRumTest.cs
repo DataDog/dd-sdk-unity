@@ -281,19 +281,22 @@ namespace Datadog.Unity.Rum.Tests
             _mockRum.StopResourceWithError(Arg.Any<string>(), Arg.Any<ErrorInfo>(), Arg.Do<Dictionary<string, object>>(x => capturedAttributes = x));
             _mockDateProvider.Now.Returns(date);
 
-            var exception = new Exception();
+            var exception = new Exception("Resource request failed");
 
             // When
-            rum.StopResource("fake_resource", exception, new()
+            var attributes = new Dictionary<string, object>()
             {
                 { "attribute_1", "my property" },
                 { "int_attribute_3", 222 },
-            });
-            Thread.Sleep(10);
+            };
+            rum.StopResourceWithError("fake_resource", exception.GetType().FullName, exception.Message, attributes);
 
             // Then
             var dateOffset = new DateTimeOffset(date);
-            _mockRum.Received(1).StopResourceWithError("fake_resource", Arg.Is<ErrorInfo>(e => e.Exception == exception),
+            _mockRum.Received(1).StopResourceWithError(
+                "fake_resource",
+                Arg.Is<ErrorInfo>(e => e.Type == exception.GetType().FullName && e.Message == exception.Message
+                    && e.Exception == null),
                 Arg.Any<Dictionary<string, object>>());
             Assert.IsNotNull(capturedAttributes);
             Assert.AreEqual("my property", capturedAttributes["attribute_1"]);
