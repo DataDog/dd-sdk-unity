@@ -64,7 +64,6 @@ namespace Datadog.Unity.WebGL
 
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
 
-            // TODO: Check the return value of this
             DDRum_InitRum(configurationJson);
         }
 
@@ -402,7 +401,7 @@ namespace Datadog.Unity.WebGL
 #pragma warning restore SA1307
 
         [DllImport("__Internal")]
-        private static extern bool DDRum_InitRum(string configurationJson);
+        private static extern void DDRum_InitRum(string configurationJson);
 
         [DllImport("__Internal")]
         private static extern void DDRum_AddAttribute(string attributeJson);

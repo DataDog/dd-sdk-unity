@@ -4,6 +4,11 @@
 "use strict";
 
 let ddCoreLib = {
+    DDCore_AreBrowserSdksAvailable: function() {
+        return typeof DD_LOGS !== 'undefined' && !!DD_LOGS &&
+            typeof DD_RUM !== 'undefined' && !!DD_RUM;
+    },
+
     DDCore_SetUserInfo: function(userInfo) {
         let userInfoStr = UTF8ToString(userInfo);
         let jsUserInfo = JSON.parse(userInfoStr);

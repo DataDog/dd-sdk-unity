@@ -5,10 +5,6 @@
 
 let ddRumLib = {
     DDRum_InitRum: function(rawConfiguration) {
-        if (!DD_RUM) {
-            return false;
-        }
-
         let self = this;
         this._rumPlugin = {
             name: 'DatadogUnityWeb',
@@ -50,7 +46,6 @@ let ddRumLib = {
         config.plugins = [this._rumPlugin];
 
         DD_RUM.init(config);
-        return true;
     },
 
     DDRum_AddAttribute: function(rawAttributes) {

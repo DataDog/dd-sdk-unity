@@ -28,11 +28,26 @@ namespace Datadog.Unity.WebGL
             var options = DatadogConfigurationOptions.Load();
             if (options.Enabled)
             {
-                var platform = new DatadogWebGLPlatform();
+                IDatadogPlatform platform;
+                if (DDCore_AreBrowserSdksAvailable())
+                {
+                    platform = new DatadogWebGLPlatform();
+                }
+                else
+                {
+                    DatadogSdk.Instance.InternalLogger.Log(
+                        DdLogLevel.Debug,
+                        "Browser SDK scripts are unavailable. Using the no-op platform.");
+                    platform = new DatadogNoOpPlatform();
+                }
+
                 platform.Init(options);
                 DatadogSdk.InitWithPlatform(platform, options);
             }
         }
+
+        [DllImport("__Internal")]
+        private static extern bool DDCore_AreBrowserSdksAvailable();
     }
 
     internal class DatadogWebGLPlatform : IDatadogPlatform
