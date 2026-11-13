@@ -4,11 +4,31 @@
 "use strict";
 
 let ddRumLib = {
-    DDRum_InitRum: function(rawConfiguration) {
-        if (!DD_RUM) {
-            return false;
-        }
+    DDRum_IsAvailable: function() {
+        return typeof DD_RUM !== 'undefined' && !!DD_RUM;
+    },
 
+    DDRum_SetUserInfo: function(userInfo) {
+        let jsUserInfo = JSON.parse(UTF8ToString(userInfo));
+        DD_RUM.setUser(jsUserInfo);
+    },
+
+    DDRum_ClearUserInfo: function() {
+        DD_RUM.clearUser();
+    },
+
+    DDRum_SetTrackingConsent: function(rawTrackingConsent) {
+        DD_RUM.setTrackingConsent(UTF8ToString(rawTrackingConsent));
+    },
+
+    DDRum_SetUserProperties: function(properties) {
+        let jsProperties = JSON.parse(UTF8ToString(properties)) ?? {};
+        for (var key in jsProperties) {
+            DD_RUM.setUserProperty(key, jsProperties[key]);
+        }
+    },
+
+    DDRum_InitRum: function(rawConfiguration) {
         let self = this;
         this._rumPlugin = {
             name: 'DatadogUnityWeb',
@@ -50,7 +70,6 @@ let ddRumLib = {
         config.plugins = [this._rumPlugin];
 
         DD_RUM.init(config);
-        return true;
     },
 
     DDRum_AddAttribute: function(rawAttributes) {

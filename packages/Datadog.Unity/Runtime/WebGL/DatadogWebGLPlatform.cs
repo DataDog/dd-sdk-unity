@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
 using Datadog.Unity.Rum;
@@ -28,7 +27,25 @@ namespace Datadog.Unity.WebGL
             var options = DatadogConfigurationOptions.Load();
             if (options.Enabled)
             {
-                var platform = new DatadogWebGLPlatform();
+                var logsAvailable = DatadogWebGLLogs.IsAvailable;
+                var rumAvailable = DatadogWebGLRum.IsAvailable;
+                if (!logsAvailable)
+                {
+                    DatadogSdk.Instance.InternalLogger.Log(
+                        DdLogLevel.Debug,
+                        "Browser Logs SDK script is unavailable. Logs will use the no-op implementation.");
+                }
+
+                if (!rumAvailable)
+                {
+                    DatadogSdk.Instance.InternalLogger.Log(
+                        DdLogLevel.Debug,
+                        "Browser RUM SDK script is unavailable. RUM will use the no-op implementation.");
+                }
+
+                IDatadogPlatform platform = logsAvailable || rumAvailable
+                    ? new DatadogWebGLPlatform(logsAvailable, rumAvailable)
+                    : new DatadogNoOpPlatform();
                 platform.Init(options);
                 DatadogSdk.InitWithPlatform(platform, options);
             }
@@ -37,11 +54,18 @@ namespace Datadog.Unity.WebGL
 
     internal class DatadogWebGLPlatform : IDatadogPlatform
     {
-        private DatadogWebGLLogs _logs = new DatadogWebGLLogs();
+        private readonly DatadogWebGLLogs _logs;
+        private readonly DatadogWebGLRum _rum;
+
+        internal DatadogWebGLPlatform(bool logsAvailable, bool rumAvailable)
+        {
+            _logs = logsAvailable ? new DatadogWebGLLogs() : null;
+            _rum = rumAvailable ? new DatadogWebGLRum() : null;
+        }
 
         public void Init(DatadogConfigurationOptions options)
         {
-            _logs.Init(options);
+            _logs?.Init(options);
         }
 
         public IRumContextProvider CreateRumContextProvider()
@@ -61,13 +85,14 @@ namespace Datadog.Unity.WebGL
 
         public void SetTrackingConsent(TrackingConsent trackingConsent)
         {
-            DDCore_SetTrackingConsent(trackingConsent.ToWebValue());
+            var consent = trackingConsent.ToWebValue();
+            _logs?.SetTrackingConsent(consent);
+            _rum?.SetTrackingConsent(consent);
         }
 
         public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
         {
-            var innerLogger = _logs.CreateLogger(options);
-            return innerLogger;
+            return _logs != null ? _logs.CreateLogger(options) : new DdNoOpLogger();
         }
 
         public void AddLogsAttributes(Dictionary<string, object> attributes)
@@ -77,8 +102,7 @@ namespace Datadog.Unity.WebGL
                 return;
             }
 
-            var jsonAttributes = JsonConvert.SerializeObject(attributes);
-            DDLogs_AddGlobalAttributes(jsonAttributes);
+            _logs?.AddGlobalAttributes(attributes);
         }
 
         public void RemoveLogsAttribute(string key)
@@ -89,7 +113,7 @@ namespace Datadog.Unity.WebGL
                 return;
             }
 
-            DDLogs_RemoveGlobalAttribute(key);
+            _logs?.RemoveGlobalAttribute(key);
         }
 
         public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
@@ -116,12 +140,14 @@ namespace Datadog.Unity.WebGL
             }
 
             var jsonString = JsonConvert.SerializeObject(jsonUserInfo);
-            DDCore_SetUserInfo(jsonString);
+            _logs?.SetUserInfo(jsonString);
+            _rum?.SetUserInfo(jsonString);
         }
 
         public void ClearUserInfo()
         {
-            DDCore_ClearUserInfo();
+            _logs?.ClearUserInfo();
+            _rum?.ClearUserInfo();
         }
 
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
@@ -133,15 +159,19 @@ namespace Datadog.Unity.WebGL
             }
 
             var jsonAttributes = JsonConvert.SerializeObject(extraInfo);
-            DDCore_SetUserProperties(jsonAttributes);
+            _logs?.AddUserExtraInfo(jsonAttributes);
+            _rum?.AddUserExtraInfo(jsonAttributes);
         }
 
         public IDdRumInternal InitRum(DatadogConfigurationOptions options)
         {
-            var rum = new DatadogWebGLRum();
-            rum.Init(options);
+            if (_rum == null)
+            {
+                return new DdNoOpRum();
+            }
 
-            return rum;
+            _rum.Init(options);
+            return _rum;
         }
 
         public void SendDebugTelemetry(string message)
@@ -163,23 +193,5 @@ namespace Datadog.Unity.WebGL
         {
             return string.Empty;
         }
-
-        [DllImport("__Internal")]
-        private static extern void DDLogs_AddGlobalAttributes(string jsonAttributes);
-
-        [DllImport("__Internal")]
-        private static extern void DDLogs_RemoveGlobalAttribute(string key);
-
-        [DllImport("__Internal")]
-        private static extern void DDCore_ClearUserInfo();
-
-        [DllImport("__Internal")]
-        private static extern void DDCore_SetUserInfo(string jsonUserInfo);
-
-        [DllImport("__Internal")]
-        private static extern void DDCore_SetUserProperties(string jsonUserInfo);
-
-        [DllImport("__Internal")]
-        private static extern void DDCore_SetTrackingConsent(string trackingConsent);
     }
 }

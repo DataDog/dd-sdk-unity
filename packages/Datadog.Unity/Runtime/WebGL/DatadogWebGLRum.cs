@@ -17,6 +17,8 @@ namespace Datadog.Unity.WebGL
     {
         private readonly Dictionary<string, ResourceInfo> _resourceInfos = new ();
 
+        internal static bool IsAvailable => DDRum_IsAvailable();
+
         public void Init(DatadogConfigurationOptions options)
         {
             var allowedTracingUrls = options.FirstPartyHosts.Select((e) =>
@@ -54,7 +56,6 @@ namespace Datadog.Unity.WebGL
 
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
 
-            // TODO: Check the return value of this
             DDRum_InitRum(configurationJson);
         }
 
@@ -277,6 +278,26 @@ namespace Datadog.Unity.WebGL
             // Browser SDK does not support frame rate tracking
         }
 
+        internal void SetUserInfo(string jsonUserInfo)
+        {
+            DDRum_SetUserInfo(jsonUserInfo);
+        }
+
+        internal void ClearUserInfo()
+        {
+            DDRum_ClearUserInfo();
+        }
+
+        internal void SetTrackingConsent(string trackingConsent)
+        {
+            DDRum_SetTrackingConsent(trackingConsent);
+        }
+
+        internal void AddUserExtraInfo(string jsonProperties)
+        {
+            DDRum_SetUserProperties(jsonProperties);
+        }
+
         private class ResourceInfo
         {
             public ResourceInfo(RumHttpMethod httpMethod, string url, Dictionary<string, object> attributes)
@@ -353,7 +374,22 @@ namespace Datadog.Unity.WebGL
 #pragma warning restore SA1307
 
         [DllImport("__Internal")]
-        private static extern bool DDRum_InitRum(string configurationJson);
+        private static extern void DDRum_SetUserInfo(string jsonUserInfo);
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_ClearUserInfo();
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_SetTrackingConsent(string trackingConsent);
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_SetUserProperties(string jsonProperties);
+
+        [DllImport("__Internal")]
+        private static extern bool DDRum_IsAvailable();
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_InitRum(string configurationJson);
 
         [DllImport("__Internal")]
         private static extern void DDRum_AddAttribute(string attributeJson);
