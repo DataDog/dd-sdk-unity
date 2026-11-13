@@ -652,7 +652,6 @@ def test_hotfix_from_tag_excludes_develop_feature_and_merges_release_ancestry(wo
     w.cut = commit(
         remote, f"{PACKAGE_PATH}/Runtime/Code.cs", "hotfix\n", "fix: Correct released code (#1)"
     ).hexsha
-    w.source.repository.pulls[1].merge_commit_sha = w.cut
     prepare_and_merge(w)
     assert w.plan.release.version == "1.7.2"
     assert not any(change.kind == "feat" for change in w.plan.release.changes)

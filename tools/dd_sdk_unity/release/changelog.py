@@ -13,6 +13,7 @@ from datetime import UTC, datetime, timedelta
 
 import requests
 from git import Repo
+from github.PullRequest import PullRequest
 from pydantic import BaseModel, ConfigDict
 
 from dd_sdk_unity.scripts.common.git import GitOperations
@@ -60,20 +61,56 @@ def classify(title: str, body: str = "", **fields) -> Change:
 def collect_changes(
     repo: Repo, github: GitHubOperations, base: str, source: str
 ) -> tuple[Change, ...]:
-    """
-    Collect the PRs whose merge commits, as GitHub records them, are in the release range.
+    """Collect the PRs merged in the release range, fetching each one's details once."""
+    # Each lookup finds PRs that the other misses: stacked PRs are found only by their merge
+    # commits, and cherry-picked PRs only by their commit subjects
+    pulls_by_number = pulls_from_merge_commits(repo, github, base, source)
+    missing = sorted(pr_numbers_from_commit_subjects(repo, base, source) - pulls_by_number.keys())
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        for pull in executor.map(github.repository.get_pull, missing):
+            pulls_by_number[pull.number] = pull
+    get_default_logger().info(f"Found {len(pulls_by_number)} merged PRs")
+    return tuple(
+        classify(pull.title, pull.body or "", number=number)
+        for number, pull in sorted(pulls_by_number.items())
+    )
 
-    Commit subjects can't identify every PR: when a stack of PRs is merged from the top, only
-    the top PR gets a merge commit. GitHub marks each PR in the stack as merged, recording the
-    top PR's merge commit (or the squash or rebase commit, for other merge methods) as that
-    PR's merge commit.
+
+def pr_numbers_from_commit_subjects(repo: Repo, base: str, source: str) -> set[int]:
+    """
+    Return the numbers of the PRs named by the subject of a merge or squash commit in the
+    release range. This finds a PR whose commit was cherry-picked onto a hotfix branch, since
+    the copy keeps the original's subject. It misses the PRs below the top of a stack that was
+    merged from the top, since only the top PR gets a merge commit naming it.
+    """
+    merge_pattern = re.compile(r"Merge pull request #(\d+)")
+    squash_pattern = re.compile(r"\(#(\d+)\)$")
+    numbers = set()
+    for commit in repo.iter_commits(f"{base}..{source}"):
+        subject = str(commit.message).splitlines()[0]
+        match = merge_pattern.match(subject) or squash_pattern.search(subject)
+        if match:
+            numbers.add(int(match.group(1)))
+    return numbers
+
+
+def pulls_from_merge_commits(
+    repo: Repo, github: GitHubOperations, base: str, source: str
+) -> dict[int, PullRequest]:
+    """
+    Return the PRs whose merge commit, as GitHub records it, is in the release range, keyed by
+    number. This finds every PR in a stack that was merged from the top: GitHub marks each one
+    as merged, recording the top PR's merge commit (or the squash or rebase commit, for other
+    merge methods) as that PR's merge commit. It misses a PR whose commit was cherry-picked
+    onto a hotfix branch, since GitHub's recorded merge commit is the original, outside the
+    range.
     """
     # Map the SHA of each commit in the range to its committer date, as a Unix timestamp
     commit_time_by_sha = {
         commit.hexsha: commit.committed_date for commit in repo.iter_commits(f"{base}..{source}")
     }
     if not commit_time_by_sha:
-        return ()
+        return {}
 
     # GitHub can't filter PRs by revision range, so search for PRs merged since the oldest
     # commit in the range, then match their merge commits against the range. GitHub creates
@@ -81,17 +118,11 @@ def collect_changes(
     # merge date. Allow a day before it, in case of clock skew.
     oldest = datetime.fromtimestamp(min(commit_time_by_sha.values()), tz=UTC)
     since = (oldest - timedelta(days=1)).date().isoformat()
-    log = get_default_logger()
-    log.info(f"Fetching PRs merged since {since}...")
+    get_default_logger().info(f"Fetching PRs merged since {since}...")
     numbers = sorted(github.merged_pull_numbers_since(since))
     with ThreadPoolExecutor(max_workers=8) as executor:
         pulls = tuple(executor.map(github.repository.get_pull, numbers))
-
-    released_pulls = [pull for pull in pulls if pull.merge_commit_sha in commit_time_by_sha]
-    log.info(f"Found {len(released_pulls)} merged PRs")
-    return tuple(
-        classify(pull.title, pull.body or "", number=pull.number) for pull in released_pulls
-    )
+    return {pull.number: pull for pull in pulls if pull.merge_commit_sha in commit_time_by_sha}
 
 
 def sections(text: str) -> tuple[str, dict[str, str]]:
