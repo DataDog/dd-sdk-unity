@@ -191,7 +191,9 @@ namespace Datadog.Unity.WebGL
 
             StopResource(key, RumResourceType.Other, attributes: attributes);
 
-            var errorAttributes = resourceInfo.Attributes;
+            var errorAttributes = resourceInfo.Attributes != null
+                ? new Dictionary<string, object>(resourceInfo.Attributes)
+                : new Dictionary<string, object>();
             if (attributes != null)
             {
                 if (errorAttributes == null)
