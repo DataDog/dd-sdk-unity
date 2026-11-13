@@ -128,27 +128,33 @@ namespace Datadog.Unity
         }
 
         /// <summary>
-        /// Sets information about the current user. User information will be added to logs, traces, and RUM events
-        /// automatically.
+        /// Replaces the current user's ID, name, email, and extra info, including attributes added by
+        /// <see cref="AddUserExtraInfo"/>. Subsequent logs, traces, and RUM events include this information.
+        /// A null or empty ID logs a warning and leaves the current user unchanged.
         /// </summary>
-        /// <param name="id">The ID for the user.</param>
-        /// <param name="name">The name for the user.</param>
-        /// <param name="email">The user's email.</param>
-        /// <param name="extraInfo">A map of any extra information about the user.</param>
+        /// <param name="id">The non-empty ID for the user.</param>
+        /// <param name="name">The user's name. Null or empty values are omitted.</param>
+        /// <param name="email">The user's email. Null or empty values are omitted.</param>
+        /// <param name="extraInfo">Custom user attributes. The keys "id", "name", "email", and "anonymous_id"
+        /// are reserved; their values are ignored with a warning. Null or empty maps set no extra info.</param>
         public void SetUserInfo(
             string id,
             string name = null,
             string email = null,
             Dictionary<string, object> extraInfo = null)
         {
-            if (id == null)
+            if (string.IsNullOrEmpty(id))
             {
-                _internalLogger.Log(DdLogLevel.Warn, "SetUserInfo requires a non-null id. Ignoring.");
+                _internalLogger.Log(DdLogLevel.Warn, "SetUserInfo requires a non-empty id. Ignoring.");
                 return;
             }
             InternalHelpers.Wrap("SetUserInfo", () =>
             {
-                _worker?.AddMessage(new DdSdkProcessor.SetUserInfoMessage(id, name, email, extraInfo));
+                _worker?.AddMessage(new DdSdkProcessor.SetUserInfoMessage(
+                    id,
+                    string.IsNullOrEmpty(name) ? null : name,
+                    string.IsNullOrEmpty(email) ? null : email,
+                    FilterUserExtraInfo(extraInfo)));
             });
         }
 
@@ -170,20 +176,50 @@ namespace Datadog.Unity
         }
 
         /// <summary>
-        /// Add custom attributes to the current user information
-        ///
-        /// This extra info will be added to already existing extra info that is added to logs, traces, and RUM events
-        /// automatically.
-        ///
-        /// Setting an existing attribute to `null` will remove that attribute from the user's extra info.
+        /// Adds custom user attributes, replacing existing values with the same keys.
+        /// The user's ID, name, and email are unchanged. If no user is set, events include the extra info alone.
         /// </summary>
-        /// <param name="extraInfo">Any additional extra info about a user.</param>
+        /// <param name="extraInfo">Custom user attributes. The keys "id", "name", "email", and "anonymous_id"
+        /// are reserved; their values are ignored with a warning. Null or empty maps have no effect.</param>
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
             InternalHelpers.Wrap("AddUserExtraInfo", () =>
             {
-                _worker?.AddMessage(new DdSdkProcessor.AddUserExtraInfoMessage(extraInfo));
+                var filteredExtraInfo = FilterUserExtraInfo(extraInfo);
+                if (filteredExtraInfo == null || filteredExtraInfo.Count == 0)
+                {
+                    return;
+                }
+
+                _worker?.AddMessage(new DdSdkProcessor.AddUserExtraInfoMessage(filteredExtraInfo));
             });
+        }
+
+        private Dictionary<string, object> FilterUserExtraInfo(Dictionary<string, object> extraInfo)
+        {
+            if (extraInfo == null)
+            {
+                return null;
+            }
+
+            var filtered = new Dictionary<string, object>();
+            foreach (var item in extraInfo)
+            {
+                switch (item.Key)
+                {
+                    case "id":
+                    case "name":
+                    case "email":
+                    case "anonymous_id":
+                        _internalLogger.Log(DdLogLevel.Warn, $"User extra info key '{item.Key}' is reserved. Ignoring.");
+                        break;
+                    default:
+                        filtered[item.Key] = item.Value;
+                        break;
+                }
+            }
+
+            return filtered;
         }
 
         /// <summary>

@@ -11,7 +11,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace Datadog.Unity.Tests.Integration.Logging
+namespace Datadog.Unity.Tests.Integration.Logs
 {
     public class AutoLoggingIntegrationTests : IntegrationTestBase
     {
