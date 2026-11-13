@@ -5,6 +5,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
+using System.Numerics;
 using Datadog.Unity.Core;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
@@ -177,12 +179,35 @@ namespace Datadog.Unity.Flags
                 return flags;
             }
 
+            JObject document;
+            try
+            {
+                using var reader = new JsonTextReader(new StringReader(json)) { DateParseHandling = DateParseHandling.None };
+                document = JObject.Load(reader);
+                while (reader.Read())
+                    if (reader.TokenType != JsonToken.Comment)
+                        throw new JsonReaderException("Additional content after response object.");
+            }
+            catch (JsonException)
+            {
+                return flags;
+            }
+
+            var data = document["data"] as JObject;
+            var attributes = data?["attributes"] as JObject;
+            var marker = attributes?["obfuscated"];
+            if (attributes?.Property("obfuscation") != null ||
+                (marker != null && (marker.Type != JTokenType.Boolean || marker.Value<bool>())))
+            {
+                throw new JsonSerializationException("Flag-key obfuscation is not supported.");
+            }
+
             AssignmentsResponseDto response;
             try
             {
-                response = JsonConvert.DeserializeObject<AssignmentsResponseDto>(json);
+                response = document.ToObject<AssignmentsResponseDto>();
             }
-            catch
+            catch (JsonException)
             {
                 return flags;
             }
@@ -196,16 +221,37 @@ namespace Datadog.Unity.Flags
             foreach (var kvp in flagsDict)
             {
                 var dto = kvp.Value;
+                if (dto == null || (dto.VariationType != "boolean" && dto.VariationType != "string"
+                    && dto.VariationType != "integer" && dto.VariationType != "number"
+                    && dto.VariationType != "float" && dto.VariationType != "object")) continue;
                 flags[kvp.Key] = new FlagAssignment(
                     variationType: dto.VariationType,
                     variationValue: dto.VariationValue,
                     doLog: dto.DoLog,
                     allocationKey: dto.AllocationKey,
                     variationKey: dto.VariationKey,
-                    reason: dto.Reason);
+                    reason: dto.Reason,
+                    serialId: ParseSerialId(dto.SerialId));
             }
 
             return flags;
+        }
+
+        private static long? ParseSerialId(JToken token)
+        {
+            if (token == null) return null;
+            BigInteger integer;
+            if (token.Type == JTokenType.Integer)
+                integer = BigInteger.Parse(token.ToString(Formatting.None));
+            else if (token.Type == JTokenType.Float)
+            {
+                var number = (double)token;
+                if (double.IsNaN(number) || double.IsInfinity(number) || Math.Truncate(number) != number)
+                    return null;
+                integer = new BigInteger(number);
+            }
+            else return null;
+            return integer >= long.MinValue && integer <= long.MaxValue ? (long?)integer : null;
         }
 
         // Json.NET uses these accessors through reflection; keep them in IL2CPP players.
@@ -287,6 +333,10 @@ namespace Datadog.Unity.Flags
         [Preserve]
         private class FlagAssignmentDto
         {
+            [Preserve]
+            [JsonProperty("serialId")]
+            public JToken SerialId { get; set; }
+
             [Preserve]
             [JsonProperty("variationType")]
             public string VariationType { get; set; }

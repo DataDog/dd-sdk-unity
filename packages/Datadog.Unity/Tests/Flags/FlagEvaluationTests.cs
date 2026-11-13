@@ -34,6 +34,41 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
+        public void PublicGenericReadsPreserveNumericCompatibility()
+        {
+            _repository.SetFlagsAndContext(new FlagsEvaluationContext("user"), new Dictionary<string, FlagAssignment>
+            {
+                ["long"] = new FlagAssignment("number", 5000000000L, false, "a", "v", "TARGETING_MATCH"),
+                ["float"] = new FlagAssignment("number", 1.5, false, "a", "v", "TARGETING_MATCH"),
+            });
+            using var client = MakeClient(_repository);
+            Assert.AreEqual(5000000000L, client.GetDetails<long>("long", 0).Value);
+            Assert.IsNull(client.GetDetails<long>("long", 0).Error);
+            Assert.AreEqual(1.5f, client.GetDetails<float>("float", 0).Value);
+            Assert.IsNull(client.GetDetails<float>("float", 0).Error);
+            Assert.AreEqual(5000000000L, client.GetObjectValue("long", null));
+            Assert.AreEqual("ERROR", client.GetDetails<bool>("long", false).Reason);
+            Assert.AreEqual("ERROR", client.GetDetails<bool>("missing", false).Reason);
+        }
+
+        [Test]
+        public void SerialIdChangeSendsBothExposures()
+        {
+            var exposures = new List<ExposureEvent>();
+            using var client = new FlagsClient(_repository, new ExposureTracker(), null, null, null,
+                true, false, exposures.Add, FlagsClientState.Ready);
+            var flags = new Dictionary<string, FlagAssignment>();
+            var context = new FlagsEvaluationContext("user");
+            foreach (var serial in new long[] { 1, 1, 2, 2 })
+            {
+                flags["flag"] = new FlagAssignment("boolean", true, true, "alloc", "variant", "TARGETING_MATCH", serial);
+                _repository.SetFlagsAndContext(context, flags);
+                Assert.IsTrue(client.GetBooleanValue("flag", false));
+            }
+            Assert.AreEqual(2, exposures.Count);
+        }
+
+        [Test]
         public void BooleanFlagReturnsCorrectValue()
         {
             var flags = new Dictionary<string, FlagAssignment>

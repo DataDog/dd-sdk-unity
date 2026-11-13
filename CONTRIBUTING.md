@@ -371,3 +371,54 @@ This starts or reuses the server on port 5100. When finished, stop it with:
 ```bash
 dd-unity-integration-test-setup stop --project 'samples/Datadog Sample'
 ```
+
+## Shared precomputed response tests
+
+The Flags module uses the JSON contract from [ffe-system-test-data](https://github.com/DataDog/ffe-system-test-data/tree/main/precomputed-assignments).
+This keeps response behavior consistent across mobile SDKs. The snapshot is test data only.
+It adds no runtime dependency and requires no Git submodule.
+
+The generated snapshot is at `packages/Datadog.Unity/Tests/Flags/Fixtures/precomputed`. `SOURCE.json` records the source commit and file digests.
+The runner discovers all nested JSON cases.
+Adding a case requires an upstream fixture change and snapshot refresh. It requires no runner or filename-list change.
+Missing or empty fixtures fail the suite. Shared `_include` and `_skip` fields describe API applicability.
+Do not add local exclusions to hide failures.
+
+Numeric getters use lossless conversion regardless of the `integer`, `float`, or `number` wire label.
+Integer getters accept whole values within their native range. Double getters reject integer values that lose precision.
+Fractional Integer reads, range overflow, and inexact conversions return `TYPE_MISMATCH`.
+Unity exposes a 32-bit Integer getter. Generic numeric reads also support lossless conversions to `long` and `float`.
+Double exactness checks apply to JSON Integer tokens. Decimal and exponent forms use Json.NET double parsing and can round before evaluation.
+For example, `9007199254740993` is rejected by the Double getter; `9007199254740993.0` parses as `9007199254740992`.
+The service keeps sending `number`. This work adds no numeric capability.
+
+Upstream CI requires a generated obfuscated companion for each applicable plain fixture. It rejects missing, stale, or orphaned companions. Edit the plain case upstream and regenerate; do not maintain two sets of expectations. Dedicated malformed-encoding cases and fixed digest vectors remain separate.
+
+Cases cover values, defaults, errors, reasons, variants, emission gates, duplicate evaluations, and numeric boundaries.
+Obfuscation cases cover fixed digests, salts, Unicode, whitespace, malformed metadata, and plaintext event identity.
+The Editor suite checks the C# parser, public getters, exposure tracker, and evaluation aggregator. Player integration tests remain separate. Encoded responses are rejected because Unity does not support key obfuscation.
+
+Run from the repository root:
+
+```sh
+dd-unity-sync-precomputed-fixtures --verify
+dd-unity-unit-test
+```
+
+Refresh the snapshot from a reviewed upstream commit:
+
+```sh
+dd-unity-sync-precomputed-fixtures --ref <full-upstream-sha>
+dd-unity-sync-precomputed-fixtures --check
+```
+
+The importer copies committed bytes, regenerates the index, and removes deleted cases.
+It preserves Unity asset GUIDs where applicable. Do not edit imported JSON or its checksums.
+Use `--source <local-checkout> --ref <commit>` to test an upstream fixture branch before publication.
+`--verify` checks local integrity without networking. `--check` also compares the recorded upstream commit.
+
+The weekly `Precomputed flag fixtures` workflow opens a draft update PR when fixture content changes.
+It uses a short-lived token restricted to the default branch and this workflow.
+It waits when an update PR is already open. Normal SDK CI must pass before merge.
+Merge the upstream fixture contract before merging its consumer PRs.
+The update workflow never merges or publishes an SDK release.
