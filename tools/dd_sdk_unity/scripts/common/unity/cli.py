@@ -7,11 +7,12 @@ Utility code for finding and invoking the standalone Unity CLI (the `unity` bina
 """
 import json
 import shutil
+import subprocess
 from typing import Literal, TypedDict, overload
 
 from dd_sdk_unity.scripts.common import TestMode
 from dd_sdk_unity.scripts.common.log import get_default_logger
-from dd_sdk_unity.scripts.common.shell import run_cmd, run_cmd_streaming
+from dd_sdk_unity.scripts.common.shell import run_cmd_streaming
 from dd_sdk_unity.scripts.common.unity.install import (
     UnityInstall,
     UnityVersion,
@@ -95,21 +96,20 @@ class UnityCli:
             '--accept-eula',
         ]
         # Check for an empty selection before giving the live install the terminal.
-        output: list[str] = []
-        exitcode = run_cmd(
-            *command, '--dry-run',
-            merge_stderr=True,
-            output_handler=lambda line, is_stderr: output.append(line),
+        preview = subprocess.run(
+            [*command, '--dry-run'], check=False, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True,
         )
+        output = preview.stdout
         # An empty selection also occurs for invalid IDs, so confirm installation.
-        if exitcode == 6 and 'Error: No modules found to install.' in output:
+        if preview.returncode == 6 and 'Error: No modules found to install.' in output.splitlines():
             inventory = self._list_items('install-modules', '--editor-version', str(version), '--list')
             installed = {module['id'] for module in inventory if module['status'] == 'Installed'}
             if all(module in installed for module in modules):
                 log.info(f'Requested modules are already installed for Unity {version}.')
                 return
         self._raise_for_exitcode(
-            exitcode, f'install-modules --editor-version {version} --dry-run', '\n'.join(output),
+            preview.returncode, f'install-modules --editor-version {version} --dry-run', output.strip(),
         )
         exitcode = run_cmd_streaming(*command)
         self._raise_for_exitcode(exitcode, f'install-modules --editor-version {version}')
@@ -162,17 +162,13 @@ class UnityCli:
 
     def _list_items(self, operation: Literal['editors', 'install-modules'], *args: str) -> list[_InstalledEditor] | list[_InstalledModule]:
         command = ' '.join((operation, *args))
-        stdout: list[str] = []
-        stderr: list[str] = []
-
-        def _read(line: str, is_stderr: bool) -> None:
-            (stderr if is_stderr else stdout).append(line)
-
-        exitcode = run_cmd(*self._command('json'), operation, *args, output_handler=_read)
-        output = '\n'.join(stdout)
-        if exitcode != 0:
-            details = '\n'.join(stderr + stdout)
-            self._raise_for_exitcode(exitcode, command, details)
+        completed = subprocess.run(
+            [*self._command('json'), operation, *args], check=False, capture_output=True, text=True,
+        )
+        output = completed.stdout
+        self._raise_for_exitcode(
+            completed.returncode, command, (completed.stderr + output).strip(),
+        )
         try:
             result = json.loads(output)
         except json.JSONDecodeError as error:

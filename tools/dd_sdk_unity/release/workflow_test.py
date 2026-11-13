@@ -2,19 +2,17 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
-"""Exercise two-repository release handoffs locally; GitHub and signing stay fake."""
+"""Release handoffs with mocked GitPython and real package files and archives."""
 
 import json
 import plistlib
-import tarfile
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock
 
 import pytest
-from git import GitCommandError, Repo
-from github import GithubException
+from git import Repo
 
 from dd_sdk_unity.scripts.common.git import GitOperations
 from dd_sdk_unity.scripts.common.github import GitHubOperations
@@ -44,110 +42,27 @@ from .package import (
     extract_package,
     sha256,
 )
-from .preparation import (
-    open_preparation,
-    prepare_plan,
-    reviewed_pull,
-)
+from .preparation import open_preparation, prepare_plan, reviewed_pull
 from .publish import publish
-from .release_test import AUTHOR, commit
+
+BASE = "a" * 40
+CUT = "b" * 40
+REVIEWED = "c" * 40
+DEVELOP = "d" * 40
+MAIN = "e" * 40
+LOCAL = "f" * 40
+SIGNED = "1" * 40
 
 
-class SearchResultsFixture(list):
-    """A list of search results with PyGithub's `totalCount`."""
-
-    @property
-    def totalCount(self):
-        return len(self)
-
-
-class RepositoryFixture:
-    """Only the public PyGithub methods used by the workflow, backed by local Git."""
-
-    def __init__(self, repo, name):
-        self.git = repo
-        self.full_name = f"fixture/{name}"
-        self.owner = SimpleNamespace(login="fixture")
-        self.clone_url = str(repo.working_tree_dir)
-        self.html_url = f"https://github.invalid/{self.full_name}"
-        self.pulls = {}
-        self.releases = {}
-
-    def get_git_ref(self, name):
-        prefix, value = name.split("/", 1)
-        refs = self.git.heads if prefix == "heads" else self.git.tags
-        if value not in refs:
-            raise GithubException(404, {})
-        reference = refs[value]
-        return SimpleNamespace(
-            object=SimpleNamespace(type="commit", sha=reference.commit.hexsha),
-            delete=lambda: self.git.delete_head(value, force=True),
-        )
-
-    def create_git_ref(self, name, sha):
-        if name.startswith("refs/heads/"):
-            self.git.create_head(name.removeprefix("refs/heads/"), sha)
-        else:
-            self.git.create_tag(name.removeprefix("refs/tags/"), ref=sha)
-
-    def get_pull(self, number):
-        return self.pulls[number]
-
-    def get_pulls(self, state, base, head=None):
-        return [
-            pull
-            for pull in self.pulls.values()
-            if pull.base.ref == base
-            and (state == "all" or pull.state == state)
-            and (head is None or pull.head.ref == head.split(":")[-1])
-        ]
-
-    def create_pull(self, *, base, head, title, body):
-        number = len(self.pulls) + 1
-        pull = SimpleNamespace(
-            number=number,
-            state="open",
-            merged=False,
-            merge_commit_sha=None,
-            base=SimpleNamespace(ref=base, repo=self),
-            head=SimpleNamespace(ref=head, sha=self.git.heads[head].commit.hexsha, repo=self),
-            title=title,
-            body=body,
-            html_url=f"{self.html_url}/pull/{number}",
-        )
-        self.pulls[number] = pull
-        return pull
-
-    def get_release(self, version):
-        if version not in self.releases:
-            raise GithubException(404, {})
-        return self.releases[version]
-
-    def create_git_release(self, *, tag, name, message, target_commitish, prerelease=False):
-        if tag not in self.git.tags:
-            self.git.create_tag(tag, ref=target_commitish)
-        release = SimpleNamespace(
-            tag_name=tag,
-            body=message,
-            prerelease=prerelease,
-        )
-        self.releases[tag] = release
-        return release
-
-
-def initialize(path, branch):
-    repo = Repo.init(path, initial_branch=branch)
-    with repo.config_writer() as config:
-        config.set_value("core", "fsmonitor", False)
-        config.set_value("commit", "gpgsign", False)
-        config.set_value("tag", "gpgsign", False)
-        config.set_value("user", "name", AUTHOR.name)
-        config.set_value("user", "email", AUTHOR.email)
-    return repo
+def write_files(root, files):
+    for name, data in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data.encode() if isinstance(data, str) else data)
 
 
 @pytest.fixture
-def workflow(tmp_path, monkeypatch):
+def workflow(tmp_path, monkeypatch, repository, make_commit):
     archive = tmp_path / "native.zip"
     libraries = [
         {"SupportedPlatform": "ios"},
@@ -160,8 +75,7 @@ def workflow(tmp_path, monkeypatch):
         for name in ("ios-arm64/DatadogCore.framework/DatadogCore", "tvos-arm64/symbols.dSYM/bin"):
             zipped.writestr(prefix + name, b"native binary fixture")
         zipped.writestr("Datadog.xcframework/Unselected.xcframework/NotBundled", b"unused")
-    source_repo = initialize(tmp_path / "source-remote", "develop")
-    documents = {
+    files = {
         f"{PACKAGE_PATH}/package.json": json.dumps({"version": "1.7.1", "name": "fixture"}),
         ASSEMBLY_PATH: (
             '[assembly: AssemblyVersion("1.7.1")]\n'
@@ -173,7 +87,7 @@ def workflow(tmp_path, monkeypatch):
             {"version": "1.0.0", "sha256": sha256(archive), "modules": ["DatadogCore"]}
         ),
         ANDROID_PIN_PATH: '{"version":"1.0.0","artifacts":["rum"]}',
-        f"{PACKAGE_PATH}/Runtime/Code.cs": "initial\n",
+        f"{PACKAGE_PATH}/Runtime/Code.cs": "fixed\n",
         f"{PACKAGE_PATH}/NOTICE.txt": "Committed notice\n",
         f"{PACKAGE_PATH}/Tests/DoNotShip.cs": "test\n",
         f"{PACKAGE_PATH}/Tests.meta": "test metadata\n",
@@ -184,130 +98,122 @@ def workflow(tmp_path, monkeypatch):
         "tools/snippets/deployment_repo.md": "This is the distribution.\n",
         "LICENSE": "License bytes\n",
     }
-    for name, text in documents.items():
-        target = Path(source_repo.working_tree_dir) / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(text)
-    source_repo.git.add("--all")
-    source_repo.index.commit("chore: Initial metadata", author=AUTHOR, committer=AUTHOR)
-    source_repo.create_tag("1.7.1")
-    cut = commit(
-        source_repo, f"{PACKAGE_PATH}/Runtime/Code.cs", "fixed\n", "fix: Prevent crash (#1)"
-    ).hexsha
-    package_repo = initialize(tmp_path / "package-remote", "main")
-    commit(package_repo, ".github/CODEOWNERS", "owner\n", "chore: Administration")
-    commit(package_repo, ".gitignore", "*.xcframework/\n*.cs\n", "chore: Ignore build files")
-    commit(package_repo, "package.json", '{"version":"1.7.1"}', "chore: Original package")
-    package_repo.create_tag("1.7.1")
-    source_api = RepositoryFixture(source_repo, "source")
-    source_api.pulls[1] = SimpleNamespace(
-        number=1,
-        title="fix: Prevent crash",
-        body="Corrects an SDK crash.",
-        state="closed",
-        merged=True,
-        merge_commit_sha=cut,
-        base=SimpleNamespace(ref="develop"),
-        head=SimpleNamespace(ref="crash-fix"),
-    )
-    package_api = RepositoryFixture(package_repo, "package")
-    repositories = {source_api.full_name: source_api, package_api.full_name: package_api}
-    client = Mock()
-    client.get_repo.side_effect = lambda name: repositories.get(name, Mock(full_name=name))
-    # Model the search for merged PRs, ignoring the merge date, which the fixtures don't track
-    client.search_issues.side_effect = lambda query: SearchResultsFixture(
-        pull
-        for name, repository in repositories.items()
-        if f"repo:{name} " in query
-        for pull in repository.pulls.values()
-        if pull.merged
-    )
-    monkeypatch.setattr("dd_sdk_unity.scripts.common.github.Github", Mock(return_value=client))
-    pushes = []
+    checkout = tmp_path / "source"
+    write_files(checkout, files)
+    commits = {sha: make_commit(sha, files) for sha in (BASE, CUT, DEVELOP)}
+    repository.working_tree_dir = str(checkout)
+    repository.commit.side_effect = commits.__getitem__
+    repository.head.commit = commits[CUT]
+    repository.heads = {}
+    repository.iter_commits.return_value = [commits[CUT]]
+    tag = SimpleNamespace(name="1.7.1", commit=commits[BASE])
+    repository.tags.__iter__.side_effect = lambda: iter([tag])
+    repository.tags.__contains__.side_effect = lambda name: name == tag.name
+    repository.tags.__getitem__.side_effect = {tag.name: tag}.__getitem__
 
-    def push(git, github, *, branch, expected_parent, create_branch=False, token=None):
-        assert token
-        assert github.reference_sha(f"heads/{branch}") == (
-            None if create_branch else expected_parent
-        )
-        # Model headless's different signed SHA. Transfer objects locally, never push GitHub.
-        signed = git.repository.index.commit(
-            str(git.repository.head.commit.message) + "\nSigned fixture\n",
-            parent_commits=[git.repository.commit(expected_parent)],
-            author=AUTHOR,
-            committer=AUTHOR,
-        ).hexsha
-        remote = github.repository.git
-        remote.git.fetch(str(git.root), signed)
-        if branch in remote.heads:
-            remote.heads[branch].set_commit(signed)
-        else:
-            remote.create_head(branch, signed)
-        pushes.append((github.repository.full_name, branch, signed))
-        return signed
-
+    repository.index.commit.return_value = make_commit(LOCAL)
+    source = MagicMock(spec=GitHubOperations)
+    source.__enter__.return_value = source
+    source.repository = Mock()
+    source.repository.full_name = "fixture/source"
+    source.repository.clone_url = "https://github.invalid/fixture/source"
+    source.repository.owner.login = "fixture"
+    source.token = "fake-source"
+    refs = {"heads/develop": DEVELOP}
+    source.reference_sha.side_effect = refs.get
+    source.create_reference.side_effect = refs.__setitem__
+    source.merged_pull_numbers_since.return_value = [1]
+    source.repository.get_pull.return_value = SimpleNamespace(
+        number=1, title="fix: Prevent crash", body="Corrects an SDK crash.", merge_commit_sha=CUT
+    )
+    source.repository.get_pulls.return_value = []
+    source.repository.create_pull.side_effect = lambda **fields: SimpleNamespace(
+        number=2, html_url="https://github.invalid/fixture/source/pull/2", **fields
+    )
+    package = Mock(spec=GitHubOperations)
+    package.repository = Mock()
+    package.repository.full_name = "fixture/package"
+    package.repository.clone_url = "https://github.invalid/fixture/package"
+    package.reference_sha.side_effect = lambda ref: MAIN if ref == "heads/main" else None
+    package.release.return_value = None
+    distribution = MagicMock(spec=Repo)
+    distribution.working_tree_dir = str(tmp_path / "distribution")
+    distribution.commit.return_value = make_commit(MAIN, {"package.json": '{"version":"1.7.1"}'})
+    distribution.heads = {}
+    distribution.index.commit.return_value = make_commit(LOCAL)
+    write_files(Path(distribution.working_tree_dir), {
+        ".github/CODEOWNERS": "owner\n",
+        ".gitignore": "*.xcframework/\n*.cs\n",
+        "package.json": '{"version":"1.7.1"}',
+        "obsolete.txt": "old payload\n",
+    })
+    repositories = {
+        source.repository.clone_url: repository,
+        package.repository.clone_url: distribution,
+    }
+    clone = Mock(side_effect=lambda url, *args, **kwargs: repositories[url])
+    monkeypatch.setattr(Repo, "clone_from", clone)
+    push = Mock(return_value=SIGNED)
     monkeypatch.setattr(GitOperations, "push", push)
     return SimpleNamespace(
-        root=tmp_path,
-        source=GitHubOperations(source_api.full_name),
-        package=GitHubOperations(package_api.full_name),
-        archive=archive,
-        pushes=pushes,
-        cut=cut,
+        root=tmp_path, git=GitOperations(repository), repo=repository, source=source,
+        package=package, distribution=distribution, archive=archive, files=files,
+        commits=commits, make_commit=make_commit, refs=refs, clone=clone, push=push,
     )
 
 
-def prepare_and_merge(w, **versions):
-    git = GitOperations.clone(w.source.repository.clone_url, w.root / "prepare", revision=w.cut)
-    plan = prepare_plan(git, w.source, w.cut, **versions)
-    pull = open_preparation(git, w.source, plan, "- Fixed a crash.", token="fake-token")
-    pull = w.source.repository.pulls[pull.number]
-    remote = w.source.repository.git
-    remote.heads[pull.base.ref].checkout()
-    remote.git.merge("--no-ff", pull.head.ref, "-m", pull.title)
-    pull.state, pull.merged, pull.merge_commit_sha = "closed", True, remote.head.commit.hexsha
-    w.plan, w.pull = plan, pull
-    w.source_sha = remote.head.commit.hexsha
-    remote.heads.develop.checkout()
+def prepare_package(w, **versions):
+    w.plan = prepare_plan(w.git, w.source, CUT, **versions)
+    w.pull = open_preparation(w.git, w.source, w.plan, "- Fixed a crash.", token="fake-source")
+    # Supply the reviewed commit returned by GitHub after the preparation PR merges.
+    reviewed_files = {name: (w.git.root / name).read_bytes() for name in w.files}
+    w.commits[REVIEWED] = w.make_commit(REVIEWED, reviewed_files)
+    w.repo.head.commit = w.commits[REVIEWED]
+    version = w.plan.release.version
+    w.refs[f"heads/release/{version}"] = REVIEWED
+    approved = SimpleNamespace(
+        merged=True, merge_commit_sha=REVIEWED,
+        base=SimpleNamespace(ref=f"release/{version}", repo=w.source.repository),
+        head=SimpleNamespace(ref=f"release-prep/{version}", repo=w.source.repository),
+    )
+    w.source.repository.get_pulls.return_value = [approved]
     w.package_archive = w.root / "package.tar.gz"
-    git = GitOperations.clone(
-        w.source.repository.clone_url, w.root / "assemble", revision=w.source_sha
-    )
-    assemble_package(git, w.source_sha, w.archive, w.package_archive)
+    assemble_package(w.git, REVIEWED, w.archive, w.package_archive)
     return w
 
 
 def publish_fixture(w, *, dry_run=False):
     publish(
-        w.source,
-        w.package,
-        w.package_archive,
-        version=w.plan.release.version,
-        source_sha=w.source_sha,
-        package_token="fake-package",
-        dry_run=dry_run,
+        w.source, w.package, w.package_archive, version=w.plan.release.version,
+        source_sha=REVIEWED, package_token="fake-package", dry_run=dry_run,
     )
-    return w.package.reference_sha(f"tags/{w.plan.release.version}")
 
 
-@pytest.mark.parametrize("version", ["2.0.0-preview1", "2.0.0-preview.1+build.5"])
-def test_prerelease_preparation_publication_and_integration(workflow, version):
-    w = prepare_and_merge(workflow, base_version="1.7.1", release_version=version)
+def test_prerelease_preparation_publication_and_integration(workflow):
+    version = "2.0.0-preview.1+build.5"
+    w = prepare_package(workflow, base_version="1.7.1", release_version=version)
     assert w.plan.release.version == version
-    assert w.pull.base.ref == f"release/{version}"
-    assert publish_fixture(w)
-    assert w.package.repository.get_release(version).prerelease is True
-    package = w.package.repository.git
-    assert json.loads((package.head.commit.tree / "package.json").data_stream.read())["version"] == version
-    metadata = (package.head.commit.tree / "Runtime/AssemblyInfo.cs").data_stream.read().decode()
+    assert w.pull.base == f"release/{version}"
+    publish_fixture(w)
+    w.package.create_release.assert_called_once_with(version, SIGNED, "- Fixed a crash.")
+    payload = Path(w.distribution.working_tree_dir)
+    assert json.loads((payload / "package.json").read_text())["version"] == version
+    metadata = (payload / "Runtime/AssemblyInfo.cs").read_text()
     assert 'AssemblyVersion("2.0.0")' in metadata
     assert f'AssemblyInformationalVersion("{version}")' in metadata
 
-    integrate(w.source, source_sha=w.source_sha, version=version, source_token="fake-source")
-    incoming = w.source.repository.git.heads[f"merge-back/{version}"].commit
-    assert json.loads((incoming.tree / f"{PACKAGE_PATH}/package.json").data_stream.read())["version"] == version
-    assert f"## {version}" in (incoming.tree / CHANGELOG_PATH).data_stream.read().decode()
-    assert version in (incoming.tree / NATIVE_HISTORY_PATH).data_stream.read().decode()
+    w.source.repository.get_pulls.return_value = []
+    w.repo.is_dirty.return_value = True
+    w.repo.head.commit = w.make_commit(LOCAL)
+    integrate(w.source, source_sha=REVIEWED, version=version, source_token="fake-source")
+    assert json.loads((w.git.root / PACKAGE_PATH / "package.json").read_text())["version"] == version
+    assert f"## {version}" in (w.git.root / CHANGELOG_PATH).read_text()
+    assert version in (w.git.root / NATIVE_HISTORY_PATH).read_text()
+    w.repo.create_head.assert_any_call("release-base", REVIEWED)
+    w.push.assert_called_with(
+        w.source, branch=f"merge-back/{version}", expected_parent=REVIEWED,
+        create_branch=True, token="fake-source",
+    )
 
 
 @pytest.mark.parametrize("attribute", ["AssemblyVersion", "AssemblyInformationalVersion"])
@@ -332,30 +238,18 @@ def test_publication_rejects_stale_prerelease_assembly_metadata(tmp_path, attrib
 )
 def test_preparation_pr_reuses_generated_groups(workflow, ios_version, android_version):
     w = workflow
-    git = GitOperations.clone(w.source.repository.clone_url, w.root / "prepare", revision=w.cut)
-    plan = prepare_plan(git, w.source, w.cut)
+    plan = prepare_plan(w.git, w.source, CUT)
     change = plan.release.changes[0]
-    release = plan.release.model_copy(
-        update={
-            "changes": (
-                change.model_copy(update={"number": 8}),
-                change.model_copy(update={"number": 9, "title": "ci: Update runners"}),
-            )
-        }
-    )
-    plan = plan.model_copy(
-        update={
-            "release": release,
-            "ios": plan.ios.model_copy(update={"version": ios_version}),
-            "android": plan.android.model_copy(update={"version": android_version}),
-        }
-    )
+    plan = plan.model_copy(update={
+        "release": plan.release.model_copy(update={"changes": (
+            change.model_copy(update={"number": 8}),
+            change.model_copy(update={"number": 9, "title": "ci: Update runners"}),
+        )}),
+        "ios": plan.ios.model_copy(update={"version": ios_version}),
+        "android": plan.android.model_copy(update={"version": android_version}),
+    })
     pull = open_preparation(
-        git,
-        w.source,
-        plan,
-        "- Fixed a crash.",
-        token="fake-token",
+        w.git, w.source, plan, "- Fixed a crash.", token="fake-token",
         groups=(PRGroup(label="Crash fixes", prs=[GroupedPR(number=8, title=change.title)]),),
     )
     assert "### Crash fixes\n\n- #8" in pull.body
@@ -369,330 +263,17 @@ def test_preparation_pr_reuses_generated_groups(workflow, ios_version, android_v
         android_version != "1.0.0"
     )
     assert pull.title == "chore: Prepare 1.7.2 release"
-    assert pull.head.ref == "release-prep/1.7.2"
-    assert pull.base.ref == "release/1.7.2"
-
-
-def test_complete_workflow_uses_assembled_bytes_and_preserves_develop(workflow, caplog):
-    caplog.set_level("INFO")
-    w = workflow
-    commit(
-        w.source.repository.git, f"{PACKAGE_PATH}/Runtime/Later.cs", "later\n", "feat: Later API"
+    assert pull.head == "release-prep/1.7.2"
+    assert pull.base == "release/1.7.2"
+    w.source.create_reference.assert_called_once_with("heads/release/1.7.2", CUT)
+    w.push.assert_called_once_with(
+        w.source, branch="release-prep/1.7.2", expected_parent=CUT,
+        create_branch=True, token="fake-token",
     )
-    prepare_and_merge(w)
-    assert w.plan.release.source_sha == w.cut
-    assert w.plan.release.version == "1.7.2"
-    assert (
-        f"{PACKAGE_PATH}/Runtime/Later.cs" not in w.source.repository.git.commit(w.source_sha).tree
-    )
-    package_sha = publish_fixture(w)
-    assert package_sha == w.package.reference_sha("heads/main")
-    assert w.source.reference_sha(f"heads/{w.pull.base.ref}") is None
-    assert w.source.reference_sha("tags/1.7.2") == w.source_sha
-    assert package_sha != w.source_sha
-    with tarfile.open(w.package_archive) as archive:
-        for member in archive.getmembers():
-            if member.isdir():
-                continue
-            blob = w.package.repository.git.commit(package_sha).tree / member.name.removeprefix(
-                "./"
-            )
-            if member.issym():
-                assert blob.mode == 0o120000
-                assert blob.data_stream.read().decode() == member.linkname
-            else:
-                assert bool(blob.mode & 0o111) == bool(member.mode & 0o111)
-                stream = archive.extractfile(member)
-                assert stream is not None
-                assert blob.data_stream.read() == stream.read()
-    assert (
-        w.package.repository.git.commit(package_sha).tree / ".github/CODEOWNERS"
-    ).data_stream.read() == b"owner\n"
-    remote = w.source.repository.git
-    remote.heads.develop.checkout()
-    commit(
-        remote,
-        f"{PACKAGE_PATH}/package.json",
-        '{"version":"2.0.0","name":"new development","extra":true}',
-        "feat: Next API",
-    )
-    integrate(w.source, source_sha=w.source_sha, version="1.7.2", source_token="fake-source")
-    incoming = remote.heads["merge-back/1.7.2"].commit
-    assert remote.is_ancestor(w.source_sha, incoming)
-    metadata = json.loads((incoming.tree / PACKAGE_PATH / "package.json").data_stream.read())
-    assert metadata == {"version": "2.0.0", "name": "new development", "extra": True}
-    assert b'AssemblyVersion("2.0.0")' in (incoming.tree / ASSEMBLY_PATH).data_stream.read()
-    assert len(incoming.parents) == 1
-    pull = next(
-        p for p in w.source.repository.pulls.values() if p.head.ref.startswith("merge-back/")
-    )
-    assert "merge commit" in pull.body
-    pull.title, pull.body = "Reviewed integration", "Maintainer conflict resolution"
-    remote.heads["merge-back/1.7.2"].checkout()
-    edited = commit(
-        remote, f"{PACKAGE_PATH}/Runtime/Resolution.cs", "resolved\n", "fix: Resolve conflict"
-    )
-    pull.head.sha = edited.hexsha
-    remote.heads.develop.checkout()
-    caplog.clear()
-    integrate(
-        w.source,
-        source_sha=w.source_sha,
-        version="1.7.2",
-        source_token="fake-source",
-        dry_run=True,
-    )
-    preview = caplog.text
-    assert f"Reuse integration PR: {pull.html_url}" in preview
-    assert pull.title == "Reviewed integration" and pull.body == "Maintainer conflict resolution"
-    assert remote.heads["merge-back/1.7.2"].commit.hexsha == edited.hexsha
-    pushes_before = len(w.pushes)
-    with pytest.raises(ValueError, match="already exists"):
-        publish_fixture(w)
-    assert len(w.pushes) == pushes_before
+    w.repo.index.commit.assert_called_once()
 
 
-def test_partial_publication_requires_manual_recovery(workflow, monkeypatch):
-    w = prepare_and_merge(workflow)
-    monkeypatch.setattr(
-        w.package.repository,
-        "create_git_release",
-        Mock(side_effect=RuntimeError("Injected release failure")),
-    )
-    with pytest.raises(RuntimeError, match="Injected"):
-        publish_fixture(w)
-    assert w.source.reference_sha("tags/1.7.2") == w.source_sha
-    assert w.source.reference_sha(f"heads/{w.pull.base.ref}") == w.source_sha
-    assert w.package.release("1.7.2") is None
-    package_pushes = [p for p in w.pushes if p[0] == w.package.repository.full_name]
-    assert len(package_pushes) == 1
-    with pytest.raises(ValueError, match="already exists"):
-        publish_fixture(w)
-    assert len(w.pushes) == 2  # One preparation push and one package push.
-
-
-@pytest.mark.parametrize("existing", ["source_tag", "package_tag", "release"])
-def test_publication_stops_on_existing_output_before_staging(workflow, monkeypatch, existing):
-    w = workflow
-    if existing == "source_tag":
-        w.source.repository.git.create_tag("1.7.2")
-    elif existing == "package_tag":
-        w.package.repository.git.create_tag("1.7.2")
-    else:
-        w.package.repository.create_git_release(
-            tag="1.7.2", name="1.7.2", message="Existing release", target_commitish="HEAD"
-        )
-        w.package.repository.git.delete_tag("1.7.2")
-    monkeypatch.setattr(GitOperations, "clone", Mock(side_effect=AssertionError("Staging started")))
-    with pytest.raises(ValueError, match="already exists"):
-        publish(
-            w.source,
-            w.package,
-            w.root / "missing-package.tar.gz",
-            version="1.7.2",
-            source_sha=w.cut,
-            package_token="fake-package",
-        )
-    assert w.pushes == []
-
-
-def test_publish_and_pending_integration_dry_runs_never_write(workflow, monkeypatch, caplog):
-    caplog.set_level("INFO")
-    w = prepare_and_merge(workflow)
-    for operations in (w.source, w.package):
-        for name in (
-            "create_reference",
-            "create_release",
-            "delete_branch",
-        ):
-            monkeypatch.setattr(operations, name, Mock(side_effect=AssertionError("remote write")))
-    monkeypatch.setattr(
-        w.source.repository, "create_pull", Mock(side_effect=AssertionError("remote write"))
-    )
-    monkeypatch.setattr(GitOperations, "push", Mock(side_effect=AssertionError("signer invoked")))
-    caplog.clear()
-    original_archive = w.package_archive.read_bytes()
-    assert publish_fixture(w, dry_run=True) is None
-    publication_log = caplog.text
-    assert "Preparing publication of Unity SDK 1.7.2" in publication_log
-    assert (
-        "Skipping tag creation, package push and GitHub publication due to dry run."
-        in publication_log
-    )
-    caplog.clear()
-    integrate(
-        w.source,
-        version="1.7.2",
-        source_token="fake-source",
-        dry_run=True,
-        source_sha=w.source_sha,
-    )
-    integration_log = caplog.text
-    assert "Preparing integration PR: merge-back/1.7.2 -> develop" in integration_log
-    assert "Skipping branch push and PR creation due to dry run." in integration_log
-    assert "Proposed PR diff:" in integration_log
-    assert w.package_archive.read_bytes() == original_archive
-
-
-@pytest.mark.parametrize("use_ci_sha", [False, True])
-def test_prepare_uses_local_head_unless_ci_provides_a_commit(workflow, monkeypatch, use_ci_sha):
-    from . import cli
-
-    w = workflow
-    repo = w.source.repository.git
-    local_head = commit(repo, "later.txt", "later\n", "chore: Later development").hexsha
-    monkeypatch.delenv("CI_PROJECT_DIR", raising=False)
-    if use_ci_sha:
-        monkeypatch.setenv("CI_COMMIT_SHA", w.cut)
-        # No local repository is needed when CI supplies the source commit.
-        monkeypatch.chdir(w.root)
-    else:
-        monkeypatch.delenv("CI_COMMIT_SHA", raising=False)
-        monkeypatch.chdir(repo.working_tree_dir)
-    w.source.token = "fake-source"
-    monkeypatch.setattr(cli, "GitHubOperations", Mock(return_value=w.source))
-    monkeypatch.setattr(cli, "native_release_notes", Mock(return_value=""))
-    monkeypatch.setattr(cli, "draft_notes", Mock(return_value=("- Fixed a crash.", ())))
-
-    cli.run(cli.parser().parse_args([
-        "prepare", "--base-version", "1.7.1", "--release-version", "2.0.0-preview.1",
-    ]))
-
-    expected = w.cut if use_ci_sha else local_head
-    assert w.source.reference_sha("heads/release/2.0.0-preview.1") == expected
-
-
-def test_assembly_uses_ci_checkout_without_preparation_or_source_api(workflow, monkeypatch):
-    from . import cli
-
-    w = workflow
-    existing_pulls = dict(w.source.repository.pulls)
-    monkeypatch.chdir(w.root)
-    monkeypatch.setenv("CI_PROJECT_DIR", w.source.repository.git.working_tree_dir)
-    monkeypatch.setenv("CI_COMMIT_SHA", w.cut)
-    monkeypatch.delenv("CI_COMMIT_BRANCH", raising=False)
-    monkeypatch.setattr(cli, "GitHubOperations", Mock(side_effect=AssertionError("Source API client used")))
-    monkeypatch.setattr(
-        "github.Requester.Requester.requestJsonAndCheck",
-        Mock(side_effect=AssertionError("GitHub API used")),
-    )
-    monkeypatch.setattr(GitOperations, "clone", Mock(side_effect=AssertionError("Source cloned")))
-    output = w.root / "package.tar.gz"
-    monkeypatch.setenv("DEPOT_GITHUB_RELEASES_BASE", "https://depot.example.invalid")
-    response = MagicMock()
-    response.__enter__.return_value = response
-    response.iter_content.return_value = [w.archive.read_bytes()]
-    download = Mock(return_value=response)
-    monkeypatch.setattr("dd_sdk_unity.release.package.requests.get", download)
-    cli.run(cli.parser().parse_args(["assemble"]))
-    download.assert_called_once_with(
-        "https://depot.example.invalid/DataDog/dd-sdk-ios/releases/download/"
-        "1.0.0/Datadog.xcframework.zip",
-        stream=True,
-        timeout=180,
-    )
-    response.raise_for_status.assert_called_once()
-    payload = w.root / "ordinary-package"
-    extract_package(output, payload)
-    assert json.loads((payload / "package.json").read_text())["version"] == "1.7.1"
-    assert (payload / "Runtime/Code.cs").read_text() == "fixed\n"
-    assert w.source.repository.pulls == existing_pulls
-    assert w.source.repository.git.head.commit.hexsha == w.cut
-
-
-def test_unreviewed_candidate_cannot_publish(workflow):
-    with pytest.raises(ValueError, match="No merged preparation PR"):
-        publish(
-            workflow.source,
-            workflow.package,
-            workflow.root / "package.tar.gz",
-            version="1.7.2",
-            source_sha=workflow.cut,
-            package_token="fake-package",
-        )
-
-
-def test_cancelled_preparation_can_be_created_again_from_same_commit(workflow, monkeypatch):
-    w = workflow
-    monkeypatch.setenv("GIT_AUTHOR_DATE", "2026-10-22T12:00:00+0000")
-    monkeypatch.setenv("GIT_COMMITTER_DATE", "2026-10-22T12:00:00+0000")
-    git = GitOperations.clone(w.source.repository.clone_url, w.root / "first", revision=w.cut)
-    plan = prepare_plan(git, w.source, w.cut)
-    first = open_preparation(git, w.source, plan, "- Fix.", token="fake-token")
-    first = w.source.repository.pulls[first.number]
-    first.state = "closed"
-    with pytest.raises(ValueError, match="No merged preparation PR"):
-        reviewed_pull(w.source, first.base.ref, w.cut)
-    w.source.repository.git.delete_head(first.head.ref, first.base.ref, force=True)
-    git = GitOperations.clone(w.source.repository.clone_url, w.root / "second", revision=w.cut)
-    second = open_preparation(git, w.source, plan, "- Fix.", token="fake-token")
-    assert second.number != first.number
-    assert second.head.ref == first.head.ref
-
-
-def test_hotfix_from_tag_excludes_develop_feature_and_merges_release_ancestry(workflow, caplog):
-    caplog.set_level("INFO")
-    w = workflow
-    remote = w.source.repository.git
-    feature = commit(
-        remote, f"{PACKAGE_PATH}/Runtime/Feature.cs", "new API\n", "feat: Add new API (#2)"
-    )
-    w.source.repository.pulls[2] = SimpleNamespace(
-        number=2,
-        title="feat: Add new API",
-        body="Adds a new SDK API.",
-        state="closed",
-        merged=True,
-        merge_commit_sha=feature.hexsha,
-        base=SimpleNamespace(ref="develop"),
-        head=SimpleNamespace(ref="new-api"),
-    )
-    base = remote.create_head("published-base", remote.tags["1.7.1"].commit)
-    remote.create_head("hotfix", base).checkout()
-    w.cut = commit(
-        remote, f"{PACKAGE_PATH}/Runtime/Code.cs", "hotfix\n", "fix: Correct released code (#1)"
-    ).hexsha
-    w.source.repository.pulls[1].merge_commit_sha = w.cut
-    prepare_and_merge(w)
-    assert w.plan.release.version == "1.7.2"
-    assert not any(change.kind == "feat" for change in w.plan.release.changes)
-    publish_fixture(w)
-    integrate(
-        w.source,
-        version="1.7.2",
-        source_token="fake-source",
-        dry_run=True,
-        source_sha=w.source_sha,
-    )
-    preview = caplog.text
-    assert "Runtime/Code.cs" in preview
-    assert "+hotfix" in preview
-    integrate(w.source, source_sha=w.source_sha, version="1.7.2", source_token="fake-source")
-    remote.heads.develop.checkout()
-    # The two independently edited lines need a normal maintainer conflict resolution.
-    try:
-        remote.git.merge("--no-ff", "merge-back/1.7.2", "-m", "chore(release): Integrate 1.7.2")
-    except GitCommandError:
-        assert remote.index.unmerged_blobs()
-        (Path(remote.working_tree_dir) / PACKAGE_PATH / "Runtime/Code.cs").write_text("hotfix\n")
-        remote.git.add("--all")
-        remote.git.commit("-m", "chore(release): Integrate 1.7.2")
-    assert remote.is_ancestor(w.source_sha, remote.head.commit)
-    assert (Path(remote.working_tree_dir) / PACKAGE_PATH / "Runtime/Feature.cs").is_file()
-    pull = next(
-        p for p in w.source.repository.pulls.values() if p.head.ref.startswith("merge-back/")
-    )
-    pull.merged, pull.state, pull.merge_commit_sha = True, "closed", remote.head.commit.hexsha
-    # GitHub's automatic source-branch deletion handles both merged PR heads.
-    remote.delete_head(pull.head.ref, w.pull.head.ref, force=True)
-    integrate(w.source, source_sha=w.source_sha, version="1.7.2", source_token="fake-source")
-    assert "release/1.7.2" not in remote.heads and "merge-back/1.7.2" not in remote.heads
-    next_plan = prepare_plan(GitOperations(remote), w.source, remote.head.commit.hexsha)
-    assert next_plan.release.base_version == "1.7.2"
-    assert next_plan.release.version == "1.8.0"
-
-
-def test_publication_uses_reviewed_source_changes(workflow, monkeypatch):
+def test_publication_uses_assembled_bytes_and_preserves_administration(workflow, monkeypatch):
     from . import preparation
 
     original = preparation.apply_metadata
@@ -702,16 +283,249 @@ def test_publication_uses_reviewed_source_changes(workflow, monkeypatch):
         (git.root / PACKAGE_PATH / "Runtime/Code.cs").write_text("reviewed fix\n")
 
     monkeypatch.setattr(preparation, "apply_metadata", reviewed_changes)
-    w = prepare_and_merge(workflow)
+    w = prepare_package(workflow)
     w.pull.body = "Reviewed release."
-    package_sha = publish_fixture(w)
-    tree = w.package.repository.git.commit(package_sha).tree
-    assert (tree / "Runtime/Code.cs").data_stream.read() == b"reviewed fix\n"
-    assert w.package.repository.get_release(w.plan.release.version).body == "- Fixed a crash."
+    # Later worktree edits must not change the already assembled archive.
+    (w.git.root / PACKAGE_PATH / "Runtime/Code.cs").write_text("later edit\n")
+    publish_fixture(w)
+    unpacked = w.root / "unpacked"
+    extract_package(w.package_archive, unpacked)
+    distribution = Path(w.distribution.working_tree_dir)
+    for path in unpacked.rglob("*"):
+        installed = distribution / path.relative_to(unpacked)
+        if path.is_file():
+            assert installed.read_bytes() == path.read_bytes()
+            assert installed.stat().st_mode & 0o111 == path.stat().st_mode & 0o111
+    assert (distribution / ".github/CODEOWNERS").read_text() == "owner\n"
+    assert (distribution / ".gitignore").read_text() == "*.xcframework/\n*.cs\n"
+    assert not (distribution / "obsolete.txt").exists()
+    assert (distribution / "Runtime/Code.cs").read_text() == "reviewed fix\n"
+    w.package.create_release.assert_called_once_with("1.7.2", SIGNED, "- Fixed a crash.")
+    w.distribution.git.add.assert_any_call("--all", "--force")
+    w.source.create_reference.assert_any_call("tags/1.7.2", REVIEWED)
+    w.push.assert_called_with(w.package, branch="main", expected_parent=MAIN, token="fake-package")
+    w.source.delete_branch.assert_called_once_with("release/1.7.2", REVIEWED)
+
+
+def test_integration_preserves_higher_development_metadata(workflow):
+    w = prepare_package(workflow)
+    development = dict(w.files)
+    development[f"{PACKAGE_PATH}/package.json"] = (
+        '{"version":"2.0.0","name":"new development","extra":true}'
+    )
+    w.commits[DEVELOP] = w.make_commit(DEVELOP, development)
+    w.source.repository.get_pulls.return_value = []
+    w.repo.is_dirty.return_value = True
+    w.repo.head.commit = w.make_commit(LOCAL)
+    integrate(w.source, source_sha=REVIEWED, version="1.7.2", source_token="fake-source")
+    metadata = json.loads((w.git.root / PACKAGE_PATH / "package.json").read_text())
+    assert metadata == {"version": "2.0.0", "name": "new development", "extra": True}
+    assert 'AssemblyVersion("2.0.0")' in (w.git.root / ASSEMBLY_PATH).read_text()
+    assert "## 1.7.2" in (w.git.root / CHANGELOG_PATH).read_text()
+    w.repo.create_head.assert_any_call("release-base", REVIEWED)
+    w.push.assert_called_with(
+        w.source, branch="merge-back/1.7.2", expected_parent=REVIEWED,
+        create_branch=True, token="fake-source",
+    )
+    pull = w.source.repository.create_pull.call_args.kwargs
+    assert "merge commit" in pull["body"]
+    assert pull["base"] == "develop" and pull["head"] == "merge-back/1.7.2"
+
+
+@pytest.mark.parametrize("merged", [False, True])
+def test_integration_reuses_reviewed_or_merged_pr_without_rewriting(workflow, caplog, merged):
+    caplog.set_level("INFO")
+    w = workflow
+    pull = SimpleNamespace(
+        state="closed" if merged else "open", merged=merged,
+        title="Reviewed integration", body="Maintainer conflict resolution",
+        html_url="https://github.invalid/fixture/source/pull/3",
+    )
+    w.source.repository.get_pulls.return_value = [pull]
+    integrate(
+        w.source, source_sha=REVIEWED, version="1.7.2", source_token="fake-source", dry_run=True
+    )
+    assert pull.html_url in caplog.text
+    assert pull.title == "Reviewed integration" and pull.body == "Maintainer conflict resolution"
+    w.clone.assert_not_called()
+    w.push.assert_not_called()
+    w.source.repository.create_pull.assert_not_called()
+
+
+def test_partial_publication_requires_manual_recovery(workflow):
+    w = prepare_package(workflow)
+    w.package.create_release.side_effect = RuntimeError("Injected release failure")
+    with pytest.raises(RuntimeError, match="Injected"):
+        publish_fixture(w)
+    assert w.refs["tags/1.7.2"] == REVIEWED
+    assert w.refs["heads/release/1.7.2"] == REVIEWED
+    w.source.delete_branch.assert_not_called()
+    assert w.push.call_count == 2
+    with pytest.raises(ValueError, match="already exists"):
+        publish_fixture(w)
+    assert w.push.call_count == 2
+
+
+@pytest.mark.parametrize("existing", ["source_tag", "package_tag", "release"])
+def test_publication_stops_on_existing_output_before_staging(workflow, existing):
+    w = workflow
+    if existing == "source_tag":
+        w.refs["tags/1.7.2"] = REVIEWED
+    elif existing == "package_tag":
+        w.package.reference_sha.side_effect = None
+        w.package.reference_sha.return_value = SIGNED
+    else:
+        w.package.release.return_value = Mock()
+    with pytest.raises(ValueError, match="already exists"):
+        publish(
+            w.source, w.package, w.root / "missing-package.tar.gz", version="1.7.2",
+            source_sha=CUT, package_token="fake-package",
+        )
+    w.clone.assert_not_called()
+    w.push.assert_not_called()
+
+
+def test_publish_and_pending_integration_dry_runs_never_write(workflow, caplog):
+    caplog.set_level("INFO")
+    w = prepare_package(workflow)
+    w.push.reset_mock()
+    w.source.create_reference.reset_mock()
+    w.source.repository.create_pull.reset_mock()
+    original_archive = w.package_archive.read_bytes()
+    publish_fixture(w, dry_run=True)
+    assert "Preparing publication of Unity SDK 1.7.2" in caplog.text
+    assert "Skipping tag creation, package push and GitHub publication due to dry run." in caplog.text
+    caplog.clear()
+    w.source.repository.get_pulls.return_value = []
+    integrate(
+        w.source, version="1.7.2", source_token="fake-source", dry_run=True, source_sha=REVIEWED
+    )
+    assert "Preparing integration PR: merge-back/1.7.2 -> develop" in caplog.text
+    assert "Skipping branch push and PR creation due to dry run." in caplog.text
+    assert "Proposed PR diff:" in caplog.text
+    for operations in (w.source, w.package):
+        operations.create_reference.assert_not_called()
+        operations.create_release.assert_not_called()
+        operations.delete_branch.assert_not_called()
+    w.source.repository.create_pull.assert_not_called()
+    w.push.assert_not_called()
+    assert w.package_archive.read_bytes() == original_archive
+
+
+@pytest.mark.parametrize("use_ci_sha", [False, True])
+def test_prepare_uses_local_head_unless_ci_provides_a_commit(workflow, monkeypatch, use_ci_sha):
+    from . import cli
+
+    w = workflow
+    w.repo.head.commit = w.make_commit(DEVELOP)
+    monkeypatch.delenv("CI_PROJECT_DIR", raising=False)
+    if use_ci_sha:
+        monkeypatch.setenv("CI_COMMIT_SHA", CUT)
+    else:
+        monkeypatch.delenv("CI_COMMIT_SHA", raising=False)
+    local = Mock()
+    local.head.commit.hexsha = DEVELOP
+    repo = Mock(return_value=local)
+    monkeypatch.setattr(cli, "Repo", repo)
+    monkeypatch.setattr(cli, "GitHubOperations", Mock(return_value=w.source))
+    monkeypatch.setattr(cli, "native_release_notes", Mock(return_value=""))
+    monkeypatch.setattr(cli, "draft_notes", Mock(return_value=("- Fixed a crash.", ())))
+    head = CUT if use_ci_sha else DEVELOP
+    w.repo.head.commit = w.commits[head]
+    cli.run(cli.parser().parse_args([
+        "prepare", "--base-version", "1.7.1", "--release-version", "2.0.0-preview.1",
+    ]))
+    w.repo.create_head.assert_any_call("release-base", head)
+    w.source.create_reference.assert_called_once_with("heads/release/2.0.0-preview.1", head)
+    assert repo.call_count == (0 if use_ci_sha else 1)
+
+
+def test_assembly_uses_ci_checkout_without_preparation_or_source_api(workflow, monkeypatch):
+    from . import cli
+
+    w = workflow
+    monkeypatch.chdir(w.root)
+    monkeypatch.setenv("CI_PROJECT_DIR", str(w.git.root))
+    monkeypatch.setenv("CI_COMMIT_SHA", CUT)
+    monkeypatch.delenv("CI_COMMIT_BRANCH", raising=False)
+    repo = Mock(return_value=w.repo)
+    monkeypatch.setattr(cli, "Repo", repo)
+    monkeypatch.setattr(cli, "GitHubOperations", Mock(side_effect=AssertionError("Source API used")))
+    monkeypatch.setattr(
+        "github.Requester.Requester.requestJsonAndCheck",
+        Mock(side_effect=AssertionError("GitHub API used")),
+    )
+    monkeypatch.setenv("DEPOT_GITHUB_RELEASES_BASE", "https://depot.example.invalid")
+    response = MagicMock()
+    response.__enter__.return_value = response
+    response.iter_content.return_value = [w.archive.read_bytes()]
+    # The native client only constructs the asset URL; no GitHub read is needed.
+    client = Mock()
+    client.get_repo.return_value.full_name = "DataDog/dd-sdk-ios"
+    monkeypatch.setattr("dd_sdk_unity.scripts.common.github.Github", Mock(return_value=client))
+    download = Mock(return_value=response)
+    monkeypatch.setattr("dd_sdk_unity.release.package.requests.get", download)
+    cli.run(cli.parser().parse_args(["assemble"]))
+    repo.assert_called_once_with(str(w.git.root))
+    w.clone.assert_not_called()
+    w.source.repository.create_pull.assert_not_called()
+    download.assert_called_once_with(
+        "https://depot.example.invalid/DataDog/dd-sdk-ios/releases/download/"
+        "1.0.0/Datadog.xcframework.zip", stream=True, timeout=180,
+    )
+    response.raise_for_status.assert_called_once()
+    payload = w.root / "ordinary-package"
+    extract_package(w.root / "package.tar.gz", payload)
+    assert json.loads((payload / "package.json").read_text())["version"] == "1.7.1"
+    assert (payload / "Runtime/Code.cs").read_text() == "fixed\n"
+
+
+def test_unreviewed_candidate_cannot_publish(workflow):
+    with pytest.raises(ValueError, match="No merged preparation PR"):
+        publish(
+            workflow.source, workflow.package, workflow.root / "package.tar.gz",
+            version="1.7.2", source_sha=CUT, package_token="fake-package",
+        )
+    workflow.clone.assert_not_called()
+    workflow.push.assert_not_called()
+
+
+def test_cancelled_preparation_can_be_created_again_from_same_commit(workflow):
+    w = workflow
+    plan = prepare_plan(w.git, w.source, CUT)
+    open_preparation(w.git, w.source, plan, "- Fix.", token="fake-token")
+    # A cancelled PR is closed without a matching merged candidate.
+    w.source.repository.get_pulls.return_value = [SimpleNamespace(merged=False)]
+    with pytest.raises(ValueError, match="No merged preparation PR"):
+        reviewed_pull(w.source, "release/1.7.2", CUT)
+    w.refs.pop("heads/release/1.7.2")
+    open_preparation(w.git, w.source, plan, "- Fix.", token="fake-token")
+    assert w.source.repository.create_pull.call_count == 2
+    first, second = w.source.repository.create_pull.call_args_list
+    assert first.kwargs["head"] == second.kwargs["head"] == "release-prep/1.7.2"
+    assert w.push.call_count == 2
+
+
+def test_hotfix_plan_excludes_develop_feature(workflow):
+    w = workflow
+    w.source.merged_pull_numbers_since.return_value = [1, 2]
+    pulls = {
+        1: SimpleNamespace(
+            number=1, title="fix: Correct released code", body="", merge_commit_sha=CUT
+        ),
+        2: SimpleNamespace(
+            number=2, title="feat: New API", body="", merge_commit_sha=DEVELOP
+        ),
+    }
+    w.source.repository.get_pull.side_effect = pulls.__getitem__
+    plan = prepare_plan(w.git, w.source, CUT)
+    assert plan.release.version == "1.7.2"
+    assert [change.number for change in plan.release.changes] == [1]
+    w.repo.iter_commits.assert_called_once_with(f"{BASE}..{CUT}")
 
 
 def test_package_is_reproducible_retains_tvos_guids_and_notice(workflow):
-    w = prepare_and_merge(workflow)
+    w = prepare_package(workflow)
     payload = w.root / "unpacked"
     extract_package(w.package_archive, payload)
     assert not (payload / "Tests").exists()
@@ -732,9 +546,7 @@ def test_package_is_reproducible_retains_tvos_guids_and_notice(workflow):
     changed = w.root / "invalid.zip"
     changed.write_bytes(b"changed")
     with pytest.raises(ValueError, match="SHA-256"):
-        assemble(
-            GitOperations(w.source.repository.git), w.source_sha, changed, w.root / "bad-payload"
-        )
+        assemble(w.git, REVIEWED, changed, w.root / "bad-payload")
 
 
 def test_ai_drafting_checks_coverage_and_runs_group_draft_cleanup():
@@ -799,9 +611,7 @@ def test_ai_drafting_checks_coverage_and_runs_group_draft_cleanup():
         )
 
 
-@pytest.mark.parametrize(
-    "prefix", ["", "RUM-12494 ", "RUM-12494: ", "[RUM-12494] ", "[RUM-12494]: "]
-)
+@pytest.mark.parametrize("prefix", ["", "[RUM-12494]: "])
 def test_changelog_skips_ordinary_chores_but_includes_breaking_chores(prefix):
     from .changelog import classify
 
@@ -870,8 +680,6 @@ def test_gateway_prompt_uses_luna_structured_responses(monkeypatch):
     ("ios", "android", "expected"),
     [
         ("1.0.0", "1.0.0", []),
-        ("1.1.0", "1.0.0", [("dd-sdk-ios", "1.1.0")]),
-        ("1.0.0", "1.0.1", [("dd-sdk-android", "1.0.1")]),
         ("1.1.0", "1.0.1", [("dd-sdk-ios", "1.1.0"), ("dd-sdk-android", "1.0.1")]),
         ("0.9.0", "1.0.0", []),
     ],

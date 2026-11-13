@@ -6,34 +6,21 @@ import subprocess
 
 import pytest
 
-from dd_sdk_unity.scripts.common.shell import run_cmd, run_cmd_streaming
+from dd_sdk_unity.scripts.common.shell import capture_output, run_cmd_streaming
 
 
-@pytest.mark.parametrize('merge_stderr', [False, True])
-def test_run_cmd(merge_stderr: bool) -> None:
-    got_stdout_lines: list[str] = []
-    got_stderr_lines: list[str] = []
-    def _handle_output(line: str, is_stderr: bool):
-        if is_stderr:
-            got_stderr_lines.append(line)
-        else:
-            got_stdout_lines.append(line)
-
-    exitcode = run_cmd(
-        '/bin/sh', '-c', 'echo "out1" && >&2 echo "err1" && echo "out2"',
-        merge_stderr=merge_stderr,
-        output_handler=_handle_output,
-    )
-    assert exitcode == 0
-    assert got_stdout_lines == (['out1', 'err1', 'out2'] if merge_stderr else ['out1', 'out2'])
-    assert got_stderr_lines == ([] if merge_stderr else ['err1'])
+def test_capture_output_keeps_streams_separate():
+    assert capture_output('/bin/sh', '-c', 'echo out; echo err >&2') == ('out\n', 'err\n')
 
 
-@pytest.mark.parametrize('run', [run_cmd, run_cmd_streaming])
-def test_run_cmd_exitcode(run) -> None:
-    assert run('/bin/sh', '-c', 'exit 42') == 42
+def test_capture_output_preserves_failure_details():
+    with pytest.raises(subprocess.CalledProcessError) as failure:
+        capture_output('/bin/sh', '-c', 'echo out; echo err >&2; exit 42')
+    assert failure.value.returncode == 42
+    assert failure.value.output == 'out\n'
+    assert failure.value.stderr == 'err\n'
 
 
-def test_run_cmd_raise() -> None:
-    with pytest.raises(subprocess.CalledProcessError):
-        run_cmd('/bin/sh', '-c', 'exit 42', raise_on_nonzero_exitcode=True)
+def test_streaming_command_inherits_output_and_returns_exitcode(capfd):
+    assert run_cmd_streaming('/bin/sh', '-c', 'echo out; echo err >&2; exit 42') == 42
+    assert capfd.readouterr().out == 'out\nerr\n'
