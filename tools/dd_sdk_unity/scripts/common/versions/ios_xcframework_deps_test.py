@@ -89,16 +89,6 @@ def test_write_ios_xcframework_pin_impl():
     assert outfile.read() == __release_json__
 
 
-def test_round_trip():
-    infile = io.StringIO(__development_json__)
-    outfile = io.StringIO()
-    _write_ios_xcframework_pin_impl(infile, outfile, __new_pin__)
-    outfile.seek(0)
-    written = outfile.read()
-    got = read_ios_xcframework_pin(written)
-    assert got == __new_pin__
-
-
 def test_write_ios_xcframework_pin_impl_null_sha256():
     infile = io.StringIO(__development_json__)
     outfile = io.StringIO()

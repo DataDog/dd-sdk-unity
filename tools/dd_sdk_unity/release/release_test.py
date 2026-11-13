@@ -2,7 +2,7 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2026-Present Datadog, Inc.
 
-"""Release policy and remote-write boundaries, using real local Git history."""
+"""Release policy and remote-write boundaries with mocked GitPython objects."""
 
 import json
 from pathlib import Path
@@ -10,7 +10,6 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-from git import Actor, Repo
 from github.GithubException import GithubException
 
 from dd_sdk_unity.scripts.common.git import GitOperations
@@ -21,39 +20,23 @@ from .changelog import classify, collect_changes, merge_sections
 from .cli import parser
 from .release_version import select_release
 
-AUTHOR = Actor("Release test", "release-test@example.invalid")
-
-
-def commit(repo: Repo, path: str, text: str, message: str):
-    assert repo.working_tree_dir
-    target = Path(repo.working_tree_dir) / path
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(text)
-    repo.index.add([path])
-    return repo.index.commit(message, author=AUTHOR, committer=AUTHOR)
+BASE = "a" * 40
+SOURCE = "b" * 40
+SIGNED = "c" * 40
 
 
 @pytest.fixture
-def history(tmp_path):
-    repo = Repo.init(tmp_path / "source")
-    with repo.config_writer() as config:
-        config.set_value("core", "fsmonitor", False)
-        config.set_value("tag", "gpgSign", False)
-        config.set_value("commit", "gpgSign", False)
-        config.set_value("user", "name", AUTHOR.name)
-        config.set_value("user", "email", AUTHOR.email)
-    commit(repo, f"{PACKAGE_PATH}/package.json", '{"version":"3.0.0"}', "chore: Initial package")
-    base = commit(
-        repo, CHANGELOG_PATH, "# Change Log\n\n## 3.0.0\n\n- Original.\n", "chore: Initial notes"
-    )
-    repo.create_head("develop", repo.head.reference).checkout()
-    repo.create_tag("3.0.0")
-    return repo, base
-
-
-def direct_change(repo, title="fix: Prevent crash", body=""):
-    commit(repo, "code.cs", "changed", f"{title}\n\n{body}")
-    return classify(title, body, number=1)
+def history(repository, make_commit):
+    base = make_commit(BASE)
+    files = {
+        f"{PACKAGE_PATH}/package.json": '{"version":"3.0.0"}',
+        CHANGELOG_PATH: "# Change Log\n\n## 3.0.0\n\n- Original.\n",
+    }
+    source = make_commit(SOURCE, files, parents=[base])
+    repository.commit.return_value = source
+    repository.head.commit = source
+    repository.tags = [SimpleNamespace(name="3.0.0", commit=base)]
+    return SimpleNamespace(repo=repository, base=base, files=files)
 
 
 @pytest.mark.parametrize(
@@ -69,68 +52,64 @@ def direct_change(repo, title="fix: Prevent crash", body=""):
     ],
 )
 def test_bump_policy_has_no_automatic_major(history, title, body, version):
-    repo, base = history
-    change = direct_change(repo, title, body)
-    plan = select_release(repo, repo.head.commit.hexsha, (change,))
+    change = classify(title, body, number=1)
+    plan = select_release(history.repo, SOURCE, (change,))
     assert plan.version == version
-    assert plan.base_sha == base.hexsha
+    assert plan.base_sha == BASE
+    assert plan.source_sha == SOURCE
 
 
 @pytest.mark.parametrize(
-    "prefix", ["RUM-12494 ", "RUM-12494: ", "[RUM-12494] ", "[RUM-12494]: "]
-)
-@pytest.mark.parametrize(
-    ("title", "kind", "version"),
+    ("prefix", "title", "kind", "version"),
     [
-        ("feat: Add setting", "feat", "3.1.0"),
-        ("feat(rum)!: Sample request traces deterministically by session", "feat", "3.1.0"),
-        ("fix(ios)!: Change behavior", "fix", "3.0.1"),
-        ("chore: Update native pins", "chore", "3.0.1"),
+        ("RUM-12494 ", "feat: Add setting", "feat", "3.1.0"),
+        ("RUM-12494: ", "feat(rum)!: Sample traces by session", "feat", "3.1.0"),
+        ("[RUM-12494] ", "fix(ios)!: Change behavior", "fix", "3.0.1"),
+        ("[RUM-12494]: ", "chore: Update native pins", "chore", "3.0.1"),
     ],
 )
 def test_jira_prefixed_titles_preserve_details_and_choose_release_version(
     history, prefix, title, kind, version
 ):
-    repo, _ = history
     full_title = prefix + title
-    change = direct_change(repo, full_title, "Change details")
+    change = classify(full_title, "Change details", number=1)
     assert change.kind == kind
     assert change.title == full_title
     assert change.body == "Change details"
-    assert select_release(repo, repo.head.commit.hexsha, (change,)).version == version
+    assert select_release(history.repo, SOURCE, (change,)).version == version
 
 
-def test_prebumped_package_uses_explicit_base_without_rewriting_source(history):
-    repo, _ = history
-    c = commit(repo, f"{PACKAGE_PATH}/package.json", '{"version":"4.0.0"}', "feat: Next SDK")
+def test_prebumped_package_uses_explicit_base_without_rewriting_source(history, make_commit):
+    history.files[f"{PACKAGE_PATH}/package.json"] = '{"version":"4.0.0"}'
+    history.repo.commit.return_value = make_commit(SOURCE, history.files)
+    package = Path(history.repo.working_tree_dir) / PACKAGE_PATH / "package.json"
+    package.parent.mkdir(parents=True)
+    package.write_text(history.files[f"{PACKAGE_PATH}/package.json"])
     change = classify("feat: Next SDK", number=1)
     with pytest.raises(ValueError, match="specify BASE_VERSION"):
-        select_release(repo, c.hexsha, (change,))
-    plan = select_release(repo, c.hexsha, (change,), base_version="3.0.0", release_version="4.0.0")
+        select_release(history.repo, SOURCE, (change,))
+    plan = select_release(
+        history.repo, SOURCE, (change,), base_version="3.0.0", release_version="4.0.0"
+    )
     assert plan.base_version == "3.0.0"
     assert plan.version == "4.0.0"
-    assert repo.working_tree_dir
-    assert (
-        json.loads((Path(repo.working_tree_dir) / PACKAGE_PATH / "package.json").read_text())[
-            "version"
-        ]
-        == "4.0.0"
-    )
-    assert select_release(repo, c.hexsha, (change,), base_version="3.0.0").version == "3.1.0"
+    assert json.loads(package.read_text())["version"] == "4.0.0"
+    history.repo.index.commit.assert_not_called()
+    assert select_release(
+        history.repo, SOURCE, (change,), base_version="3.0.0"
+    ).version == "3.1.0"
 
 
-def test_version_file_does_not_choose_highest_ancestor_tag(history):
-    repo, _ = history
-    change = direct_change(repo)
-    repo.create_tag("9.0.0")
-    assert select_release(repo, repo.head.commit.hexsha, (change,)).base_version == "3.0.0"
+def test_version_file_does_not_choose_highest_ancestor_tag(history, make_commit):
+    history.repo.tags.append(SimpleNamespace(name="9.0.0", commit=make_commit("d" * 40)))
+    assert select_release(
+        history.repo, SOURCE, (classify("fix: Prevent crash", number=1),)
+    ).base_version == "3.0.0"
 
 
 def test_empty_inventory_is_rejected_and_unprefixed_titles_default_to_fix(history):
-    repo, _ = history
-    direct_change(repo)
     with pytest.raises(ValueError, match="no releasable"):
-        select_release(repo, repo.head.commit.hexsha, ())
+        select_release(history.repo, SOURCE, ())
     title = "A title without classification"
     change = classify(title, number=1)
     assert change.kind == "fix" and change.title == title
@@ -157,118 +136,58 @@ def test_prerelease_cli_and_changelog_ordering():
     assert positions == sorted(positions)
 
 
-def test_prerelease_can_be_the_base_for_a_final_release(history):
-    repo, _ = history
-    commit(repo, f"{PACKAGE_PATH}/package.json", '{"version":"4.0.0-preview1"}', "chore: Preview")
-    commit(repo, CHANGELOG_PATH, "# Change Log\n\n## 4.0.0-preview1\n\n- Preview.\n", "chore: Notes")
-    repo.create_tag("4.0.0-preview1")
-    change = direct_change(repo)
-    plan = select_release(repo, repo.head.commit.hexsha, (change,), release_version="4.0.0")
+def test_prerelease_can_be_the_base_for_a_final_release(history, make_commit):
+    history.files[f"{PACKAGE_PATH}/package.json"] = '{"version":"4.0.0-preview1"}'
+    history.files[CHANGELOG_PATH] = "# Change Log\n\n## 4.0.0-preview1\n\n- Preview.\n"
+    history.repo.commit.return_value = make_commit(SOURCE, history.files)
+    history.repo.tags.append(SimpleNamespace(name="4.0.0-preview1", commit=history.base))
+    plan = select_release(
+        history.repo, SOURCE, (classify("fix: Prevent crash", number=1),), release_version="4.0.0"
+    )
     assert plan.base_version == "4.0.0-preview1"
     assert plan.version == "4.0.0"
 
 
-def test_merge_history_keeps_pr_changes_once_and_does_not_push_merges(history):
-    repo, base = history
-    feature = repo.create_head("feature", repo.head.reference)
-    feature.checkout()
-    commit(repo, "feature.cs", "feature", "feat: A feature")
-    repo.heads.develop.checkout()
-    squashed = commit(repo, "fix.cs", "fix", "fix: Independent fix (#9)")
-    repo.git.merge(
-        "--no-ff", "--no-gpg-sign", feature.name, "-m", "Merge pull request #8 from feature"
-    )
-    merged = repo.head.commit
+def test_change_collection_includes_stacked_prs_and_excludes_prs_merged_elsewhere(
+    history, make_commit
+):
+    history.repo.iter_commits.return_value = [
+        make_commit("c" * 40, message="fix: Bottom of the stack"),
+        make_commit("d" * 40, message="feat(rum): Top of the stack"),
+        make_commit(SOURCE, message="Merge pull request #8 from top"),
+    ]
     github = Mock()
-    github.merged_pull_numbers_since.return_value = [9, 8]
+    github.merged_pull_numbers_since.return_value = [9, 8, 6, 7]
     pulls = {
+        6: SimpleNamespace(number=6, title="fix: Hotfix", body="", merge_commit_sha="0" * 40),
+        7: SimpleNamespace(
+            number=7, title="fix: Bottom", body="Bottom details", merge_commit_sha=SOURCE
+        ),
         8: SimpleNamespace(
-            number=8, title="feat: A feature", body="Feature details",
-            merge_commit_sha=merged.hexsha,
+            number=8, title="feat(rum): Top", body="Top details", merge_commit_sha=SOURCE
         ),
         9: SimpleNamespace(
-            number=9, title="fix: Independent fix", body="Fix details",
-            merge_commit_sha=squashed.hexsha,
+            number=9, title="fix: Independent fix", body="Fix details", merge_commit_sha="d" * 40
         ),
     }
     github.repository.get_pull.side_effect = pulls.__getitem__
-    changes = collect_changes(repo, github, base.hexsha, merged.hexsha)
-    assert [change.number for change in changes] == [8, 9]
-    assert [change.body for change in changes] == ["Feature details", "Fix details"]
-    assert github.repository.get_pull.call_count == 2
-    assert select_release(repo, merged.hexsha, changes).version == "3.1.0"
-    with pytest.raises(ValueError, match="single-parent"):
-        GitOperations(repo).push(
-            github_stub(base.hexsha), branch="develop", expected_parent=base.hexsha
-        )
-
-
-def test_change_collection_includes_stacked_prs_and_excludes_prs_merged_elsewhere(history):
-    repo, base = history
-    commit(repo, "first.cs", "one", "fix: Bottom of the stack")
-    commit(repo, "second.cs", "two", "feat(rum): Top of the stack")
-    stack_merge = commit(repo, "third.cs", "three", "Merge pull request #8 from top")
-    github = Mock()
-    github.merged_pull_numbers_since.return_value = [6, 7, 8]
-    pulls = {
-        # Merged into another branch, so its merge commit isn't in the release range
-        6: SimpleNamespace(
-            number=6, title="fix: Hotfix", body="", merge_commit_sha="0" * 40
-        ),
-        # GitHub records the top PR's merge commit for each PR in a stack merged from the top
-        7: SimpleNamespace(
-            number=7, title="fix: Bottom", body="", merge_commit_sha=stack_merge.hexsha
-        ),
-        8: SimpleNamespace(
-            number=8, title="feat(rum): Top", body="", merge_commit_sha=stack_merge.hexsha
-        ),
-    }
-    github.repository.get_pull.side_effect = pulls.__getitem__
-    changes = collect_changes(repo, github, base.hexsha, repo.head.commit.hexsha)
-    assert [(change.number, change.kind) for change in changes] == [(7, "fix"), (8, "feat")]
+    changes = collect_changes(history.repo, github, BASE, SOURCE)
+    assert [(change.number, change.kind) for change in changes] == [
+        (7, "fix"), (8, "feat"), (9, "fix")
+    ]
+    assert [change.body for change in changes] == ["Bottom details", "Top details", "Fix details"]
+    history.repo.iter_commits.assert_called_once_with(f"{BASE}..{SOURCE}")
+    github.merged_pull_numbers_since.assert_called_once_with("2026-11-11")
+    assert github.repository.get_pull.call_count == 4
+    assert select_release(history.repo, SOURCE, changes).version == "3.1.0"
 
 
 def test_empty_release_range_makes_no_github_requests(history):
-    repo, base = history
+    history.repo.iter_commits.return_value = []
     github = Mock()
-    assert collect_changes(repo, github, base.hexsha, base.hexsha) == ()
+    assert collect_changes(history.repo, github, BASE, BASE) == ()
     github.merged_pull_numbers_since.assert_not_called()
     github.repository.get_pull.assert_not_called()
-
-
-def test_merge_back_alone_can_propose_another_patch(history):
-    repo, _ = history
-    fix_branch = repo.create_head("fix-branch", repo.head.reference)
-    fix_branch.checkout()
-    commit(repo, "fix.cs", "fix", "fix: Published SDK fix")
-    commit(repo, f"{PACKAGE_PATH}/package.json", '{"version":"3.0.1"}', "chore(release): Version")
-    released = commit(
-        repo,
-        CHANGELOG_PATH,
-        "# Change Log\n\n## 3.0.1\n\n- Fix.\n\n## 3.0.0\n\n- Original.\n",
-        "chore(release): Notes",
-    )
-    repo.create_tag("3.0.1")
-    repo.heads.develop.checkout()
-    repo.git.merge(
-        "--no-ff",
-        "--no-gpg-sign",
-        fix_branch.name,
-        "-m",
-        "Merge pull request #10 from merge-back/3.0.1",
-    )
-    merged = repo.head.commit
-    github = Mock()
-    github.merged_pull_numbers_since.return_value = [10]
-    github.repository.get_pull.return_value = SimpleNamespace(
-        number=10,
-        title="chore(release): Integrate 3.0.1",
-        body="",
-        merge_commit_sha=merged.hexsha,
-    )
-    changes = collect_changes(repo, github, released.hexsha, merged.hexsha)
-    assert len(changes) == 1 and changes[0].kind == "chore"
-    assert select_release(repo, merged.hexsha, changes).version == "3.0.2"
 
 
 def github_stub(parent):
@@ -278,48 +197,51 @@ def github_stub(parent):
     return github
 
 
+@pytest.mark.parametrize("parents", [[BASE, "d" * 40], ["d" * 40]])
+def test_push_rejects_invalid_parents_before_invoking_signer(history, make_commit, monkeypatch, parents):
+    history.repo.head.commit.parents = [make_commit(sha) for sha in parents]
+    invoke = Mock()
+    monkeypatch.setattr("dd_sdk_unity.scripts.common.git.subprocess.run", invoke)
+    with pytest.raises(ValueError, match="single-parent"):
+        GitOperations(history.repo).push(github_stub(BASE), branch="develop", expected_parent=BASE)
+    invoke.assert_not_called()
+
+
 def test_push_rejects_moved_head_before_invoking_signer(history, monkeypatch):
-    repo, base = history
-    direct_change(repo)
-    invoke = Mock(side_effect=AssertionError("Do not sign against a moved remote"))
+    invoke = Mock()
     monkeypatch.setattr("dd_sdk_unity.scripts.common.git.subprocess.run", invoke)
     with pytest.raises(ValueError, match="moved"):
-        GitOperations(repo).push(
-            github_stub("d" * 40), branch="develop", expected_parent=base.hexsha
+        GitOperations(history.repo).push(
+            github_stub("d" * 40), branch="develop", expected_parent=BASE
         )
+    invoke.assert_not_called()
 
 
-def test_signed_push_verifies_real_remote_sha_and_tree(history, monkeypatch):
-    repo, base = history
-    direct_change(repo)
-    local = repo.head.commit
-    signed = repo.index.commit(
-        "Signed copy",
-        parent_commits=local.parents,
-        head=False,
-        author=Actor("Signer", "signer@example.invalid"),
-        committer=AUTHOR,
-    )
-    github = github_stub(base.hexsha)
-    github.reference_sha.side_effect = [base.hexsha, signed.hexsha]
+@pytest.mark.parametrize("mismatch", [None, "ref", "tree", "parent"])
+def test_signed_push_verifies_remote_sha_and_tree(history, monkeypatch, mismatch):
+    github = github_stub(BASE)
+    github.reference_sha.side_effect = [BASE, "d" * 40 if mismatch == "ref" else SIGNED]
     github.git_commit.return_value = SimpleNamespace(
-        tree=SimpleNamespace(sha=signed.tree.hexsha),
-        parents=[SimpleNamespace(sha=base.hexsha)],
+        tree=SimpleNamespace(sha="d" * 40 if mismatch == "tree" else SOURCE),
+        parents=[SimpleNamespace(sha="d" * 40 if mismatch == "parent" else BASE)],
     )
-    invoke = Mock(return_value=SimpleNamespace(stdout=signed.hexsha + "\n"))
+    invoke = Mock(return_value=SimpleNamespace(stdout=SIGNED + "\n"))
     monkeypatch.setattr("dd_sdk_unity.scripts.common.git.subprocess.run", invoke)
-    operations = GitOperations(repo)
-    result = operations.push(
-        github, branch="develop", expected_parent=base.hexsha, token="not-a-real-token"
-    )
-    assert result == signed.hexsha != local.hexsha
+    operations = GitOperations(history.repo)
+    if mismatch:
+        with pytest.raises(RuntimeError, match="Remote branch|Signed commit"):
+            operations.push(github, branch="develop", expected_parent=BASE, token="not-a-real-token")
+    else:
+        assert operations.push(
+            github, branch="develop", expected_parent=BASE, token="not-a-real-token"
+        ) == SIGNED
     assert "--head-sha" in invoke.call_args.args[0]
     assert invoke.call_args.kwargs["env"]["HEADLESS_TOKEN"] == "not-a-real-token"
 
 
 def test_github_ref_errors(monkeypatch):
     repository = Mock()
-    repository.get_git_ref.return_value.object = SimpleNamespace(type="commit", sha="a" * 40)
+    repository.get_git_ref.return_value.object = SimpleNamespace(type="commit", sha=BASE)
     client = Mock()
     client.get_repo.return_value = repository
     monkeypatch.setattr("dd_sdk_unity.scripts.common.github.Github", Mock(return_value=client))

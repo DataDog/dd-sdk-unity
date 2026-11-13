@@ -2,110 +2,25 @@
 # Apache License Version 2.0. This product includes software developed at Datadog
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
-"""
-Utility code for running subprocesses and processing their output line-by-line.
-"""
-import io
+"""Run commands with captured output or the current terminal."""
 import os
-import selectors
 import signal
 import subprocess
-from collections.abc import Callable
-from typing import cast
 
 from dd_sdk_unity.scripts.common.log import get_default_logger
 
-OutputHandlerFunc = Callable[[str, bool], None]
-
-
-def run_cmd(
-    *args: str,
-    raise_on_nonzero_exitcode: bool = False,
-    merge_stderr: bool = False,
-    inherit_output: bool = False,
-    output_handler: OutputHandlerFunc | None = None
-) -> int:
-    if inherit_output:
-        if output_handler is not None:
-            raise ValueError('Cannot capture output when inheriting the terminal')
-        # Keep terminal detection and cursor control intact for progress displays.
-        return subprocess.run(
-            args,
-            stderr=subprocess.STDOUT if merge_stderr else None,
-            check=raise_on_nonzero_exitcode,
-        ).returncode
-
-    # Launch a child process
-    process = subprocess.Popen(
-        args,
-        # Merge human output when requested; keep streams separate for data parsing.
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
-        # Ensure line-buffered text output
-        bufsize=1,
-        text=True,
-    )
-    assert process.stdout
-
-    # Select on stdout and stderr so we can process output in real time
-    sel = selectors.DefaultSelector()
-    sel.register(process.stdout, selectors.EVENT_READ)
-    if process.stderr is not None:
-        sel.register(process.stderr, selectors.EVENT_READ)
-
-    # Read output from the process until it's finished
-    exitcode: int | None = None
-    while True:
-        # Block until new output is available for read
-        for key, _ in sel.select(timeout=0.1):
-            # Read the next chunk of data from the next available stream
-            stream = cast(io.TextIOBase, key.fileobj)
-            is_stderr = stream is process.stderr
-            data = stream.readline()
-
-            # If we read EOF, close the stream and continue
-            if not data:
-                sel.unregister(stream)
-                stream.close()
-                continue
-
-            if output_handler:
-                output_handler(data.rstrip('\n'), is_stderr)
-
-        # Once the process has exited AND stdout/stderr are closed, finish
-        exitcode = process.poll()
-        has_open_streams = len(sel.get_map()) > 0
-        if exitcode is not None and not has_open_streams:
-            break
-    
-    assert exitcode is not None
-    if raise_on_nonzero_exitcode and exitcode != 0:
-        raise subprocess.CalledProcessError(exitcode, args)
-
-    return exitcode
-
 
 def run_cmd_streaming(*args: str) -> int:
-    """Stream combined output directly to the terminal, preserving progress displays."""
-    return run_cmd(*args, merge_stderr=True, inherit_output=True)
+    """Keep terminal detection and progress displays intact."""
+    return subprocess.run(args, check=False, stderr=subprocess.STDOUT).returncode
 
 
 def capture_output(*args: str) -> tuple[str, str]:
-    stdout = io.StringIO()
-    stderr = io.StringIO()
-    def _read(line: str, is_stderr: bool) -> None:
-        if is_stderr:
-            stderr.write(line + '\n')
-        else:
-            stdout.write(line + '\n')
-
-    exitcode = run_cmd(*args, output_handler=_read)
-    output, error = stdout.getvalue(), stderr.getvalue()
-    if exitcode != 0:
-        get_default_logger().error((output + error).rstrip())
-        raise subprocess.CalledProcessError(exitcode, args, output=output, stderr=error)
-
-    return output, error
+    result = subprocess.run(args, check=False, capture_output=True, text=True)
+    if result.returncode:
+        get_default_logger().error((result.stdout + result.stderr).rstrip())
+        result.check_returncode()
+    return result.stdout, result.stderr
 
 
 def stop_process(process: subprocess.Popen[bytes]) -> None:

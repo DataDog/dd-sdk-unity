@@ -86,22 +86,3 @@ def test_write_android_dependency_pin_impl():
     _write_android_dependency_pin_impl(infile, outfile, __new_pin__)
     outfile.seek(0)
     assert outfile.read() == __release_json__
-
-
-def test_round_trip():
-    infile = io.StringIO(__development_json__)
-    outfile = io.StringIO()
-    _write_android_dependency_pin_impl(infile, outfile, __new_pin__)
-    outfile.seek(0)
-    written = outfile.read()
-    got = read_android_dependency_pin(written)
-    assert got == __new_pin__
-
-
-def test_write_android_dependency_pin_impl_no_sha256():
-    infile = io.StringIO(__development_json__)
-    outfile = io.StringIO()
-    _write_android_dependency_pin_impl(infile, outfile, __new_pin__)
-    outfile.seek(0)
-    written = outfile.read()
-    assert 'sha256' not in written

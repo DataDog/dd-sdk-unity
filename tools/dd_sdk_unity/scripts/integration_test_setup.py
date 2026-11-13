@@ -80,10 +80,7 @@ def _verified_process(state: _ProcessIdentity) -> psutil.Process | None:
         return None
     try:
         process = psutil.Process(state['pid'])
-        # macOS cannot query a zombie's group; its identity still anchors the saved group.
-        if process.create_time() == state['create_time'] and (
-            process.status() == psutil.STATUS_ZOMBIE or os.getpgid(process.pid) == process.pid
-        ):
+        if process.create_time() == state['create_time'] and os.getpgid(process.pid) == process.pid:
             return process
     except (psutil.NoSuchProcess, ProcessLookupError):
         pass
@@ -102,62 +99,27 @@ def process_is_running(state: _ProcessIdentity) -> bool:
     return process is not None and _is_live(process)
 
 
-def _live_group_members(group: int) -> dict[int, psutil.Process]:
-    members = {}
-    for candidate in psutil.process_iter():
-        try:
-            process = psutil.Process(candidate.pid)
-            if os.getpgid(process.pid) == group and _is_live(process):
-                members[process.pid] = process
-        except (psutil.NoSuchProcess, ProcessLookupError):
-            continue
-    return members
-
-
 def _stop_group(state: _ProcessIdentity) -> None:
-    pid = state['pid']
-    if pid <= 0:
-        raise RuntimeError('Invalid mock-server PID')
-    if 'create_time' not in state:
+    process = _verified_process(state)
+    if process is None:
         return
-    if _verified_process(state) is None:
-        if not psutil.pid_exists(pid) and _live_group_members(pid):
-            raise RuntimeError(f'Mock-server leader {pid} is gone but its group is occupied; state retained')
+    try:
+        owned = [process, *process.children(recursive=True)]
+    except psutil.NoSuchProcess:
         return
-
-    known = _live_group_members(pid)
-    if known and _verified_process(state) is None:
-        raise RuntimeError(f'Mock-server group {pid} changed before cleanup; state retained')
     for sig in (signal.SIGTERM, signal.SIGKILL):
-        signaled = set()
+        try:
+            os.killpg(process.pid, sig)
+        except ProcessLookupError:
+            return
         deadline = time.monotonic() + STOP_TIMEOUT
-        while True:
-            live = {}
-            for process in known.values():
-                try:
-                    if _is_live(process) and os.getpgid(process.pid) == pid:
-                        live[process.pid] = process
-                except ProcessLookupError:
-                    pass
-            if live or _verified_process(state) is not None:
-                live.update(_live_group_members(pid))
-            elif _live_group_members(pid):
-                raise RuntimeError(f'Mock-server group {pid} can no longer be verified; state retained')
-            if not live:
-                return
-            known.update(live)
-            for process in live.values():
-                identity = (process.pid, process.create_time())
-                if identity not in signaled:
-                    try:
-                        process.send_signal(sig)
-                    except psutil.NoSuchProcess:
-                        pass
-                    signaled.add(identity)
+        while any(_is_live(member) for member in owned):
             if time.monotonic() >= deadline:
                 break
             time.sleep(0.05)
-    raise RuntimeError(f'Mock-server group {pid} did not stop; state retained')
+        else:
+            return
+    raise RuntimeError(f'Mock-server group {process.pid} did not stop; state retained')
 
 
 class IntegrationTestEnvironment:
@@ -235,9 +197,7 @@ class IntegrationTestEnvironment:
         _stop_group(identity)
         if process is not None:
             process.wait(timeout=STOP_TIMEOUT)
-        if (state is not None and state['pid'] == identity['pid'] and
-                state.get('create_time') == identity.get('create_time') and self._read_state() == state):
-            self.state_path.unlink(missing_ok=True)
+        self.state_path.unlink(missing_ok=True)
 
 
 def main() -> None:

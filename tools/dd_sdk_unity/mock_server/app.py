@@ -23,9 +23,7 @@ from dd_sdk_unity.mock_server.schemas.rum import RUMSchema
 from dd_sdk_unity.mock_server.schemas.schema import Schema
 from dd_sdk_unity.mock_server.schemas.session_replay import SRSchema
 from dd_sdk_unity.mock_server.schemas.update import ensure_schemas, update_schemas
-from dd_sdk_unity.mock_server.server_address import (
-    get_best_server_address,
-)
+from dd_sdk_unity.scripts.common.inet_addr import get_reachable_inet_addr
 
 app = Flask(__name__)
 CORS(app)
@@ -327,7 +325,7 @@ class _MockServer(_serving.ThreadedWSGIServer):
 
 def run(preferred_address: str, port: int) -> None:
     if not preferred_address:
-        preferred_address = get_best_server_address().ip
+        preferred_address = get_reachable_inet_addr() or '127.0.0.1'
 
     # Keep request history in one process while bypassing startup reverse DNS.
     original_server = _serving.ThreadedWSGIServer

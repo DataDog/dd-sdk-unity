@@ -99,23 +99,8 @@ class UnityInstall:
             with open(log_path, 'w'):
                 pass
 
-        def _read(line: str) -> None:
-            max_retries = 10
-            delay = 0.01
-            for attempt in range(max_retries):
-                try:
-                    print(line)
-                    break
-                except BlockingIOError:
-                    if attempt >= max_retries:
-                        raise
-                    time.sleep(delay)
-                    delay *= 2
-
-        # Prepare a separate thread to tail output from the Unity log file, passing
-        # each line to the _read callback - trying to pipe output via subprocess.Popen
-        # can get us into trouble with mysterious buffering issues that will cause
-        # Unity to hang
+        # Tail Unity's log file in a separate thread to avoid buffering issues
+        # caused by piping the Editor's output.
         stop_event = threading.Event()
         ready_event = threading.Event()
 
@@ -129,18 +114,11 @@ class UnityInstall:
                 while True:
                     line = fp.readline()
                     if line:
-                        _read(line.strip('\n'))
+                        print(line.rstrip('\n'))
                     elif stop_event.is_set():
                         break
                     else:
                         time.sleep(0.01)
-
-                # Process has exited; read all remaining lines and close the file
-                while True:
-                    line = fp.readline()
-                    if not line:
-                        break
-                    _read(line.rstrip('\n'))
 
         try:
             tail_thread = threading.Thread(target=_tail_log)
