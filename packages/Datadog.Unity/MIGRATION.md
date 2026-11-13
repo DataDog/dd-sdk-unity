@@ -1,5 +1,16 @@
 # Migration from 1.x to 2.0
 
+## User information
+
+`SetUserInfo` now requires a non-null, non-empty `id`. Invalid calls log a warning
+and leave the current user unchanged. Use `ClearUserInfo()` to clear identity.
+
+Empty names and emails are omitted from events.
+
+The extra-info keys `id`, `name`, `email`, and `anonymous_id` are now ignored with a
+warning. Use `SetUserInfo` parameters for identity fields and rename custom
+attributes that use these reserved keys.
+
 ## WebGL Changes
 
 Update both Browser SDK scripts in your WebGL template. The example uses the US1
