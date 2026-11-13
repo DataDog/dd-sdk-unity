@@ -3,6 +3,7 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Datadog.Unity.Logs;
 using Newtonsoft.Json;
@@ -14,6 +15,8 @@ namespace Datadog.Unity.WebGL
 {
     public class DatadogWebGLLogs
     {
+        internal static bool IsAvailable => DDLogs_IsAvailable();
+
         public void Init(DatadogConfigurationOptions options)
         {
             var logConfig = new LoggingInitOptions()
@@ -51,6 +54,36 @@ namespace Datadog.Unity.WebGL
             return logger;
         }
 
+        internal void SetUserInfo(string jsonUserInfo)
+        {
+            DDLogs_SetUserInfo(jsonUserInfo);
+        }
+
+        internal void ClearUserInfo()
+        {
+            DDLogs_ClearUserInfo();
+        }
+
+        internal void SetTrackingConsent(string trackingConsent)
+        {
+            DDLogs_SetTrackingConsent(trackingConsent);
+        }
+
+        internal void AddUserExtraInfo(string jsonProperties)
+        {
+            DDLogs_SetUserProperties(jsonProperties);
+        }
+
+        internal void AddGlobalAttributes(Dictionary<string, object> attributes)
+        {
+            DDLogs_AddGlobalAttributes(JsonConvert.SerializeObject(attributes));
+        }
+
+        internal void RemoveGlobalAttribute(string key)
+        {
+            DDLogs_RemoveGlobalAttribute(key);
+        }
+
         [Preserve]
         private class LoggingInitOptions
         {
@@ -78,6 +111,27 @@ namespace Datadog.Unity.WebGL
             [Preserve]
             public string service;
         }
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_SetUserInfo(string jsonUserInfo);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_ClearUserInfo();
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_SetTrackingConsent(string trackingConsent);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_SetUserProperties(string jsonProperties);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_AddGlobalAttributes(string jsonAttributes);
+
+        [DllImport("__Internal")]
+        private static extern void DDLogs_RemoveGlobalAttribute(string key);
+
+        [DllImport("__Internal")]
+        private static extern bool DDLogs_IsAvailable();
 
         [DllImport("__Internal")]
         private static extern void DDLogs_InitLogs(string jsonConfiguration);
