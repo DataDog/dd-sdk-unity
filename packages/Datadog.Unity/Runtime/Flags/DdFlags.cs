@@ -37,6 +37,8 @@ namespace Datadog.Unity.Flags
         private FlagsConfiguration _configuration;
         private EvpTelemetrySender _telemetrySender;
         private IInternalLogger _logger;
+        private CanonicalFlagSelection _flagSelection;
+        private FlagSelectionReporter _flagSelectionReporter;
         private volatile bool _isEnabled;
         private readonly Dictionary<string, IFlagsClient> _clients = new();
         private readonly object _lock = new();
@@ -166,7 +168,9 @@ namespace Datadog.Unity.Flags
                     clientToken: options?.ClientToken ?? string.Empty,
                     applicationId: options?.RumApplicationId,
                     env: options?.Env ?? string.Empty,
-                    logger: _logger);
+                    logger: _logger,
+                    flagSelection: _flagSelection,
+                    flagSelectionReporter: _flagSelectionReporter);
 
                 var client = new FlagsClient(
                     repository: new FlagsRepository(),
@@ -197,7 +201,32 @@ namespace Datadog.Unity.Flags
         {
             _configuration = configuration;
             _logger = logger;
+            _flagSelectionReporter = new FlagSelectionReporter(logger);
+            _flagSelection = ResolveFlagSelection(configuration.FlagSelection, _flagSelectionReporter);
             _isEnabled = true;
+        }
+
+        // Every client shares one selection, so a dropped selection is reported once, when Flags is enabled.
+        internal static CanonicalFlagSelection ResolveFlagSelection(
+            FlagSelection selection,
+            FlagSelectionReporter reporter)
+        {
+            FlagSelectionResult result;
+            try
+            {
+                result = FlagSelectionCanonicalizer.Canonicalize(selection);
+            }
+            catch (Exception)
+            {
+                result = FlagSelectionResult.Dropped(FlagSelectionError.MalformedSelection);
+            }
+
+            if (result.Error.HasValue)
+            {
+                reporter.ReportDropped(result.Error.Value);
+            }
+
+            return result.Selection;
         }
 
         // Lazily creates the shared telemetry sender; reuses it on subsequent calls.

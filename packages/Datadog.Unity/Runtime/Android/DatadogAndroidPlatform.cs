@@ -273,6 +273,44 @@ namespace Datadog.Unity.Android
             telemetry.Call("debug", message);
         }
 
+        // The internal telemetry proxy has no attributes parameter, so this sends the same debug event the
+        // proxy sends, with attributes, to the RUM feature.
+        public void SendDebugTelemetry(string message, IDictionary<string, object> attributes)
+        {
+            try
+            {
+                using var sdkCore = _datadogClass.CallStatic<AndroidJavaObject>("getInstance");
+                using var rumFeature = sdkCore.Call<AndroidJavaObject>("getFeature", "rum");
+                if (rumFeature == null)
+                {
+                    return;
+                }
+
+                using var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);
+                using var debugEvent = new AndroidJavaObject(
+                    "com.datadog.android.internal.telemetry.InternalTelemetryEvent$Log$Debug",
+                    message,
+                    javaAttributes);
+                var sendEvent = AndroidJNIHelper.GetMethodID(
+                    rumFeature.GetRawClass(), "sendEvent", "(Ljava/lang/Object;)V");
+                AndroidJNI.CallVoidMethod(
+                    rumFeature.GetRawObject(),
+                    sendEvent,
+                    AndroidJNIHelper.CreateJNIArgArray(new object[] { debugEvent }));
+
+                // Raw JNI calls leave a Java exception pending instead of throwing.
+                if (AndroidJNI.ExceptionOccurred() != IntPtr.Zero)
+                {
+                    AndroidJNI.ExceptionClear();
+                    SendDebugTelemetry(message);
+                }
+            }
+            catch (Exception)
+            {
+                SendDebugTelemetry(message);
+            }
+        }
+
         public void SendErrorTelemetry(string message, string stack, string kind)
         {
             using var proxy = GetInternalProxy();
