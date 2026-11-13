@@ -101,12 +101,22 @@ namespace Datadog.Unity.WebGL
 
         public void StartAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            // Browser SDK does not support start / stop action
+            var attributesJson = attributes != null ? JsonConvert.SerializeObject(attributes) : "{}";
+
+            DDRum_StartAction(
+                type.ToWebValue(),
+                name,
+                attributesJson);
         }
 
         public void StopAction(RumUserActionType type, string name, Dictionary<string, object> attributes = null)
         {
-            // Browser SDK does not support start / stop action
+            var attributesJson = attributes != null ? JsonConvert.SerializeObject(attributes) : "{}";
+
+            DDRum_StopAction(
+                type.ToWebValue(),
+                name,
+                attributesJson);
         }
 
         public void AddError(ErrorInfo error, RumErrorSource source, Dictionary<string, object> attributes = null)
@@ -356,6 +366,12 @@ namespace Datadog.Unity.WebGL
 
         [DllImport("__Internal")]
         private static extern void DDRum_AddAction(string type, string name, string attributeJson);
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_StartAction(string type, string name, string attributeJson);
+
+        [DllImport("__Internal")]
+        private static extern void DDRum_StopAction(string type, string name, string attributeJson);
 
         [DllImport("__Internal")]
         private static extern void DDRum_AddError(string errorKind, string errorMessage, string errorStackTrace, string errorSource, string attributeJson);

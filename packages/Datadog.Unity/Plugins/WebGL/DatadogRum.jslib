@@ -178,6 +178,38 @@ let ddRumLib = {
         );
     },
 
+    DDRum_StartAction: function(rawType, rawName, rawAttributes) {
+        let name = UTF8ToString(rawName);
+        let type = UTF8ToString(rawType);
+        let attributesStr = UTF8ToString(rawAttributes);
+
+        let attributes = JSON.parse(attributesStr);
+
+        DD_RUM.startAction(
+            name,
+            {
+                context: attributes,
+                type: type,
+            }
+        );
+    },
+
+    DDRum_StopAction: function(rawType, rawName, rawAttributes) {
+        let name = UTF8ToString(rawName);
+        let type = UTF8ToString(rawType);
+        let attributesStr = UTF8ToString(rawAttributes);
+
+        let attributes = JSON.parse(attributesStr);
+
+        DD_RUM.stopAction(
+            name,
+            {
+                context: attributes,
+                type: type,
+            }
+        );
+    },
+
     DDRum_StartResource: function (rawKey, rawHttpMethod, rawUrl, rawAttributes) {
         let key = UTF8ToString(rawKey);
         let httpMethod = UTF8ToString(rawHttpMethod);
