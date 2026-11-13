@@ -174,15 +174,22 @@ def test_merge_history_keeps_pr_changes_once_and_does_not_push_merges(history):
     feature.checkout()
     commit(repo, "feature.cs", "feature", "feat: A feature")
     repo.heads.develop.checkout()
-    commit(repo, "fix.cs", "fix", "fix: Independent fix (#9)")
+    squashed = commit(repo, "fix.cs", "fix", "fix: Independent fix (#9)")
     repo.git.merge(
         "--no-ff", "--no-gpg-sign", feature.name, "-m", "Merge pull request #8 from feature"
     )
     merged = repo.head.commit
     github = Mock()
+    github.merged_pull_numbers_since.return_value = [9, 8]
     pulls = {
-        8: SimpleNamespace(number=8, title="feat: A feature", body="Feature details"),
-        9: SimpleNamespace(number=9, title="fix: Independent fix", body="Fix details"),
+        8: SimpleNamespace(
+            number=8, title="feat: A feature", body="Feature details",
+            merge_commit_sha=merged.hexsha,
+        ),
+        9: SimpleNamespace(
+            number=9, title="fix: Independent fix", body="Fix details",
+            merge_commit_sha=squashed.hexsha,
+        ),
     }
     github.repository.get_pull.side_effect = pulls.__getitem__
     changes = collect_changes(repo, github, base.hexsha, merged.hexsha)
@@ -196,27 +203,36 @@ def test_merge_history_keeps_pr_changes_once_and_does_not_push_merges(history):
         )
 
 
-def test_change_collection_fetches_each_pr_once_for_merge_and_squash_subjects(history):
+def test_change_collection_includes_stacked_prs_and_excludes_prs_merged_elsewhere(history):
     repo, base = history
-    commit(repo, "first.cs", "one", "fix: Implementation detail")
-    commit(repo, "second.cs", "two", "fix: More implementation (#8)")
-    commit(repo, "third.cs", "three", "Merge pull request #8 from feature")
+    commit(repo, "first.cs", "one", "fix: Bottom of the stack")
+    commit(repo, "second.cs", "two", "feat(rum): Top of the stack")
+    stack_merge = commit(repo, "third.cs", "three", "Merge pull request #8 from top")
     github = Mock()
-    github.repository.get_pull.return_value = SimpleNamespace(
-        number=8, title="feat(rum): Feature", body="Details"
-    )
+    github.merged_pull_numbers_since.return_value = [6, 7, 8]
+    pulls = {
+        # Merged into another branch, so its merge commit isn't in the release range
+        6: SimpleNamespace(
+            number=6, title="fix: Hotfix", body="", merge_commit_sha="0" * 40
+        ),
+        # GitHub records the top PR's merge commit for each PR in a stack merged from the top
+        7: SimpleNamespace(
+            number=7, title="fix: Bottom", body="", merge_commit_sha=stack_merge.hexsha
+        ),
+        8: SimpleNamespace(
+            number=8, title="feat(rum): Top", body="", merge_commit_sha=stack_merge.hexsha
+        ),
+    }
+    github.repository.get_pull.side_effect = pulls.__getitem__
     changes = collect_changes(repo, github, base.hexsha, repo.head.commit.hexsha)
-    assert len(changes) == 1
-    assert changes[0].kind == "feat"
-    assert changes[0].number == 8
-    github.repository.get_pull.assert_called_once_with(8)
+    assert [(change.number, change.kind) for change in changes] == [(7, "fix"), (8, "feat")]
 
 
-def test_commits_without_pr_numbers_make_no_github_requests(history):
+def test_empty_release_range_makes_no_github_requests(history):
     repo, base = history
-    direct_change(repo)
     github = Mock()
-    assert collect_changes(repo, github, base.hexsha, repo.head.commit.hexsha) == ()
+    assert collect_changes(repo, github, base.hexsha, base.hexsha) == ()
+    github.merged_pull_numbers_since.assert_not_called()
     github.repository.get_pull.assert_not_called()
 
 
@@ -243,6 +259,7 @@ def test_merge_back_alone_can_propose_another_patch(history):
     )
     merged = repo.head.commit
     github = Mock()
+    github.merged_pull_numbers_since.return_value = [10]
     github.repository.get_pull.return_value = SimpleNamespace(
         number=10,
         title="chore(release): Integrate 3.0.1",
