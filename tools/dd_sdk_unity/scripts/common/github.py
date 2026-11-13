@@ -35,6 +35,17 @@ class GitHubOperations:
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self._client.close()
 
+    def merged_pull_numbers_since(self, date: str) -> list[int]:
+        """Return the numbers of PRs merged on or after `date` (YYYY-MM-DD), into any branch."""
+        query = f"repo:{self.repository.full_name} is:pr is:merged merged:>={date}"
+        results = self._client.search_issues(query)
+        # GitHub's search returns at most 1000 results, so a larger match may be missing PRs
+        if results.totalCount > 1000:
+            raise ValueError(
+                f"{results.totalCount} PRs were merged since {date}; search can list only 1000"
+            )
+        return [issue.number for issue in results]
+
     def get_release_asset_url(self, tag: str, asset: str) -> str:
         base = os.environ.get("DEPOT_GITHUB_RELEASES_BASE", "https://github.com").rstrip("/")
         return f"{base}/{self.repository.full_name}/releases/download/{tag}/{asset}"

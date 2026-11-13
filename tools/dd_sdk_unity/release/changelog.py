@@ -9,6 +9,7 @@ import os
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 
 import requests
 from git import Repo
@@ -59,25 +60,37 @@ def classify(title: str, body: str = "", **fields) -> Change:
 def collect_changes(
     repo: Repo, github: GitHubOperations, base: str, source: str
 ) -> tuple[Change, ...]:
-    """Collect unique PRs from merge and squash commit subjects in the release range."""
-    merge_pattern = re.compile(r"Merge pull request #(\d+)")
-    squash_pattern = re.compile(r"\(#(\d+)\)$")
-    pr_numbers = set()
-    for commit in repo.iter_commits(f"{base}..{source}"):
-        subject = str(commit.message).splitlines()[0]
-        match = merge_pattern.match(subject) or squash_pattern.search(subject)
-        if match:
-            pr_numbers.add(int(match.group(1)))
-    numbers = sorted(pr_numbers)
-    log = get_default_logger()
-    log.info(f"Found {len(numbers)} merged PRs")
-    log.info("Fetching PR details...")
+    """
+    Collect the PRs whose merge commits, as GitHub records them, are in the release range.
 
+    Commit subjects can't identify every PR: when a stack of PRs is merged from the top, only
+    the top PR gets a merge commit. GitHub marks each PR in the stack as merged, recording the
+    top PR's merge commit (or the squash or rebase commit, for other merge methods) as that
+    PR's merge commit.
+    """
+    # Map the SHA of each commit in the range to its committer date, as a Unix timestamp
+    commit_time_by_sha = {
+        commit.hexsha: commit.committed_date for commit in repo.iter_commits(f"{base}..{source}")
+    }
+    if not commit_time_by_sha:
+        return ()
+
+    # GitHub can't filter PRs by revision range, so search for PRs merged since the oldest
+    # commit in the range, then match their merge commits against the range. GitHub creates
+    # each PR's merge commit when it merges the PR, so that commit's date bounds the PR's
+    # merge date. Allow a day before it, in case of clock skew.
+    oldest = datetime.fromtimestamp(min(commit_time_by_sha.values()), tz=UTC)
+    since = (oldest - timedelta(days=1)).date().isoformat()
+    log = get_default_logger()
+    log.info(f"Fetching PRs merged since {since}...")
+    numbers = sorted(github.merged_pull_numbers_since(since))
     with ThreadPoolExecutor(max_workers=8) as executor:
         pulls = tuple(executor.map(github.repository.get_pull, numbers))
+
+    released_pulls = [pull for pull in pulls if pull.merge_commit_sha in commit_time_by_sha]
+    log.info(f"Found {len(released_pulls)} merged PRs")
     return tuple(
-        classify(pull.title, pull.body or "", number=number)
-        for number, pull in zip(numbers, pulls)
+        classify(pull.title, pull.body or "", number=pull.number) for pull in released_pulls
     )
 
 

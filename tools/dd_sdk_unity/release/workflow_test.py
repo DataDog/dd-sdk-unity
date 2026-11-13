@@ -53,6 +53,14 @@ from .publish import publish
 from .release_test import AUTHOR, commit
 
 
+class SearchResultsFixture(list):
+    """A list of search results with PyGithub's `totalCount`."""
+
+    @property
+    def totalCount(self):
+        return len(self)
+
+
 class RepositoryFixture:
     """Only the public PyGithub methods used by the workflow, backed by local Git."""
 
@@ -206,6 +214,14 @@ def workflow(tmp_path, monkeypatch):
     repositories = {source_api.full_name: source_api, package_api.full_name: package_api}
     client = Mock()
     client.get_repo.side_effect = lambda name: repositories.get(name, Mock(full_name=name))
+    # Model the search for merged PRs, ignoring the merge date, which the fixtures don't track
+    client.search_issues.side_effect = lambda query: SearchResultsFixture(
+        pull
+        for name, repository in repositories.items()
+        if f"repo:{name} " in query
+        for pull in repository.pulls.values()
+        if pull.merged
+    )
     monkeypatch.setattr("dd_sdk_unity.scripts.common.github.Github", Mock(return_value=client))
     pushes = []
 
@@ -636,6 +652,7 @@ def test_hotfix_from_tag_excludes_develop_feature_and_merges_release_ancestry(wo
     w.cut = commit(
         remote, f"{PACKAGE_PATH}/Runtime/Code.cs", "hotfix\n", "fix: Correct released code (#1)"
     ).hexsha
+    w.source.repository.pulls[1].merge_commit_sha = w.cut
     prepare_and_merge(w)
     assert w.plan.release.version == "1.7.2"
     assert not any(change.kind == "feat" for change in w.plan.release.changes)
