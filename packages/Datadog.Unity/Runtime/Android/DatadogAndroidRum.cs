@@ -128,11 +128,6 @@ namespace Datadog.Unity.Android
             StopResourceWithError(key, error, attributes);
         }
 
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
-        {
-            StopResourceWithError(key, error, attributes);
-        }
-
         public void StopResourceWithError(string key, ErrorInfo error, Dictionary<string, object> attributes = null)
         {
             var javaAttributes = DatadogAndroidHelpers.DictionaryToJavaMap(attributes);

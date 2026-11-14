@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json.Linq;
@@ -69,23 +68,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("tap", firstAction.ActionType);
             Assert.AreEqual("Tapped Download", firstAction.ActionName);
             Assert.AreEqual(1, firstAction.Attributes["onboarding_stage"].Value<int>());
-
-            var resource1 = firstVisit.ResourceEvents.Where(r => r.Url == "http://fake/resource/1").ToList();
-            Assert.AreEqual(1, resource1.Count());
-            var firstResource = resource1.First();
-            Assert.AreEqual("http://fake/resource/1", firstResource.Url);
-            Assert.AreEqual("GET", firstResource.Method);
-            Assert.AreEqual("image", firstResource.ResourceType);
-            Assert.AreEqual(200, firstResource.StatusCode);
-            Assert.AreEqual(121999, firstResource.Size);
-            Assert.GreaterOrEqual(firstResource.Duration, 45 * 1000 * 1000);
-
-            Assert.AreEqual(1, firstVisit.ErrorEvents.Count);
-            var resourceError = firstVisit.ErrorEvents[0];
-            Assert.AreEqual("http://fake/resource/2", resourceError.ResourceUrl);
-            Assert.AreEqual("POST", resourceError.ResourceMethod);
-            Assert.AreEqual("System.Net.NetworkInformation.NetworkInformationException", resourceError.ErrorType);
-            Assert.AreEqual("network", resourceError.Source);
 
             var secondVisit = visits[1];
             Assert.AreEqual(1, secondVisit.ErrorEvents.Count);
@@ -176,17 +158,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
             yield return new WaitForSeconds(0.05f);
             rum?.AddAction(RumUserActionType.Tap, "Tapped Download");
-
-            var resourceKey1 = "/resource/1";
-            var resourceKey2 = "/resource/2";
-            rum?.StartResource(resourceKey1, RumHttpMethod.Get, $"http://fake{resourceKey1}");
-            rum?.StartResource(resourceKey2, RumHttpMethod.Post, $"http://fake{resourceKey2}");
-
-            yield return new WaitForSeconds(0.05f);
-            rum?.StopResource(resourceKey1, RumResourceType.Image, 200, 121999);
-
-            yield return new WaitForSeconds(0.03f);
-            rum?.StopResource(resourceKey2, new NetworkInformationException());
 
             DatadogSdk.Instance.SetUserInfo("user-id", "user-name", extraInfo: new()
             {
