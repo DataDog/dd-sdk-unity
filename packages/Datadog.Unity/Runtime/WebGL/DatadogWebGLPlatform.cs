@@ -134,9 +134,12 @@ namespace Datadog.Unity.WebGL
                 jsonUserInfo["email"] = email;
             }
 
-            foreach (var item in extraInfo)
+            if (extraInfo != null)
             {
-                jsonUserInfo[item.Key] = item.Value;
+                foreach (var item in extraInfo)
+                {
+                    jsonUserInfo[item.Key] = item.Value;
+                }
             }
 
             var jsonString = JsonConvert.SerializeObject(jsonUserInfo);

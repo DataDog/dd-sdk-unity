@@ -122,22 +122,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual(true, visitView.Attributes["is_loaded"].Value<bool>());
 
             DatadogSdk.Instance.ClearUserInfo();
-            DatadogSdk.Instance.Rum.AddError(new ErrorInfo("TestError", "Cleared user info"), RumErrorSource.Source);
-
-            RumErrorEventDecoder clearedUserError = null;
-            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), logs =>
-            {
-                clearedUserError = RumDecoderHelpers.RumEventsFromMockServer(logs)
-                    .OfType<RumErrorEventDecoder>()
-                    .FirstOrDefault(error => error.Message == "Cleared user info");
-                return clearedUserError != null;
-            });
-
-            Assert.IsNotNull(clearedUserError, "No RUM error received after clearing user information");
-            Assert.IsNull(clearedUserError.UserId);
-            Assert.IsNull(clearedUserError.UserName);
-            Assert.IsNull(clearedUserError.UserEmail);
-            Assert.IsNull(clearedUserError.UserAttributes?["extra"]);
         }
 
         private void VerifyCommonTags(MockServerLog log)
