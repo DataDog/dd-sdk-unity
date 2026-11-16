@@ -84,7 +84,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
                     "Resource duration is in nanoseconds");
                 AssertAttributes(resource, "completed", "response_received");
                 // TODO: Follow up with Browser SDK and remove this gate when manual trace attributes are promoted.
-                // Unity's previous WebGL implementation also used the incorrect `dd` key instead of `_dd`.
 #if !UNITY_WEBGL
                 Assert.AreEqual(traceId, resource.TraceId);
                 Assert.AreEqual((456 + i).ToString(), resource.SpanId);
