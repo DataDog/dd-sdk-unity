@@ -21,7 +21,7 @@ from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.versions.sdkversions import SdkVersionTable
 from dd_sdk_unity.scripts.common.versions.semver import Version
 
-from . import ANDROID_PIN_PATH, IOS_PIN_PATH, NATIVE_HISTORY_PATH
+from . import NATIVE_HISTORY_PATH
 from .changelog_prompts import (
     NATIVE_SDK_NOTES_PROMPT,
     ChangelogEntryList,
@@ -213,30 +213,19 @@ def gateway_prompt(text: str, schema: type[BaseModel]) -> BaseModel:
     return schema.model_validate_json(blocks[0])
 
 
-def base_native_versions(git: GitOperations, plan: Preparation) -> dict[str, str]:
-    """Read baseline pins, using its version history when pin files are absent."""
-    previous = {}
-    for label, path in (("iOS", IOS_PIN_PATH), ("Android", ANDROID_PIN_PATH)):
-        try:
-            pin = git.read(plan.release.base_sha, path)
-        except KeyError:
-            history = SdkVersionTable.parse(
-                git.read(plan.release.base_sha, NATIVE_HISTORY_PATH).decode()
-            )
-            row = next(
-                (
-                    row
-                    for row in history.rows
-                    if str(row.unity_version) == plan.release.base_version
-                ),
-                None,
-            )
-            if row is None:
-                raise ValueError(f"Base native history has no {plan.release.base_version} entry")
-            previous[label] = row.ios_version_str if label == "iOS" else row.android_version_str
-        else:
-            previous[label] = json.loads(pin)["version"]
-    return previous
+def base_native_versions(git: GitOperations, plan: Preparation) -> dict[str, str | None]:
+    """Look up the base release in the current source's version history."""
+    history = SdkVersionTable.parse(
+        git.read(plan.release.source_sha, NATIVE_HISTORY_PATH).decode()
+    )
+    row = next(
+        (row for row in history.rows if str(row.unity_version) == plan.release.base_version),
+        None,
+    )
+    return {
+        "iOS": row.ios_version_str if row else None,
+        "Android": row.android_version_str if row else None,
+    }
 
 
 def native_release_notes(
@@ -252,7 +241,7 @@ def native_release_notes(
         ("iOS", "dd-sdk-ios", previous["iOS"], plan.ios.version),
         ("Android", "dd-sdk-android", previous["Android"], plan.android.version),
     ):
-        if before == after:
+        if before is None or before == after:
             continue
         blocks.append(
             f"- {label} SDK: {before} → "
@@ -274,10 +263,6 @@ def native_release_notes(
             if version_key(before) < version_key(match.group(1)) <= version_key(after):
                 end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
                 selected.append(text[match.start() : end].strip())
-        if label == "iOS":
-            bundled = plan.ios.modules
-        else:
-            bundled = json.loads(git.read(plan.release.source_sha, ANDROID_PIN_PATH))["artifacts"]
         result = prompt(
             NATIVE_SDK_NOTES_PROMPT
             + json.dumps(
@@ -285,7 +270,6 @@ def native_release_notes(
                     "sdk": label,
                     "from_version": before,
                     "to_version": after,
-                    "bundled": bundled,
                     "changelog": "\n\n".join(selected),
                 }
             ),

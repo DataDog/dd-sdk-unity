@@ -29,6 +29,7 @@ def plan():
         ),
         ios=Mock(version="3.21.0"),
         android=Mock(version="3.16.0"),
+        cpp=Mock(version="0.9.0"),
     )
 
 
@@ -125,7 +126,7 @@ def test_apply_metadata_updates_release_files_without_changing_sdk_code(tmp_path
     git = Mock(root=tmp_path)
     git.read.side_effect = lambda sha, path: {
         CHANGELOG_PATH: b"# Change Log\n\n## 1.7.1\n\n- Original.\n",
-        NATIVE_HISTORY_PATH: b"| Unity SDK | iOS SDK | Android SDK |\n|---|---|---|\n| 1.7.1 | 3.20.0 | 3.15.0 |\n",
+        NATIVE_HISTORY_PATH: "| Unity SDK | iOS SDK | Android SDK | C++ SDK |\n|---|---|---|---|\n| 1.7.1 | 3.20.0 | 3.15.0 | — |\n".encode(),
     }[path]
 
     preparation.apply_metadata(git, plan, "- Fixed a crash.")
@@ -135,10 +136,10 @@ def test_apply_metadata_updates_release_files_without_changing_sdk_code(tmp_path
     assert "## 1.7.2\n\n- Fixed a crash." in (tmp_path / CHANGELOG_PATH).read_text()
     rows = SdkVersionTable.parse((tmp_path / NATIVE_HISTORY_PATH).read_text()).rows
     assert [
-        (str(row.unity_version), row.ios_version_str, row.android_version_str)
+        (str(row.unity_version), row.ios_version_str, row.android_version_str, row.cpp_version_str)
         for row in rows
     ] == [
-        ("1.7.2", "3.21.0", "3.16.0"),
-        ("1.7.1", "3.20.0", "3.15.0"),
+        ("1.7.2", "3.21.0", "3.16.0", "0.9.0"),
+        ("1.7.1", "3.20.0", "3.15.0", None),
     ]
     assert code.read_text() == "SDK source"

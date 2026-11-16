@@ -52,11 +52,12 @@ def prepare_plan(
         base_version=base_version,
         release_version=release_version,
     )
-    ios, android = pins(git, source_sha)
+    ios, android, cpp = pins(git, source_sha)
     return Preparation(
         release=release,
         ios=ios,
         android=android,
+        cpp=cpp,
     )
 
 
@@ -74,6 +75,7 @@ def apply_metadata(git: GitOperations, plan: Preparation, notes: str) -> None:
         version,
         Version.parse(plan.ios.version),
         Version.parse(plan.android.version),
+        Version.parse(plan.cpp.version),
     )
     (root / NATIVE_HISTORY_PATH).write_text(native_versions.render())
 
@@ -130,7 +132,7 @@ def open_preparation(
     native_deltas = [
         f"- **{sdk}**: `{previous[sdk]}` → `{current}`"
         for sdk, current in (("iOS", plan.ios.version), ("Android", plan.android.version))
-        if previous[sdk] != current
+        if previous[sdk] is not None and previous[sdk] != current
     ]
     if native_deltas:
         body += "\n## Native SDK deltas\n\n" + "\n".join(native_deltas) + "\n"

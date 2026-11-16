@@ -3,39 +3,52 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
+using Newtonsoft.Json;
 
 namespace Datadog.Unity.Editor.iOS
 {
     /// <summary>
     /// Deserialized shape of IosDependencyVersion.json: the pinned dd-sdk-ios version, its
-    /// XCFramework zip's SHA-256 digest, and the vendored module name list.
+    /// XCFramework zip's SHA-256 digest, and the selected file mapping.
     /// </summary>
     [Serializable]
     internal class IosDependencyPinData
     {
         public string version;
+        public IosDependencyArtifactsData artifacts;
+    }
+
+    [Serializable]
+    internal class IosDependencyArtifactsData
+    {
+        public IosDependencyArtifactData ios;
+    }
+
+    [Serializable]
+    internal class IosDependencyArtifactData
+    {
+        public string destination;
         public string sha256;
-        public string[] modules;
+        public Dictionary<string, string> files;
     }
 
     /// <summary>
     /// Resolves this package's install location and reads its pinned dd-sdk-ios
-    /// XCFramework version/module list from IosDependencyVersion.json.
+    /// XCFramework version/file mapping from IosDependencyVersion.json.
     /// </summary>
     internal static class IosDependencyVersion
     {
         internal const string PackageName = "com.datadoghq.unity";
         internal const string ConfigRelativePath = "Editor/iOS/IosDependencyVersion.json";
-        internal const string PluginsIosRelativePath = "Plugins/iOS";
 
         internal static string ResolvePackageRoot()
         {
             return PackageRootResolver.Resolve(typeof(IosDependencyVersion).Assembly, nameof(IosDependencyVersion));
         }
 
-        internal static string ResolvePluginsIosDirectory()
+        internal static string ResolvePluginsIosDirectory(IosDependencyArtifactData artifact)
         {
             var packageRoot = ResolvePackageRoot();
             if (string.IsNullOrEmpty(packageRoot))
@@ -43,16 +56,18 @@ namespace Datadog.Unity.Editor.iOS
                 return null;
             }
 
-            return Path.Combine(packageRoot, "Plugins", "iOS");
+            return Path.Combine(packageRoot, artifact.destination);
         }
 
         internal static IosDependencyPinData Parse(string json)
         {
-            var data = JsonUtility.FromJson<IosDependencyPinData>(json);
-            if (data == null || string.IsNullOrEmpty(data.version) || data.modules == null || data.modules.Length == 0)
+            var data = JsonConvert.DeserializeObject<IosDependencyPinData>(json);
+            var artifact = data?.artifacts?.ios;
+            if (data == null || string.IsNullOrEmpty(data.version) || artifact == null ||
+                string.IsNullOrEmpty(artifact.destination) || artifact.files == null || artifact.files.Count == 0)
             {
                 throw new InvalidOperationException(
-                    $"Datadog: {ConfigRelativePath} is malformed or missing required fields (version, modules).");
+                    $"Datadog: {ConfigRelativePath} is malformed or missing required fields (version, artifacts.ios.destination, artifacts.ios.files).");
             }
 
             return data;

@@ -24,8 +24,9 @@ import shutil
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
-from dd_sdk_unity.scripts import ios_xcframework
+from dd_sdk_unity.dependencies import native_assets
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install
 
@@ -113,7 +114,7 @@ def _check_pbxproj(pbxproj_path: str, module_names: list[str]) -> dict[str, bool
     # Match the list terminator, allowing parentheses in variables like $(PROJECT_DIR).
     search_path_blocks = re.findall(r'FRAMEWORK_SEARCH_PATHS\s*=\s*\((.*?)\)\s*;', contents, re.DOTALL)
     framework_search_paths_present = any(
-        'Plugins/iOS' in block for block in search_path_blocks
+        'Plugins/iOS/SDK' in block for block in search_path_blocks
     )
 
     checks = {
@@ -201,12 +202,8 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
     result.resolved_version = str(unity_install.version)
     log.info(f'Resolved Unity {version_prefix} -> {result.resolved_version}')
 
-    # 3. Stage the pinned XCFramework subset into the package's own Plugins/iOS via
-    # ios_xcframework's stage + verify (network fetch only, never Editor-side).
-    pin = ios_xcframework.load_pin()
-    ios_xcframework.fetch(log, str(pin.version), pin.sha256, force=False, allow_unknown_sha256=False)
-    ios_xcframework.stage(log, str(pin.version), pin.modules)
-    ios_xcframework.verify(log, pin.modules)
+    # 3. Stage the pinned SDK assets before building.
+    native_assets.ensure()
 
     # 4. Delete stale build output and logs from previous verification runs.
     ios_build_dir = os.path.abspath(os.path.join(project_path, 'Build', 'iOS'))
@@ -250,7 +247,7 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
             log.error(result.failure_excerpt)
             return result
 
-        checks = _check_pbxproj(pbxproj_path, pin.modules)
+        checks = _check_pbxproj(pbxproj_path, [Path(name).stem for name in native_assets.load()["ios"].files])
         result.modules_referenced = checks['modules_referenced']
         result.embed_frameworks_phase_present = checks['embed_frameworks_phase_present']
         result.framework_search_paths_present = checks['framework_search_paths_present']
@@ -274,7 +271,8 @@ def verify_ios_build(version_prefix: str, project_path: str, keep_artifacts: boo
         if not keep_artifacts:
             if os.path.isdir(ios_build_dir):
                 shutil.rmtree(ios_build_dir)
-            ios_xcframework.clean(log)
+            for asset in native_assets.load().values():
+                native_assets.clean(asset, native_assets.REPO_ROOT / native_assets.PACKAGE_PATH)
 
 
 def _merge_results_into_json(out_json: str, results: list[VerifyResult]) -> None:

@@ -4,7 +4,9 @@
 
 """GitHub repository reads and metadata writes."""
 
+import hashlib
 import os
+from pathlib import Path
 from typing import Self
 
 import requests
@@ -16,6 +18,11 @@ from github.Repository import Repository
 
 from dd_sdk_unity.scripts.common.log import get_default_logger
 from dd_sdk_unity.scripts.common.versions.semver import Version
+
+
+def sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 class GitHubOperations:
@@ -49,6 +56,32 @@ class GitHubOperations:
     def get_release_asset_url(self, tag: str, asset: str) -> str:
         base = os.environ.get("DEPOT_GITHUB_RELEASES_BASE", "https://github.com").rstrip("/")
         return f"{base}/{self.repository.full_name}/releases/download/{tag}/{asset}"
+
+    def download_release_asset(
+        self, tag: str, asset: str, output: Path, digest: str | None, *, force: bool = False
+    ) -> Path:
+        if output.exists() and not force:
+            if digest and sha256(output) != digest:
+                output.unlink()
+                raise ValueError(f"Cached archive SHA-256 does not match pin {tag}: {asset}")
+            get_default_logger().info(f"Using cached archive: {output}")
+            return output
+        url = self.get_release_asset_url(tag, asset)
+        get_default_logger().info(f"Downloading native archive: {url}")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        temporary = output.with_suffix(".download")
+        try:
+            with requests.get(url, stream=True, timeout=180) as response:
+                response.raise_for_status()
+                with temporary.open("wb") as stream:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        stream.write(chunk)
+            if digest and sha256(temporary) != digest:
+                raise ValueError(f"Native archive SHA-256 does not match pin {tag}: {asset}")
+            temporary.replace(output)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return output
 
     def get_file_contents(self, ref: str, path: str) -> str:
         if token := os.environ.get("CI_JOB_TOKEN"):
