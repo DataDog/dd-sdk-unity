@@ -4,11 +4,31 @@
 "use strict";
 
 let ddRumLib = {
-    DDRum_InitRum: function(rawConfiguration) {
-        if (!DD_RUM) {
-            return false;
-        }
+    DDRum_IsAvailable: function() {
+        return typeof DD_RUM !== 'undefined' && !!DD_RUM;
+    },
 
+    DDRum_SetUserInfo: function(userInfo) {
+        let jsUserInfo = JSON.parse(UTF8ToString(userInfo));
+        DD_RUM.setUser(jsUserInfo);
+    },
+
+    DDRum_ClearUserInfo: function() {
+        DD_RUM.clearUser();
+    },
+
+    DDRum_SetTrackingConsent: function(rawTrackingConsent) {
+        DD_RUM.setTrackingConsent(UTF8ToString(rawTrackingConsent));
+    },
+
+    DDRum_SetUserProperties: function(properties) {
+        let jsProperties = JSON.parse(UTF8ToString(properties)) ?? {};
+        for (var key in jsProperties) {
+            DD_RUM.setUserProperty(key, jsProperties[key]);
+        }
+    },
+
+    DDRum_InitRum: function(rawConfiguration) {
         let self = this;
         this._rumPlugin = {
             name: 'DatadogUnityWeb',
@@ -50,7 +70,6 @@ let ddRumLib = {
         config.plugins = [this._rumPlugin];
 
         DD_RUM.init(config);
-        return true;
     },
 
     DDRum_AddAttribute: function(rawAttributes) {
@@ -178,19 +197,61 @@ let ddRumLib = {
         );
     },
 
-    DDRum_AddResource: function(rawEvent) {
-        let eventStr = UTF8ToString(rawEvent);
-        let event = JSON.parse(eventStr);
+    DDRum_StartAction: function(rawType, rawName, rawAttributes) {
+        let name = UTF8ToString(rawName);
+        let type = UTF8ToString(rawType);
+        let attributesStr = UTF8ToString(rawAttributes);
 
-        let attributes = event.context;
-        let timestampMs = this.extractEventTimestamp(attributes);
-        let eventTime = this.getEventRelativeTime(timestampMs);
+        let attributes = JSON.parse(attributesStr);
 
-        this.addEvent(
-            eventTime,
-            event,
-            {},
+        DD_RUM.startAction(
+            name,
+            {
+                context: attributes,
+                type: type,
+            }
         );
+    },
+
+    DDRum_StopAction: function(rawType, rawName, rawAttributes) {
+        let name = UTF8ToString(rawName);
+        let type = UTF8ToString(rawType);
+        let attributesStr = UTF8ToString(rawAttributes);
+
+        let attributes = JSON.parse(attributesStr);
+
+        DD_RUM.stopAction(
+            name,
+            {
+                context: attributes,
+                type: type,
+            }
+        );
+    },
+
+    DDRum_StartResource: function (rawKey, rawHttpMethod, rawUrl, rawAttributes) {
+        let key = UTF8ToString(rawKey);
+        let httpMethod = UTF8ToString(rawHttpMethod);
+        let url = UTF8ToString(rawUrl);
+        let attributesStr = UTF8ToString(rawAttributes);
+        let attributes = JSON.parse(attributesStr) ?? {};
+
+        DD_RUM.startResource(
+            url,
+            {
+                type: 'other',
+                method: httpMethod,
+                resourceKey: key,
+                context: attributes,
+            }
+        )
+    },
+
+    DDRum_StopResource: function (rawUrl, rawOptions) {
+        let url = UTF8ToString(rawUrl);
+        let options = JSON.parse(UTF8ToString(rawOptions));
+
+        DD_RUM.stopResource(url, options);
     },
 
     DDRum_AddFeatureFlagEvaluation: function(rawAttribute) {

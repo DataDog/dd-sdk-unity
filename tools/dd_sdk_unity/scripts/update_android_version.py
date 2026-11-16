@@ -42,12 +42,6 @@ def load_current_pin() -> AndroidDependencyPin:
         return read_android_dependency_pin(infile.read())
 
 
-def resolve_artifacts(current_pin: AndroidDependencyPin) -> list[str]:
-    # Android's artifact set is fixed at the three IDs in the pin; there is no
-    # per-invocation override use case (RESEARCH finding #4), unlike iOS's --modules.
-    return list(current_pin.artifacts)
-
-
 def format_drift_message(drift_lines: list[str]) -> str:
     lines = '\n'.join(f'  - {line}' for line in drift_lines)
     return (
@@ -86,7 +80,7 @@ def main() -> None:
         log.info(f'Android dependency pin is already at {target_version}; nothing to do (pass --force to re-run anyway).')
         return
 
-    artifacts = resolve_artifacts(current_pin)
+    artifacts = current_pin.artifacts
 
     # Step 3: reachability. A bump whose artifacts are unreachable on Maven Central must
     # stop loudly, not silently pin a broken version.

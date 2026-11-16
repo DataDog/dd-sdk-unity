@@ -61,6 +61,17 @@ def run_webgl_tests(export_path: str | Path, nunit_path: str | Path,
             context = browser.new_context()
             context.tracing.start(screenshots=True, snapshots=True)
             page = context.new_page()
+            page.add_init_script('''
+                window.__datadogIntegrationTestError = null;
+                window.addEventListener('error', event => {
+                    if (event.error) {
+                        window.__datadogIntegrationTestError = String(event.error);
+                    }
+                });
+                window.addEventListener('unhandledrejection', event => {
+                    window.__datadogIntegrationTestError = String(event.reason);
+                });
+            ''')
             page.on('console', lambda message: write(f'[{message.type}] {message.text}'))
             page.on('pageerror', lambda error: write(f'[page error] {error}'))
             page.on('requestfailed', lambda request: write(f'[request failed] {request.url}: {request.failure}'))
@@ -75,7 +86,11 @@ def run_webgl_tests(export_path: str | Path, nunit_path: str | Path,
                 })''')
                 write(f'[Browser SDK versions] {versions}')
                 page.wait_for_function(
+                    "window.__datadogIntegrationTestError !== null || "
                     "typeof window.__datadogIntegrationTestResult === 'string'", timeout=timeout_ms)
+                error = page.evaluate('window.__datadogIntegrationTestError')
+                if error is not None:
+                    raise RuntimeError(f'WebGL player failed: {error}')
                 xml = page.evaluate('window.__datadogIntegrationTestResult')
                 if not isinstance(xml, str):
                     raise TypeError('The WebGL player did not return NUnit XML')

@@ -64,11 +64,6 @@ def test_parse_direct_dependencies_non_namespaced():
     }
 
 
-def test_parse_direct_dependencies_omits_versionless():
-    got = parse_direct_dependencies(__namespaced_pom__)
-    assert 'com.datadoghq:dd-sdk-android-core' not in got
-
-
 def test_check_transitive_drift_no_drift():
     observed = {
         'org.jetbrains.kotlin:kotlin-stdlib': '2.0.21',

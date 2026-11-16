@@ -4,6 +4,30 @@
 "use strict";
 
 let ddLogsLib = {
+    DDLogs_IsAvailable: function() {
+        return typeof DD_LOGS !== 'undefined' && !!DD_LOGS;
+    },
+
+    DDLogs_SetUserInfo: function(userInfo) {
+        let jsUserInfo = JSON.parse(UTF8ToString(userInfo));
+        DD_LOGS.setUser(jsUserInfo);
+    },
+
+    DDLogs_ClearUserInfo: function() {
+        DD_LOGS.clearUser();
+    },
+
+    DDLogs_SetTrackingConsent: function(rawTrackingConsent) {
+        DD_LOGS.setTrackingConsent(UTF8ToString(rawTrackingConsent));
+    },
+
+    DDLogs_SetUserProperties: function(properties) {
+        let jsProperties = JSON.parse(UTF8ToString(properties)) ?? {};
+        for (var key in jsProperties) {
+            DD_LOGS.setUserProperty(key, jsProperties[key]);
+        }
+    },
+
     DDLogs_InitLogs: function (jsonConfiguration) {
         let configStr = UTF8ToString(jsonConfiguration);
         let config = JSON.parse(configStr);

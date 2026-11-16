@@ -106,11 +106,6 @@ namespace Datadog.Unity.iOS
             DatadogRumBridge.DatadogRum_StopResource(key, kind.ToString(), statusCode ?? -1, size ?? -1, jsonAttributes);
         }
 
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
-        {
-            StopResourceWithError(key, error, attributes);
-        }
-
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
         {
             var error = new ErrorInfo(errorType, errorMessage);

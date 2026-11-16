@@ -17,7 +17,7 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
         public string ResourceType => jsonGetProp<string>(rumEvent, "resource.type");
 
-        public int Duration => jsonGetProp<int>(rumEvent, "resource.duration");
+        public long Duration => jsonGetProp<long>(rumEvent, "resource.duration");
 
         public string Method => jsonGetProp<string>(rumEvent, "resource.method");
 

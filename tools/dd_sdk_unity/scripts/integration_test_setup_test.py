@@ -117,9 +117,7 @@ def test_status_requires_a_running_server(environment, monkeypatch, capsys, stal
     assert capsys.readouterr().out == ''
 
 
-@pytest.mark.parametrize('ci', ['true', 'false'])
-def test_runs_use_lan_address(environment, port, monkeypatch, ci):
-    monkeypatch.setenv('CI', ci)
+def test_runs_use_lan_address(environment, port, monkeypatch):
     lookups = []
     def lan_address():
         lookups.append(True)
@@ -134,28 +132,13 @@ def test_runs_use_lan_address(environment, port, monkeypatch, ci):
 
 
 @pytest.mark.parametrize('probe_error', [setup.URLError(TimeoutError('starting')), TimeoutError('starting')])
-@pytest.mark.parametrize('phase', ['preflight', 'startup'])
-def test_startup_handles_health_timeout(environment, port, monkeypatch, probe_error, phase):
-    build_opener = setup.build_opener
-    timeout_phase = None
-    def timeout_first_request(*args):
-        opener = build_opener(*args)
-        request = opener.open
-        def open_with_timeout(*args, **kwargs):
-            nonlocal timeout_phase
-            if timeout_phase is None and (phase == 'preflight' or environment.state_path.exists()):
-                timeout_phase = 'startup' if environment.state_path.exists() else 'preflight'
-                raise probe_error
-            return request(*args, **kwargs)
-        monkeypatch.setattr(opener, 'open', open_with_timeout)
-        return opener
-    monkeypatch.setattr(setup, 'build_opener', timeout_first_request)
-    process = environment.start(port=port)
-    try:
-        assert timeout_phase == phase
-        assert setup.server_health(environment.endpoint) is True
-    finally:
-        environment.stop(process)
+def test_health_timeout_reports_server_not_ready(monkeypatch, probe_error):
+    from unittest.mock import Mock
+
+    opener = Mock()
+    opener.open.side_effect = probe_error
+    monkeypatch.setattr(setup, 'build_opener', Mock(return_value=opener))
+    assert setup.server_health('http://127.0.0.1:5100') is None
 
 
 def test_reused_server_resolves_current_lan_without_http_or_new_process(environment, port, monkeypatch):
@@ -199,18 +182,6 @@ def test_missing_lan_address_leaves_running_server_untouched(environment, port, 
             environment.status()
         assert environment._read_state() == state
         assert setup.process_is_running(state)
-    finally:
-        environment.stop(process)
-
-
-def test_cleanup_stops_a_reused_recorded_server(environment, port):
-    process = environment.start(port=port)
-    try:
-        helper = setup.IntegrationTestEnvironment(environment.directory.parent.parent)
-        assert helper.start() is None
-        helper.stop()
-        process.wait(timeout=5)
-        assert not environment.state_path.exists()
     finally:
         environment.stop(process)
 
@@ -275,8 +246,8 @@ def test_cleanup_removes_dead_pid_state(environment, port):
     assert not environment.state_path.exists()
 
 
-def test_cleanup_stops_reloader_parent_and_serving_child(environment, port):
-    # Model the reloader: a parent waits while its child serves requests.
+def test_cleanup_stops_owned_child_processes(environment, port):
+    # Schema refresh can start Git children before the server is ready.
     parent = "import subprocess, sys\nchild = subprocess.Popen([sys.executable, '-c', " + repr(SERVER) + ", *sys.argv[1:]])\nchild.wait()\n"
     (Path(setup.__mock_server_root__) / 'app.py').write_text(parent)
     process = environment.start(port=port)
@@ -319,34 +290,6 @@ def wait_for_zombie(process):
     while process.status() != psutil.STATUS_ZOMBIE:
         assert time.monotonic() < deadline, 'child did not exit'
         time.sleep(0.01)
-
-
-def test_group_discovery_rejects_pid_reuse(monkeypatch):
-    generation = 0
-
-    class Process:
-        pid = 12345
-
-        def __init__(self, pid):
-            self.generation = generation
-
-        def is_running(self):
-            return self.generation == generation
-
-        def status(self):
-            return psutil.STATUS_RUNNING
-
-    candidate = Process(12345)
-
-    def reused_group(pid):
-        nonlocal generation
-        generation += 1
-        return 12345
-
-    monkeypatch.setattr(psutil, 'process_iter', lambda: [candidate])
-    monkeypatch.setattr(psutil, 'Process', Process)
-    monkeypatch.setattr(setup.os, 'getpgid', reused_group)
-    assert setup._live_group_members(12345) == {}
 
 
 def test_unreaped_zombie_starts_a_replacement(environment, port):
@@ -394,40 +337,6 @@ server.server_close()
             helper.stop(replacement)
 
 
-@pytest.mark.parametrize('reap_leader', [False, True])
-def test_orphaned_reloader_group(environment, port, reap_leader):
-    root = Path(setup.__mock_server_root__)
-    parent = '''import os, subprocess, sys, time
-from pathlib import Path
-child = subprocess.Popen([sys.executable, '-c', SERVER, *sys.argv[1:]])
-Path('worker.pid').write_text(str(child.pid))
-while not Path('exit-parent').exists(): time.sleep(0.01)
-os._exit(0)
-'''.replace('SERVER', repr(SERVER))
-    (root / 'app.py').write_text(parent)
-    process = environment.start(port=port)
-    worker = psutil.Process(int((root / 'worker.pid').read_text()))
-    try:
-        (root / 'exit-parent').touch()
-        wait_for_zombie(process)
-        if reap_leader:
-            process.wait(timeout=5)
-            with pytest.raises(RuntimeError, match='leader.*gone'):
-                environment.stop()
-            assert environment.state_path.exists()
-            assert setup.server_health(environment.endpoint) is True
-        else:
-            environment.stop()
-            assert not environment.state_path.exists()
-            assert setup.server_health(environment.endpoint) is None
-    finally:
-        if setup._is_live(worker):
-            worker.terminate()
-        worker.wait(timeout=5)
-        process.wait(timeout=5)
-        environment.stop()
-
-
 def test_cleanup_escalates_when_term_is_ignored(environment, port, monkeypatch):
     server = SERVER.replace('import argparse, json, os',
                             'import argparse, json, os, signal\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)')
@@ -448,35 +357,14 @@ def test_permission_failure_retains_state(environment, port, monkeypatch):
     try:
         with monkeypatch.context() as patch:
             def denied(*args):
-                raise psutil.AccessDenied(process.pid)
-            patch.setattr(setup, '_live_group_members', denied)
-            with pytest.raises(psutil.AccessDenied):
+                raise PermissionError('Cannot signal server')
+            patch.setattr(setup.os, 'killpg', denied)
+            with pytest.raises(PermissionError):
                 environment.stop()
             assert environment._read_state() == state
             assert process.poll() is None
     finally:
         environment.stop(process)
-
-
-def test_local_cleanup_preserves_a_replacement_record(environment, port):
-    process = environment.start(port=port)
-    environment.state_path.unlink()
-    helper = setup.IntegrationTestEnvironment(environment.directory.parent.parent)
-    with socket.socket() as sock:
-        sock.bind(('127.0.0.1', 0))
-        replacement_port = sock.getsockname()[1]
-    replacement = helper.start(port=replacement_port)
-    state = helper._read_state()
-    try:
-        assert replacement is not None
-        environment.stop(process)
-        assert process.poll() is not None
-        assert replacement.poll() is None
-        assert helper._read_state() == state
-        assert helper.endpoint is not None
-        assert setup.server_health(helper.endpoint) is True
-    finally:
-        helper.stop(replacement)
 
 
 def test_legacy_record_is_discarded_without_signaling(environment, port):

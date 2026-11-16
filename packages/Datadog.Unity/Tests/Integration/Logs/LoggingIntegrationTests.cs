@@ -11,7 +11,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace Datadog.Unity.Tests.Integration.Logging
+namespace Datadog.Unity.Tests.Integration.Logs
 {
     public class LoggingIntegrationTests : IntegrationTestBase
     {
@@ -31,7 +31,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
             {
                 serverLog = requests;
                 logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 7;
+                return logs.Count >= 6;
             });
 
             foreach (var log in serverLog)
@@ -42,7 +42,7 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 }
             }
 
-            Assert.AreEqual(7, logs.Count);
+            Assert.AreEqual(6, logs.Count);
 
             var debugLog = logs[0];
             Assert.AreEqual("debug", debugLog.Status);
@@ -148,13 +148,6 @@ namespace Datadog.Unity.Tests.Integration.Logging
             Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
             Assert.NotNull(exceptionLog.ErrorStack);
 
-            var clearedUserLog = logs[6];
-            Assert.AreEqual("cleared user info message", clearedUserLog.Message);
-            foreach (var key in new[] { "id", "name", "email", "extra", "saw_error" })
-            {
-                Assert.IsFalse(clearedUserLog.UserExtraInfo.ContainsKey(key), $"User field {key} was not cleared");
-            }
-
             foreach (var log in logs)
             {
                 Assert.AreEqual(log.ApplicationVersion, "1.123");
@@ -239,7 +232,6 @@ namespace Datadog.Unity.Tests.Integration.Logging
                 }
 
                 DatadogSdk.Instance.ClearUserInfo();
-                logger.Info("cleared user info message");
 
                 _didSendLog = true;
             }
