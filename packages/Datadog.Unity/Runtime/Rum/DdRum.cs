@@ -165,23 +165,26 @@ namespace Datadog.Unity.Rum
         public void StopResource(string key, RumResourceType kind, int? statusCode = null, long? size = null,
             Dictionary<string, object> attributes = null);
 
+        /// <summary>
+        /// Records that the resource identified by <c>key</c> failed to load.
+        /// </summary>
+        /// <remarks>
+        /// WebGL emits a resource event and a network error event. Android and iOS emit only the network error event.
+        /// </remarks>
+        /// <param name="key">The key identifying the resource.</param>
+        /// <param name="errorType">The type of error that occurred.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <param name="attributes">Any extra attributes to attach to the resource.</param>
         public void StopResourceWithError(string key, string errorType, string errorMessage,
             Dictionary<string, object> attributes = null);
-
-        /// <summary>
-        /// Notifies that the Resource identified by <c>key</c> stopped being loaded with an
-        /// Exception.
-        /// </summary>
-        /// <param name="key">The key identifying the resource to be stopped.</param>
-        /// <param name="error">The exception that occurred when loading the resource.</param>
-        /// <param name="attributes">Any attributes to attach to this resource.</param>
-        [Obsolete("StopResource with Exception argument is deprecated; please use StopResourceWithError.")]
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null);
 
         /// <summary>
         /// Records that the Resource identified by <c>key</c> has stopped with an error;
         /// i.e. the HTTP request failed to complete due to an error.
         /// </summary>
+        /// <remarks>
+        /// WebGL emits a resource event and a network error event. Android and iOS emit only the network error event.
+        /// </remarks>
         /// <param name="key">The key identifying the resource.</param>
         /// <param name="error">The exception that occurred when loading the resource.</param>
         /// <param name="attributes">Any extra attributes to attach to the resource.</param>
@@ -271,10 +274,6 @@ namespace Datadog.Unity.Rum
         }
 
         public void StopResourceWithError(string key, string errorType, string errorMessage, Dictionary<string, object> attributes = null)
-        {
-        }
-
-        public void StopResource(string key, Exception error, Dictionary<string, object> attributes = null)
         {
         }
 
