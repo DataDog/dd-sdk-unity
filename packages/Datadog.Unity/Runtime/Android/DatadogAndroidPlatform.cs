@@ -167,14 +167,15 @@ namespace Datadog.Unity.Android
                 // known crash issues with androidx.metrics
                 internalBuilderCompanion.Call<AndroidJavaObject>("setDisableJankStats", rumConfigBuilder, true);
 
-                // Uncomment to always send Configuration telemetry
-                // var rumAdditionalConfig = new Dictionary<string, object>()
-                // {
-                //     { "_dd.telemetry.configuration_sample_rate", 100.0f }
-                // };
-                // internalBuilderCompanion.Call<AndroidJavaObject>("setAdditionalConfiguration",
-                //     rumConfigBuilder,
-                //     DatadogAndroidHelpers.DictionaryToJavaMap(rumAdditionalConfig));
+#if UNITY_INCLUDE_TESTS
+                var rumAdditionalConfig = new Dictionary<string, object>()
+                {
+                    { "_dd.telemetry.configuration_sample_rate", 100.0f }
+                };
+                internalBuilderCompanion.Call<AndroidJavaObject>("setAdditionalConfiguration",
+                    rumConfigBuilder,
+                    DatadogAndroidHelpers.DictionaryToJavaMap(rumAdditionalConfig));
+#endif
 
                 using var rumConfig = rumConfigBuilder.Call<AndroidJavaObject>("build");
                 using var rumClass = new AndroidJavaClass("com.datadog.android.rum.Rum");

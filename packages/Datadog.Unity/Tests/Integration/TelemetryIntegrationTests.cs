@@ -19,7 +19,6 @@ namespace Datadog.Unity.Tests.Integration
     {
         [UnityTest]
         [Category("integration")]
-        [UnityPlatform(RuntimePlatform.WebGLPlayer)]
         [Order(0)]
         public IEnumerator ConfigurationTelemetryReportsUnityMetadata()
         {
@@ -29,10 +28,13 @@ namespace Datadog.Unity.Tests.Integration
             RumTelemetryEventDecoder configurationEvent = null;
             yield return server.PollRequests(TimeSpan.FromSeconds(45), logs =>
             {
-                configurationEvent = RumDecoderHelpers.RumEventsFromMockServer(logs)
+                var configurationEvents = RumDecoderHelpers.RumEventsFromMockServer(logs)
                     .OfType<RumTelemetryEventDecoder>()
-                    .FirstOrDefault(value => value.TelemetryType == "configuration" &&
-                        value.SdkService == "browser-rum-sdk");
+                    .Where(value => value.TelemetryType == "configuration");
+#if UNITY_WEBGL
+                configurationEvents = configurationEvents.Where(value => value.SdkService == "browser-rum-sdk");
+#endif
+                configurationEvent = configurationEvents.FirstOrDefault();
                 return configurationEvent != null;
             });
 
