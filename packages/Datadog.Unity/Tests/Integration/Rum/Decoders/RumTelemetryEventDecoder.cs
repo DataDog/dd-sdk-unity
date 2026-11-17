@@ -9,7 +9,13 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
     public class RumTelemetryEventDecoder : RumEventDecoder
     {
         public string TelemetryType => jsonGetProp<string>(rumEvent, "telemetry.type");
-        
+
+        public string SdkService => jsonGetProp<string>(rumEvent, "service");
+
+        public string ConfigurationSource => jsonGetProp<string>(rumEvent, "telemetry.configuration.source");
+
+        public string ConfigurationSdkVersion => jsonGetProp<string>(rumEvent, "telemetry.configuration.sdk_version");
+
         public string Status => jsonGetProp<string>(rumEvent, "telemetry.status");
 
         public string Message => jsonGetProp<string>(rumEvent, "telemetry.message");

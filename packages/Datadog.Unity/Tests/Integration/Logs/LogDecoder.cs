@@ -67,6 +67,20 @@ namespace Datadog.Unity.Tests.Integration.Logs
             get { return GetNestedProperty<string>("logger.name"); }
         }
 
+        public string SdkVersion
+        {
+            get
+            {
+#if UNITY_WEBGL
+                const string prefix = "sdk_version:";
+                var tag = Tags.FirstOrDefault(value => value.StartsWith(prefix));
+                return tag?.Substring(prefix.Length);
+#else
+                return GetNestedProperty<string>("logger.version");
+#endif
+            }
+        }
+
         public string ErrorKind
         {
             get { return GetNestedProperty<string>("error.kind"); }

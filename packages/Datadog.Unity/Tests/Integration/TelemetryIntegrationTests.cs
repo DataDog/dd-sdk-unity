@@ -13,8 +13,34 @@ using UnityEngine.TestTools;
 
 namespace Datadog.Unity.Tests.Integration
 {
+    // Read startup configuration telemetry before other fixtures clear the mock server.
+    [NUnit.Framework.Property("Order", -1)]
     public class TelemetryIntegrationTests : IntegrationTestBase
     {
+        [UnityTest]
+        [Category("integration")]
+        [UnityPlatform(RuntimePlatform.WebGLPlayer)]
+        [Order(0)]
+        public IEnumerator ConfigurationTelemetryReportsUnityMetadata()
+        {
+            DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
+
+            var server = new MockServerHelper();
+            RumTelemetryEventDecoder configurationEvent = null;
+            yield return server.PollRequests(TimeSpan.FromSeconds(45), logs =>
+            {
+                configurationEvent = RumDecoderHelpers.RumEventsFromMockServer(logs)
+                    .OfType<RumTelemetryEventDecoder>()
+                    .FirstOrDefault(value => value.TelemetryType == "configuration" &&
+                        value.SdkService == "browser-rum-sdk");
+                return configurationEvent != null;
+            });
+
+            Assert.IsNotNull(configurationEvent, "No startup configuration telemetry received.");
+            Assert.AreEqual("unity", configurationEvent.ConfigurationSource);
+            Assert.AreEqual(DatadogSdk.SdkVersion, configurationEvent.ConfigurationSdkVersion);
+        }
+
         [UnityTest]
         [Category("integration")]
         // Unity telemetry forwarding is not implemented on WebGL.

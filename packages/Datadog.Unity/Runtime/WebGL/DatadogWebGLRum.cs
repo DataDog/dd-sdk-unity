@@ -42,6 +42,7 @@ namespace Datadog.Unity.WebGL
                 service = options.ServiceName,
                 env = options.Env,
                 version = Application.version,
+                sdkVersion = DatadogSdk.SdkVersion,
                 traceSampleRate = options.TraceSampleRate,
                 trackUserInteractions = false,
                 trackFrustrations = true,
@@ -337,6 +338,12 @@ namespace Datadog.Unity.WebGL
             public string site { get; set; }
             [Preserve]
             public float sessionSampleRate { get; set; }
+#if UNITY_INCLUDE_TESTS
+            [Preserve]
+            public float telemetrySampleRate { get; set; } = 100f;
+            [Preserve]
+            public float telemetryConfigurationSampleRate { get; set; } = 100f;
+#endif
             [Preserve]
             public float sessionReplaySampleRate { get; set; } = 0f;
             [Preserve]
@@ -345,6 +352,8 @@ namespace Datadog.Unity.WebGL
             public string env { get; set; }
             [Preserve]
             public string version { get; set; }
+            [Preserve]
+            public string sdkVersion { get; set; }
             [Preserve]
             public string proxy { get; set; }
             [Preserve]

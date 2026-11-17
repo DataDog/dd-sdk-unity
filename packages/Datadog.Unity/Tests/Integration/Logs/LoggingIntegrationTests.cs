@@ -44,6 +44,11 @@ namespace Datadog.Unity.Tests.Integration.Logs
 
             Assert.AreEqual(6, logs.Count);
 
+            foreach (var log in logs)
+            {
+                Assert.AreEqual(DatadogSdk.SdkVersion, log.SdkVersion);
+            }
+
             var debugLog = logs[0];
             Assert.AreEqual("debug", debugLog.Status);
             Assert.AreEqual("debug message", debugLog.Message);
