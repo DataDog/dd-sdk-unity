@@ -231,7 +231,7 @@ namespace Datadog.Unity.Flags.Tests
         [Test]
         public void FailedFetchWithoutAConfigurationIsError()
         {
-            var client = MakeClient(new QueuedFetcher(null));
+            var client = MakeClient(new QueuedFetcher((Dictionary<string, FlagAssignment>)null));
 
             client.SetEvaluationContext(new FlagsEvaluationContext("user-1"));
 
