@@ -50,7 +50,7 @@ namespace Datadog.Unity.Flags
         /// Fetches precomputed assignments for the given evaluation context.
         /// Uses a callback since UnityWebRequest can be used from coroutines.
         /// </summary>
-        public void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
+        public virtual void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
         {
             try
             {
@@ -74,39 +74,7 @@ namespace Datadog.Unity.Flags
                 {
                     try
                     {
-                        if (request.result != UnityWebRequest.Result.Success)
-                        {
-                            var errorDetail = ExtractServerError(request.downloadHandler?.text, request.responseCode);
-                            _logger?.Log(Logs.DdLogLevel.Warn,
-                                $"Failed to fetch flag assignments (HTTP {request.responseCode}): {errorDetail}");
-                            onComplete?.Invoke(null);
-                            return;
-                        }
-
-                        var responseText = request.downloadHandler.text;
-                        var parsed = TryParseResponse(responseText, out var flags);
-                        var ignoredReason = parsed && _flagSelection != null
-                            ? FlagSelectionIgnoredReason.Sanitize(
-                                request.GetResponseHeader(FlagSelectionIgnoredReason.HeaderName))
-                            : null;
-                        try
-                        {
-                            onComplete?.Invoke(flags);
-                        }
-                        finally
-                        {
-                            // Reported after the callback installs the flags, so the report describes the loaded set.
-                            if (ignoredReason != null)
-                            {
-                                _flagSelectionReporter?.ReportIgnored(ignoredReason);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
-                        _logger?.TelemetryError("Error parsing flag assignments", e);
-                        onComplete?.Invoke(null);
+                        HandleResponse(new UnityWebRequestResponse(request), onComplete);
                     }
                     finally
                     {
@@ -118,6 +86,46 @@ namespace Datadog.Unity.Flags
             {
                 _logger?.Log(Logs.DdLogLevel.Warn, $"Error fetching flag assignments: {e.Message}");
                 _logger?.TelemetryError("Error fetching flag assignments", e);
+                onComplete?.Invoke(null);
+            }
+        }
+
+        internal void HandleResponse(
+            IPrecomputeResponse response,
+            Action<Dictionary<string, FlagAssignment>> onComplete)
+        {
+            try
+            {
+                if (!response.Succeeded)
+                {
+                    var errorDetail = ExtractServerError(response.Body, response.StatusCode);
+                    _logger?.Log(Logs.DdLogLevel.Warn,
+                        $"Failed to fetch flag assignments (HTTP {response.StatusCode}): {errorDetail}");
+                    onComplete?.Invoke(null);
+                    return;
+                }
+
+                var parsed = TryParseResponse(response.Body, out var flags);
+                var ignoredReason = parsed && _flagSelection != null
+                    ? FlagSelectionIgnoredReason.Sanitize(response.GetHeader(FlagSelectionIgnoredReason.HeaderName))
+                    : null;
+                try
+                {
+                    onComplete?.Invoke(flags);
+                }
+                finally
+                {
+                    // Reported after the callback installs the flags, so the report describes the loaded set.
+                    if (ignoredReason != null)
+                    {
+                        _flagSelectionReporter?.ReportIgnored(ignoredReason);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
+                _logger?.TelemetryError("Error parsing flag assignments", e);
                 onComplete?.Invoke(null);
             }
         }
@@ -365,5 +373,38 @@ namespace Datadog.Unity.Flags
             public string Reason { get; set; }
 
         }
+    }
+
+    /// <summary>
+    /// The parts of a precompute response the fetcher reads. Tests substitute it because the
+    /// integration mock server cannot set response headers.
+    /// </summary>
+    internal interface IPrecomputeResponse
+    {
+        bool Succeeded { get; }
+
+        long StatusCode { get; }
+
+        string Body { get; }
+
+        string GetHeader(string name);
+    }
+
+    internal sealed class UnityWebRequestResponse : IPrecomputeResponse
+    {
+        private readonly UnityWebRequest _request;
+
+        public UnityWebRequestResponse(UnityWebRequest request)
+        {
+            _request = request;
+        }
+
+        public bool Succeeded => _request.result == UnityWebRequest.Result.Success;
+
+        public long StatusCode => _request.responseCode;
+
+        public string Body => _request.downloadHandler?.text;
+
+        public string GetHeader(string name) => _request.GetResponseHeader(name);
     }
 }

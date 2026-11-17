@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Datadog.Unity.Flags;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -77,6 +78,34 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
             yield return new WaitUntil(() => done || DateTime.Now > deadline);
+        }
+
+        private static IEnumerator FetchWithClient(string name)
+        {
+            var done = false;
+            DdFlags.Instance.CreateClient(name)
+                .SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
+            var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
+            yield return new WaitUntil(() => done || DateTime.Now > deadline);
+        }
+
+        // Polls until the mock server has recorded the given number of precompute requests.
+        private IEnumerator PollFlagSelections(int count, List<JToken> selections)
+        {
+            yield return _mockServer.PollRequests(PollTimeout, logs =>
+            {
+                selections.Clear();
+                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
+                foreach (var request in endpoint?.Requests ?? new List<MockServerRequest>())
+                {
+                    foreach (var schema in request.Schemas)
+                    {
+                        selections.Add(JObject.Parse(schema.Data)["data"]["attributes"]["flag_selection"]);
+                    }
+                }
+
+                return selections.Count >= count;
+            });
         }
 
         // ─── Group 1: Precompute request shape ───────────────────────────────────────
@@ -228,6 +257,23 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual(FlagsClientState.Stale, client.State);
             // Old flags still evaluable
             Assert.AreEqual("red", client.GetStringValue("string-flag", "default"));
+        }
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator SetEvaluationContext_ServerErrorAfterEmptyConfiguration_StateIsStale()
+        {
+            yield return InitFlags("user-123", precomputeBody: "{\"data\":{\"attributes\":{\"flags\":{}}}}");
+            var client = DdFlags.Instance.GetClient();
+            Assert.AreEqual(FlagsClientState.Ready, client.State);
+
+            yield return _mockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
+
+            var done = false;
+            client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
+            yield return new WaitUntil(() => done);
+
+            Assert.AreEqual(FlagsClientState.Stale, client.State);
         }
 
         // ─── Group 3: Exposure telemetry ─────────────────────────────────────────────
@@ -726,6 +772,76 @@ namespace Datadog.Unity.Tests.Integration.Flags
             });
 
             Assert.AreEqual(0, records.Count, "TrackEvaluations=false should suppress all evaluation requests");
+        }
+
+        // ─── Flag selection across clients ───────────────────────────────────────────
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator FlagSelection_IsSharedByEveryClientAndFixedAtEnable()
+        {
+            yield return _mockServer.Clear();
+            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+
+            DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(new[] { " mobile", "checkout" })));
+            yield return FetchWithClient("first");
+            yield return FetchWithClient("second");
+
+            DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(new[] { "ignored" })));
+            yield return FetchWithClient("third");
+
+            var selections = new List<JToken>();
+            yield return PollFlagSelections(3, selections);
+
+            Assert.AreEqual(3, selections.Count);
+            foreach (var selection in selections)
+            {
+                Assert.IsNotNull(selection, "No flag_selection in a precompute body");
+                CollectionAssert.AreEqual(new[] { "checkout", "mobile" }, selection["tags"].ToObject<string[]>());
+                CollectionAssert.AreEqual(new string[0], selection["key_patterns"].ToObject<string[]>());
+            }
+
+            DdFlags.Shutdown();
+            yield return _mockServer.Clear();
+            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+
+            DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(keyPatterns: new[] { "search.*" })));
+            yield return FetchWithClient("first");
+
+            yield return PollFlagSelections(1, selections);
+
+            Assert.AreEqual(1, selections.Count);
+            CollectionAssert.AreEqual(new string[0], selections[0]["tags"].ToObject<string[]>());
+            CollectionAssert.AreEqual(new[] { "search.*" }, selections[0]["key_patterns"].ToObject<string[]>());
+        }
+
+        [UnityTest]
+        [Category("integration")]
+        public IEnumerator DroppedFlagSelection_IsReportedOncePerEnable()
+        {
+            var tooManyTags = Enumerable.Range(0, 32).Select(i => $"tag-{i}").ToArray();
+            var notSent = new Regex(@"flagSelection was not sent \(too_many_values: ");
+
+            yield return _mockServer.Clear();
+            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+
+            LogAssert.Expect(LogType.Error, notSent);
+            DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(tooManyTags)));
+            yield return FetchWithClient("first");
+            yield return FetchWithClient("second");
+
+            var selections = new List<JToken>();
+            yield return PollFlagSelections(2, selections);
+
+            Assert.AreEqual(2, selections.Count);
+            Assert.IsTrue(selections.All(s => s == null), "A dropped selection must not be sent");
+
+            DdFlags.Shutdown();
+            LogAssert.Expect(LogType.Error, notSent);
+            DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(tooManyTags)));
+            yield return FetchWithClient("first");
+
+            LogAssert.NoUnexpectedReceived();
         }
     }
 }

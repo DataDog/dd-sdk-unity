@@ -146,8 +146,8 @@ namespace Datadog.Unity.Flags
             return FlagSelectionResult.Selected(new CanonicalFlagSelection(SortByUtf8(tags), SortByUtf8(keyPatterns)));
         }
 
-        // The Unicode White_Space property, which the server trims. string.Trim() differs: it also trims
-        // U+001C..U+001F and does not trim U+0085.
+        // The Unicode White_Space property, which the server trims. string.Trim() uses char.IsWhiteSpace, which
+        // reads the runtime's Unicode categories outside Latin-1, so this list keeps trimming fixed.
         internal static bool IsWhiteSpace(char c)
         {
             switch (c)

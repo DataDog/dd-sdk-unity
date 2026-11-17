@@ -294,6 +294,135 @@ namespace Datadog.Unity.Flags.Tests
             Assert.IsFalse(PrecomputeAssignmentsFetcher.TryParseResponse(@"{""data"": {}}", out _));
         }
 
+        // ─── Ignored header wiring ───────────────────────────────────────────────────
+
+        private const string FlagsBody = @"{""data"": {""attributes"": {""flags"": {
+            ""a"": {""variationType"": ""boolean"", ""variationValue"": true, ""doLog"": false,
+                    ""allocationKey"": ""alloc"", ""variationKey"": ""on"", ""reason"": ""STATIC""}}}}}";
+
+        private sealed class FakeResponse : IPrecomputeResponse
+        {
+            public bool Succeeded { get; set; } = true;
+
+            public long StatusCode { get; set; } = 200;
+
+            public string Body { get; set; } = FlagsBody;
+
+            public string IgnoredHeader { get; set; } = "too_many_values";
+
+            public int HeaderReads { get; private set; }
+
+            public string GetHeader(string name)
+            {
+                HeaderReads++;
+                return name == FlagSelectionIgnoredReason.HeaderName ? IgnoredHeader : null;
+            }
+        }
+
+        private static PrecomputeAssignmentsFetcher MakeFetcher(
+            IInternalLogger logger,
+            CanonicalFlagSelection selection) =>
+            new PrecomputeAssignmentsFetcher(
+                "https://example.invalid/precompute-assignments",
+                "token",
+                null,
+                "prod",
+                logger,
+                selection,
+                new FlagSelectionReporter(logger));
+
+        private static readonly CanonicalFlagSelection Selection = new(new[] { "checkout" }, new string[0]);
+
+        [Test]
+        public void ReportsTheIgnoredHeaderAfterTheFlagsAreInstalled()
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse();
+            Dictionary<string, FlagAssignment> installed = null;
+            var reportedBeforeInstall = true;
+
+            MakeFetcher(logger, Selection).HandleResponse(response, flags =>
+            {
+                installed = flags;
+                reportedBeforeInstall = logger.ReceivedCalls().Any();
+            });
+
+            Assert.IsTrue(installed.ContainsKey("a"));
+            Assert.IsFalse(reportedBeforeInstall);
+            logger.Received(1).Log(DdLogLevel.Error,
+                "flagSelection was ignored by the server (too_many_values). Loaded the full flag configuration.");
+        }
+
+        [Test]
+        public void DoesNotReadTheIgnoredHeaderWithoutASelection()
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse();
+            Dictionary<string, FlagAssignment> installed = null;
+
+            MakeFetcher(logger, null).HandleResponse(response, flags => installed = flags);
+
+            Assert.IsTrue(installed.ContainsKey("a"));
+            Assert.AreEqual(0, response.HeaderReads);
+            logger.DidNotReceive().Log(Arg.Any<DdLogLevel>(), Arg.Any<string>());
+        }
+
+        [Test]
+        public void DoesNotReadTheIgnoredHeaderOnAFailedResponse()
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse { Succeeded = false, StatusCode = 500, Body = @"{""error"": ""down""}" };
+            var installed = new Dictionary<string, FlagAssignment>();
+
+            MakeFetcher(logger, Selection).HandleResponse(response, flags => installed = flags);
+
+            Assert.IsNull(installed);
+            Assert.AreEqual(0, response.HeaderReads);
+            logger.DidNotReceive().Log(DdLogLevel.Error, Arg.Any<string>());
+        }
+
+        [Test]
+        [TestCase("not json")]
+        [TestCase(@"{""data"": {}}")]
+        [TestCase("")]
+        public void DoesNotReadTheIgnoredHeaderWhenTheBodyHasNoFlags(string body)
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse { Body = body };
+
+            MakeFetcher(logger, Selection).HandleResponse(response, _ => { });
+
+            Assert.AreEqual(0, response.HeaderReads);
+            logger.DidNotReceive().Log(DdLogLevel.Error, Arg.Any<string>());
+            logger.DidNotReceive().TelemetryDebug(Arg.Any<string>(), Arg.Any<IDictionary<string, object>>());
+        }
+
+        [Test]
+        public void ReadsTheIgnoredHeaderForAnEmptyFlagsObject()
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse { Body = @"{""data"": {""attributes"": {""flags"": {}}}}" };
+
+            MakeFetcher(logger, Selection).HandleResponse(response, _ => { });
+
+            Assert.AreEqual(1, response.HeaderReads);
+            logger.Received(1).Log(DdLogLevel.Error, Arg.Is<string>(m => m.Contains("(too_many_values)")));
+        }
+
+        [Test]
+        [TestCase(null)]
+        [TestCase("")]
+        public void ReportsNothingWithoutTheIgnoredHeader(string header)
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse { IgnoredHeader = header };
+
+            MakeFetcher(logger, Selection).HandleResponse(response, _ => { });
+
+            Assert.AreEqual(1, response.HeaderReads);
+            logger.DidNotReceive().Log(Arg.Any<DdLogLevel>(), Arg.Any<string>());
+        }
+
         // ─── Reporting ───────────────────────────────────────────────────────────────
 
         [Test]
@@ -389,6 +518,24 @@ namespace Datadog.Unity.Flags.Tests
 
             CollectionAssert.AreEqual(new[] { "a", "b" }, selection.Tags);
             logger.DidNotReceive().Log(Arg.Any<DdLogLevel>(), Arg.Any<string>());
+        }
+
+        [Test]
+        public void ResolvingASelectionThatThrowsReportsMalformedSelection()
+        {
+            var logger = Substitute.For<IInternalLogger>();
+
+            CanonicalFlagSelection selection = null;
+            Assert.DoesNotThrow(() => selection = DdFlags.ResolveFlagSelection(
+                new FlagSelection(new[] { "a" }),
+                new FlagSelectionReporter(logger),
+                _ => throw new InvalidOperationException()));
+
+            Assert.IsNull(selection);
+            logger.Received(1).Log(DdLogLevel.Error,
+                Arg.Is<string>(m => m.StartsWith("flagSelection was not sent (malformed_selection: ")));
+            logger.Received(1).TelemetryDebug("Flag selection dropped",
+                Arg.Is<IDictionary<string, object>>(a => (string)a["reason"] == "malformed_selection"));
         }
     }
 }

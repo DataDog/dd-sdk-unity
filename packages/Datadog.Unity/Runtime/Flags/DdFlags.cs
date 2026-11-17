@@ -209,12 +209,13 @@ namespace Datadog.Unity.Flags
         // Every client shares one selection, so a dropped selection is reported once, when Flags is enabled.
         internal static CanonicalFlagSelection ResolveFlagSelection(
             FlagSelection selection,
-            FlagSelectionReporter reporter)
+            FlagSelectionReporter reporter,
+            Func<FlagSelection, FlagSelectionResult> canonicalize = null)
         {
             FlagSelectionResult result;
             try
             {
-                result = FlagSelectionCanonicalizer.Canonicalize(selection);
+                result = (canonicalize ?? FlagSelectionCanonicalizer.Canonicalize)(selection);
             }
             catch (Exception)
             {
