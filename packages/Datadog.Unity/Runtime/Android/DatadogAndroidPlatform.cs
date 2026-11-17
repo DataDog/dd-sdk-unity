@@ -277,6 +277,7 @@ namespace Datadog.Unity.Android
         // proxy sends, with attributes, to the RUM feature.
         public void SendDebugTelemetry(string message, IDictionary<string, object> attributes)
         {
+            var sendWithoutAttributes = false;
             try
             {
                 using var sdkCore = _datadogClass.CallStatic<AndroidJavaObject>("getInstance");
@@ -299,13 +300,20 @@ namespace Datadog.Unity.Android
                     AndroidJNIHelper.CreateJNIArgArray(new object[] { debugEvent }));
 
                 // Raw JNI calls leave a Java exception pending instead of throwing.
-                if (AndroidJNI.ExceptionOccurred() != IntPtr.Zero)
+                var exception = AndroidJNI.ExceptionOccurred();
+                if (exception != IntPtr.Zero)
                 {
                     AndroidJNI.ExceptionClear();
-                    SendDebugTelemetry(message);
+                    AndroidJNI.DeleteLocalRef(exception);
+                    sendWithoutAttributes = true;
                 }
             }
             catch (Exception)
+            {
+                sendWithoutAttributes = true;
+            }
+
+            if (sendWithoutAttributes)
             {
                 SendDebugTelemetry(message);
             }
