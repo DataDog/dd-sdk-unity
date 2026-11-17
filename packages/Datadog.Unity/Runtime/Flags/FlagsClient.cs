@@ -136,8 +136,8 @@ namespace Datadog.Unity.Flags
                 }
                 else
                 {
-                    // If we have cached flags, transition to Stale; otherwise Error
-                    if (_repository.HasFlags())
+                    // Serve the last installed configuration as Stale, even when it has no flags.
+                    if (_repository.HasConfiguration())
                     {
                         TransitionState(FlagsClientState.Stale);
                     }

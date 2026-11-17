@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 
@@ -180,6 +181,72 @@ namespace Datadog.Unity.Flags.Tests
 
             Assert.IsNull(details.AllocationKey,
                 "AllocationKey must be null when the assignment has no allocation key");
+        }
+
+        // ─── State after a failed fetch ──────────────────────────────────────────────
+
+        // Completes each fetch with the next queued result; null means the fetch failed.
+        private sealed class QueuedFetcher : PrecomputeAssignmentsFetcher
+        {
+            private readonly Queue<Dictionary<string, FlagAssignment>> _results;
+
+            public QueuedFetcher(params Dictionary<string, FlagAssignment>[] results)
+                : base("https://example.invalid/precompute-assignments", "token", null, "prod", null)
+            {
+                _results = new Queue<Dictionary<string, FlagAssignment>>(results);
+            }
+
+            public override void Fetch(
+                FlagsEvaluationContext context,
+                Action<Dictionary<string, FlagAssignment>> onComplete)
+            {
+                onComplete(_results.Dequeue());
+            }
+        }
+
+        private static FlagsClient MakeClient(PrecomputeAssignmentsFetcher fetcher) => new FlagsClient(
+            repository: new FlagsRepository(),
+            exposureTracker: null,
+            evaluationAggregator: null,
+            fetcher: fetcher,
+            logger: null,
+            trackExposures: false,
+            trackEvaluations: false,
+            onExposure: null);
+
+        [Test]
+        public void FailedFetchAfterAnEmptyConfigurationIsStale()
+        {
+            var client = MakeClient(new QueuedFetcher(new Dictionary<string, FlagAssignment>(), null));
+            var context = new FlagsEvaluationContext("user-1");
+
+            client.SetEvaluationContext(context);
+            Assert.AreEqual(FlagsClientState.Ready, client.State);
+            Assert.AreEqual(FlagEvaluationError.FlagNotFound, client.GetBooleanDetails("missing", false).Error);
+
+            client.SetEvaluationContext(context);
+            Assert.AreEqual(FlagsClientState.Stale, client.State);
+        }
+
+        [Test]
+        public void FailedFetchWithoutAConfigurationIsError()
+        {
+            var client = MakeClient(new QueuedFetcher(null));
+
+            client.SetEvaluationContext(new FlagsEvaluationContext("user-1"));
+
+            Assert.AreEqual(FlagsClientState.Error, client.State);
+        }
+
+        [Test]
+        public void RepositoryHasAConfigurationOnceOneIsInstalled()
+        {
+            Assert.IsFalse(_repository.HasConfiguration());
+
+            _repository.SetFlagsAndContext(
+                new FlagsEvaluationContext("user-1"), new Dictionary<string, FlagAssignment>());
+
+            Assert.IsTrue(_repository.HasConfiguration());
         }
     }
 }
