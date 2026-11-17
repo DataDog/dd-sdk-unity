@@ -111,7 +111,7 @@ namespace Datadog.Unity.Flags
                     : null;
                 try
                 {
-                    onComplete?.Invoke(flags);
+                    onComplete?.Invoke(parsed ? flags : null);
                 }
                 finally
                 {

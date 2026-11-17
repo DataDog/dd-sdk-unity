@@ -238,6 +238,89 @@ namespace Datadog.Unity.Flags.Tests
             Assert.AreEqual(FlagsClientState.Error, client.State);
         }
 
+        private const string OneFlagBody = @"{""data"": {""attributes"": {""flags"": {
+            ""a"": {""variationType"": ""boolean"", ""variationValue"": true, ""doLog"": false,
+                    ""allocationKey"": ""alloc"", ""variationKey"": ""on"", ""reason"": ""STATIC""}}}}}";
+
+        private const string EmptyFlagsBody = @"{""data"": {""attributes"": {""flags"": {}}}}";
+
+        // Completes each fetch by handling the next queued body as an HTTP 200 response.
+        private sealed class SuccessBodyFetcher : PrecomputeAssignmentsFetcher
+        {
+            private readonly Queue<string> _bodies;
+
+            public SuccessBodyFetcher(params string[] bodies)
+                : base("https://example.invalid/precompute-assignments", "token", null, "prod", null)
+            {
+                _bodies = new Queue<string>(bodies);
+            }
+
+            public override void Fetch(
+                FlagsEvaluationContext context,
+                Action<Dictionary<string, FlagAssignment>> onComplete)
+            {
+                HandleResponse(new SuccessResponse(_bodies.Dequeue()), onComplete);
+            }
+        }
+
+        private sealed class SuccessResponse : IPrecomputeResponse
+        {
+            public SuccessResponse(string body)
+            {
+                Body = body;
+            }
+
+            public bool Succeeded => true;
+
+            public long StatusCode => 200;
+
+            public string Body { get; }
+
+            public string GetHeader(string name) => null;
+        }
+
+        [Test]
+        [TestCase("not json")]
+        [TestCase(@"{""data"": {}}")]
+        public void SuccessWithoutAFlagsObjectIsAFailedFetch(string body)
+        {
+            var client = MakeClient(new SuccessBodyFetcher(body));
+
+            client.SetEvaluationContext(new FlagsEvaluationContext("user-1"));
+
+            Assert.AreEqual(FlagsClientState.Error, client.State);
+        }
+
+        [Test]
+        [TestCase("not json")]
+        [TestCase(@"{""data"": {}}")]
+        public void SuccessWithoutAFlagsObjectKeepsTheLastConfiguration(string body)
+        {
+            var client = MakeClient(new SuccessBodyFetcher(OneFlagBody, body));
+            var context = new FlagsEvaluationContext("user-1");
+
+            client.SetEvaluationContext(context);
+            Assert.AreEqual(FlagsClientState.Ready, client.State);
+
+            client.SetEvaluationContext(context);
+            Assert.AreEqual(FlagsClientState.Stale, client.State);
+            Assert.IsTrue(client.GetBooleanDetails("a", false).Value);
+        }
+
+        [Test]
+        public void SuccessWithAnEmptyFlagsObjectInstallsAnEmptyConfiguration()
+        {
+            var client = MakeClient(new SuccessBodyFetcher(EmptyFlagsBody, "not json"));
+            var context = new FlagsEvaluationContext("user-1");
+
+            client.SetEvaluationContext(context);
+            Assert.AreEqual(FlagsClientState.Ready, client.State);
+            Assert.AreEqual(FlagEvaluationError.FlagNotFound, client.GetBooleanDetails("a", false).Error);
+
+            client.SetEvaluationContext(context);
+            Assert.AreEqual(FlagsClientState.Stale, client.State);
+        }
+
         [Test]
         public void RepositoryHasAConfigurationOnceOneIsInstalled()
         {

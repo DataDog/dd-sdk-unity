@@ -389,9 +389,11 @@ namespace Datadog.Unity.Flags.Tests
         {
             var logger = Substitute.For<IInternalLogger>();
             var response = new FakeResponse { Body = body };
+            var installed = new Dictionary<string, FlagAssignment>();
 
-            MakeFetcher(logger, Selection).HandleResponse(response, _ => { });
+            MakeFetcher(logger, Selection).HandleResponse(response, flags => installed = flags);
 
+            Assert.IsNull(installed);
             Assert.AreEqual(0, response.HeaderReads);
             logger.DidNotReceive().Log(DdLogLevel.Error, Arg.Any<string>());
             logger.DidNotReceive().TelemetryDebug(Arg.Any<string>(), Arg.Any<IDictionary<string, object>>());
@@ -402,9 +404,12 @@ namespace Datadog.Unity.Flags.Tests
         {
             var logger = Substitute.For<IInternalLogger>();
             var response = new FakeResponse { Body = @"{""data"": {""attributes"": {""flags"": {}}}}" };
+            Dictionary<string, FlagAssignment> installed = null;
 
-            MakeFetcher(logger, Selection).HandleResponse(response, _ => { });
+            MakeFetcher(logger, Selection).HandleResponse(response, flags => installed = flags);
 
+            Assert.IsNotNull(installed);
+            Assert.AreEqual(0, installed.Count);
             Assert.AreEqual(1, response.HeaderReads);
             logger.Received(1).Log(DdLogLevel.Error, Arg.Is<string>(m => m.Contains("(too_many_values)")));
         }
