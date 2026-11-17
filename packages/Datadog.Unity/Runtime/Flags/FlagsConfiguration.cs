@@ -45,7 +45,7 @@ namespace Datadog.Unity.Flags
         public readonly string CustomEvaluationEndpoint;
 
         /// <summary>
-        /// Selects which flags every client loads. If null, every flag is loaded.
+        /// Selects which flags every client loads. If null or empty, every flag is loaded.
         /// The selection is fixed when <see cref="DdFlags.Enable"/> is called.
         /// See <see cref="Flags.FlagSelection"/> for the matching rules and limits.
         /// </summary>

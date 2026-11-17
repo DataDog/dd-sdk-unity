@@ -18,7 +18,9 @@ namespace Datadog.Unity.Flags
     /// Tags match exactly and are case-sensitive.
     /// A key pattern matches the whole flag key, and <c>*</c> matches any run of characters.
     /// Values are trimmed of surrounding whitespace, and empty and duplicate values are ignored.
+    /// If both lists are empty after trimming, no selection is sent and every flag loads.
     /// Each list accepts at most 31 values, and each value is at most 200 UTF-8 bytes after trimming.
+    /// A null value, or a value with an unpaired UTF-16 surrogate, makes the selection malformed.
     /// If the selection breaks a limit or is malformed, the SDK logs an error, does not send it, and loads every flag.
     /// The server may ignore a very large selection and return every flag.
     /// Flags outside the selection are not loaded, so they evaluate to the default value with
@@ -316,7 +318,8 @@ namespace Datadog.Unity.Flags
 
         /// <summary>
         /// Returns a known reason, <see cref="Unknown"/> for any other value, or null when the header is
-        /// absent or empty. A repeated header arrives joined with commas, so it reports <see cref="Unknown"/>.
+        /// absent or empty. If the platform joins a repeated header with commas, the joined value reports
+        /// <see cref="Unknown"/>.
         /// </summary>
         public static string Sanitize(string value)
         {
