@@ -39,6 +39,7 @@ namespace Datadog.Unity.Tests.Integration
             Assert.IsNotNull(configurationEvent, "No startup configuration telemetry received.");
             Assert.AreEqual("unity", configurationEvent.ConfigurationSource);
             Assert.AreEqual(DatadogSdk.SdkVersion, configurationEvent.ConfigurationSdkVersion);
+            Assert.AreEqual(DatadogConfigurationOptions.Load().TelemetrySampleRate, configurationEvent.TelemetrySampleRate);
         }
 
         [UnityTest]

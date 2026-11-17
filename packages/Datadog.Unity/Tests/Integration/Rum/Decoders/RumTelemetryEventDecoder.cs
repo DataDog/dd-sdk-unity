@@ -16,6 +16,8 @@ namespace Datadog.Unity.Tests.Integration.Rum.Decoders
 
         public string ConfigurationSdkVersion => jsonGetProp<string>(rumEvent, "telemetry.configuration.sdk_version");
 
+        public float TelemetrySampleRate => jsonGetProp<float>(rumEvent, "telemetry.configuration.telemetry_sample_rate");
+
         public string Status => jsonGetProp<string>(rumEvent, "telemetry.status");
 
         public string Message => jsonGetProp<string>(rumEvent, "telemetry.message");
