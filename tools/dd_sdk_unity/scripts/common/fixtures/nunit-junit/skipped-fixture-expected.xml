@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="5" failures="0" errors="0" disabled="4" time="1">
+  <testsuite tests="2" time="0" errors="0" failures="0" skipped="2" timestamp="" name="">
+    <testcase name="inherits-fixture-skip" assertions="" time="0" status="Skipped" classname="SkippedFixture">
+      <skipped/>
+    </testcase>
+    <testcase name="inherits-parent-skip" assertions="" time="0" status="Skipped" classname="SkippedFixture">
+      <skipped/>
+    </testcase>
+  </testsuite>
+  <testsuite tests="3" time="1" errors="0" failures="0" skipped="2" timestamp="" name="">
+    <testcase name="passes" assertions="" time="1" status="Passed" classname="RunnableFixture"/>
+    <testcase name="skips-at-runtime" assertions="" time="0" status="Skipped" classname="RunnableFixture">
+      <skipped/>
+    </testcase>
+    <testcase name="ignored" assertions="" time="0" status="Skipped" classname="RunnableFixture">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>
