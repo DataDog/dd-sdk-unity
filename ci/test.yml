@@ -78,6 +78,41 @@ integration-test-ios:
       # Integration tests invoke the Editor directly rather than Unity CLI.
       - 198
 
+integration-test-macos:
+  extends: .needs-unity-license
+  stage: integration-test
+  image: "$MAC_IMAGE"
+  tags:
+    - macos:tart
+  allow_failure: true
+  timeout: 1h
+  variables:
+    # Reserve time for cleanup and artifact upload before the job limit.
+    RUNNER_SCRIPT_TIMEOUT: 50m
+  parallel:
+    matrix:
+      - UNITY_VERSION_PARTIAL: '2022.3'
+        PROJECT_PATH: 'samples/Datadog Sample'
+  script:
+    - !reference [.shared, init-scripts]
+    - !reference [.shared, install-unity]
+    - dd-unity-manage-sdk-dependencies stage --platform macos
+    - dd-unity-integration-test --platform macos --unity-version "$UNITY_VERSION_PARTIAL" --project "$PROJECT_PATH"
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: integration-test-macos.xml
+    paths:
+      - integration-test-macos.xml
+      - integration-test-macos*.log
+      - "$PROJECT_PATH/Library/DatadogIntegrationTests/mock-server.log"
+  retry:
+    max: 2
+    exit_codes:
+      # Integration tests invoke the Editor directly rather than Unity CLI.
+      - 198
+
 integration-test-webgl:
   extends: .needs-unity-license
   stage: integration-test

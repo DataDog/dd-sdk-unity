@@ -3,7 +3,7 @@
 # (https://www.datadoghq.com/). Copyright 2025-Present Datadog, Inc.
 
 """
-Runs integration tests in a sample project for iOS, Android, or WebGL, ensuring that the
+Runs integration tests in a sample project's target player, ensuring that the
 mock server app is running, the project is configured appropriately to send the
 requisite requests to the mock server, and any required device emulators are running.
 """
@@ -86,9 +86,9 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: Tar
 
 
     with _integration_test_env(project_path, platform, target):
-        # Run our Unity project's integration tests in the editor
+        # Build and run our Unity project's integration tests in a player.
         log.info(f'Running {platform} integration tests for project {os.path.basename(project_path)} in Unity {unity_install.version}...')
-        build_target = {'ios': 'iOS', 'android': 'Android', 'webgl': 'WebGL'}[platform]
+        build_target = {'ios': 'iOS', 'android': 'Android', 'webgl': 'WebGL', 'macos': 'StandaloneOSX'}[platform]
         args = [
             '-runTests',
             '-buildTarget', build_target,
@@ -173,8 +173,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Run integration tests on the provided version of Unity and on the specified platform.')
     parser.add_argument('--unity-version', '-u', default=__default_test_project_unity_version__, help='The target version of Unity to build with; may be a partial specifier (e.g. "6000", "2023.3")')
     parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Demo Data' in this repo")
-    parser.add_argument('--platform', choices=['ios', 'android', 'webgl'], required=True, help='The platform to build a test player for')
-    parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', your must have a phone connected and ready for debugging.")
+    parser.add_argument('--platform', choices=['ios', 'android', 'webgl', 'macos'], required=True, help='The platform to build a test player for')
+    parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Mobile platforms only: whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', you must have a phone connected and ready for debugging.")
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
     args = parser.parse_args()
 

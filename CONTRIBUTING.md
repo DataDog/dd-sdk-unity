@@ -93,13 +93,16 @@ To build the SDK for iOS:
 [android-dependency-version-json]: ./packages/Datadog.Unity/Editor/Android/AndroidDependencyVersion.json
 [desktop-dependency-version-json]: ./packages/Datadog.Unity/Editor/Desktop/DesktopDependencyVersion.json
 
-## Native dependencies
+## Repository setup
 
-Before your first build, stage all pinned iOS and desktop SDK assets:
+After installing the [Python tooling](#python-tooling), stage the pinned native SDK
+assets from the repository root:
 
 ```bash
 dd-unity-manage-sdk-dependencies stage
 ```
+
+## Native dependencies
 
 The pin files declare the SDK versions, release ZIPs, SHA-256 checksums, and selected
 files. Staged SDK directories are `.gitignore`d in this development repository.
@@ -294,7 +297,6 @@ Before running integration tests, close the target project in the Editor and mak
 dd-unity-integration-test --platform android
 
 # Run integration tests on an iOS Simulator
-dd-unity-manage-sdk-dependencies stage
 dd-unity-integration-test --platform ios --target simulator
 
 # Run integration tests on iOS, using a physically-connected iPhone
@@ -302,13 +304,16 @@ dd-unity-integration-test --platform ios --target device
 
 # Run integration tests in headless Chrome
 dd-unity-integration-test --platform webgl
+
+# Run integration tests in a standalone macOS player
+dd-unity-integration-test --platform macos
 ```
 
 As with the unit test script, these commands launch the Unity Editor in headless mode to invoke the tests, but the integration test script also performs some additional setup:
 
 - It launches a mock server that records incoming SDK requests so the tests can inspect and validate them.
 - It configures the project's Datadog Settings to use that server and enable the features under test.
-- It runs the tests on Android, iOS, or WebGL players, exercising the underlying SDKs.
+- It runs the tests on the target player, exercising the underlying SDKs.
 
 Use `--project` and `--unity-version` to select another project and Editor.
 
@@ -335,7 +340,7 @@ ADB instances** in Unity's **Preferences > External Tools**. This prevents Unity
 terminating the ADB server shared with Rider or other Android tools. This preference
 applies to your user across projects on this machine.
 
-Run the integration tests on an Android or iOS player. The mock server stays available
+Run the integration tests on the target player. The mock server stays available
 after the run for debugging. Use **Datadog > Mock Server > Inspect Requests** to
 inspect recorded requests in your browser. When finished, use **Datadog > Mock Server > Stop**.
 

@@ -33,6 +33,10 @@ def parser() -> argparse.ArgumentParser:
         subparser = commands.add_parser(command)
         if command == "stage":
             subparser.add_argument("--force", action="store_true", help="Re-download all archives")
+            subparser.add_argument(
+                "--platform", choices=["ios", "windows", "linux", "macos"],
+                help="Stage only this platform; defaults to all platforms",
+            )
     upgrade = commands.add_parser("upgrade")
     upgrade.add_argument("--sdk", choices=(*native_assets.SDKS, "android"), required=True)
     upgrade.add_argument("--version", type=Version.parse, required=True)
@@ -172,7 +176,7 @@ def run(args: argparse.Namespace) -> None:
     if args.command == "upgrade":
         _upgrade(args, log)
     elif args.command == "stage":
-        native_assets.ensure(force=args.force)
+        native_assets.ensure(force=args.force, platform=args.platform)
     else:
         package = native_assets.REPO_ROOT / native_assets.PACKAGE_PATH
         for asset in native_assets.load().values():
