@@ -421,6 +421,7 @@ namespace Datadog.Unity.Flags.Tests
 
             Assert.AreEqual(1, response.HeaderReads);
             logger.DidNotReceive().Log(Arg.Any<DdLogLevel>(), Arg.Any<string>());
+            logger.DidNotReceive().TelemetryDebug(Arg.Any<string>(), Arg.Any<IDictionary<string, object>>());
         }
 
         // ─── Reporting ───────────────────────────────────────────────────────────────
