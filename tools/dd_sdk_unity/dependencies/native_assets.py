@@ -79,13 +79,15 @@ def stage(asset: NativeArtifact, archive: Path, package: Path) -> None:
         raise ValueError(f"Archive SHA-256 does not match the pin for {asset.platform}")
     destination = package / asset.destination
     get_default_logger().info(f"Staging {asset.platform} SDK at {destination}")
-    _remove(destination)
     with tempfile.TemporaryDirectory() as scratch:
         shutil.unpack_archive(archive, scratch, format="zip")
-        for name, source in asset.files.items():
+        for source in asset.files.values():
             path = Path(scratch) / asset.strip_prefix / source
             if not path.exists():
                 raise ValueError(f"Missing release asset: {source}")
+        _remove(destination)
+        for name, source in asset.files.items():
+            path = Path(scratch) / asset.strip_prefix / source
             target = destination / name
             get_default_logger().info(f"Copying {source} → {name}")
             target.parent.mkdir(parents=True, exist_ok=True)
