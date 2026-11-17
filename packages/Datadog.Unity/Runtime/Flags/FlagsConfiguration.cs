@@ -46,6 +46,7 @@ namespace Datadog.Unity.Flags
 
         /// <summary>
         /// Selects which flags every client loads. If null, every flag is loaded.
+        /// The selection is fixed when <see cref="DdFlags.Enable"/> is called.
         /// See <see cref="Flags.FlagSelection"/> for the matching rules and limits.
         /// </summary>
         public readonly FlagSelection FlagSelection;

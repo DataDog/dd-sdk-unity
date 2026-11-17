@@ -15,12 +15,19 @@ namespace Datadog.Unity.Flags
     /// or its key matches any of the <see cref="KeyPatterns"/>.
     /// </summary>
     /// <remarks>
-    /// Values are trimmed of surrounding whitespace, and empty and duplicate values are ignored.
-    /// Each list accepts at most 31 values, and each value is at most 200 UTF-8 bytes.
+    /// Tags match exactly and are case-sensitive.
     /// A key pattern matches the whole flag key, and <c>*</c> matches any run of characters.
-    /// If the selection breaks a limit, the SDK logs an error and loads every flag.
+    /// Values are trimmed of surrounding whitespace, and empty and duplicate values are ignored.
+    /// Each list accepts at most 31 values, and each value is at most 200 UTF-8 bytes after trimming.
+    /// If the selection breaks a limit or is malformed, the SDK logs an error, does not send it, and loads every flag.
+    /// The server may ignore a very large selection and return every flag.
+    /// Flags outside the selection are not loaded, so they evaluate to the default value with
+    /// <see cref="FlagEvaluationError.FlagNotFound"/>.
+    /// Older servers, or servers with flag selection turned off, may return every flag.
+    /// The selection is fixed when <see cref="DdFlags.Enable"/> is called.
     /// A custom flags endpoint must forward the <c>DD-Flag-Selection-Ignored</c> response header
     /// for a selection the server ignored to be reported.
+    /// On WebGL, it must also list that header in <c>Access-Control-Expose-Headers</c>.
     /// </remarks>
     public sealed class FlagSelection
     {
