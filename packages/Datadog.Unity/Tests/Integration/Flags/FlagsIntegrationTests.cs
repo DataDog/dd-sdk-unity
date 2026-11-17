@@ -783,8 +783,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
             yield return _mockServer.Clear();
             yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
-            DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(new[] { " mobile", "checkout" })));
+            var configuredSelection = new FlagSelection(new[] { " mobile", "checkout" });
+            DdFlags.Enable(MakeConfig(flagSelection: configuredSelection));
+            configuredSelection.Tags[0] = "changed";
             yield return FetchWithClient("first");
+            configuredSelection.Tags[1] = "changed-again";
             yield return FetchWithClient("second");
 
             DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(new[] { "ignored" })));
