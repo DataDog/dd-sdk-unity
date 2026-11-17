@@ -373,8 +373,7 @@ namespace Datadog.Unity.Flags
             switch (error)
             {
                 case FlagSelectionError.MalformedSelection:
-                    return "flagSelection must have optional Tags and KeyPatterns arrays of non-null strings " +
-                           "without unpaired UTF-16 surrogates";
+                    return "flagSelection must be an object with optional tags and keyPatterns string arrays";
                 case FlagSelectionError.TooManyValues:
                     return $"each list accepts at most {FlagSelectionCanonicalizer.MaxValues} values";
                 case FlagSelectionError.InvalidKeyPattern:

@@ -441,8 +441,7 @@ namespace Datadog.Unity.Flags.Tests
 
         [Test]
         [TestCase(nameof(FlagSelectionError.MalformedSelection),
-            "malformed_selection: flagSelection must have optional Tags and KeyPatterns arrays of non-null strings " +
-            "without unpaired UTF-16 surrogates")]
+            "malformed_selection: flagSelection must be an object with optional tags and keyPatterns string arrays")]
         [TestCase(nameof(FlagSelectionError.TooManyValues), "too_many_values: each list accepts at most 31 values")]
         [TestCase(nameof(FlagSelectionError.InvalidKeyPattern),
             "invalid_key_pattern: each key pattern is at most 200 UTF-8 bytes")]
