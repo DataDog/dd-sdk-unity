@@ -28,7 +28,10 @@ namespace Datadog.Unity.Flags
     /// When the server applies the selection, flags outside it are not loaded, so they evaluate to the default value
     /// with <see cref="FlagEvaluationError.FlagNotFound"/>.
     /// Older servers, or servers with flag selection turned off, may return every flag.
-    /// The selection is fixed when <see cref="DdFlags.Enable"/> is called.
+    /// The selection is fixed when <see cref="DdFlags.Enable"/> is called and applies to every client.
+    /// A client keeps the selection that was active when it was created.
+    /// To use a new selection after <see cref="DdFlags.Shutdown"/>, call <see cref="DdFlags.Enable"/> again,
+    /// then get new clients from <see cref="DdFlags.CreateClient"/>.
     /// A custom flags endpoint must forward the <c>DD-Flag-Selection-Ignored</c> response header
     /// for a selection the server ignored to be reported.
     /// On WebGL, it must also list that header in <c>Access-Control-Expose-Headers</c>.

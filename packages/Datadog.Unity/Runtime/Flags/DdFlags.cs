@@ -98,6 +98,8 @@ namespace Datadog.Unity.Flags
 
         /// <summary>
         /// Shuts down the Flags feature, disposes all clients, and resets to pre-Enable state.
+        /// Clients obtained before shutdown keep the flag selection they were created with.
+        /// After calling <see cref="Enable"/> again, get new clients from <see cref="CreateClient"/>.
         /// </summary>
         public static void Shutdown()
         {
