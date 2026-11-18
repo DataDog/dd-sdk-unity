@@ -181,6 +181,16 @@ namespace Datadog.Unity.Flags.Tests
         }
 
         [Test]
+        public void DedupesOrdinallyAndCaseSensitively()
+        {
+            var result = FlagSelectionCanonicalizer.Canonicalize(
+                new FlagSelection(new[] { "a", "A", "e\u0301", "\u00E9", "a" }));
+
+            // "e\u0301" and "\u00E9" are canonically equivalent. UTF-8 order: 41, 61, 65 CC 81, C3 A9.
+            CollectionAssert.AreEqual(new[] { "A", "a", "e\u0301", "\u00E9" }, result.Selection.Tags);
+        }
+
+        [Test]
         public void SortsByUtf8BytesRatherThanUtf16CodeUnits()
         {
             // U+FF61 encodes as EF BD A1 and U+1F600 as F0 9F 98 80, but U+1F600's UTF-16 surrogate D83D sorts first.
