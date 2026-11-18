@@ -126,7 +126,7 @@ The `upgrade` command updates the pin selected by `--sdk` (`ios`, `cpp`, or
 For iOS and C++, this downloads and stages the selected release files and updates
 the archive checksums. The pin is written after validation succeeds.
 
-- `--dry-run` validates and stages without writing the pin.
+- `--dry-run` validates in a temporary directory without changing the pin or staged SDKs.
 - `--force` rechecks the currently pinned version.
 - `--allow-transitive-drift` accepts reviewed Kotlin/OkHttp changes for Android.
 

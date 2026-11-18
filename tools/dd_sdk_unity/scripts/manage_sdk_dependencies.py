@@ -38,7 +38,9 @@ def parser() -> argparse.ArgumentParser:
     upgrade.add_argument(
         "--force", action="store_true", help="Recheck the currently pinned version"
     )
-    upgrade.add_argument("--dry-run", action="store_true", help="Validate without writing the pin")
+    upgrade.add_argument(
+        "--dry-run", action="store_true", help="Validate without changing the pin or staged SDKs"
+    )
     upgrade.add_argument(
         "--allow-transitive-drift",
         action="store_true",
@@ -101,18 +103,17 @@ def _upgrade(args: argparse.Namespace, log: Logger) -> None:
         for artifact in candidate["artifacts"].values():
             artifact["sha256"] = None
 
-        def read(pin_path: str) -> str:
-            if pin_path == relative:
-                return json.dumps(candidate)
-            return (native_assets.REPO_ROOT / pin_path).read_text()
-
-        for platform, asset in native_assets.load(read).items():
-            updating = platform in candidate["artifacts"]
-            archive = native_assets.fetch(asset, force=updating, allow_unknown_sha256=updating)
-            native_assets.stage(
-                asset, archive, native_assets.REPO_ROOT / native_assets.PACKAGE_PATH
+        with tempfile.TemporaryDirectory() as scratch:
+            package = (
+                Path(scratch)
+                if args.dry_run
+                else native_assets.REPO_ROOT / native_assets.PACKAGE_PATH
             )
-            if updating:
+            for platform, asset in native_assets.load(
+                lambda _: json.dumps(candidate), sdk=args.sdk
+            ).items():
+                archive = native_assets.fetch(asset, force=True, allow_unknown_sha256=True)
+                native_assets.stage(asset, archive, package)
                 candidate["artifacts"][platform]["sha256"] = asset.sha256
     if args.dry_run:
         log.info(f"--dry-run: would write {relative}:\n{json.dumps(candidate, indent=2)}")

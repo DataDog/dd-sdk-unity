@@ -30,11 +30,13 @@ SDKS: dict[str, dict[str, str]] = {
 }
 
 
-def load(read: Callable[[str], str | bytes] | None = None) -> dict[str, NativeArtifact]:
+def load(
+    read: Callable[[str], str | bytes] | None = None, *, sdk: str | None = None
+) -> dict[str, NativeArtifact]:
     read = read or (lambda path: (REPO_ROOT / path).read_text())
     assets = {}
-    for sdk in SDKS.values():
-        pin = SdkPin.model_validate_json(read(sdk["pin"]))
+    for config in (SDKS[sdk],) if sdk else SDKS.values():
+        pin = SdkPin.model_validate_json(read(config["pin"]))
         for platform, artifact in pin.artifacts.items():
             assets[platform] = NativeArtifact.model_validate(
                 {
@@ -42,7 +44,7 @@ def load(read: Callable[[str], str | bytes] | None = None) -> dict[str, NativeAr
                     "name": artifact.name.format(version=pin.version),
                     "strip_prefix": artifact.strip_prefix.format(version=pin.version),
                     "platform": platform,
-                    "repository": sdk["repository"],
+                    "repository": config["repository"],
                     "version": pin.version,
                 }
             )
