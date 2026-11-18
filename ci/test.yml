@@ -2,7 +2,7 @@ lint-and-test:
   stage: unit-test
   image: "$MAC_IMAGE"
   tags:
-    - macos:tart
+    - macos:tart-experimental
   script:
     - !reference [.shared, init-scripts]
     - ruff check
@@ -19,7 +19,7 @@ unit-test:
   stage: unit-test
   image: "$MAC_IMAGE"
   tags:
-    - macos:tart
+    - macos:tart-experimental
   parallel:
     matrix:
       - UNITY_VERSION_PARTIAL: '2022.3'
@@ -47,7 +47,7 @@ integration-test-ios:
   stage: integration-test
   image: "$MAC_IMAGE"
   tags:
-    - macos:tart
+    - macos:tart-experimental
   timeout: 1h
   variables:
     # Reserve time for cleanup and artifact upload before the job limit.
@@ -83,7 +83,7 @@ integration-test-webgl:
   stage: integration-test
   image: "$MAC_IMAGE"
   tags:
-    - macos:tart
+    - macos:tart-experimental
   timeout: 1h
   variables:
     # Reserve time for cleanup and artifact upload before the job limit.

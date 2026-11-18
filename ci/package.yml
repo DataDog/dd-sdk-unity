@@ -18,7 +18,7 @@ package-ios:
   stage: package
   image: "$MAC_IMAGE"
   tags:
-    - macos:tart
+    - macos:tart-experimental
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
@@ -45,7 +45,7 @@ package-android:
   stage: package
   image: "$MAC_IMAGE"
   tags:
-    - macos:tart
+    - macos:tart-experimental
   script:
     - !reference [.shared, init-scripts]
     - !reference [.shared, install-unity]
