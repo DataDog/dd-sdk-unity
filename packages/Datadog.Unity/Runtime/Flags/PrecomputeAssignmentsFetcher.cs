@@ -20,6 +20,8 @@ namespace Datadog.Unity.Flags
     {
         public const int FetchTimeoutSeconds = 30;
 
+        internal const string InvalidResponseMessage = "Unable to read the feature flags response.";
+
         private readonly string _endpointUrl;
         private readonly string _clientToken;
         private readonly string _applicationId;
@@ -106,6 +108,11 @@ namespace Datadog.Unity.Flags
                 }
 
                 var parsed = TryParseResponse(response.Body, out var flags);
+                if (!parsed)
+                {
+                    _logger?.Log(Logs.DdLogLevel.Warn, InvalidResponseMessage);
+                }
+
                 var ignoredReason = parsed && _flagSelection != null
                     ? FlagSelectionIgnoredReason.Sanitize(response.GetHeader(FlagSelectionIgnoredReason.HeaderName))
                     : null;
@@ -207,13 +214,7 @@ namespace Datadog.Unity.Flags
             return $"unreadable error response (HTTP {httpCode})";
         }
 
-        internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
-        {
-            TryParseResponse(json, out var flags);
-            return flags;
-        }
-
-        // Returns false when the body has no flags object. The flags are then empty, as ParseResponse returns.
+        // Returns false when the body is empty, is not JSON, or has no flags object; flags is then empty.
         internal static bool TryParseResponse(string json, out Dictionary<string, FlagAssignment> flags)
         {
             flags = new Dictionary<string, FlagAssignment>();

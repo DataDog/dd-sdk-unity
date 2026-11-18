@@ -284,16 +284,6 @@ namespace Datadog.Unity.Flags.Tests
             Assert.IsNull(body["data"]["attributes"]["flag_selection"]);
         }
 
-        [Test]
-        public void TryParseResponseReportsWhetherTheBodyHadFlags()
-        {
-            Assert.IsTrue(PrecomputeAssignmentsFetcher.TryParseResponse(
-                @"{""data"": {""attributes"": {""flags"": {}}}}", out _));
-            Assert.IsFalse(PrecomputeAssignmentsFetcher.TryParseResponse("not json", out var flags));
-            Assert.AreEqual(0, flags.Count);
-            Assert.IsFalse(PrecomputeAssignmentsFetcher.TryParseResponse(@"{""data"": {}}", out _));
-        }
-
         // ─── Ignored header wiring ───────────────────────────────────────────────────
 
         private const string FlagsBody = @"{""data"": {""attributes"": {""flags"": {
@@ -397,6 +387,34 @@ namespace Datadog.Unity.Flags.Tests
             Assert.AreEqual(0, response.HeaderReads);
             logger.DidNotReceive().Log(DdLogLevel.Error, Arg.Any<string>());
             logger.DidNotReceive().TelemetryDebug(Arg.Any<string>(), Arg.Any<IDictionary<string, object>>());
+        }
+
+        [Test]
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("not json")]
+        [TestCase(@"{""data"": {}}")]
+        public void LogsAWarningWhenASuccessfulResponseHasNoFlags(string body)
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var installed = new Dictionary<string, FlagAssignment>();
+
+            MakeFetcher(logger, null).HandleResponse(new FakeResponse { Body = body }, flags => installed = flags);
+
+            Assert.IsNull(installed);
+            logger.Received(1).Log(Arg.Any<DdLogLevel>(), Arg.Any<string>());
+            logger.Received(1).Log(DdLogLevel.Warn, "Unable to read the feature flags response.");
+        }
+
+        [Test]
+        public void DoesNotWarnForAnEmptyFlagsObject()
+        {
+            var logger = Substitute.For<IInternalLogger>();
+            var response = new FakeResponse { Body = @"{""data"": {""attributes"": {""flags"": {}}}}" };
+
+            MakeFetcher(logger, null).HandleResponse(response, _ => { });
+
+            logger.DidNotReceive().Log(Arg.Any<DdLogLevel>(), Arg.Any<string>());
         }
 
         [Test]
