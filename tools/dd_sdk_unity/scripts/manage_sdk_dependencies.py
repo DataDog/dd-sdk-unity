@@ -7,6 +7,7 @@
 import argparse
 import copy
 import json
+import shutil
 import tempfile
 import zipfile
 from logging import Logger
@@ -62,6 +63,48 @@ def _write_pin(path: Path, document: dict) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _publish_upgrade(staged: Path, package: Path, pin: Path, document: dict) -> None:
+    destinations = [Path(artifact["destination"]) for artifact in document["artifacts"].values()]
+    sidecars = {Path(f"{destination}.meta") for destination in destinations}
+    paths = list(destinations)
+    for meta in staged.rglob("*.meta"):
+        relative = meta.relative_to(staged)
+        if any(relative.is_relative_to(destination) for destination in destinations):
+            continue
+        if relative in sidecars or not (package / relative).exists():
+            paths.append(relative)
+
+    changed: list[tuple[Path, Path]] = []
+    created: set[Path] = set()
+    try:
+        for relative in paths:
+            target = package / relative
+            backup = staged.parent / "backup" / relative
+            for parent in target.parents:
+                if parent.exists():
+                    break
+                created.add(parent)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists() or target.is_symlink():
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                target.rename(backup)
+            changed.append((target, backup))
+            (staged / relative).rename(target)
+        _write_pin(pin, document)
+    except BaseException:
+        for target, backup in reversed(changed):
+            if target.is_dir() and not target.is_symlink():
+                shutil.rmtree(target)
+            else:
+                target.unlink(missing_ok=True)
+            if backup.exists() or backup.is_symlink():
+                backup.rename(target)
+        for parent in sorted(created, key=lambda path: len(path.parts), reverse=True):
+            if parent.exists():
+                parent.rmdir()
+        raise
+
+
 def _upgrade(args: argparse.Namespace, log: Logger) -> None:
     if args.allow_transitive_drift and args.sdk != "android":
         raise ValueError("--allow-transitive-drift applies only to Android")
@@ -99,26 +142,28 @@ def _upgrade(args: argparse.Namespace, log: Logger) -> None:
             )
         for message in drift:
             log.warning(message)
+        if not args.dry_run:
+            _write_pin(path, candidate)
     else:
         for artifact in candidate["artifacts"].values():
             artifact["sha256"] = None
 
-        with tempfile.TemporaryDirectory() as scratch:
-            package = (
-                Path(scratch)
-                if args.dry_run
-                else native_assets.REPO_ROOT / native_assets.PACKAGE_PATH
-            )
+        with tempfile.TemporaryDirectory(dir=native_assets.REPO_ROOT) as scratch:
+            package = Path(scratch) / "package"
             for platform, asset in native_assets.load(
                 lambda _: json.dumps(candidate), sdk=args.sdk
             ).items():
                 archive = native_assets.fetch(asset, force=True, allow_unknown_sha256=True)
                 native_assets.stage(asset, archive, package)
+                native_assets.verify(asset, package)
                 candidate["artifacts"][platform]["sha256"] = asset.sha256
+            if not args.dry_run:
+                _publish_upgrade(
+                    package, native_assets.REPO_ROOT / native_assets.PACKAGE_PATH, path, candidate
+                )
     if args.dry_run:
         log.info(f"--dry-run: would write {relative}:\n{json.dumps(candidate, indent=2)}")
         return
-    _write_pin(path, candidate)
     log.info(f"Updated {args.sdk} SDK: {current_version} → {version}")
 
 
