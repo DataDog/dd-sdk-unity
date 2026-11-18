@@ -16,15 +16,17 @@ namespace Datadog.Unity.Flags
     /// </summary>
     /// <remarks>
     /// Tags match exactly and are case-sensitive.
-    /// A key pattern matches the whole flag key, and <c>*</c> matches any run of characters.
+    /// A key pattern matches the whole flag key. Only <c>*</c> is special, and it matches any run of characters,
+    /// including none.
     /// Values are trimmed of surrounding whitespace, and empty and duplicate values are ignored.
     /// If both lists are empty after trimming, no selection is sent and every flag loads.
-    /// Each list accepts at most 31 values, and each value is at most 200 UTF-8 bytes after trimming.
+    /// After empty and duplicate values are removed, each list accepts at most 31 values,
+    /// and each value is at most 200 UTF-8 bytes after trimming.
     /// A null value, or a value with an unpaired UTF-16 surrogate, makes the selection malformed.
     /// If the selection breaks a limit or is malformed, the SDK logs an error, does not send it, and loads every flag.
     /// The server may ignore a very large selection and return every flag.
-    /// Flags outside the selection are not loaded, so they evaluate to the default value with
-    /// <see cref="FlagEvaluationError.FlagNotFound"/>.
+    /// When the server applies the selection, flags outside it are not loaded, so they evaluate to the default value
+    /// with <see cref="FlagEvaluationError.FlagNotFound"/>.
     /// Older servers, or servers with flag selection turned off, may return every flag.
     /// The selection is fixed when <see cref="DdFlags.Enable"/> is called.
     /// A custom flags endpoint must forward the <c>DD-Flag-Selection-Ignored</c> response header
