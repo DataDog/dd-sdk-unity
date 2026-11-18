@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Net.Http;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -74,6 +75,8 @@ namespace Datadog.Unity.Tests.Integration
             Settings.Restore();
             var serverState = RunMockServer("start");
             Settings.Apply(serverState.Endpoint);
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            client.GetStringAsync($"{serverState.Endpoint}/reset").GetAwaiter().GetResult();
         }
 
         public void Cleanup()

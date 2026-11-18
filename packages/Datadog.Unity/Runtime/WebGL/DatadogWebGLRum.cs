@@ -39,9 +39,11 @@ namespace Datadog.Unity.WebGL
                 clientToken = options.ClientToken,
                 site = options.Site.ToWebValue(),
                 sessionSampleRate = options.SessionSampleRate,
+                telemetrySampleRate = options.TelemetrySampleRate,
                 service = options.ServiceName,
                 env = options.Env,
                 version = Application.version,
+                sdkVersion = DatadogSdk.SdkVersion,
                 traceSampleRate = options.TraceSampleRate,
                 trackUserInteractions = false,
                 trackFrustrations = true,
@@ -53,6 +55,10 @@ namespace Datadog.Unity.WebGL
                 source = "unity",
                 trackResourceHeaders = new ResourceHeaderFilter(options.TrackResourceHeaders, options.CustomResourceHeaders, options.IncludeDefaultHeaders).ToBrowserSdkOption(),
             };
+
+#if UNITY_INCLUDE_TESTS
+            browserSdkConfig.telemetryConfigurationSampleRate = 100f;
+#endif
 
             var configurationJson = JsonConvert.SerializeObject(browserSdkConfig);
 
@@ -338,6 +344,12 @@ namespace Datadog.Unity.WebGL
             [Preserve]
             public float sessionSampleRate { get; set; }
             [Preserve]
+            public float telemetrySampleRate { get; set; }
+#if UNITY_INCLUDE_TESTS
+            [Preserve]
+            public float telemetryConfigurationSampleRate { get; set; }
+#endif
+            [Preserve]
             public float sessionReplaySampleRate { get; set; } = 0f;
             [Preserve]
             public string service { get; set; }
@@ -345,6 +357,8 @@ namespace Datadog.Unity.WebGL
             public string env { get; set; }
             [Preserve]
             public string version { get; set; }
+            [Preserve]
+            public string sdkVersion { get; set; }
             [Preserve]
             public string proxy { get; set; }
             [Preserve]

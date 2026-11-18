@@ -48,7 +48,8 @@ namespace Datadog.Unity.Editor.iOS
                 var initializationFile = Path.Combine("MainApp", "DatadogInitialization.swift");
                 var initializationPath = Path.Combine(pathToProject, initializationFile);
                 var datadogOptions = DatadogConfigurationOptionsExtensions.GetOrCreate();
-                GenerateInitializationFile(initializationPath, datadogOptions, report.summary.guid.ToString());
+                GenerateInitializationFile(initializationPath, datadogOptions, report.summary.guid.ToString(),
+                    report.summary.options.HasFlag(BuildOptions.IncludeTestAssemblies));
                 var initializationFileGuid = pbxProject.AddFile(initializationFile, initializationFile, PBXSourceTree.Source);
                 var swiftVersion = pbxProject.GetBuildPropertyForAnyConfig(mainTarget, "SWIFT_VERSION");
                 if (string.IsNullOrEmpty(swiftVersion))
@@ -80,7 +81,8 @@ namespace Datadog.Unity.Editor.iOS
             }
         }
 
-        internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options, string buildId)
+        internal static void GenerateInitializationFile(string path, DatadogConfigurationOptions options, string buildId,
+            bool includeTestAssemblies = false)
         {
             var env = options.Env;
             if (env is null or "")
@@ -186,10 +188,12 @@ func initializeDatadog() {{
                         $"    rumConfig.timeseries = RUM.Configuration.Timeseries(collectTypes: {GetSwiftTimeseriesCollectTypes(options.TimeseriesTypes)})");
                 }
 
-                // Uncomment to enable RUM Configuration Telemetry
-                // sb.AppendLine(@"    rumConfig._internal_mutation {
-                //     $0.configurationTelemetrySampleRate = 100.0
-                // }");
+                if (includeTestAssemblies)
+                {
+                    sb.AppendLine(@"    rumConfig._internal_mutation {
+        $0.configurationTelemetrySampleRate = 100.0
+    }");
+                }
                 sb.AppendLine("    RUM.enable(with: rumConfig)");
             }
 

@@ -27,6 +27,7 @@ namespace Datadog.Unity.WebGL
                 site = options.Site.ToWebValue(),
                 service = options.ServiceName,
                 version = Application.version,
+                sdkVersion = DatadogSdk.SdkVersion,
                 source = "unity",
             };
 
@@ -99,6 +100,8 @@ namespace Datadog.Unity.WebGL
             public string service;
             [Preserve]
             public string version;
+            [Preserve]
+            public string sdkVersion;
             [Preserve]
             public string source;
         }

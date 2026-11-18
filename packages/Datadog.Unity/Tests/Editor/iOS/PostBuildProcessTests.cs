@@ -356,6 +356,18 @@ namespace Datadog.Unity.Editor.iOS
             Assert.IsTrue(sdkVersionLines.First().Trim().StartsWith($"\"_dd.sdk_version\": \"{expectedVersion}\""));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ConfigurationTelemetrySamplingIsForcedOnlyForTestPlayers(bool includeTestAssemblies)
+        {
+            var options = new DatadogConfigurationOptions { RumEnabled = true };
+            PostBuildProcess.GenerateInitializationFile(_initializationFilePath, options, null, includeTestAssemblies);
+
+            var initialization = File.ReadAllText(_initializationFilePath);
+            Assert.AreEqual(includeTestAssemblies,
+                initialization.Contains("$0.configurationTelemetrySampleRate = 100.0"));
+        }
+
 		[Test]
         public void GenerateOptionsFileWritesDefaultEnv()
         {

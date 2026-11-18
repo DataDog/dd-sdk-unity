@@ -119,6 +119,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
         {
             var tags = rumLog.ddtags;
             Assert.AreEqual(tags["version"], version);
+            Assert.AreEqual(tags["sdk_version"], DatadogSdk.SdkVersion);
         }
     }
 
