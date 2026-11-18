@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<test-run passed="1" failed="0" skipped="4" duration="1">
+  <test-suite type="TestFixture" name="SkippedFixture" runstate="Skipped" result="Skipped" duration="0">
+    <reason>
+      <message>Platform WebGLPlayer is not supported.</message>
+    </reason>
+    <test-case name="inherits-fixture-skip" classname="SkippedFixture" runstate="Runnable" result="Skipped" duration="0"/>
+    <test-case name="inherits-parent-skip" classname="SkippedFixture" runstate="Runnable" result="Skipped" site="Parent" duration="0"/>
+  </test-suite>
+  <test-suite type="TestFixture" name="RunnableFixture" runstate="Runnable" result="Passed" duration="1">
+    <test-case name="passes" classname="RunnableFixture" runstate="Runnable" result="Passed" duration="1"/>
+    <test-case name="skips-at-runtime" classname="RunnableFixture" runstate="Runnable" result="Skipped" duration="0">
+      <reason>
+        <message>Runtime prerequisite unavailable.</message>
+      </reason>
+    </test-case>
+    <test-case name="ignored" classname="RunnableFixture" runstate="Ignored" result="Skipped" duration="0">
+      <reason>
+        <message>Explicitly ignored.</message>
+      </reason>
+    </test-case>
+  </test-suite>
+</test-run>

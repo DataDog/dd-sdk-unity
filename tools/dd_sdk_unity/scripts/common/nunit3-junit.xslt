@@ -12,7 +12,7 @@
   <xsl:template match="test-suite">
     <xsl:variable name="suiteFailure" select="exists(failure) and not(@site = ('Child', 'Parent'))"/>
     <xsl:if test="test-case or $suiteFailure">
-      <testsuite tests="{count(test-case) + number($suiteFailure)}" time="{@duration}" errors="{number($suiteFailure and @label = 'Error')}" failures="{count(test-case[failure]) + number($suiteFailure and not(@label = 'Error'))}" skipped="{count(test-case[@runstate = ('Skipped', 'Ignored')])}" timestamp="{@start-time}">
+      <testsuite tests="{count(test-case) + number($suiteFailure)}" time="{@duration}" errors="{number($suiteFailure and @label = 'Error')}" failures="{count(test-case[failure]) + number($suiteFailure and not(@label = 'Error'))}" skipped="{count(test-case[@result = 'Skipped' or @runstate = ('Skipped', 'Ignored')])}" timestamp="{@start-time}">
         <xsl:attribute name="name">
           <xsl:for-each select="ancestor-or-self::test-suite[@type='TestSuite']/@name">
             <xsl:value-of select="concat(., '.')"/>
@@ -34,7 +34,7 @@
 
   <xsl:template match="test-case">
     <testcase name="{@name}" assertions="{@asserts}" time="{@duration}" status="{@result}" classname="{@classname}">
-      <xsl:if test="@runstate = 'Skipped' or @runstate = 'Ignored'">
+      <xsl:if test="@result = 'Skipped' or @runstate = ('Skipped', 'Ignored')">
         <skipped/>
       </xsl:if>
       
