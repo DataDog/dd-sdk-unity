@@ -18,6 +18,7 @@ namespace Datadog.Unity.Core
         public void Log(DdLogLevel level, string message);
         public void TelemetryError(string message, Exception exception);
         public void TelemetryDebug(string message);
+        public void TelemetryDebug(string message, IDictionary<string, object> attributes);
     }
 
     /// <summary>
@@ -37,6 +38,10 @@ namespace Datadog.Unity.Core
         }
 
         public void TelemetryDebug(string message)
+        {
+        }
+
+        public void TelemetryDebug(string message, IDictionary<string, object> attributes)
         {
         }
     }
@@ -78,6 +83,12 @@ namespace Datadog.Unity.Core
                 message));
         }
 
+        public void TelemetryDebug(string message, IDictionary<string, object> attributes)
+        {
+            _worker.AddMessage(DdTelemetryProcessor.TelemetryDebugMessage.Create(
+                message, attributes));
+        }
+
         private static string GetExceptionStack(Exception exception)
         {
             try
@@ -115,7 +126,15 @@ namespace Datadog.Unity.Core
             switch (message)
             {
                 case TelemetryDebugMessage msg:
-                    _platform.SendDebugTelemetry(msg.Message);
+                    if (msg.Attributes == null)
+                    {
+                        _platform.SendDebugTelemetry(msg.Message);
+                    }
+                    else
+                    {
+                        _platform.SendDebugTelemetry(msg.Message, msg.Attributes);
+                    }
+
                     break;
                 case TelemetryErrorMessage msg:
                     _platform.SendErrorTelemetry(msg.Message, msg.Stack, msg.Kind);
@@ -136,11 +155,14 @@ namespace Datadog.Unity.Core
 
             public string Message { get; private set; }
 
-            public static TelemetryDebugMessage Create(string message)
+            public IDictionary<string, object> Attributes { get; private set; }
+
+            public static TelemetryDebugMessage Create(string message, IDictionary<string, object> attributes = null)
             {
                 var obj = _pool.Get();
 
                 obj.Message = message;
+                obj.Attributes = attributes;
 
                 return obj;
             }
@@ -153,6 +175,7 @@ namespace Datadog.Unity.Core
             private void Reset()
             {
                 Message = null;
+                Attributes = null;
             }
         }
 

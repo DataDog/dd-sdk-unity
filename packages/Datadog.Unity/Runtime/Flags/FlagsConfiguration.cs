@@ -44,13 +44,21 @@ namespace Datadog.Unity.Flags
         /// </summary>
         public readonly string CustomEvaluationEndpoint;
 
+        /// <summary>
+        /// Selects which flags every client loads. If null or empty, every flag is loaded.
+        /// The selection is fixed when <see cref="DdFlags.Enable"/> is called.
+        /// See <see cref="Flags.FlagSelection"/> for the matching rules and limits.
+        /// </summary>
+        public readonly FlagSelection FlagSelection;
+
         public FlagsConfiguration(
             bool trackExposures = true,
             bool trackEvaluations = true,
             float evaluationFlushIntervalSeconds = 10.0f,
             string customFlagsEndpoint = null,
             string customExposureEndpoint = null,
-            string customEvaluationEndpoint = null)
+            string customEvaluationEndpoint = null,
+            FlagSelection flagSelection = null)
         {
             TrackExposures = trackExposures;
             TrackEvaluations = trackEvaluations;
@@ -58,6 +66,7 @@ namespace Datadog.Unity.Flags
             CustomFlagsEndpoint = customFlagsEndpoint;
             CustomExposureEndpoint = customExposureEndpoint;
             CustomEvaluationEndpoint = customEvaluationEndpoint;
+            FlagSelection = flagSelection;
         }
     }
 }

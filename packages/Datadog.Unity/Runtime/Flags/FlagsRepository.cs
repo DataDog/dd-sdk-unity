@@ -14,6 +14,7 @@ namespace Datadog.Unity.Flags
         private readonly object _lock = new();
         private Dictionary<string, FlagAssignment> _flags = new();
         private FlagsEvaluationContext _context;
+        private bool _hasConfiguration;
 
         /// <summary>
         /// Gets the current evaluation context.
@@ -50,17 +51,18 @@ namespace Datadog.Unity.Flags
             {
                 _context = context;
                 _flags = flags ?? new Dictionary<string, FlagAssignment>();
+                _hasConfiguration = true;
             }
         }
 
         /// <summary>
-        /// Returns true if any flags are cached.
+        /// Returns true once a configuration is installed, even one with no flags.
         /// </summary>
-        public bool HasFlags()
+        public bool HasConfiguration()
         {
             lock (_lock)
             {
-                return _flags.Count > 0;
+                return _hasConfiguration;
             }
         }
 

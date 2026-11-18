@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Datadog.Unity.Core;
 using Datadog.Unity.Logs;
@@ -81,6 +82,27 @@ namespace Datadog.Unity.Tests
 
             // Then
             mockPlatform.Received().SendDebugTelemetry("Telemetry debug message");
+            worker.Stop();
+        }
+
+        [Test]
+        public void TelemetryDebugWithAttributesForwardsAttributesToPlatformThroughWorker()
+        {
+            // Given
+            var mockInternalLogger = Substitute.For<IInternalLogger>();
+            var worker = new ThreadedWorker(mockInternalLogger);
+            var mockPlatform = Substitute.For<IDatadogPlatform>();
+            var internalLogger = new InternalLogger(worker, mockPlatform);
+            var attributes = new Dictionary<string, object> { { "reason", "invalid_tag" } };
+
+            // When
+            internalLogger.TelemetryDebug("Telemetry debug message", attributes);
+            worker.Start();
+            Thread.Sleep(10);
+
+            // Then
+            mockPlatform.Received().SendDebugTelemetry("Telemetry debug message", attributes);
+            mockPlatform.DidNotReceive().SendDebugTelemetry(Arg.Any<string>());
             worker.Stop();
         }
 

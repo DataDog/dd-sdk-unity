@@ -42,6 +42,8 @@ namespace Datadog.Unity
 
         void SendDebugTelemetry(string message);
 
+        void SendDebugTelemetry(string message, IDictionary<string, object> attributes);
+
         void SendErrorTelemetry(string message, string stack, string kind);
 
         void ClearAllData();

@@ -55,7 +55,11 @@ namespace Datadog.Unity.Tests.Integration
 
             yield return new MonoBehaviourTest<TestTelemetryMonoBehavior>();
 
-            var expectedMessages = new[] { "Telemetry Debug Message", "Telemetry Error Message", "Caught bad operation" };
+            var expectedMessages = new[]
+            {
+                "Telemetry Debug Message", "Telemetry Error Message", "Caught bad operation",
+                "Telemetry Debug Message With Attributes",
+            };
             List<MockServerLog> serverLog = new();
             yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (log) =>
             {
@@ -83,6 +87,12 @@ namespace Datadog.Unity.Tests.Integration
             StringAssert.Contains("System.InvalidOperationException: Bad operation", exceptionEvent.ErrorStack);
             StringAssert.Contains("TelemetryTest", exceptionEvent.ErrorStack);
             Assert.AreEqual("System.InvalidOperationException", exceptionEvent.ErrorKind);
+
+            var attributedEvent = telemetryEvents.Single(value => value.Message == expectedMessages[3]);
+            Assert.AreEqual(
+                "invalid_tag",
+                RumEventDecoder.jsonGetProp<string>(attributedEvent.rumEvent, "telemetry.reason"),
+                attributedEvent.rumEvent["telemetry"]?.ToString());
         }
     }
 
@@ -113,6 +123,10 @@ namespace Datadog.Unity.Tests.Integration
             {
                 internalLogger.TelemetryError("Caught bad operation", e);
             }
+
+            internalLogger.TelemetryDebug(
+                "Telemetry Debug Message With Attributes",
+                new Dictionary<string, object> { { "reason", "invalid_tag" } });
 
             IsTestFinished = true;
         }

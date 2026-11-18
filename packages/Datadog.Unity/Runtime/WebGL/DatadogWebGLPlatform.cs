@@ -182,6 +182,11 @@ namespace Datadog.Unity.WebGL
 
         }
 
+        public void SendDebugTelemetry(string message, IDictionary<string, object> attributes)
+        {
+
+        }
+
         public void SendErrorTelemetry(string message, string stack, string kind)
         {
 

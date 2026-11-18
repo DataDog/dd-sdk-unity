@@ -20,35 +20,43 @@ namespace Datadog.Unity.Flags
     {
         public const int FetchTimeoutSeconds = 30;
 
+        internal const string InvalidResponseMessage = "Unable to read the feature flags response.";
+
         private readonly string _endpointUrl;
         private readonly string _clientToken;
         private readonly string _applicationId;
         private readonly string _env;
         private readonly IInternalLogger _logger;
+        private readonly CanonicalFlagSelection _flagSelection;
+        private readonly FlagSelectionReporter _flagSelectionReporter;
 
         public PrecomputeAssignmentsFetcher(
             string endpointUrl,
             string clientToken,
             string applicationId,
             string env,
-            IInternalLogger logger)
+            IInternalLogger logger,
+            CanonicalFlagSelection flagSelection = null,
+            FlagSelectionReporter flagSelectionReporter = null)
         {
             _endpointUrl = endpointUrl;
             _clientToken = clientToken;
             _applicationId = applicationId;
             _env = env;
             _logger = logger;
+            _flagSelection = flagSelection;
+            _flagSelectionReporter = flagSelectionReporter;
         }
 
         /// <summary>
         /// Fetches precomputed assignments for the given evaluation context.
         /// Uses a callback since UnityWebRequest can be used from coroutines.
         /// </summary>
-        public void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
+        public virtual void Fetch(FlagsEvaluationContext context, Action<Dictionary<string, FlagAssignment>> onComplete)
         {
             try
             {
-                var requestBody = BuildRequestBody(context);
+                var requestBody = BuildRequestBody(_env, context, _flagSelection);
                 var bodyBytes = Encoding.UTF8.GetBytes(requestBody);
 
                 var request = new UnityWebRequest(_endpointUrl, "POST");
@@ -68,24 +76,7 @@ namespace Datadog.Unity.Flags
                 {
                     try
                     {
-                        if (request.result != UnityWebRequest.Result.Success)
-                        {
-                            var errorDetail = ExtractServerError(request.downloadHandler?.text, request.responseCode);
-                            _logger?.Log(Logs.DdLogLevel.Warn,
-                                $"Failed to fetch flag assignments (HTTP {request.responseCode}): {errorDetail}");
-                            onComplete?.Invoke(null);
-                            return;
-                        }
-
-                        var responseText = request.downloadHandler.text;
-                        var flags = ParseResponse(responseText);
-                        onComplete?.Invoke(flags);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
-                        _logger?.TelemetryError("Error parsing flag assignments", e);
-                        onComplete?.Invoke(null);
+                        HandleResponse(new UnityWebRequestResponse(request), onComplete);
                     }
                     finally
                     {
@@ -101,7 +92,55 @@ namespace Datadog.Unity.Flags
             }
         }
 
-        private string BuildRequestBody(FlagsEvaluationContext context)
+        internal void HandleResponse(
+            IPrecomputeResponse response,
+            Action<Dictionary<string, FlagAssignment>> onComplete)
+        {
+            try
+            {
+                if (!response.Succeeded)
+                {
+                    var errorDetail = ExtractServerError(response.Body, response.StatusCode);
+                    _logger?.Log(Logs.DdLogLevel.Warn,
+                        $"Failed to fetch flag assignments (HTTP {response.StatusCode}): {errorDetail}");
+                    onComplete?.Invoke(null);
+                    return;
+                }
+
+                var parsed = TryParseResponse(response.Body, out var flags);
+                if (!parsed)
+                {
+                    _logger?.Log(Logs.DdLogLevel.Warn, InvalidResponseMessage);
+                }
+
+                var ignoredReason = parsed && _flagSelection != null
+                    ? FlagSelectionIgnoredReason.Sanitize(response.GetHeader(FlagSelectionIgnoredReason.HeaderName))
+                    : null;
+                try
+                {
+                    onComplete?.Invoke(parsed ? flags : null);
+                }
+                finally
+                {
+                    // Reported after the callback installs the flags, so the report describes the loaded set.
+                    if (ignoredReason != null)
+                    {
+                        _flagSelectionReporter?.ReportIgnored(ignoredReason);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.Log(Logs.DdLogLevel.Warn, $"Error parsing flag assignments: {e.Message}");
+                _logger?.TelemetryError("Error parsing flag assignments", e);
+                onComplete?.Invoke(null);
+            }
+        }
+
+        internal static string BuildRequestBody(
+            string env,
+            FlagsEvaluationContext context,
+            CanonicalFlagSelection flagSelection)
         {
             var dto = new AssignmentsRequestDto
             {
@@ -109,7 +148,7 @@ namespace Datadog.Unity.Flags
                 {
                     Attributes = new AssignmentsRequestAttributesDto
                     {
-                        Env = new AssignmentsEnvDto { Name = _env, DdEnv = _env },
+                        Env = new AssignmentsEnvDto { Name = env, DdEnv = env },
                         Subject = new AssignmentsSubjectDto
                         {
                             TargetingKey = context.TargetingKey,
@@ -117,6 +156,13 @@ namespace Datadog.Unity.Flags
                                 ? context.Attributes
                                 : null,
                         },
+                        FlagSelection = flagSelection == null
+                            ? null
+                            : new FlagSelectionDto
+                            {
+                                Tags = flagSelection.Tags,
+                                KeyPatterns = flagSelection.KeyPatterns,
+                            },
                     },
                 },
             };
@@ -168,13 +214,14 @@ namespace Datadog.Unity.Flags
             return $"unreadable error response (HTTP {httpCode})";
         }
 
-        internal static Dictionary<string, FlagAssignment> ParseResponse(string json)
+        // Returns false when the body is empty, is not JSON, or has no flags object; flags is then empty.
+        internal static bool TryParseResponse(string json, out Dictionary<string, FlagAssignment> flags)
         {
-            var flags = new Dictionary<string, FlagAssignment>();
+            flags = new Dictionary<string, FlagAssignment>();
 
             if (string.IsNullOrEmpty(json))
             {
-                return flags;
+                return false;
             }
 
             AssignmentsResponseDto response;
@@ -184,13 +231,13 @@ namespace Datadog.Unity.Flags
             }
             catch
             {
-                return flags;
+                return false;
             }
 
             var flagsDict = response?.Data?.Attributes?.Flags;
             if (flagsDict == null)
             {
-                return flags;
+                return false;
             }
 
             foreach (var kvp in flagsDict)
@@ -205,7 +252,7 @@ namespace Datadog.Unity.Flags
                     reason: dto.Reason);
             }
 
-            return flags;
+            return true;
         }
 
         // Json.NET uses these accessors through reflection; keep them in IL2CPP players.
@@ -236,6 +283,21 @@ namespace Datadog.Unity.Flags
             [Preserve]
             [JsonProperty("subject")]
             public AssignmentsSubjectDto Subject { get; set; }
+
+            [Preserve]
+            [JsonProperty("flag_selection", NullValueHandling = NullValueHandling.Ignore)]
+            public FlagSelectionDto FlagSelection { get; set; }
+        }
+
+        private class FlagSelectionDto
+        {
+            [Preserve]
+            [JsonProperty("tags")]
+            public string[] Tags { get; set; }
+
+            [Preserve]
+            [JsonProperty("key_patterns")]
+            public string[] KeyPatterns { get; set; }
         }
 
         private class AssignmentsEnvDto
@@ -312,5 +374,38 @@ namespace Datadog.Unity.Flags
             public string Reason { get; set; }
 
         }
+    }
+
+    /// <summary>
+    /// The parts of a precompute response the fetcher reads. Tests substitute it because the
+    /// integration mock server cannot set response headers.
+    /// </summary>
+    internal interface IPrecomputeResponse
+    {
+        bool Succeeded { get; }
+
+        long StatusCode { get; }
+
+        string Body { get; }
+
+        string GetHeader(string name);
+    }
+
+    internal sealed class UnityWebRequestResponse : IPrecomputeResponse
+    {
+        private readonly UnityWebRequest _request;
+
+        public UnityWebRequestResponse(UnityWebRequest request)
+        {
+            _request = request;
+        }
+
+        public bool Succeeded => _request.result == UnityWebRequest.Result.Success;
+
+        public long StatusCode => _request.responseCode;
+
+        public string Body => _request.downloadHandler?.text;
+
+        public string GetHeader(string name) => _request.GetResponseHeader(name);
     }
 }
