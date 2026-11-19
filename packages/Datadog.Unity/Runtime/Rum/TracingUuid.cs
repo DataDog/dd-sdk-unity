@@ -4,6 +4,7 @@
 
 using System;
 using System.Numerics;
+using System.Threading;
 
 namespace Datadog.Unity.Rum
 {
@@ -40,7 +41,7 @@ namespace Datadog.Unity.Rum
     /// </summary>
     public readonly struct TracingUuid
     {
-        private static readonly Random _random = new();
+        private static readonly ThreadLocal<Random> _random = new(() => new Random());
 
         private readonly ulong _high;
         private readonly ulong _low;
@@ -116,7 +117,7 @@ namespace Datadog.Unity.Rum
         /// </summary>
         public static TracingUuid Create63Bit()
         {
-            return Create63Bit(_random);
+            return Create63Bit(_random.Value);
         }
 
         internal static TracingUuid Create63Bit(Random random)
@@ -135,7 +136,7 @@ namespace Datadog.Unity.Rum
         /// </summary>
         public static TracingUuid Create64Bit()
         {
-            return Create64Bit(_random);
+            return Create64Bit(_random.Value);
         }
 
         internal static TracingUuid Create64Bit(Random random)
@@ -156,7 +157,7 @@ namespace Datadog.Unity.Rum
         /// </summary>
         public static TracingUuid Create128Bit()
         {
-            return Create128Bit(_random);
+            return Create128Bit(_random.Value);
         }
 
         internal static TracingUuid Create128Bit(Random random)

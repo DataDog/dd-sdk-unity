@@ -3,8 +3,10 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -139,6 +141,49 @@ namespace Datadog.Unity.Rum.Tests
 
             Assert.AreEqual(bits == 63 ? (ulong)long.MaxValue : ulong.MaxValue, uuid.Low);
             Assert.AreEqual(high.ToString("x16"), uuid.ToString(TraceIdRepresentation.HighHex16Chars));
+        }
+
+        [Test]
+        public void GeneratesNonzeroIdsFromConcurrentThreads()
+        {
+            const int workerCount = 4;
+            using var start = new ManualResetEventSlim();
+            using var finished = new CountdownEvent(workerCount);
+            var errors = new ConcurrentQueue<Exception>();
+
+            for (var worker = 0; worker < workerCount; worker++)
+            {
+                var thread = new Thread(() =>
+                {
+                    try
+                    {
+                        start.Wait();
+                        for (var i = 0; i < 2000; i++)
+                        {
+                            var spanId = TracingUuid.Create63Bit();
+                            var id64 = TracingUuid.Create64Bit();
+                            var traceId = TracingUuid.Create128Bit();
+                            if (spanId.Low == 0 || spanId.Low > long.MaxValue || id64.Low == 0 || traceId.Low == 0)
+                            {
+                                throw new InvalidOperationException("Generated an ID outside its supported range.");
+                            }
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        errors.Enqueue(exception);
+                    }
+                    finally
+                    {
+                        finished.Signal();
+                    }
+                }) { IsBackground = true };
+                thread.Start();
+            }
+
+            start.Set();
+            Assert.IsTrue(finished.Wait(TimeSpan.FromSeconds(10)), "Concurrent ID generation did not finish.");
+            Assert.IsEmpty(errors);
         }
 
         [Test]
