@@ -3,7 +3,9 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Rum.Tests
@@ -113,6 +115,32 @@ namespace Datadog.Unity.Rum.Tests
             Assert.AreEqual(expected, str);
         }
 
+        [TestCase(63, 0ul, 0ul)]
+        [TestCase(63, 0x8000000000000000ul, 0ul)]
+        [TestCase(64, 0ul, 0ul)]
+        [TestCase(128, 0ul, 0ul)]
+        [TestCase(128, 0ul, ulong.MaxValue)]
+        public void GeneratorsRetryZeroValues(int bits, ulong firstValue, ulong high)
+        {
+            var values = new Queue<ulong>(new[] { firstValue, 0ul, ulong.MaxValue, high });
+            var random = Substitute.For<Random>();
+            random.When(x => x.NextBytes(Arg.Any<byte[]>())).Do(call =>
+            {
+                var bytes = BitConverter.GetBytes(values.Dequeue());
+                Array.Copy(bytes, call.Arg<byte[]>(), bytes.Length);
+            });
+
+            var uuid = bits switch
+            {
+                63 => TracingUuid.Create63Bit(random),
+                64 => TracingUuid.Create64Bit(random),
+                _ => TracingUuid.Create128Bit(random),
+            };
+
+            Assert.AreEqual(bits == 63 ? (ulong)long.MaxValue : ulong.MaxValue, uuid.Low);
+            Assert.AreEqual(high.ToString("x16"), uuid.ToString(TraceIdRepresentation.HighHex16Chars));
+        }
+
         [Test]
         [Repeat(25)]
         public void CreateTracingUuid63BitSucceeds()
@@ -124,6 +152,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = TracingUuid.Create63Bit();
 
             // Then
+            Assert.AreNotEqual(0ul, uuid.Low);
             var str = uuid.ToString(TraceIdRepresentation.Hex);
             Assert.Less(str.Length, 17);
             if (str.Length == 16)
@@ -144,6 +173,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = TracingUuid.Create64Bit();
 
             // Then
+            Assert.AreNotEqual(0ul, uuid.Low);
             var str = uuid.ToString(TraceIdRepresentation.Hex);
             Assert.LessOrEqual(str.Length, 16);
         }
@@ -159,6 +189,7 @@ namespace Datadog.Unity.Rum.Tests
             var uuid = TracingUuid.Create128Bit();
 
             // Then
+            Assert.AreNotEqual(0ul, uuid.Low);
             var str = uuid.ToString(TraceIdRepresentation.Hex);
             Assert.LessOrEqual(str.Length, 32);
             Assert.Greater(str.Length, 0);

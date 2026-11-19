@@ -287,25 +287,19 @@ namespace Datadog.Unity.Rum.Tests
             if (shouldInjectHeaders)
             {
                 var header = headers["b3"];
-                if (sampled)
-                {
-                    var headerParts = header.Split("-");
-                    BigInteger.TryParse(headerParts[0], NumberStyles.HexNumber, null, out BigInteger traceInt);
-                    BigInteger.TryParse(headerParts[1], NumberStyles.HexNumber, null, out BigInteger spanInt);
-                    Assert.AreEqual(32, headerParts[0].Length);
-                    Assert.AreEqual(16, headerParts[1].Length);
-                    Assert.AreEqual(headerParts[2], "1");
+                var headerParts = header.Split("-");
+                Assert.AreEqual(3, headerParts.Length);
+                BigInteger.TryParse(headerParts[0], NumberStyles.HexNumber, null, out BigInteger traceInt);
+                BigInteger.TryParse(headerParts[1], NumberStyles.HexNumber, null, out BigInteger spanInt);
+                Assert.AreEqual(32, headerParts[0].Length);
+                Assert.AreEqual(16, headerParts[1].Length);
+                Assert.AreEqual(sampled ? "1" : "0", headerParts[2]);
 
-                    Assert.NotNull(traceInt);
-                    Assert.LessOrEqual(traceInt.GetByteCount(), 128);
+                Assert.NotNull(traceInt);
+                Assert.LessOrEqual(traceInt.GetByteCount(), 128);
 
-                    Assert.NotNull(spanInt);
-                    Assert.LessOrEqual(spanInt.GetByteCount(), 63);
-                }
-                else
-                {
-                    Assert.AreEqual("0", header);
-                }
+                Assert.NotNull(spanInt);
+                Assert.LessOrEqual(spanInt.GetByteCount(), 63);
             }
             else
             {
@@ -315,6 +309,8 @@ namespace Datadog.Unity.Rum.Tests
 
         private static void VerifyB3MultiHeaders(Dictionary<string, string> headers, bool sampled, bool shouldInjectHeaders)
         {
+            Assert.IsFalse(headers.ContainsKey("X-B3-ParentId"));
+            Assert.IsFalse(headers.ContainsKey("X-B3-ParentSpanId"));
             if (shouldInjectHeaders)
             {
                 string sampleString = sampled ? "1" : "0";
@@ -322,24 +318,18 @@ namespace Datadog.Unity.Rum.Tests
                 Assert.AreEqual(sampleString, headers["X-B3-Sampled"]);
                 var traceString = headers.GetValueOrDefault("X-B3-TraceId");
                 var spanString = headers.GetValueOrDefault("X-B3-SpanId");
-                if (sampled)
-                {
-                    BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out BigInteger traceInt);
-                    Assert.AreEqual(32, traceString.Length);
-                    BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out BigInteger spanInt);
-                    Assert.AreEqual(16, spanString.Length);
+                Assert.IsNotNull(traceString);
+                Assert.IsNotNull(spanString);
+                BigInteger.TryParse(traceString, NumberStyles.HexNumber, null, out BigInteger traceInt);
+                Assert.AreEqual(32, traceString.Length);
+                BigInteger.TryParse(spanString, NumberStyles.HexNumber, null, out BigInteger spanInt);
+                Assert.AreEqual(16, spanString.Length);
 
-                    Assert.NotNull(traceInt);
-                    Assert.LessOrEqual(traceInt.GetByteCount(), 128);
+                Assert.NotNull(traceInt);
+                Assert.LessOrEqual(traceInt.GetByteCount(), 128);
 
-                    Assert.NotNull(spanInt);
-                    Assert.LessOrEqual(spanInt.GetByteCount(), 63);
-                }
-                else
-                {
-                    Assert.IsNull(traceString);
-                    Assert.IsNull(spanString);
-                }
+                Assert.NotNull(spanInt);
+                Assert.LessOrEqual(spanInt.GetByteCount(), 63);
             }
             else
             {

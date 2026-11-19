@@ -100,7 +100,7 @@ namespace Datadog.Unity.Rum.Tests
             var context = helper.GenerateTraceContext();
             Assert.AreEqual(sampled, context.sampled);
             CollectionAssert.AreEquivalent(
-                helper.GenerateTracingHeaders(new TraceContext(context.traceId, context.spanId, null, sampled), type),
+                helper.GenerateTracingHeaders(new TraceContext(context.traceId, context.spanId, sampled), type),
                 helper.GenerateTracingHeaders(context, type));
         }
 
@@ -116,18 +116,20 @@ namespace Datadog.Unity.Rum.Tests
             }, provider);
             var traceId = new TracingUuid(123, 456);
             var spanId = new TracingUuid(0, 789);
-            var parentId = new TracingUuid(0, 42);
-            var context = new TraceContext(traceId, spanId, parentId, sampled);
+            var context = new TraceContext(traceId, spanId, sampled);
 
-            var headers = helper.GenerateTracingHeaders(context, TracingHeaderType.Datadog | TracingHeaderType.B3);
+            var headers = helper.GenerateTracingHeaders(context,
+                TracingHeaderType.Datadog | TracingHeaderType.B3 | TracingHeaderType.B3Multi);
             Assert.AreEqual(traceId.ToString(TraceIdRepresentation.LowDec), headers["x-datadog-trace-id"]);
             Assert.AreEqual(spanId.ToString(TraceIdRepresentation.Dec), headers["x-datadog-parent-id"]);
             Assert.AreEqual(sampled ? "1" : "0", headers["x-datadog-sampling-priority"]);
-            var expectedB3 = sampled
-                ? $"{traceId.ToString(TraceIdRepresentation.Hex32Chars)}-{spanId.ToString(TraceIdRepresentation.Hex16Chars)}-1-" +
-                  parentId.ToString(TraceIdRepresentation.Hex16Chars)
-                : "0";
-            Assert.AreEqual(expectedB3, headers["b3"]);
+            var traceIdHex = traceId.ToString(TraceIdRepresentation.Hex32Chars);
+            var spanIdHex = spanId.ToString(TraceIdRepresentation.Hex16Chars);
+            var sampledString = sampled ? "1" : "0";
+            Assert.AreEqual($"{traceIdHex}-{spanIdHex}-{sampledString}", headers["b3"]);
+            Assert.AreEqual(traceIdHex, headers["X-B3-TraceId"]);
+            Assert.AreEqual(spanIdHex, headers["X-B3-SpanId"]);
+            Assert.AreEqual(sampledString, headers["X-B3-Sampled"]);
 
             var attributes = helper.GenerateDatadogAttributes(context);
             Assert.AreEqual(0.25f, attributes[ResourceTrackingHelper.DatadogAttributeKeys.RulePsr]);
@@ -149,7 +151,7 @@ namespace Datadog.Unity.Rum.Tests
         public void ResourceMetadataUsesCapturedRate(float rulePsr)
         {
             var helper = new ResourceTrackingHelper(new() { SessionSampleRate = 50, TraceSampleRate = 20 });
-            var context = new TraceContext(new TracingUuid(0, 1), new TracingUuid(0, 2), null, rulePsr > 0, rulePsr);
+            var context = new TraceContext(new TracingUuid(0, 1), new TracingUuid(0, 2), rulePsr > 0, rulePsr);
             Assert.AreEqual(rulePsr, helper.GenerateDatadogAttributes(context)[ResourceTrackingHelper.DatadogAttributeKeys.RulePsr]);
         }
     }

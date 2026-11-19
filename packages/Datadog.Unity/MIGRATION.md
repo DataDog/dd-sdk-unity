@@ -11,6 +11,19 @@ The extra-info keys `id`, `name`, `email`, and `anonymous_id` are now ignored wi
 warning. Use `SetUserInfo` parameters for identity fields and rename custom
 attributes that use these reserved keys.
 
+## Distributed tracing
+
+`TraceContext.parentSpanId` and the `parentSpanId` constructor parameter have been
+removed. Remove the third argument when constructing a trace context:
+
+```diff
+-new TraceContext(traceId, spanId, parentSpanId, sampled)
++new TraceContext(traceId, spanId, sampled)
+```
+
+With `TraceContextInjection.All`, both B3 formats now include trace and span IDs
+for unsampled requests, with sampling set to `0`.
+
 ## WebGL Changes
 
 Update both Browser SDK scripts in your WebGL template. The example uses the US1

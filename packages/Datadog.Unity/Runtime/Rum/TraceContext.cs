@@ -15,7 +15,6 @@ namespace Datadog.Unity.Rum
     {
         public readonly TracingUuid traceId;
         public readonly TracingUuid spanId;
-        public readonly TracingUuid? parentSpanId;
         public readonly bool sampled;
         internal readonly float? rulePsr;
 
@@ -23,16 +22,15 @@ namespace Datadog.Unity.Rum
         /// Creates a context with caller-provided identifiers and a sampling decision.
         /// RUM sampling-rate metadata uses the resource-tracking helper's configured trace rate.
         /// </summary>
-        public TraceContext(TracingUuid traceId, TracingUuid spanId, TracingUuid? parentSpanId, bool sampled)
+        public TraceContext(TracingUuid traceId, TracingUuid spanId, bool sampled)
         {
             this.traceId = traceId;
             this.spanId = spanId;
-            this.parentSpanId = parentSpanId;
             this.sampled = sampled;
         }
 
-        internal TraceContext(TracingUuid traceId, TracingUuid spanId, TracingUuid? parentSpanId, bool sampled,
-            float rulePsr) : this(traceId, spanId, parentSpanId, sampled)
+        internal TraceContext(TracingUuid traceId, TracingUuid spanId, bool sampled,
+            float rulePsr) : this(traceId, spanId, sampled)
         {
             this.rulePsr = rulePsr;
         }
@@ -94,54 +92,21 @@ namespace Datadog.Unity.Rum
 
         private void InjectB3Headers(Dictionary<string, string> headers)
         {
-            // If this request was not sampled, but we're configured to inject tracing context
-            // regardless, inject "0" (indicating "this request was not sampled") as our context
-            if (!sampled)
-            {
-                headers[OTelHttpTracingHeaders.SingleB3] = "0";
-                return;
-            }
-
-            // Otherwise, inject full B3 context as a single header value: concatenate trace ID,
-            // span ID, and '1' to indicate that the request was sampled, delimited by '-'
             var traceIdString = traceId.ToString(TraceIdRepresentation.Hex32Chars);
             var spanIdString = spanId.ToString(TraceIdRepresentation.Hex16Chars);
-            var headerValue = $"{traceIdString}-{spanIdString}-1";
-
-            // If we have a parent span ID, append it
-            if (parentSpanId != null)
-            {
-                var parentSpanIdString = parentSpanId.Value.ToString(TraceIdRepresentation.Hex16Chars);
-                headerValue += $"-{parentSpanIdString}";
-            }
-
-            // Inject our 'b3' header value
-            headers[OTelHttpTracingHeaders.SingleB3] = headerValue;
+            var sampledString = sampled ? "1" : "0";
+            headers[OTelHttpTracingHeaders.SingleB3] = $"{traceIdString}-{spanIdString}-{sampledString}";
         }
 
         private void InjectB3MultiHeaders(Dictionary<string, string> headers)
         {
-            // If this request wasn't sampled, simply inject 'X-B3-Sampled: 0'
-            if (!sampled)
-            {
-                headers[OTelHttpTracingHeaders.MultipleSampled] = "0";
-                return;
-            }
-
-            // Otherwise, inject the requisite context as individual B3 header values
-            headers[OTelHttpTracingHeaders.MultipleSampled] = "1";
+            headers[OTelHttpTracingHeaders.MultipleSampled] = sampled ? "1" : "0";
 
             var traceIdString = traceId.ToString(TraceIdRepresentation.Hex32Chars);
             headers[OTelHttpTracingHeaders.MultipleTraceId] = traceIdString;
 
             var spanIdString = spanId.ToString(TraceIdRepresentation.Hex16Chars);
             headers[OTelHttpTracingHeaders.MultipleSpanId] = spanIdString;
-
-            if (parentSpanId != null)
-            {
-                var parentSpanIdString = parentSpanId.Value.ToString(TraceIdRepresentation.Hex16Chars);
-                headers[OTelHttpTracingHeaders.MultipleParentId] = parentSpanIdString;
-            }
         }
 
         private void InjectW3CTraceContextHeaders(Dictionary<string, string> headers)
@@ -169,7 +134,6 @@ namespace Datadog.Unity.Rum
         {
             public const string MultipleTraceId = "X-B3-TraceId";
             public const string MultipleSpanId = "X-B3-SpanId";
-            public const string MultipleParentId = "X-B3-ParentId";
             public const string MultipleSampled = "X-B3-Sampled";
 
             public const string SingleB3 = "b3";
