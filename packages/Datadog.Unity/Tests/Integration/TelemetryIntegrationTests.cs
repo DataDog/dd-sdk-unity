@@ -26,19 +26,25 @@ namespace Datadog.Unity.Tests.Integration
         {
             DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
 
+#if UNITY_WEBGL
+            const int expectedCount = 2;
+#else
+            const int expectedCount = 1;
+#endif
             var received = await MockServer.WaitFor(
                 select: snapshot => snapshot.RumEvents.OfType<RumTelemetryEventDecoder>()
                     .Where(value => value.TelemetryType == "configuration")
-#if UNITY_WEBGL
-                    .Where(value => value.SdkService == "browser-rum-sdk")
-#endif
-                    .FirstOrDefault(),
-                until: value => value != null);
-            var configurationEvent = received.Result;
+                    .ToList(),
+                until: values => values.Count >= expectedCount);
+            var configurationEvents = received.Result;
 
-            Assert.AreEqual("unity", configurationEvent.ConfigurationSource);
-            Assert.AreEqual(DatadogSdk.SdkVersion, configurationEvent.ConfigurationSdkVersion);
-            Assert.AreEqual(DatadogConfigurationOptions.Load().TelemetrySampleRate, configurationEvent.TelemetrySampleRate);
+            Assert.AreEqual(expectedCount, configurationEvents.Count, "Missing startup configuration telemetry.");
+            foreach (var configurationEvent in configurationEvents)
+            {
+                Assert.AreEqual("unity", configurationEvent.ConfigurationSource);
+                Assert.AreEqual(DatadogSdk.SdkVersion, configurationEvent.ConfigurationSdkVersion);
+                Assert.AreEqual(DatadogConfigurationOptions.Load().TelemetrySampleRate, configurationEvent.TelemetrySampleRate);
+            }
         }
 
         [Test]

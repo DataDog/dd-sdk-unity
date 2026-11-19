@@ -194,8 +194,10 @@ namespace Datadog.Unity.Editor
                 EditorGUILayout.EndHorizontal();
             }
 
+            EditorGUI.EndDisabledGroup();
+
             EditorGUILayout.Space();
-            _showAdvancedOptions = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvancedOptions, "Advanced RUM Options");
+            _showAdvancedOptions = EditorGUILayout.BeginFoldoutHeaderGroup(_showAdvancedOptions, "Advanced Options");
             if (_showAdvancedOptions)
             {
                 _options.CustomEndpoint = EditorGUILayout.TextField(
@@ -208,8 +210,6 @@ namespace Datadog.Unity.Editor
             }
 
             EditorGUILayout.EndFoldoutHeaderGroup();
-
-            EditorGUI.EndDisabledGroup();
         }
 
         public override void OnDeactivate()
