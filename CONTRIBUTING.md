@@ -103,7 +103,7 @@ dd-unity-manage-sdk-dependencies stage
 
 The pin files declare the SDK versions, release ZIPs, SHA-256 checksums, and selected
 files. Staged SDK directories are `.gitignore`d in this development repository.
-Paths below are relative to `packages/Datadog.Unity/`:
+The following paths are relative to `packages/Datadog.Unity/`:
 
 | SDK | Pin file | Staged directory |
 | --- | --- | --- |
@@ -124,11 +124,11 @@ The `upgrade` command updates the pin selected by `--sdk` (`ios`, `cpp`, or
 `android`) to the version supplied through `--version`.
 
 For iOS and C++, this downloads and stages the selected release files and updates
-the archive checksums. The pin is written after validation succeeds.
+the archive checksums. The command writes the pin only after validation succeeds.
 
 - `--dry-run` validates in a temporary directory without changing the pin or staged SDKs.
 - `--force` rechecks the currently pinned version.
-- `--allow-transitive-drift` accepts reviewed Kotlin/OkHttp changes for Android.
+- `--allow-transitive-drift` accepts reviewed Kotlin and OkHttp changes for Android.
 
 `NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow.
 
@@ -146,8 +146,8 @@ markers. Gradle resolves the transitive dependency graph from `mavenCentral()`, 
 Unlike iOS, nothing is vendored into the package: the AARs are referenced by Maven coordinate and
 fetched by Gradle at build time, so there is no fetch/stage step and no `Plugins/Android` payload.
 
-The Android version update checks Maven Central reachability and transitive
-Kotlin/OkHttp dependencies before writing the pin.
+For Android, the `upgrade` command checks that the AARs are reachable on Maven Central and checks
+the transitive Kotlin and OkHttp dependencies for drift before writing the pin.
 
 ## Repository overview
 
