@@ -332,7 +332,8 @@ Use `--project` and `--unity-version` to select another project and Editor.
 
 Results are written to `integration-test-<platform>.xml` in JUnit format, with logs alongside them. Mock-server logs are under the project's `Library/DatadogIntegrationTests/` directory.
 
-New integration tests should inherit [`IntegrationTestBase`][integration-test-base] and use the `integration` category.
+Write integration tests as `[Test]` methods returning `async Task`. Inherit
+[`IntegrationTestBase`][integration-test-base] and use the `integration` category.
 
 [integration-test-base]: ./packages/Datadog.Unity/Tests/Integration/IntegrationTestBase.cs
 

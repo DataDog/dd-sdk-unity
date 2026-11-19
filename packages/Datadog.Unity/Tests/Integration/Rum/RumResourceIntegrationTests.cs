@@ -3,9 +3,9 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json.Linq;
@@ -17,12 +17,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class RumResourceIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator StartAndStopResource()
+        public async Task StartAndStopResource()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
             var viewKey = StartView(out var viewStartedAt);
             var rum = DatadogSdk.Instance.Rum;
             var url = $"https://resource.invalid/{viewKey}";
@@ -50,7 +48,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             }
 
             // Nanosecond durations must also survive beyond the Int32 limit of about 2.15 seconds.
-            yield return new WaitForSecondsRealtime(2.2f);
+            await AsyncTestHelpers.Delay(TimeSpan.FromSeconds(2.2));
             foreach (var i in new[] { 1, 0 })
             {
                 durationLowerBounds[i] = clocks[i].Elapsed.TotalMilliseconds - 100;
@@ -62,8 +60,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 durationUpperBounds[i] = clocks[i].Elapsed.TotalMilliseconds + 100;
             }
 
-            RumViewVisit visit = null;
-            yield return CompleteScenario(server, viewKey, resourceCount: 2, errorCount: 0, value => visit = value);
+            RumScenario.CloseView(viewKey);
+            var received = await MockServer.WaitForClosedView(viewKey, value => value.ResourceEvents.Count >= 2);
+            var visit = received.Result;
             Assert.AreEqual(2, visit.ResourceEvents.Count);
             Assert.IsEmpty(visit.ErrorEvents);
             var clockOffset = GetClockOffset(visit, viewStartedAt);
@@ -83,6 +82,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
                     Is.InRange(durationLowerBounds[i], durationUpperBounds[i]),
                     "Resource duration is in nanoseconds");
                 AssertAttributes(resource, "completed", "response_received");
+
                 // TODO: Follow up with Browser SDK and remove this gate when manual trace attributes are promoted.
 #if !UNITY_WEBGL
                 Assert.AreEqual(traceId, resource.TraceId);
@@ -95,12 +95,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
             }
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator StopResourceWithError()
+        public async Task StopResourceWithError()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
             var viewKey = StartView(out var viewStartedAt);
             var rum = DatadogSdk.Instance.Rum;
             var key = $"{viewKey}-failed";
@@ -110,8 +108,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 { "request_id", "request-123" },
                 { "resource_state", "loading" },
             });
+
             // Keep request start outside the failure timestamp tolerance.
-            yield return new WaitForSecondsRealtime(0.25f);
+            await AsyncTestHelpers.Delay(TimeSpan.FromSeconds(0.25));
 
             var stoppedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             rum.StopResourceWithError(key, "ResourceLoadError", "Resource request failed", new()
@@ -120,13 +119,16 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 { "resource_state", "failed" },
             });
 
-            RumViewVisit visit = null;
 #if UNITY_WEBGL
             const int resourceCount = 1;
 #else
             const int resourceCount = 0;
 #endif
-            yield return CompleteScenario(server, viewKey, resourceCount, errorCount: 1, value => visit = value);
+            RumScenario.CloseView(viewKey);
+            var received = await MockServer.WaitForClosedView(
+                viewKey,
+                value => value.ResourceEvents.Count >= resourceCount && value.ErrorEvents.Count >= 1);
+            var visit = received.Result;
             Assert.AreEqual(1, visit.ErrorEvents.Count);
             Assert.AreEqual(resourceCount, visit.ResourceEvents.Count);
 #if UNITY_WEBGL
@@ -143,6 +145,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual("network", error.Source);
             Assert.AreEqual("ResourceLoadError", error.ErrorType);
             Assert.AreEqual("Resource request failed", error.Message);
+
             // TODO(RUM-19988): Remove this gate when the Android SDK pin includes
             // https://github.com/DataDog/dd-sdk-android/pull/4151.
 #if !UNITY_ANDROID
@@ -161,33 +164,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
             startedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             sdk.Rum.StartView(key, key);
             return key;
-        }
-
-        private static IEnumerator CompleteScenario(
-            MockServerHelper server,
-            string viewKey,
-            int resourceCount,
-            int errorCount,
-            Action<RumViewVisit> receive)
-        {
-#if UNITY_WEBGL
-            // Browser views close when a successor starts; StopView is a no-op.
-            DatadogSdk.Instance.Rum.StartView($"{viewKey}-complete");
-#else
-            DatadogSdk.Instance.Rum.StopView(viewKey);
-#endif
-            RumViewVisit visit = null;
-            yield return server.PollRequests(TimeSpan.FromSeconds(30), logs =>
-            {
-                visit = RumDecoderHelpers.RumSessionsFromEvents(RumDecoderHelpers.RumEventsFromMockServer(logs))
-                    .SelectMany(session => session.Visits).SingleOrDefault(value => value.Name == viewKey);
-                return visit != null && visit.ViewEvents.Any(value => !value.View.IsActive)
-                    && visit.ResourceEvents.Count >= resourceCount && visit.ErrorEvents.Count >= errorCount;
-            });
-            Assert.IsNotNull(visit, $"No RUM view received for {viewKey}");
-            var closedView = visit.ViewEvents.LastOrDefault(value => !value.View.IsActive);
-            Assert.IsNotNull(closedView, $"The RUM view {viewKey} did not close");
-            receive(visit);
         }
 
         private static long GetClockOffset(RumViewVisit visit, long viewStartedAt)

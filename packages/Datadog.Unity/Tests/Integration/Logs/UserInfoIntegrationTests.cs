@@ -2,10 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -14,13 +13,10 @@ namespace Datadog.Unity.Tests.Integration.Logs
 {
     public class UserInfoIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator UserInfoLifecycle()
+        public async Task UserInfoLifecycle()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
-
             var sdk = DatadogSdk.Instance;
             sdk.SetTrackingConsent(TrackingConsent.Granted);
             sdk.ClearUserInfo();
@@ -29,13 +25,10 @@ namespace Datadog.Unity.Tests.Integration.Logs
             try
             {
                 var expectedUsers = UserInfoTestHelpers.RecordUserChanges(message => logger.Info(message));
-                var events = new List<LogDecoder>();
-                yield return server.PollRequests(TimeSpan.FromSeconds(45), requests =>
-                {
-                    events = LogDecoder.LogsFromMockServer(requests)
-                        .Where(value => expectedUsers.ContainsKey(value.Message)).ToList();
-                    return expectedUsers.Keys.All(message => events.Any(value => value.Message == message));
-                });
+                var received = await MockServer.WaitFor(
+                    select: snapshot => snapshot.Logs.Where(value => expectedUsers.ContainsKey(value.Message)).ToList(),
+                    until: values => expectedUsers.Keys.All(message => values.Any(value => value.Message == message)));
+                var events = received.Result;
 
                 var mismatches = new List<string>();
                 foreach (var expected in expectedUsers)

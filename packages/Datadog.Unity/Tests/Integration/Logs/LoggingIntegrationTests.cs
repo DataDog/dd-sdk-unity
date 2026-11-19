@@ -3,8 +3,8 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Datadog.Unity.Logs;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -15,26 +15,16 @@ namespace Datadog.Unity.Tests.Integration.Logs
 {
     public class LoggingIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator LoggingIntegrationScenario()
+        public async Task LoggingIntegrationScenario()
         {
-            var mockServerHelper = new MockServerHelper();
-            yield return mockServerHelper.Clear();
+            await AsyncTestHelpers.WaitFor(new MonoBehaviourTest<TestLoggingMonoBehavior>());
 
-            yield return new MonoBehaviourTest<TestLoggingMonoBehavior>();
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.Logs, until: values => values.Count >= 6);
+            var logs = received.Result;
 
-            var timeoutTime = new TimeSpan(0, 0, 45);
-            var serverLog = new List<MockServerLog>();
-            var logs = new List<LogDecoder>();
-            yield return mockServerHelper.PollRequests(timeoutTime, (requests) =>
-            {
-                serverLog = requests;
-                logs = LogDecoder.LogsFromMockServer(serverLog);
-                return logs.Count >= 6;
-            });
-
-            foreach (var log in serverLog)
+            foreach (var log in received.Snapshot.Endpoints)
             {
                 foreach (var request in log.Requests)
                 {

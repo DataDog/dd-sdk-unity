@@ -3,9 +3,9 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using NUnit.Framework;
 using UnityEngine;
@@ -17,65 +17,54 @@ namespace Datadog.Unity.Tests.Integration
     [NUnit.Framework.Property("Order", -1)]
     public class TelemetryIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        protected override bool ResetMockServerBeforeTest => false;
+
+        [Test]
         [Category("integration")]
         [Order(0)]
-        public IEnumerator ConfigurationTelemetryReportsUnityMetadata()
+        public async Task ConfigurationTelemetryReportsUnityMetadata()
         {
             DatadogSdk.Instance.SetTrackingConsent(TrackingConsent.Granted);
 
-            var server = new MockServerHelper();
-            RumTelemetryEventDecoder configurationEvent = null;
-            yield return server.PollRequests(TimeSpan.FromSeconds(45), logs =>
-            {
-                var configurationEvents = RumDecoderHelpers.RumEventsFromMockServer(logs)
-                    .OfType<RumTelemetryEventDecoder>()
-                    .Where(value => value.TelemetryType == "configuration");
+            var received = await MockServer.WaitFor(
+                select: snapshot => snapshot.RumEvents.OfType<RumTelemetryEventDecoder>()
+                    .Where(value => value.TelemetryType == "configuration")
 #if UNITY_WEBGL
-                configurationEvents = configurationEvents.Where(value => value.SdkService == "browser-rum-sdk");
+                    .Where(value => value.SdkService == "browser-rum-sdk")
 #endif
-                configurationEvent = configurationEvents.FirstOrDefault();
-                return configurationEvent != null;
-            });
+                    .FirstOrDefault(),
+                until: value => value != null);
+            var configurationEvent = received.Result;
 
-            Assert.IsNotNull(configurationEvent, "No startup configuration telemetry received.");
             Assert.AreEqual("unity", configurationEvent.ConfigurationSource);
             Assert.AreEqual(DatadogSdk.SdkVersion, configurationEvent.ConfigurationSdkVersion);
             Assert.AreEqual(DatadogConfigurationOptions.Load().TelemetrySampleRate, configurationEvent.TelemetrySampleRate);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
+
         // Unity telemetry forwarding is not implemented on WebGL.
         [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
-        public IEnumerator TelemetryIntegrationScenario()
+        public async Task TelemetryIntegrationScenario()
         {
-            var mockServerHelper = new MockServerHelper();
-            yield return mockServerHelper.Clear();
+            await MockServer.Reset();
 
-            yield return new MonoBehaviourTest<TestTelemetryMonoBehavior>();
+            await AsyncTestHelpers.WaitFor(new MonoBehaviourTest<TestTelemetryMonoBehavior>());
 
             var expectedMessages = new[]
             {
                 "Telemetry Debug Message", "Telemetry Error Message", "Caught bad operation",
                 "Telemetry Debug Message With Attributes",
             };
-            List<MockServerLog> serverLog = new();
-            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (log) =>
-            {
-                serverLog = log;
-                var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
-                // Session renewals can upload unrelated native telemetry after the server is reset.
-                var telemetryEvents = events.OfType<RumTelemetryEventDecoder>().ToList();
-                return expectedMessages.All(message => telemetryEvents.Any(value => value.Message == message));
-            });
-
-            var telemetryEvents = RumDecoderHelpers.RumEventsFromMockServer(serverLog)
-                .OfType<RumTelemetryEventDecoder>()
-                .Where(value => expectedMessages.Contains(value.Message))
-                .ToList();
+            var received = await MockServer.WaitFor(
+                select: snapshot => snapshot.RumEvents.OfType<RumTelemetryEventDecoder>()
+                    .Where(value => expectedMessages.Contains(value.Message)).ToList(),
+                until: values => expectedMessages.All(message => values.Any(value => value.Message == message)));
+            var telemetryEvents = received.Result;
 
             Assert.AreEqual(expectedMessages.Length, telemetryEvents.Count);
+
             // Native clock adjustments can change timestamp order between consecutive events.
             CollectionAssert.AreEquivalent(expectedMessages, telemetryEvents.Select(value => value.Message));
 

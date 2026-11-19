@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json.Linq;
@@ -18,37 +19,29 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class RumIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator RumIntegrationScenario()
+        public async Task RumIntegrationScenario()
         {
-            var mockServerHelper = new MockServerHelper();
-            yield return mockServerHelper.Clear();
+            await AsyncTestHelpers.WaitFor(new MonoBehaviourTest<TestRumMonoBehavior>());
 
-            yield return new MonoBehaviourTest<TestRumMonoBehavior>();
-            List<MockServerLog> serverLog = new();
-            yield return mockServerHelper.PollRequests(new TimeSpan(0, 0, 30), (logs) =>
-            {
-                serverLog = logs;
-                var events = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
-                var sessions = RumDecoderHelpers.RumSessionsFromEvents(events);
+            var received = await MockServer.WaitFor(
+                select: snapshot => snapshot.RumEvents.OfType<RumViewEventDecoder>()
+                    .FirstOrDefault(view => view.View.Name == "EmptyScene" && view.Attributes?["is_loaded"]?.Value<bool>() == true),
+                until: view => view != null);
 
-                // Second view makes sure the first one has been closed
-                return sessions.Count >= 1 && sessions[0].Visits.Count >= 5;
-            });
-
-            foreach (var log in serverLog)
+            foreach (var log in received.Snapshot.Endpoints)
             {
                 VerifyCommonTags(log);
             }
 
-            var rumEvents = RumDecoderHelpers.RumEventsFromMockServer(serverLog);
+            var rumEvents = received.Snapshot.RumEvents;
             foreach (var rumEvent in rumEvents.Where(e => e.EventType != "telemetry"))
             {
                 VerifyCommonEventTags(rumEvent, "1.123");
             }
 
-            var sessions = RumDecoderHelpers.RumSessionsFromEvents(rumEvents);
+            var sessions = received.Snapshot.RumSessions;
 
             Assert.AreEqual(1, sessions.Count);
 

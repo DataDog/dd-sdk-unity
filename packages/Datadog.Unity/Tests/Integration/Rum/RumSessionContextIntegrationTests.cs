@@ -3,8 +3,8 @@
 // Copyright 2026-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using NUnit.Framework;
@@ -15,15 +15,13 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class RumSessionContextIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
+
         // WebGL delegates tracing to the Browser SDK and has no managed session-context provider.
         [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
-        public IEnumerator StartedSessionIsAvailableToManagedCode()
+        public async Task StartedSessionIsAvailableToManagedCode()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
-
             var sdk = DatadogSdk.Instance;
             sdk.SetTrackingConsent(TrackingConsent.Granted);
             var previousSessionId = sdk.CurrentRumSessionContext?.SessionId;
@@ -36,35 +34,31 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 viewOpen = true;
 
                 RumSessionContext session = null;
-                var deadline = Time.realtimeSinceStartup + 20;
-                while (Time.realtimeSinceStartup < deadline)
+                await AsyncTestHelpers.WaitUntil(() =>
                 {
-                    var current = sdk.CurrentRumSessionContext;
-                    if (current != null && current.SessionId != previousSessionId)
-                    {
-                        session = current;
-                        break;
-                    }
-                    yield return null;
-                }
+                    session = sdk.CurrentRumSessionContext;
+                    return session != null && session.SessionId != previousSessionId;
+                });
                 Assert.IsNotNull(session, "The native RUM context bridge did not return the new session.");
 
                 sdk.Rum.StopView(viewKey);
                 viewOpen = false;
-                RumViewEventDecoder view = null;
-                yield return server.PollRequests(TimeSpan.FromSeconds(30), logs =>
-                {
-                    view = RumDecoderHelpers.RumEventsFromMockServer(logs).OfType<RumViewEventDecoder>()
-                        .FirstOrDefault(value => value.View.Name == viewKey && !value.View.IsActive);
-                    return view != null;
-                });
-                Assert.IsNotNull(view, $"No closed native RUM view received for {viewKey}.");
-                Assert.AreEqual(view.Session, session.SessionId,
+                var received = await MockServer.WaitFor(
+                    select: snapshot => snapshot.RumEvents.OfType<RumViewEventDecoder>()
+                        .FirstOrDefault(value => value.View.Name == viewKey && !value.View.IsActive),
+                    until: value => value != null);
+                var view = received.Result;
+                Assert.AreEqual(
+                    view.Session,
+                    session.SessionId,
                     "The managed snapshot must match the session emitted by native RUM.");
             }
             finally
             {
-                if (viewOpen) sdk.Rum.StopView(viewKey);
+                if (viewOpen)
+                {
+                    sdk.Rum.StopView(viewKey);
+                }
             }
         }
     }
