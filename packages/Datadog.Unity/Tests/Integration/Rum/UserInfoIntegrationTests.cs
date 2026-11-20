@@ -3,9 +3,9 @@
 // Copyright 2026-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using NUnit.Framework;
@@ -15,13 +15,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class UserInfoIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator UserInfoLifecycle()
+        public async Task UserInfoLifecycle()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
-
             var sdk = DatadogSdk.Instance;
             sdk.SetTrackingConsent(TrackingConsent.Granted);
             sdk.ClearUserInfo();
@@ -32,13 +29,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
             {
                 var expectedUsers = UserInfoTestHelpers.RecordUserChanges(message =>
                     sdk.Rum.AddError(new ErrorInfo("UserInfoTest", message), RumErrorSource.Source));
-                var events = new List<RumErrorEventDecoder>();
-                yield return server.PollRequests(TimeSpan.FromSeconds(45), requests =>
-                {
-                    events = RumDecoderHelpers.RumEventsFromMockServer(requests).OfType<RumErrorEventDecoder>()
-                        .Where(value => expectedUsers.ContainsKey(value.Message)).ToList();
-                    return expectedUsers.Keys.All(message => events.Any(value => value.Message == message));
-                });
+                var received = await MockServer.WaitFor(
+                    select: snapshot => snapshot.RumEvents.OfType<RumErrorEventDecoder>().Where(value => expectedUsers.ContainsKey(value.Message)).ToList(),
+                    until: values => expectedUsers.Keys.All(message => values.Any(value => value.Message == message)));
+                var events = received.Result;
 
                 var mismatches = new List<string>();
                 foreach (var expected in expectedUsers)

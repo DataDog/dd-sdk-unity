@@ -2,6 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2026-Present Datadog, Inc.
 
+using System.Threading.Tasks;
+using NUnit.Framework;
+
 #if UNITY_EDITOR
 using Datadog.Unity.Tests.Editor;
 #endif
@@ -17,5 +20,18 @@ namespace Datadog.Unity.Tests.Integration
 #endif
     public abstract class IntegrationTestBase
     {
+        protected MockServerHelper MockServer { get; private set; }
+
+        protected virtual bool ResetMockServerBeforeTest => true;
+
+        [SetUp]
+        public async Task PrepareMockServer()
+        {
+            MockServer = new MockServerHelper();
+            if (ResetMockServerBeforeTest)
+            {
+                await MockServer.Reset();
+            }
+        }
     }
 }

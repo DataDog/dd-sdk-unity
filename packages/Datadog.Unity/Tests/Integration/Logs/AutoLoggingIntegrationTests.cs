@@ -3,9 +3,8 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Tests.Integration;
 using NUnit.Framework;
 using UnityEngine;
@@ -15,29 +14,20 @@ namespace Datadog.Unity.Tests.Integration.Logs
 {
     public class AutoLoggingIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator AutoLoggingIntegrationScenario()
+        public async Task AutoLoggingIntegrationScenario()
         {
             // Note -- For now the "Forward Unity Logs" flag needs to be set in the
             // projects settings for this to work (it is unset by default).
             LogAssert.ignoreFailingMessages = true;
 
-            var mockServerHelper = new MockServerHelper();
-            yield return mockServerHelper.Clear();
+            await AsyncTestHelpers.WaitFor(new MonoBehaviourTest<TestAutoLoggingMonoBehavior>());
 
-            yield return new MonoBehaviourTest<TestAutoLoggingMonoBehavior>();
-
-            var timeoutTime = new TimeSpan(0, 0, 45);
-            var logs = new List<LogDecoder>();
-            yield return mockServerHelper.PollRequests(timeoutTime, (serverLog) =>
-            {
-                // The Browser SDK can also send automatic logs from earlier scenarios.
-                logs = LogDecoder.LogsFromMockServer(serverLog)
-                    .Where(log => log.Message == "Testing logging" || log.Message == "Test warning")
-                    .ToList();
-                return logs.Count >= 2;
-            });
+            var received = await MockServer.WaitFor(
+                select: snapshot => snapshot.Logs.Where(log => log.Message == "Testing logging" || log.Message == "Test warning").ToList(),
+                until: values => values.Count >= 2);
+            var logs = received.Result;
 
             Assert.AreEqual(2, logs.Count);
 

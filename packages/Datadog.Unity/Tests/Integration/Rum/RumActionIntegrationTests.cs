@@ -3,8 +3,8 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Linq;
+using System.Threading.Tasks;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
 using Newtonsoft.Json.Linq;
@@ -15,12 +15,10 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class RumActionIntegrationTests : IntegrationTestBase
     {
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator AddAction()
+        public async Task AddAction()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
             var viewKey = StartView();
 
             DatadogSdk.Instance.Rum.AddAction(RumUserActionType.Tap, "Tapped Download", new()
@@ -29,20 +27,18 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 { "action_state", "completed" },
             });
 
-            RumViewVisit visit = null;
-            yield return CompleteScenario(server, viewKey, value => visit = value);
-            var action = visit.ActionEvents.Single();
+            RumScenario.CloseView(viewKey);
+            var received = await MockServer.WaitForClosedView(viewKey, visit => visit.ActionEvents.Count >= 1);
+            var action = received.Result.ActionEvents.Single();
             AssertAction(action, "tap", "Tapped Download");
             Assert.AreEqual("download-123", action.Attributes?["action_id"]?.Value<string>());
             Assert.AreEqual("completed", action.Attributes?["action_state"]?.Value<string>());
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator StartAndStopAction()
+        public async Task StartAndStopAction()
         {
-            var server = new MockServerHelper();
-            yield return server.Clear();
             var viewKey = StartView();
             var rum = DatadogSdk.Instance.Rum;
 
@@ -58,9 +54,9 @@ namespace Datadog.Unity.Tests.Integration.Rum
                 { "action_state", "completed" },
             });
 
-            RumViewVisit visit = null;
-            yield return CompleteScenario(server, viewKey, value => visit = value);
-            var action = visit.ActionEvents.Single();
+            RumScenario.CloseView(viewKey);
+            var received = await MockServer.WaitForClosedView(viewKey, visit => visit.ActionEvents.Count >= 1);
+            var action = received.Result.ActionEvents.Single();
             AssertAction(action, "scroll", "Scrolled Gallery");
             Assert.AreEqual("gallery-123", action.Attributes?["action_id"]?.Value<string>());
             Assert.AreEqual("gesture_ended", action.Attributes?["completion_reason"]?.Value<string>());
@@ -78,29 +74,6 @@ namespace Datadog.Unity.Tests.Integration.Rum
             var key = $"ManualAction-{Guid.NewGuid():N}";
             sdk.Rum.StartView(key, key);
             return key;
-        }
-
-        private static IEnumerator CompleteScenario(MockServerHelper server, string viewKey, Action<RumViewVisit> receive)
-        {
-#if UNITY_WEBGL
-            // Browser views close when a successor starts; StopView is a no-op.
-            // The test-runner prefix excludes delayed cleanup-view updates from later scenarios.
-            DatadogSdk.Instance.Rum.StartView($"InitTestScene-{viewKey}-complete");
-#else
-            DatadogSdk.Instance.Rum.StopView(viewKey);
-#endif
-            RumViewVisit visit = null;
-            yield return server.PollRequests(TimeSpan.FromSeconds(30), logs =>
-            {
-                visit = RumDecoderHelpers.RumSessionsFromEvents(RumDecoderHelpers.RumEventsFromMockServer(logs))
-                    .SelectMany(session => session.Visits).SingleOrDefault(value => value.Name == viewKey);
-                return visit != null && visit.ViewEvents.Any(value => !value.View.IsActive)
-                    && visit.ActionEvents.Count >= 1;
-            });
-            Assert.IsNotNull(visit, $"No RUM view received for {viewKey}");
-            Assert.IsTrue(visit.ViewEvents.Any(value => !value.View.IsActive), $"The RUM view {viewKey} did not close");
-            Assert.AreEqual(1, visit.ActionEvents.Count);
-            receive(visit);
         }
 
         private static void AssertAction(RumActionEventDecoder action, string type, string name)

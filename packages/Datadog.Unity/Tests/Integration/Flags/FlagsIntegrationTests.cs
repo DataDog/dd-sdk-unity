@@ -3,10 +3,10 @@
 // Copyright 2025-Present Datadog, Inc.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Datadog.Unity.Flags;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -17,17 +17,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
 {
     public class FlagsIntegrationTests : IntegrationTestBase
     {
-        private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(30);
-
-        private MockServerHelper _mockServer;
-        private string _mockBase;
         private string _precomputePayload;
 
         [SetUp]
         public void SetUp()
         {
-            _mockServer = new MockServerHelper();
-            _mockBase = DatadogConfigurationOptions.Load().CustomEndpoint;
             _precomputePayload = Resources.Load<TextAsset>("PrecomputePayload").text;
         }
 
@@ -37,182 +31,66 @@ namespace Datadog.Unity.Tests.Integration.Flags
             DdFlags.Shutdown();
         }
 
-        // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-        private FlagsConfiguration MakeConfig(
-            float flushInterval = 60f,
-            bool trackExposures = true,
-            bool trackEvaluations = true,
-            FlagSelection flagSelection = null) => new FlagsConfiguration(
-                evaluationFlushIntervalSeconds: flushInterval,
-                trackExposures: trackExposures,
-                trackEvaluations: trackEvaluations,
-                customFlagsEndpoint: $"{_mockBase}/precompute-assignments",
-                customExposureEndpoint: $"{_mockBase}/api/v2/exposures",
-                customEvaluationEndpoint: $"{_mockBase}/api/v2/flagevaluation",
-                flagSelection: flagSelection);
-
-        private IEnumerator InitFlags(
-            string targetingKey = "user-123",
-            Dictionary<string, object> attributes = null,
-            int precomputeStatus = 200,
-            string precomputeBody = null,
-            float flushInterval = 60f,
-            FlagSelection flagSelection = null)
-        {
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse(
-                "/precompute-assignments",
-                precomputeStatus,
-                precomputeBody ?? _precomputePayload);
-
-            DdFlags.Enable(MakeConfig(flushInterval, flagSelection: flagSelection));
-            var client = DdFlags.Instance.CreateClient();
-
-            var done = false;
-            var context = attributes != null
-                ? new FlagsEvaluationContext(targetingKey, attributes)
-                : new FlagsEvaluationContext(targetingKey);
-
-            client.SetEvaluationContext(context, _ => done = true);
-
-            var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
-            yield return new WaitUntil(() => done || DateTime.Now > deadline);
-        }
-
-        private static IEnumerator FetchWithClient(string name)
-        {
-            var done = false;
-            DdFlags.Instance.CreateClient(name)
-                .SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
-            var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
-            yield return new WaitUntil(() => done || DateTime.Now > deadline);
-        }
-
-        // Polls until the mock server has recorded the given number of precompute requests.
-        private IEnumerator PollFlagSelections(int count, List<JToken> selections)
-        {
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                selections.Clear();
-                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
-                foreach (var request in endpoint?.Requests ?? new List<MockServerRequest>())
-                {
-                    foreach (var schema in request.Schemas)
-                    {
-                        selections.Add(JObject.Parse(schema.Data)["data"]["attributes"]["flag_selection"]);
-                    }
-                }
-
-                return selections.Count >= count;
-            });
-        }
-
         // ─── Group 1: Precompute request shape ───────────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator PrecomputeRequest_HasCorrectHeaders()
+        public async Task PrecomputeRequest_HasCorrectHeaders()
         {
-            yield return InitFlags();
+            await InitFlags();
 
-            MockServerRequest precomputeReq = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
-                precomputeReq = endpoint?.Requests.FirstOrDefault();
-                return precomputeReq != null;
-            });
-
-            Assert.IsNotNull(precomputeReq, "No request recorded to /precompute-assignments");
-            var schema = precomputeReq.Schemas.FirstOrDefault();
-            Assert.IsNotNull(schema, "No schema on precompute request");
-
-            var headers = schema.ParsedHeaders;
+            var received = await MockServer.WaitForRequest("/precompute-assignments", "POST");
+            var headers = received.Result.Headers;
             Assert.AreEqual("application/vnd.api+json", headers["Content-Type"]);
             Assert.AreEqual("fake-client-token", headers["dd-client-token"]);
             Assert.AreEqual("fake-rum-application-id", headers["dd-application-id"]);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator PrecomputeRequest_BodyHasCorrectJsonApiShape()
+        public async Task PrecomputeRequest_BodyHasCorrectJsonApiShape()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
-            MockServerRequest precomputeReq = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
-                precomputeReq = endpoint?.Requests.FirstOrDefault();
-                return precomputeReq != null;
-            });
-
-            Assert.IsNotNull(precomputeReq, "No request recorded to /precompute-assignments");
-            var schema = precomputeReq.Schemas.FirstOrDefault();
-            Assert.IsNotNull(schema);
-
-            var body = JObject.Parse(schema.Data);
+            var received = await MockServer.WaitForRequest("/precompute-assignments", "POST");
+            var body = received.Result.JsonBody;
             Assert.AreEqual("precompute-assignments-request", (string)body["data"]["type"]);
             Assert.AreEqual("integration-test", (string)body["data"]["attributes"]["env"]["name"]);
             Assert.AreEqual("user-123", (string)body["data"]["attributes"]["subject"]["targeting_key"]);
             Assert.IsNull(body["data"]["attributes"]["flag_selection"]);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator PrecomputeRequest_BodyCarriesCanonicalFlagSelection()
+        public async Task PrecomputeRequest_BodyCarriesCanonicalFlagSelection()
         {
-            yield return InitFlags(
+            await InitFlags(
                 "user-123",
                 flagSelection: new FlagSelection(new[] { " mobile ", "checkout", "mobile" }, new[] { "search.*" }));
 
-            MockServerRequest precomputeReq = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
-                precomputeReq = endpoint?.Requests.FirstOrDefault();
-                return precomputeReq != null;
-            });
-
-            Assert.IsNotNull(precomputeReq, "No request recorded to /precompute-assignments");
-            var schema = precomputeReq.Schemas.FirstOrDefault();
-            Assert.IsNotNull(schema);
-
-            var flagSelection = JObject.Parse(schema.Data)["data"]["attributes"]["flag_selection"];
+            var received = await MockServer.WaitForRequest("/precompute-assignments", "POST");
+            var flagSelection = received.Result.JsonBody["data"]["attributes"]["flag_selection"];
             Assert.IsNotNull(flagSelection, "No flag_selection in the precompute body");
             CollectionAssert.AreEqual(new[] { "checkout", "mobile" }, flagSelection["tags"].ToObject<string[]>());
             CollectionAssert.AreEqual(new[] { "search.*" }, flagSelection["key_patterns"].ToObject<string[]>());
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator PrecomputeRequest_IncludesContextAttributes()
+        public async Task PrecomputeRequest_IncludesContextAttributes()
         {
-            yield return InitFlags("user-123", new Dictionary<string, object> { { "plan", "premium" } });
+            await InitFlags("user-123", new Dictionary<string, object> { { "plan", "premium" } });
 
-            MockServerRequest precomputeReq = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
-                precomputeReq = endpoint?.Requests.FirstOrDefault();
-                return precomputeReq != null;
-            });
-
-            var schema = precomputeReq?.Schemas.FirstOrDefault();
-            Assert.IsNotNull(schema);
-
-            var body = JObject.Parse(schema.Data);
+            var received = await MockServer.WaitForRequest("/precompute-assignments", "POST");
+            var body = received.Result.JsonBody;
             Assert.AreEqual("premium", (string)body["data"]["attributes"]["subject"]["targeting_attributes"]["plan"]);
         }
 
         // ─── Group 2: Flags evaluable after fetch ────────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator SetEvaluationContext_Success_FlagsAvailableViaClient()
+        public async Task SetEvaluationContext_Success_FlagsAvailableViaClient()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             var client = DdFlags.Instance.GetClient();
             Assert.IsNotNull(client);
@@ -227,71 +105,67 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual("variation-127", jsonDetails.Variant);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator SetEvaluationContext_ServerError_StateIsError()
+        public async Task SetEvaluationContext_ServerError_StateIsError()
         {
-            yield return InitFlags(precomputeStatus: 500, precomputeBody: "{\"error\":\"server error\"}");
+            await InitFlags(precomputeStatus: 500, precomputeBody: "{\"error\":\"server error\"}");
 
             var client = DdFlags.Instance.GetClient();
             Assert.IsNotNull(client);
             Assert.AreEqual(FlagsClientState.Error, client.State);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator SetEvaluationContext_ServerErrorAfterCache_StateIsStale()
+        public async Task SetEvaluationContext_ServerErrorAfterCache_StateIsStale()
         {
             // First fetch succeeds
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
             var client = DdFlags.Instance.GetClient();
             Assert.AreEqual(FlagsClientState.Ready, client.State);
 
             // Reconfigure mock to return 500
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
+            await MockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
 
             var done = false;
             DdFlags.Instance.GetClient().SetEvaluationContext(new FlagsEvaluationContext("user-456"), _ => done = true);
-            yield return new WaitUntil(() => done);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             Assert.AreEqual(FlagsClientState.Stale, client.State);
+
             // Old flags still evaluable
             Assert.AreEqual("red", client.GetStringValue("string-flag", "default"));
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator SetEvaluationContext_ServerErrorAfterEmptyConfiguration_StateIsStale()
+        public async Task SetEvaluationContext_ServerErrorAfterEmptyConfiguration_StateIsStale()
         {
-            yield return InitFlags("user-123", precomputeBody: "{\"data\":{\"attributes\":{\"flags\":{}}}}");
+            await InitFlags("user-123", precomputeBody: "{\"data\":{\"attributes\":{\"flags\":{}}}}");
             var client = DdFlags.Instance.GetClient();
             Assert.AreEqual(FlagsClientState.Ready, client.State);
 
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
+            await MockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"server error\"}");
 
             var done = false;
             client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
-            yield return new WaitUntil(() => done);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             Assert.AreEqual(FlagsClientState.Stale, client.State);
         }
 
         // ─── Group 3: Exposure telemetry ─────────────────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator BooleanFlagEvaluation_SendsExposureEvent()
+        public async Task BooleanFlagEvaluation_SendsExposureEvent()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
-            var exposures = new List<ExposureEventDecoder>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                exposures = ExposureEventDecoder.FromMockServer(logs);
-                return exposures.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.Exposures, until: values => values.Count >= 1);
+            var exposures = received.Result;
 
             Assert.AreEqual(1, exposures.Count);
             var exp = exposures[0];
@@ -300,26 +174,17 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual("variation-124", exp.VariantKey);
             Assert.AreEqual("user-123", exp.SubjectId);
 
-            // Check headers on exposure request
-            MockServerLog expEndpoint = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                expEndpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/api/v2/exposures"));
-                return expEndpoint != null;
-            });
-
-            Assert.IsNotNull(expEndpoint);
-            var headers = expEndpoint.Requests[0].Schemas[0].ParsedHeaders;
+            var headers = received.Snapshot.RequestsFor("/api/v2/exposures", "POST").First().Headers;
             Assert.AreEqual("fake-client-token", headers["dd-api-key"]);
             Assert.AreEqual("unity", headers["dd-evp-origin"]);
             Assert.IsTrue(headers["Content-Type"].Contains("text/plain"));
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator SameFlag_EvaluatedMultipleTimes_SendsOnlyOneExposure()
+        public async Task SameFlag_EvaluatedMultipleTimes_SendsOnlyOneExposure()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             var flagsClient = DdFlags.Instance.GetClient();
             for (var i = 0; i < 5; i++)
@@ -327,40 +192,32 @@ namespace Datadog.Unity.Tests.Integration.Flags
                 flagsClient.GetBooleanValue("boolean-flag", false);
             }
 
-            yield return new WaitForSeconds(2f);
+            await AsyncTestHelpers.Delay(TimeSpan.FromSeconds(2));
 
-            var exposures = new List<ExposureEventDecoder>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                exposures = ExposureEventDecoder.FromMockServer(logs);
-                return exposures.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.Exposures, until: values => values.Count >= 1);
+            var exposures = received.Result;
 
             Assert.AreEqual(1, exposures.Count, "Expected exactly one exposure for the same flag");
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator ContextChange_SendsFreshExposure()
+        public async Task ContextChange_SendsFreshExposure()
         {
             // Evaluate for user-A
-            yield return InitFlags("user-A");
+            await InitFlags("user-A");
             DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
             // Change context to user-B (requires re-fetch)
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
             var done = false;
             DdFlags.Instance.GetClient().SetEvaluationContext(new FlagsEvaluationContext("user-B"), _ => done = true);
-            yield return new WaitUntil(() => done);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
-            var exposures = new List<ExposureEventDecoder>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                exposures = ExposureEventDecoder.FromMockServer(logs);
-                return exposures.Count >= 2;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.Exposures, until: values => values.Count >= 2);
+            var exposures = received.Result;
 
             Assert.AreEqual(2, exposures.Count, "Expected one exposure per context");
             var subjects = exposures.Select(e => e.SubjectId).ToList();
@@ -369,12 +226,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
         }
 
         // ─── Group 4: Evaluation telemetry ───────────────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator FlagEvaluation_AfterExplicitFlush_SendsEvaluationBatch()
+        public async Task FlagEvaluation_AfterExplicitFlush_SendsEvaluationBatch()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             var flagsClient = DdFlags.Instance.GetClient();
             flagsClient.GetStringValue("string-flag", "x");
@@ -382,12 +238,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
             flagsClient.GetStringValue("string-flag", "x");
             flagsClient.Flush();
 
-            List<BatchedEvaluations> batches = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                batches = EvaluationEventDecoder.FromMockServer(logs);
-                return batches.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.EvaluationBatches, until: values => values.Count >= 1);
+            var batches = received.Result;
 
             Assert.IsNotNull(batches);
             Assert.GreaterOrEqual(batches.Count, 1);
@@ -407,11 +259,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.IsNull(rec.RuntimeDefaultUsed);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator MultipleFlags_ProduceSeparateEvaluationRecords()
+        public async Task MultipleFlags_ProduceSeparateEvaluationRecords()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             var flagsClient = DdFlags.Instance.GetClient();
             flagsClient.GetBooleanValue("boolean-flag", false);
@@ -419,12 +271,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
             flagsClient.GetStringValue("string-flag", "x");
             flagsClient.Flush();
 
-            var records = new List<EvaluationRecord>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                records = EvaluationEventDecoder.AllRecords(logs);
-                return records.Count >= 2;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.EvaluationRecords, until: values => values.Count >= 2);
+            var records = received.Result;
 
             Assert.AreEqual(2, records.Count);
             var boolRec = records.FirstOrDefault(r => r.FlagKey == "boolean-flag");
@@ -435,21 +283,17 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual(1, strRec.EvaluationCount);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator MissingFlag_EvaluationRecord_HasRuntimeDefaultUsedTrue()
+        public async Task MissingFlag_EvaluationRecord_HasRuntimeDefaultUsedTrue()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             DdFlags.Instance.GetClient().GetStringValue("nonexistent-flag", "default");
             DdFlags.Instance.GetClient().Flush();
 
-            var records = new List<EvaluationRecord>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                records = EvaluationEventDecoder.AllRecords(logs);
-                return records.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.EvaluationRecords, until: values => values.Count >= 1);
+            var records = received.Result;
 
             Assert.AreEqual(1, records.Count);
             var rec = records[0];
@@ -460,73 +304,57 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.IsNull(rec.AllocationKey);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator Shutdown_FlushesEvaluationsPendingOnTimer()
+        public async Task Shutdown_FlushesEvaluationsPendingOnTimer()
         {
-            yield return InitFlags("user-123", flushInterval: 60f);
+            await InitFlags("user-123", flushInterval: 60f);
 
             DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
 
             // Shutdown should flush pending evaluations before destroying the aggregator
             DdFlags.Shutdown();
 
-            var records = new List<EvaluationRecord>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                records = EvaluationEventDecoder.AllRecords(logs);
-                return records.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.EvaluationRecords, until: values => values.Count >= 1);
+            var records = received.Result;
 
             Assert.AreEqual(1, records.Count);
             Assert.AreEqual("string-flag", records[0].FlagKey);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
+
         // System.Threading.Timer callbacks do not run in WebGL players.
         [UnityPlatform(exclude = new[] { RuntimePlatform.WebGLPlayer })]
-        public IEnumerator TimerFlush_SendsEvaluationBatchAfterInterval()
+        public async Task TimerFlush_SendsEvaluationBatchAfterInterval()
         {
-            yield return InitFlags("user-123", flushInterval: 1.0f);
+            await InitFlags("user-123", flushInterval: 1.0f);
 
             DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
 
             // Wait for the timer to fire (interval = 1s, wait a bit longer)
-            yield return new WaitForSeconds(2.0f);
+            await AsyncTestHelpers.Delay(TimeSpan.FromSeconds(2.0));
 
-            var records = new List<EvaluationRecord>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                records = EvaluationEventDecoder.AllRecords(logs);
-                return records.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.EvaluationRecords, until: values => values.Count >= 1);
+            var records = received.Result;
 
             Assert.AreEqual(1, records.Count);
             Assert.AreEqual("string-flag", records[0].FlagKey);
         }
 
         // ─── Group 5: Evaluation EVP headers ─────────────────────────────────────────
-
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator EvaluationBatch_HasCorrectEvpHeaders()
+        public async Task EvaluationBatch_HasCorrectEvpHeaders()
         {
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             DdFlags.Instance.GetClient().GetStringValue("string-flag", "x");
             DdFlags.Instance.GetClient().Flush();
 
-            MockServerLog evalEndpoint = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                evalEndpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/api/v2/flagevaluation"));
-                return evalEndpoint != null;
-            });
-
-            Assert.IsNotNull(evalEndpoint);
-            var headers = evalEndpoint.Requests[0].Schemas[0].ParsedHeaders;
+            var received = await MockServer.WaitForRequest("/api/v2/flagevaluation", "POST");
+            var headers = received.Result.Headers;
             Assert.AreEqual("fake-client-token", headers["dd-api-key"]);
             Assert.AreEqual("unity", headers["dd-evp-origin"]);
             Assert.AreEqual(DatadogSdk.SdkVersion, headers["dd-evp-origin-version"]);
@@ -534,35 +362,26 @@ namespace Datadog.Unity.Tests.Integration.Flags
         }
 
         // ─── Group 6: doLog: false suppresses exposure ────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator DoLogFalse_DoesNotSendExposure()
+        public async Task DoLogFalse_DoesNotSendExposure()
         {
-            yield return InitFlags();
+            var subjectId = Guid.NewGuid().ToString();
+            await InitFlags(subjectId);
 
             DdFlags.Instance.GetClient().GetBooleanValue("no-log-flag", false);
 
-            // Brief wait then a single-shot check — no exposure should arrive.
-            yield return new WaitForSeconds(2f);
-
-            var exposures = new List<ExposureEventDecoder>();
-            yield return _mockServer.PollRequests(TimeSpan.FromSeconds(1), logs =>
-            {
-                exposures = ExposureEventDecoder.FromMockServer(logs);
-                return true;
-            });
-
-            Assert.AreEqual(0, exposures.Count, "doLog=false flag must not send an exposure");
+            await MockServer.ExpectNoneFor(
+                snapshot => snapshot.Exposures.Where(value => value.SubjectId == subjectId).ToList(),
+                TimeSpan.FromSeconds(2));
         }
 
         // ─── Group 7: Context attributes flow into exposure payload ──────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator ContextAttributes_AppearedInExposureSubject()
+        public async Task ContextAttributes_AppearedInExposureSubject()
         {
-            yield return InitFlags("user-123", new Dictionary<string, object>
+            await InitFlags("user-123", new Dictionary<string, object>
             {
                 { "plan", "premium" },
                 { "age", 30 },
@@ -570,12 +389,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             DdFlags.Instance.GetClient().GetBooleanValue("boolean-flag", false);
 
-            var exposures = new List<ExposureEventDecoder>();
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                exposures = ExposureEventDecoder.FromMockServer(logs);
-                return exposures.Count >= 1;
-            });
+            var received = await MockServer.WaitFor(select: snapshot => snapshot.Exposures, until: values => values.Count >= 1);
+            var exposures = received.Result;
 
             Assert.AreEqual(1, exposures.Count);
             var attrs = exposures[0].SubjectAttributes;
@@ -584,11 +399,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual("30", attrs["age"]?.ToString());
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator NestedContextAttributes_FlattenedInPrecomputeRequest()
+        public async Task NestedContextAttributes_FlattenedInPrecomputeRequest()
         {
-            yield return InitFlags("user-123", new Dictionary<string, object>
+            await InitFlags("user-123", new Dictionary<string, object>
             {
                 {
                     "address", new Dictionary<string, object>
@@ -599,18 +414,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
                 },
             });
 
-            MockServerRequest precomputeReq = null;
-            yield return _mockServer.PollRequests(PollTimeout, logs =>
-            {
-                var endpoint = logs.FirstOrDefault(l => l.Endpoint.Contains("/precompute-assignments"));
-                precomputeReq = endpoint?.Requests.FirstOrDefault();
-                return precomputeReq != null;
-            });
-
-            var schema = precomputeReq?.Schemas.FirstOrDefault();
-            Assert.IsNotNull(schema);
-
-            var body = JObject.Parse(schema.Data);
+            var received = await MockServer.WaitForRequest("/precompute-assignments", "POST");
+            var body = received.Result.JsonBody;
             var attrs = body["data"]?["attributes"]?["subject"]?["targeting_attributes"];
             Assert.IsNotNull(attrs, "targeting_attributes should be present");
             Assert.AreEqual("New York", (string)attrs["address.city"]);
@@ -619,13 +424,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
         }
 
         // ─── Group 8: StateChanged event ─────────────────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator StateChanged_FiresExpectedTransitionsOnSuccess()
+        public async Task StateChanged_FiresExpectedTransitionsOnSuccess()
         {
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
             DdFlags.Enable(MakeConfig());
             var client = DdFlags.Instance.CreateClient();
@@ -634,9 +437,8 @@ namespace Datadog.Unity.Tests.Integration.Flags
             client.StateChanged += (_, change) => transitions.Add(change);
 
             var done = false;
-            var deadline = DateTime.Now + TimeSpan.FromSeconds(20);
             client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
-            yield return new WaitUntil(() => done || DateTime.Now > deadline);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             // Expect: initial replay (NotReady→NotReady), then NotReady→Reconciling, Reconciling→Ready
             Assert.GreaterOrEqual(transitions.Count, 3, "Expected replay + 2 real transitions");
@@ -654,12 +456,11 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual(FlagsClientState.Reconciling, toReady.Old);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator StateChanged_FiresErrorTransitionOnServerFailure()
+        public async Task StateChanged_FiresErrorTransitionOnServerFailure()
         {
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"fail\"}");
+            await MockServer.ConfigureResponse("/precompute-assignments", 500, "{\"error\":\"fail\"}");
 
             DdFlags.Enable(MakeConfig());
             var client = DdFlags.Instance.CreateClient();
@@ -669,19 +470,19 @@ namespace Datadog.Unity.Tests.Integration.Flags
 
             var done = false;
             client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
-            yield return new WaitUntil(() => done);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             var toError = transitions.FirstOrDefault(t => t.New == FlagsClientState.Error);
             Assert.IsNotNull(toError, "Expected Reconciling→Error transition on server failure");
             Assert.AreEqual(FlagsClientState.Reconciling, toError.Old);
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator StateChanged_LateSubscriberReceivesCurrentStateReplay()
+        public async Task StateChanged_LateSubscriberReceivesCurrentStateReplay()
         {
             // Fully initialise first, then subscribe
-            yield return InitFlags("user-123");
+            await InitFlags("user-123");
 
             var client = DdFlags.Instance.GetClient();
             Assert.AreEqual(FlagsClientState.Ready, client.State);
@@ -694,17 +495,14 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual(FlagsClientState.Ready, replayEvent.Old);
             Assert.AreEqual(FlagsClientState.Ready, replayEvent.New, "Replay should have Old == New");
 
-            yield return null;
+            await Task.Yield();
         }
 
         // ─── Group 9: ProviderNotReady error before fetch ─────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator EvaluateBeforeFetch_ReturnsProviderNotReadyError()
+        public async Task EvaluateBeforeFetch_ReturnsProviderNotReadyError()
         {
-            yield return _mockServer.Clear();
-
             DdFlags.Enable(MakeConfig());
             var client = DdFlags.Instance.CreateClient();
 
@@ -714,87 +512,70 @@ namespace Datadog.Unity.Tests.Integration.Flags
             Assert.AreEqual(false, details.Value, "Should return default value");
             Assert.AreEqual(FlagEvaluationError.ProviderNotReady, details.Error);
 
-            yield return null;
+            await Task.Yield();
         }
 
         // ─── Group 10: TrackExposures / TrackEvaluations = false ─────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator TrackExposuresFalse_DoesNotSendExposureRequest()
+        public async Task TrackExposuresFalse_DoesNotSendExposureRequest()
         {
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            var subjectId = Guid.NewGuid().ToString();
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
             DdFlags.Enable(MakeConfig(trackExposures: false));
             var client = DdFlags.Instance.CreateClient();
             var done = false;
-            client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
-            yield return new WaitUntil(() => done);
+            client.SetEvaluationContext(new FlagsEvaluationContext(subjectId), _ => done = true);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             client.GetBooleanValue("boolean-flag", false);
 
-            yield return new WaitForSeconds(2f);
-
-            var exposures = new List<ExposureEventDecoder>();
-            yield return _mockServer.PollRequests(TimeSpan.FromSeconds(1), logs =>
-            {
-                exposures = ExposureEventDecoder.FromMockServer(logs);
-                return true;
-            });
-
-            Assert.AreEqual(0, exposures.Count, "TrackExposures=false should suppress all exposure requests");
+            await MockServer.ExpectNoneFor(
+                snapshot => snapshot.Exposures.Where(value => value.SubjectId == subjectId).ToList(),
+                TimeSpan.FromSeconds(2));
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator TrackEvaluationsFalse_DoesNotSendEvaluationRequest()
+        public async Task TrackEvaluationsFalse_DoesNotSendEvaluationRequest()
         {
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            var subjectId = Guid.NewGuid().ToString();
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
             DdFlags.Enable(MakeConfig(trackEvaluations: false));
             var client = DdFlags.Instance.CreateClient();
             var done = false;
-            client.SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
-            yield return new WaitUntil(() => done);
+            client.SetEvaluationContext(new FlagsEvaluationContext(subjectId), _ => done = true);
+            await AsyncTestHelpers.WaitUntil(() => done);
 
             client.GetStringValue("string-flag", "x");
             client.Flush();
 
-            yield return new WaitForSeconds(2f);
-
-            var records = new List<EvaluationRecord>();
-            yield return _mockServer.PollRequests(TimeSpan.FromSeconds(1), logs =>
-            {
-                records = EvaluationEventDecoder.AllRecords(logs);
-                return true;
-            });
-
-            Assert.AreEqual(0, records.Count, "TrackEvaluations=false should suppress all evaluation requests");
+            await MockServer.ExpectNoneFor(
+                snapshot => snapshot.EvaluationRecords.Where(value => value.TargetingKey == subjectId).ToList(),
+                TimeSpan.FromSeconds(2));
         }
 
         // ─── Flag selection across clients ───────────────────────────────────────────
-
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator FlagSelection_IsSharedByEveryClientAndFixedAtEnable()
+        public async Task FlagSelection_IsSharedByEveryClientAndFixedAtEnable()
         {
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
             var configuredSelection = new FlagSelection(new[] { " mobile", "checkout" });
             DdFlags.Enable(MakeConfig(flagSelection: configuredSelection));
             configuredSelection.Tags[0] = "changed";
-            yield return FetchWithClient("first");
+            await FetchWithClient("first");
             configuredSelection.Tags[1] = "changed-again";
-            yield return FetchWithClient("second");
+            await FetchWithClient("second");
 
             DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(new[] { "ignored" })));
-            yield return FetchWithClient("third");
+            await FetchWithClient("third");
 
-            var selections = new List<JToken>();
-            yield return PollFlagSelections(3, selections);
+            var received = await WaitForFlagSelections(3);
+            var selections = received.Result;
 
             Assert.AreEqual(3, selections.Count);
             foreach (var selection in selections)
@@ -805,36 +586,36 @@ namespace Datadog.Unity.Tests.Integration.Flags
             }
 
             DdFlags.Shutdown();
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            await MockServer.Reset();
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
             DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(keyPatterns: new[] { "search.*" })));
-            yield return FetchWithClient("first");
+            await FetchWithClient("first");
 
-            yield return PollFlagSelections(1, selections);
+            received = await WaitForFlagSelections(1);
+            selections = received.Result;
 
             Assert.AreEqual(1, selections.Count);
             CollectionAssert.AreEqual(new string[0], selections[0]["tags"].ToObject<string[]>());
             CollectionAssert.AreEqual(new[] { "search.*" }, selections[0]["key_patterns"].ToObject<string[]>());
         }
 
-        [UnityTest]
+        [Test]
         [Category("integration")]
-        public IEnumerator DroppedFlagSelection_IsReportedOncePerEnable()
+        public async Task DroppedFlagSelection_IsReportedOncePerEnable()
         {
             var tooManyTags = Enumerable.Range(0, 32).Select(i => $"tag-{i}").ToArray();
             var notSent = new Regex(@"flagSelection was not sent \(too_many_values: ");
 
-            yield return _mockServer.Clear();
-            yield return _mockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
+            await MockServer.ConfigureResponse("/precompute-assignments", 200, _precomputePayload);
 
             LogAssert.Expect(LogType.Error, notSent);
             DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(tooManyTags)));
-            yield return FetchWithClient("first");
-            yield return FetchWithClient("second");
+            await FetchWithClient("first");
+            await FetchWithClient("second");
 
-            var selections = new List<JToken>();
-            yield return PollFlagSelections(2, selections);
+            var received = await WaitForFlagSelections(2);
+            var selections = received.Result;
 
             Assert.AreEqual(2, selections.Count);
             Assert.IsTrue(selections.All(s => s == null), "A dropped selection must not be sent");
@@ -842,9 +623,62 @@ namespace Datadog.Unity.Tests.Integration.Flags
             DdFlags.Shutdown();
             LogAssert.Expect(LogType.Error, notSent);
             DdFlags.Enable(MakeConfig(flagSelection: new FlagSelection(tooManyTags)));
-            yield return FetchWithClient("first");
+            await FetchWithClient("first");
 
             LogAssert.NoUnexpectedReceived();
         }
+
+        // ─── Helpers ─────────────────────────────────────────────────────────────────
+        private static async Task FetchWithClient(string name)
+        {
+            var done = false;
+            DdFlags.Instance.CreateClient(name)
+                .SetEvaluationContext(new FlagsEvaluationContext("user-123"), _ => done = true);
+            await AsyncTestHelpers.WaitUntil(() => done);
+        }
+
+        private FlagsConfiguration MakeConfig(
+            float flushInterval = 60f,
+            bool trackExposures = true,
+            bool trackEvaluations = true,
+            FlagSelection flagSelection = null) => new FlagsConfiguration(
+                evaluationFlushIntervalSeconds: flushInterval,
+                trackExposures: trackExposures,
+                trackEvaluations: trackEvaluations,
+                customFlagsEndpoint: $"{MockServer.Endpoint}/precompute-assignments",
+                customExposureEndpoint: $"{MockServer.Endpoint}/api/v2/exposures",
+                customEvaluationEndpoint: $"{MockServer.Endpoint}/api/v2/flagevaluation",
+                flagSelection: flagSelection);
+
+        private async Task InitFlags(
+            string targetingKey = "user-123",
+            Dictionary<string, object> attributes = null,
+            int precomputeStatus = 200,
+            string precomputeBody = null,
+            float flushInterval = 60f,
+            FlagSelection flagSelection = null)
+        {
+            await MockServer.ConfigureResponse(
+                "/precompute-assignments",
+                precomputeStatus,
+                precomputeBody ?? _precomputePayload);
+
+            DdFlags.Enable(MakeConfig(flushInterval, flagSelection: flagSelection));
+            var client = DdFlags.Instance.CreateClient();
+
+            var done = false;
+            var context = attributes != null
+                ? new FlagsEvaluationContext(targetingKey, attributes)
+                : new FlagsEvaluationContext(targetingKey);
+
+            client.SetEvaluationContext(context, _ => done = true);
+
+            await AsyncTestHelpers.WaitUntil(() => done);
+        }
+
+        private Task<MockServerResult<List<JToken>>> WaitForFlagSelections(int count) => MockServer.WaitFor(
+            select: snapshot => snapshot.RequestsFor("/precompute-assignments", "POST")
+                .Select(request => request.JsonBody["data"]["attributes"]["flag_selection"]).ToList(),
+            until: selections => selections.Count >= count);
     }
 }
