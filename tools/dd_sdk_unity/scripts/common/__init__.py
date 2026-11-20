@@ -8,6 +8,6 @@ Common library code used by dd-sdk-unity Python scripts.
 from typing import Literal
 
 type MobilePlatform = Literal['ios', 'android']
-type TargetPlatform = MobilePlatform | Literal['webgl']
+type TargetPlatform = MobilePlatform | Literal['webgl', 'macos']
 type DeviceTarget = Literal['simulator', 'device']
 type TestMode = Literal['EditMode', 'PlayMode']

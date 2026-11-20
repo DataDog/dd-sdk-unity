@@ -115,6 +115,8 @@ def is_staged(path: PurePosixPath, assets: dict[str, NativeArtifact]) -> bool:
     return any(path.is_relative_to(asset.destination) for asset in assets.values())
 
 
-def ensure(*, force: bool = False) -> None:
-    for asset in load().values():
+def ensure(*, force: bool = False, platform: str | None = None) -> None:
+    assets = load()
+    selected = assets.values() if platform is None else [assets[platform]]
+    for asset in selected:
         stage(asset, fetch(asset, force=force), REPO_ROOT / PACKAGE_PATH)
