@@ -3,7 +3,10 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Datadog.Unity.Logs;
 using Newtonsoft.Json.Linq;
@@ -15,6 +18,87 @@ namespace Datadog.Unity.Tests.Integration.Logs
 {
     public class LoggingIntegrationTests : IntegrationTestBase
     {
+        [Test]
+        [Category("integration")]
+        public async Task AttributeValuesPreserveTypes()
+        {
+            var sdk = DatadogSdk.Instance;
+            sdk.SetTrackingConsent(TrackingConsent.Granted);
+            var logger = sdk.CreateLogger(new() { Name = "attribute-types", RemoteSampleRate = 100 });
+            var message = $"AttributeTypes-{Guid.NewGuid():N}";
+
+            var cycle = new Dictionary<string, object>();
+            cycle["self"] = cycle;
+            Assert.DoesNotThrow(() => logger.Info($"{message}-cyclic", new() { { "cyclic_dictionary", cycle } }));
+            Assert.DoesNotThrow(() => logger.Info($"{message}-invalid", new()
+            {
+                { "invalid_dictionary", new Hashtable { { 42, "non-string key" } } },
+            }));
+
+            var attributes = new Dictionary<string, object>
+            {
+                { "bool_true", true },
+                { "bool_false", false },
+                { "int8_min", sbyte.MinValue },
+                { "uint8_max", byte.MaxValue },
+                { "int16_min", short.MinValue },
+                { "uint16_max", ushort.MaxValue },
+                { "int32_min", int.MinValue },
+                { "int32_max", int.MaxValue },
+                { "uint32_max", uint.MaxValue },
+                { "int64_safe_min", -9007199254740991L },
+                { "int64_safe_max", 9007199254740991L },
+                { "float_value", 1.25f },
+                { "double_value", 10.5d },
+                { "decimal_value", 12.5m },
+                { "string_empty", string.Empty },
+                { "string_escaped", "quote \" slash \\ newline\n" },
+                { "unicode_value", "héllo 世界 🎮" },
+                { "unicode_ключ", "Unicode key" },
+                { "null_value", null },
+                { "dictionary_value", new Dictionary<string, object> { { "text", "nested" }, { "flag", false } } },
+                { "typed_dictionary", new Dictionary<string, int> { { "count", 42 } } },
+                { "readonly_dictionary", new ReadOnlyDictionary<string, object>(new Dictionary<string, object> { { "count", 42 } }) },
+                { "array_value", new object[] { 1, "two", true, null, new Dictionary<string, object> { { "nested", 3 } } } },
+                { "typed_array", new[] { 1, 2, 3 } },
+                { "list_value", new List<object> { "one", 2, false } },
+                { "array_empty", Array.Empty<object>() },
+                { "dictionary_empty", new Dictionary<string, object>() },
+            };
+#if !UNITY_WEBGL
+            // JavaScript numbers cannot preserve the full 64-bit integer range.
+            attributes["int64_min"] = long.MinValue;
+            attributes["int64_max"] = long.MaxValue;
+            attributes["uint64_max"] = ulong.MaxValue;
+#endif
+
+            logger.Info(message, attributes);
+            var received = await MockServer.WaitFor(
+                select: snapshot => snapshot.Logs.Where(log => log.Message == message).ToList(),
+                until: logs => logs.Count >= 1);
+            Assert.AreEqual(1, received.Result.Count);
+            var actual = JObject.FromObject(received.Result.Single().RawJson);
+            var expected = JObject.FromObject(attributes);
+
+            var mismatches = new List<string>();
+            foreach (var property in expected.Properties())
+            {
+                if (!actual.TryGetValue(property.Name, out var value))
+                {
+                    mismatches.Add($"Missing attribute '{property.Name}'.");
+                    continue;
+                }
+
+                if (!JToken.DeepEquals(property.Value, value))
+                {
+                    mismatches.Add(
+                        $"Attribute '{property.Name}': expected {property.Value.Type} {property.Value}, got {value.Type} {value}.");
+                }
+            }
+
+            Assert.IsEmpty(mismatches, string.Join("\n", mismatches));
+        }
+
         [Test]
         [Category("integration")]
         public async Task LoggingIntegrationScenario()
@@ -63,7 +147,7 @@ namespace Datadog.Unity.Tests.Integration.Logs
             Assert.AreEqual("logging.service", infoLog.ServiceName);
 #endif
             Assert.Contains("tag1:tag-value", infoLog.Tags);
-            Assert.Contains("tag1:second-value", debugLog.Tags);
+            Assert.Contains("tag1:second-value", infoLog.Tags);
             CollectionAssert.DoesNotContain(infoLog.Tags, "my-tag");
             Assert.AreEqual("string value", (string)infoLog.RawJson["logger-attribute1"]);
             Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
@@ -80,11 +164,11 @@ namespace Datadog.Unity.Tests.Integration.Logs
             Assert.AreEqual("logging.service", warnLog.ServiceName);
 #endif
             Assert.Contains("tag1:tag-value", warnLog.Tags);
-            Assert.Contains("tag1:second-value", debugLog.Tags);
+            Assert.Contains("tag1:second-value", warnLog.Tags);
             CollectionAssert.DoesNotContain(warnLog.Tags, "my-tag");
             Assert.AreEqual("string value", (string)warnLog.RawJson["logger-attribute1"]);
-            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
-            Assert.AreEqual(1255, (long)infoLog.RawJson["global-attribute-2"]);
+            Assert.AreEqual("value-1", (string)warnLog.RawJson["global-attribute-1"]);
+            Assert.AreEqual(1255, (long)warnLog.RawJson["global-attribute-2"]);
             Assert.AreEqual(1000, (long)warnLog.RawJson["logger-attribute2"]);
             Assert.AreEqual(10.34, (double)warnLog.RawJson["doubleAttribute"]);
 
@@ -99,7 +183,7 @@ namespace Datadog.Unity.Tests.Integration.Logs
             CollectionAssert.DoesNotContain(errorLog.Tags, "my-tag");
             Assert.IsFalse(errorLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)errorLog.RawJson["logger-attribute2"]);
-            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
+            Assert.AreEqual("value-1", (string)errorLog.RawJson["global-attribute-1"]);
             Assert.IsFalse(errorLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("value", (string)errorLog.RawJson["attribute"]);
             Assert.AreEqual("user-id", errorLog.UserId);
@@ -138,14 +222,14 @@ namespace Datadog.Unity.Tests.Integration.Logs
             Assert.AreEqual("System.InvalidOperationException", exceptionLog.ErrorKind);
             Assert.IsFalse(exceptionLog.RawJson.ContainsKey("logger-attribute1"));
             Assert.AreEqual(1000, (long)exceptionLog.RawJson["logger-attribute2"]);
-            Assert.AreEqual("value-1", (string)infoLog.RawJson["global-attribute-1"]);
-            Assert.IsFalse(debugLog.RawJson.ContainsKey("global-attribute-2"));
+            Assert.AreEqual("value-1", (string)exceptionLog.RawJson["global-attribute-1"]);
+            Assert.IsFalse(exceptionLog.RawJson.ContainsKey("global-attribute-2"));
             Assert.AreEqual("Error Message", exceptionLog.ErrorMessage);
             Assert.NotNull(exceptionLog.ErrorStack);
 
             foreach (var log in logs)
             {
-                Assert.AreEqual(log.ApplicationVersion, "1.123");
+                Assert.AreEqual("1.123", log.ApplicationVersion);
             }
         }
 

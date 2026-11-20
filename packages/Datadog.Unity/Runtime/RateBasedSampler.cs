@@ -9,7 +9,7 @@ namespace Datadog.Unity
     internal class RateBasedSampler
     {
         private float _sampleRate;
-        private Random _random = new Random();
+        private readonly Random _random = new Random();
 
         /// <param name="sampleRate">Sample rate should be between 0 and 1.</param>
         public RateBasedSampler(float sampleRate)
@@ -29,7 +29,10 @@ namespace Datadog.Unity
                 return true;
             }
 
-            return _random.NextDouble() <= _sampleRate;
+            lock (_random)
+            {
+                return _random.NextDouble() <= _sampleRate;
+            }
         }
     }
 }

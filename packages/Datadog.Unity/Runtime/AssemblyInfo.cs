@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyInformationalVersion("2.0.0")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.tests")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.android")]
+[assembly: InternalsVisibleTo("com.datadoghq.unity.desktop")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.ios")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.webgl")]
 [assembly: InternalsVisibleTo("com.datadoghq.unity.Editor")]
