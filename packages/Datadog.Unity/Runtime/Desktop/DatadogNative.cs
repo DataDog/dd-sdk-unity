@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Datadog.Unity.Desktop
 {
-    internal static class DatadogNative
+    internal static partial class DatadogNative
     {
         [DllImport("ddsdkcpp", EntryPoint = "dd_core_config_init", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern void InitCoreConfiguration(
@@ -73,6 +73,19 @@ namespace Datadog.Unity.Desktop
 
         [DllImport("ddsdkcpp", EntryPoint = "dd_core_set_tracking_consent", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern void SetTrackingConsent(IntPtr core, TrackingConsent trackingConsent);
+
+        [DllImport("ddsdkcpp", EntryPoint = "dd_core_set_user_info", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void SetUserInfo(IntPtr core,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string id,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string name,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string email,
+            ref Attribute extraInfo);
+
+        [DllImport("ddsdkcpp", EntryPoint = "dd_core_clear_user_info", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void ClearUserInfo(IntPtr core);
+
+        [DllImport("ddsdkcpp", EntryPoint = "dd_core_add_user_extra_info", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void AddUserExtraInfo(IntPtr core, ref Attribute extraInfo);
 
         internal enum Site
         {

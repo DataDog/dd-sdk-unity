@@ -34,7 +34,8 @@ namespace Datadog.Unity.Desktop
             {
                 DatadogSdk.Shutdown();
                 platform.Dispose();
-                Debug.LogError($"Failed to initialize the Datadog desktop SDK: {e}");
+                Debug.LogError($"Failed to initialize the Datadog desktop SDK. A no-op implementation will be used: {e}");
+                DatadogSdk.InitWithPlatform(new DatadogNoOpPlatform(), options);
             }
         }
     }

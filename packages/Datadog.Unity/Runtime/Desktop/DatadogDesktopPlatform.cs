@@ -16,7 +16,9 @@ namespace Datadog.Unity.Desktop
     internal sealed class DatadogDesktopPlatform : IDatadogPlatform, IDisposable
     {
         private readonly object _coreLock = new();
+        private readonly List<IntPtr> _loggers = new();
         private IntPtr _core;
+        private IntPtr _logging;
 
         public void Init(DatadogConfigurationOptions options)
         {
@@ -53,6 +55,12 @@ namespace Datadog.Unity.Desktop
                 {
                     throw new InvalidOperationException("Failed to create the native Datadog SDK core.");
                 }
+
+                _logging = DatadogNative.InitLogging(_core);
+                if (_logging == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("Failed to register the native Datadog Logs feature.");
+                }
             }
         }
 
@@ -85,8 +93,27 @@ namespace Datadog.Unity.Desktop
                 }
 
                 DatadogNative.StopCore(_core);
+                foreach (var logger in _loggers)
+                {
+                    DatadogNative.DestroyLogger(logger);
+                }
+
+                _loggers.Clear();
+                DatadogNative.DestroyLogging(_logging);
+                _logging = IntPtr.Zero;
                 DatadogNative.DestroyCore(_core);
                 _core = IntPtr.Zero;
+            }
+        }
+
+        internal void WithCore(Action action)
+        {
+            lock (_coreLock)
+            {
+                if (_core != IntPtr.Zero)
+                {
+                    action();
+                }
             }
         }
 
@@ -101,13 +128,35 @@ namespace Datadog.Unity.Desktop
                 DatadogSite.Us1Fed => DatadogNative.Site.Us1Fed,
                 DatadogSite.Ap1 => DatadogNative.Site.Ap1,
                 DatadogSite.Ap2 => DatadogNative.Site.Ap2,
-                _ => DatadogNative.Site.Us1,
             };
         }
 
-        public DatadogWorker CreateWorker(IInternalLogger logger) => new NoOpWorker();
+        public DatadogWorker CreateWorker(IInternalLogger logger) => new PassthroughWorker();
 
-        public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker) => new DdNoOpLogger();
+        public DdLogger CreateLogger(DatadogLoggingOptions options, DatadogWorker worker)
+        {
+            lock (_coreLock)
+            {
+                if (_core == IntPtr.Zero)
+                {
+                    return new DdNoOpLogger();
+                }
+
+                DatadogNative.InitLoggerConfiguration(out var configuration);
+                DatadogNative.SetLoggerService(ref configuration, options.Service);
+                DatadogNative.SetLoggerName(ref configuration, options.Name);
+                DatadogNative.SetLoggerEnrichWithRumContext(ref configuration, options.BundleWithRumEnabled);
+                var logger = DatadogNative.CreateLogger(_logging, ref configuration);
+                if (logger == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("Failed to create a native Datadog logger.");
+                }
+
+                _loggers.Add(logger);
+                var innerLogger = new DatadogDesktopLogger(this, options.RemoteLogThreshold, options.RemoteSampleRate, logger);
+                return new DdWorkerProxyLogger(worker, innerLogger);
+            }
+        }
 
         public IDdRumInternal InitRum(DatadogConfigurationOptions options) => new DdNoOpRum();
 
@@ -121,25 +170,59 @@ namespace Datadog.Unity.Desktop
 
         public void AddLogsAttributes(Dictionary<string, object> attributes)
         {
+            if (attributes == null)
+            {
+                return;
+            }
+
+            WithCore(() =>
+            {
+                foreach (var attribute in attributes)
+                {
+                    using var value = new DatadogNativeAttribute(attribute.Value);
+                    DatadogNative.AddLogsAttribute(_logging, attribute.Key, ref value.Value);
+                }
+            });
         }
 
         public void RemoveLogsAttribute(string key)
         {
+            WithCore(() => DatadogNative.RemoveLogsAttribute(_logging, key));
         }
 
         public void SetUserInfo(string id, string name, string email, Dictionary<string, object> extraInfo)
         {
+            WithCore(() =>
+            {
+                using var nativeExtraInfo = new DatadogNativeAttribute(extraInfo);
+                DatadogNative.SetUserInfo(_core, id, name, email, ref nativeExtraInfo.Value);
+            });
         }
 
         public void ClearUserInfo()
         {
+            WithCore(() => DatadogNative.ClearUserInfo(_core));
         }
 
         public void AddUserExtraInfo(Dictionary<string, object> extraInfo)
         {
+            if (extraInfo == null)
+            {
+                return;
+            }
+
+            WithCore(() =>
+            {
+                using var nativeExtraInfo = new DatadogNativeAttribute(extraInfo);
+                DatadogNative.AddUserExtraInfo(_core, ref nativeExtraInfo.Value);
+            });
         }
 
         public void SendDebugTelemetry(string message)
+        {
+        }
+
+        public void SendDebugTelemetry(string message, IDictionary<string, object> attributes)
         {
         }
 

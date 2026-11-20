@@ -45,7 +45,7 @@ namespace Datadog.Unity.Tests.Integration
                 settings.ServiceName = "datadog-sample";
                 settings.CustomEndpoint = endpoint;
                 settings.BatchSize = BatchSize.Medium;
-                settings.UploadFrequency = UploadFrequency.Average;
+                settings.UploadFrequency = UploadFrequency.Frequent;
                 settings.BatchProcessingLevel = BatchProcessingLevel.Medium;
                 settings.CrashReportingEnabled = true;
                 settings.ForwardUnityLogs = true;
