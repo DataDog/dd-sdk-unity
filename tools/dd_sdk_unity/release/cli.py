@@ -13,13 +13,14 @@ from pathlib import Path
 import requests
 from git import Repo
 
+from dd_sdk_unity.dependencies import native_assets
 from dd_sdk_unity.scripts.common.git import GitOperations
 from dd_sdk_unity.scripts.common.github import GitHubOperations
 from dd_sdk_unity.scripts.common.log import init_logger
 
 from .changelog import draft_notes, gateway_prompt, native_release_notes, version_key
 from .integration import integrate
-from .package import assemble_package, native_archive, pins
+from .package import assemble_package
 from .preparation import open_preparation, prepare_plan
 from .publish import publish
 
@@ -60,9 +61,10 @@ def run(args: argparse.Namespace) -> None:
                 root = Path(scratch)
                 git = GitOperations(Repo(os.getenv("CI_PROJECT_DIR", ".")))
                 source_sha = os.environ["CI_COMMIT_SHA"]
-                ios, _ = pins(git, source_sha)
-                archive = native_archive(ios, root / "Datadog.xcframework.zip")
-                assemble_package(git, source_sha, archive, Path("package.tar.gz"))
+                assets = native_assets.load(lambda path, revision=source_sha: git.read(revision, path))
+                archives = {platform: native_assets.fetch(asset, root)
+                            for platform, asset in assets.items()}
+                assemble_package(git, source_sha, archives, Path("package.tar.gz"))
             return
         source = stack.enter_context(
             GitHubOperations("DataDog/dd-sdk-unity", token=os.getenv("SOURCE_GITHUB_TOKEN"))

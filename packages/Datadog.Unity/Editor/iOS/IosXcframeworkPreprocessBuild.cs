@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -31,19 +32,20 @@ namespace Datadog.Unity.Editor.iOS
 
             ValidateDeploymentTarget(PlayerSettings.iOS.targetOSVersionString);
 
-            var pluginsIosDirectory = IosDependencyVersion.ResolvePluginsIosDirectory();
-            var requiredModules = IosDependencyVersion.Load().modules;
+            var artifact = IosDependencyVersion.Load().artifacts.ios;
+            var pluginsIosDirectory = IosDependencyVersion.ResolvePluginsIosDirectory(artifact);
+            var requiredFiles = artifact.files.Keys.Where(file => file.EndsWith(".xcframework", StringComparison.Ordinal));
 
-            Validate(pluginsIosDirectory, requiredModules);
+            Validate(pluginsIosDirectory, requiredFiles);
 
             var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(IosDependencyVersion).Assembly);
             var pluginsAssetPath = packageInfo != null
-                ? $"{packageInfo.assetPath}/Plugins/iOS"
+                ? $"{packageInfo.assetPath}/{artifact.destination}"
                 : FileUtil.GetProjectRelativePath(pluginsIosDirectory).Replace('\\', '/');
 
-            foreach (var module in requiredModules)
+            foreach (var file in requiredFiles)
             {
-                var assetPath = $"{pluginsAssetPath}/{module}.xcframework";
+                var assetPath = $"{pluginsAssetPath}/{file}";
                 var importer = AssetImporter.GetAtPath(assetPath) as PluginImporter;
                 if (importer == null)
                 {
@@ -76,39 +78,39 @@ namespace Datadog.Unity.Editor.iOS
                 $"{MinimumIosVersion} or later (currently '{targetVersion}').");
         }
 
-        internal static List<string> FindMissingModules(string pluginsIosDirectory, IEnumerable<string> requiredModules)
+        internal static List<string> FindMissingFiles(string pluginsIosDirectory, IEnumerable<string> requiredFiles)
         {
             var missing = new List<string>();
-            foreach (var module in requiredModules)
+            foreach (var file in requiredFiles)
             {
                 if (string.IsNullOrEmpty(pluginsIosDirectory))
                 {
-                    missing.Add(module);
+                    missing.Add(file);
                     continue;
                 }
 
-                var modulePath = Path.Combine(pluginsIosDirectory, $"{module}.xcframework");
-                if (!Directory.Exists(modulePath))
+                var pluginPath = Path.Combine(pluginsIosDirectory, file);
+                if (!Directory.Exists(pluginPath))
                 {
-                    missing.Add(module);
+                    missing.Add(file);
                 }
             }
 
             return missing;
         }
 
-        internal static void Validate(string pluginsIosDirectory, IEnumerable<string> requiredModules)
+        internal static void Validate(string pluginsIosDirectory, IEnumerable<string> requiredFiles)
         {
-            var missing = FindMissingModules(pluginsIosDirectory, requiredModules);
+            var missing = FindMissingFiles(pluginsIosDirectory, requiredFiles);
             if (missing.Count == 0)
             {
                 return;
             }
 
             throw new BuildFailedException(
-                $"Datadog: missing required XCFramework module(s) [{string.Join(", ", missing)}] under " +
-                $"{pluginsIosDirectory}. In the development repo, run 'dd-unity-ios-xcframework stage' to " +
-                "fetch and stage the pinned modules. A published package is expected to ship these modules " +
+                $"Datadog: missing required XCFramework(s) [{string.Join(", ", missing)}] under " +
+                $"{pluginsIosDirectory}. In the development repo, run 'dd-unity-manage-sdk-dependencies stage' to " +
+                "fetch and stage the pinned files. A published package is expected to ship these files " +
                 "already vendored — see packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json for the " +
                 "pinned dd-sdk-ios version.");
         }

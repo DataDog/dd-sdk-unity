@@ -12,9 +12,13 @@ namespace Datadog.Unity.Editor.iOS
 {
     public class IosXcframeworkPreprocessBuildTests
     {
-        private static readonly string[] RequiredModules = new[]
+        private static readonly string[] RequiredFiles = new[]
         {
-            "DatadogCore", "DatadogInternal", "DatadogLogs", "DatadogRUM", "DatadogCrashReporting",
+            "DatadogCore.xcframework",
+            "DatadogInternal.xcframework",
+            "DatadogLogs.xcframework",
+            "DatadogRUM.xcframework",
+            "DatadogCrashReporting.xcframework",
         };
 
         private string _tempDirectory;
@@ -32,83 +36,83 @@ namespace Datadog.Unity.Editor.iOS
             Directory.Delete("tmp", true);
         }
 
-        private void CreateModuleDirectories(params string[] modules)
+        private void CreatePluginDirectories(params string[] files)
         {
-            foreach (var module in modules)
+            foreach (var file in files)
             {
-                Directory.CreateDirectory(Path.Combine(_tempDirectory, $"{module}.xcframework"));
+                Directory.CreateDirectory(Path.Combine(_tempDirectory, file));
             }
         }
 
         [Test]
-        public void FindMissingModulesReturnsEmptyWhenAllModulesPresent()
+        public void FindMissingFilesReturnsEmptyWhenAllFilesPresent()
         {
-            CreateModuleDirectories(RequiredModules);
+            CreatePluginDirectories(RequiredFiles);
 
-            var missing = IosXcframeworkPreprocessBuild.FindMissingModules(_tempDirectory, RequiredModules);
+            var missing = IosXcframeworkPreprocessBuild.FindMissingFiles(_tempDirectory, RequiredFiles);
 
             Assert.IsEmpty(missing);
         }
 
         [Test]
-        public void FindMissingModulesReturnsSingleMissingModule()
+        public void FindMissingFilesReturnsSingleMissingFile()
         {
-            CreateModuleDirectories(RequiredModules.Take(4).ToArray());
+            CreatePluginDirectories(RequiredFiles.Take(4).ToArray());
 
-            var missing = IosXcframeworkPreprocessBuild.FindMissingModules(_tempDirectory, RequiredModules);
+            var missing = IosXcframeworkPreprocessBuild.FindMissingFiles(_tempDirectory, RequiredFiles);
 
             Assert.AreEqual(1, missing.Count);
-            Assert.AreEqual(RequiredModules[4], missing[0]);
+            Assert.AreEqual(RequiredFiles[4], missing[0]);
         }
 
         [Test]
-        public void FindMissingModulesReturnsAllModulesWhenDirectoryDoesNotExist()
+        public void FindMissingFilesReturnsAllFilesWhenDirectoryDoesNotExist()
         {
             var nonExistentDirectory = Path.Combine(_tempDirectory, "does-not-exist");
 
-            var missing = IosXcframeworkPreprocessBuild.FindMissingModules(nonExistentDirectory, RequiredModules);
+            var missing = IosXcframeworkPreprocessBuild.FindMissingFiles(nonExistentDirectory, RequiredFiles);
 
-            Assert.AreEqual(RequiredModules.Length, missing.Count);
-            foreach (var module in RequiredModules)
+            Assert.AreEqual(RequiredFiles.Length, missing.Count);
+            foreach (var module in RequiredFiles)
             {
                 Assert.Contains(module, missing);
             }
         }
 
         [Test]
-        public void FindMissingModulesReportsModuleMissingWhenPathIsAFileNotDirectory()
+        public void FindMissingFilesReportsFileMissingWhenPathIsAFileNotDirectory()
         {
-            CreateModuleDirectories(RequiredModules.Skip(1).ToArray());
-            File.WriteAllText(Path.Combine(_tempDirectory, $"{RequiredModules[0]}.xcframework"), "not a directory");
+            CreatePluginDirectories(RequiredFiles.Skip(1).ToArray());
+            File.WriteAllText(Path.Combine(_tempDirectory, RequiredFiles[0]), "not a directory");
 
-            var missing = IosXcframeworkPreprocessBuild.FindMissingModules(_tempDirectory, RequiredModules);
+            var missing = IosXcframeworkPreprocessBuild.FindMissingFiles(_tempDirectory, RequiredFiles);
 
             Assert.AreEqual(1, missing.Count);
-            Assert.AreEqual(RequiredModules[0], missing[0]);
+            Assert.AreEqual(RequiredFiles[0], missing[0]);
         }
 
         [Test]
-        public void ValidateThrowsBuildFailedExceptionWhenModulesMissing()
+        public void ValidateThrowsBuildFailedExceptionWhenFilesMissing()
         {
-            CreateModuleDirectories(RequiredModules.Take(3).ToArray());
+            CreatePluginDirectories(RequiredFiles.Take(3).ToArray());
             var absoluteDir = Path.GetFullPath(_tempDirectory);
 
             var ex = Assert.Throws<BuildFailedException>(
-                () => IosXcframeworkPreprocessBuild.Validate(absoluteDir, RequiredModules));
+                () => IosXcframeworkPreprocessBuild.Validate(absoluteDir, RequiredFiles));
 
-            Assert.IsTrue(ex.Message.Contains(RequiredModules[3]));
-            Assert.IsTrue(ex.Message.Contains(RequiredModules[4]));
+            Assert.IsTrue(ex.Message.Contains(RequiredFiles[3]));
+            Assert.IsTrue(ex.Message.Contains(RequiredFiles[4]));
             Assert.IsTrue(ex.Message.Contains(absoluteDir));
-            Assert.IsTrue(ex.Message.Contains("dd-unity-ios-xcframework"));
+            Assert.IsTrue(ex.Message.Contains("dd-unity-manage-sdk-dependencies stage"));
         }
 
         [Test]
-        public void ValidateDoesNotThrowWhenAllModulesPresent()
+        public void ValidateDoesNotThrowWhenAllFilesPresent()
         {
-            CreateModuleDirectories(RequiredModules);
+            CreatePluginDirectories(RequiredFiles);
             var absoluteDir = Path.GetFullPath(_tempDirectory);
 
-            Assert.DoesNotThrow(() => IosXcframeworkPreprocessBuild.Validate(absoluteDir, RequiredModules));
+            Assert.DoesNotThrow(() => IosXcframeworkPreprocessBuild.Validate(absoluteDir, RequiredFiles));
         }
 
         [TestCase("12.0")]
@@ -140,27 +144,29 @@ namespace Datadog.Unity.Editor.iOS
         }
 
         [Test]
-        public void IosDependencyVersionParseYieldsExpectedFiveModules()
+        public void IosDependencyVersionParseReadsSelectedFiles()
         {
             var json = @"{
   ""version"": ""3.11.1"",
-  ""sha256"": ""9fe66c4b4c4e3ba68b253c701aff97447358b08b0c5b43af6d4854bf1563c13d"",
-  ""modules"": [
-    ""DatadogCore"",
-    ""DatadogInternal"",
-    ""DatadogLogs"",
-    ""DatadogRUM"",
-    ""DatadogCrashReporting""
-  ]
+  ""artifacts"": {
+    ""ios"": {
+      ""destination"": ""Plugins/iOS/SDK"",
+      ""sha256"": ""9fe66c4b4c4e3ba68b253c701aff97447358b08b0c5b43af6d4854bf1563c13d"",
+      ""files"": {
+        ""DatadogCore.xcframework"": ""DatadogCore.xcframework"",
+        ""DatadogInternal.xcframework"": ""DatadogInternal.xcframework"",
+        ""DatadogLogs.xcframework"": ""DatadogLogs.xcframework"",
+        ""DatadogRUM.xcframework"": ""DatadogRUM.xcframework"",
+        ""DatadogCrashReporting.xcframework"": ""DatadogCrashReporting.xcframework""
+      }
+    }
+  }
 }";
 
             var data = IosDependencyVersion.Parse(json);
 
-            Assert.AreEqual(5, data.modules.Length);
-            foreach (var module in RequiredModules)
-            {
-                Assert.Contains(module, data.modules);
-            }
+            Assert.AreEqual("Plugins/iOS/SDK", data.artifacts.ios.destination);
+            CollectionAssert.AreEquivalent(RequiredFiles, data.artifacts.ios.files.Keys);
         }
     }
 }

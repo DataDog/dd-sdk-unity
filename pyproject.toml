@@ -30,12 +30,10 @@ dd-unity-generate-notice-file = "dd_sdk_unity.scripts.generate_notice_file:main"
 dd-unity-install-unity = "dd_sdk_unity.scripts.install_unity:main"
 dd-unity-integration-test = "dd_sdk_unity.scripts.integration_test:main"
 dd-unity-integration-test-setup = "dd_sdk_unity.scripts.integration_test_setup:main"
-dd-unity-ios-xcframework = "dd_sdk_unity.scripts.ios_xcframework:main"
+dd-unity-manage-sdk-dependencies = "dd_sdk_unity.scripts.manage_sdk_dependencies:main"
 dd-unity-release = "dd_sdk_unity.release.cli:main"
 dd-unity-start-simulator = "dd_sdk_unity.scripts.start_simulator:main"
 dd-unity-unit-test = "dd_sdk_unity.scripts.unit_test:main"
-dd-unity-update-android-version = "dd_sdk_unity.scripts.update_android_version:main"
-dd-unity-update-ios-version = "dd_sdk_unity.scripts.update_ios_version:main"
 dd-unity-verify-ios-build = "dd_sdk_unity.scripts.verify_ios_build:cli_main"
 
 [tool.setuptools]

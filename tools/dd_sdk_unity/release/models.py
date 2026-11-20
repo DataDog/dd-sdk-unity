@@ -8,11 +8,11 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from dd_sdk_unity.scripts.common.versions.sdk_pin import SdkPin
 from dd_sdk_unity.scripts.common.versions.semver import VERSION_PATTERN
 
 VersionString = Annotated[str, Field(pattern=rf"^{VERSION_PATTERN}$")]
 CommitSha = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
-Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
 
 class ReleaseRecord(BaseModel):
@@ -38,14 +38,6 @@ class ReleasePlan(ReleaseRecord):
     changes: tuple[Change, ...]
 
 
-class IosPin(ReleaseRecord):
-    version: VersionString
-    sha256: Digest
-    modules: tuple[Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9]*$")], ...] = Field(
-        min_length=1
-    )
-
-
 class AndroidPin(ReleaseRecord):
     version: VersionString
 
@@ -54,5 +46,6 @@ class Preparation(ReleaseRecord):
     """In-memory inputs used to create the preparation PR; never persisted."""
 
     release: ReleasePlan
-    ios: IosPin
+    ios: SdkPin
     android: AndroidPin
+    cpp: SdkPin

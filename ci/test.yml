@@ -61,7 +61,7 @@ integration-test-ios:
     - !reference [.shared, install-unity]
     - xcodebuild -version
     - xcrun simctl list runtimes -j | jq -e 'any(.runtimes[]; .isAvailable and (.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))'
-    - dd-unity-ios-xcframework stage
+    - dd-unity-manage-sdk-dependencies stage
     - dd-unity-integration-test --platform ios --target simulator --unity-version "$UNITY_VERSION_PARTIAL" --project "$PROJECT_PATH"
   artifacts:
     when: always

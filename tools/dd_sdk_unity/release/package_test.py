@@ -11,6 +11,7 @@ from unittest.mock import Mock
 import pytest
 
 from dd_sdk_unity.scripts.common.git import GitOperations
+from dd_sdk_unity.scripts.common.versions.sdk_pin import NativeArtifact
 
 from . import ASSEMBLY_PATH, PACKAGE_PATH, package
 
@@ -25,7 +26,7 @@ def source_package(tmp_path, repository, make_commit):
         f"{PACKAGE_PATH}/Runtime/Code.cs": "committed SDK source",
         f"{PACKAGE_PATH}/Tests/NotShipped.cs": "tests",
         f"{PACKAGE_PATH}/Tests.meta": "test metadata",
-        f"{PACKAGE_PATH}/Plugins/iOS/Stale.xcframework/stale": "stale generated payload",
+        f"{PACKAGE_PATH}/Plugins/SDK/stale.dll": "stale generated payload",
         f"{PACKAGE_PATH}/NOTICE.txt": "committed notice",
         f"{PACKAGE_PATH}/Editor/com.datadoghq.unity.editor.asmdef": "{}",
         f"{PACKAGE_PATH}/Editor/com.datadoghq.unity.Editor.asmdef.meta": "guid: preserved-editor-guid\n",
@@ -45,25 +46,37 @@ def test_assemble_uses_committed_source_and_delegates_native_staging(
     source_package, tmp_path, monkeypatch
 ):
     git, sha = source_package
-    pin = Mock(modules=("DatadogCore",))
-    monkeypatch.setattr(package, "pins", Mock(return_value=(pin, Mock())))
-    extract = Mock(side_effect=lambda archive, output, pin: output.mkdir(parents=True))
-    monkeypatch.setattr(package, "extract_native", extract)
+    asset = NativeArtifact(
+        platform="windows",
+        repository="fixture/sdk",
+        version="1.0.0",
+        name="sdk.zip",
+        sha256="0" * 64,
+        destination="Plugins/SDK",
+        strip_prefix="",
+        files={"native.dll": "native.dll"},
+    )
+    load = Mock(return_value={"native": asset})
+    monkeypatch.setattr(package.native_assets, "load", load)
+    stage = Mock()
+    monkeypatch.setattr(package.native_assets, "stage", stage)
     (git.root / PACKAGE_PATH / "Runtime/Code.cs").write_text("uncommitted edits")
     archive = tmp_path / "native.zip"
     output = tmp_path / "package"
 
-    package.assemble(git, sha, archive, output)
+    package.assemble(git, sha, {"native": archive}, output)
 
     assert (output / "Runtime/Code.cs").read_text() == "committed SDK source"
     assert not (output / "Tests").exists() and not (output / "Tests.meta").exists()
-    assert not (output / "Plugins/iOS/Stale.xcframework/stale").exists()
+    assert not (output / "Plugins/SDK/stale.dll").exists()
     assert (output / "NOTICE.txt").read_text() == "committed notice"
     assert (output / "README.md").read_text() == "# Package\nDistribution instructions.\n"
     assert (
         output / "Editor/com.datadoghq.unity.editor.asmdef.meta"
     ).read_text() == "guid: preserved-editor-guid\n"
-    extract.assert_called_once_with(archive, output / "Plugins/iOS", pin)
+    stage.assert_called_once_with(asset, archive, output)
+    reader = load.call_args.args[0]
+    assert reader(f"{PACKAGE_PATH}/Runtime/Code.cs") == b"committed SDK source"
 
 
 def test_archive_is_reproducible_when_source_timestamps_change(tmp_path):

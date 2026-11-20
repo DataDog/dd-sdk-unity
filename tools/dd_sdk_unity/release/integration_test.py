@@ -63,13 +63,13 @@ def test_integration_keeps_newer_development_metadata_and_reviewed_release_notes
         (
             DEVELOP,
             NATIVE_HISTORY_PATH,
-        ): b"| Unity SDK | iOS SDK | Android SDK |\n|---|---|---|\n| 2.0.0 | 3.21.0 | 3.16.0 |\n",
+        ): b"| Unity SDK | iOS SDK | Android SDK | C++ SDK |\n|---|---|---|---|\n| 2.0.0 | 3.21.0 | 3.16.0 | 0.10.0 |\n",
     }
     git.read.side_effect = lambda sha, path: documents[sha, path]
     monkeypatch.setattr(integration.GitOperations, "clone", Mock(return_value=git))
     monkeypatch.setattr(
         integration, "pins",
-        Mock(return_value=(Mock(version="3.20.0"), Mock(version="3.15.0"))),
+        Mock(return_value=(Mock(version="3.20.0"), Mock(version="3.15.0"), Mock(version="0.9.0"))),
     )
 
     integration.integrate(
@@ -82,8 +82,8 @@ def test_integration_keeps_newer_development_metadata_and_reviewed_release_notes
     notes = (tmp_path / CHANGELOG_PATH).read_text()
     assert "- New development API." in notes and "- Reviewed fix." in notes
     rows = SdkVersionTable.parse((tmp_path / NATIVE_HISTORY_PATH).read_text()).rows
-    assert [(str(row.unity_version), row.ios_version_str, row.android_version_str) for row in rows] == [
-        ("2.0.0", "3.21.0", "3.16.0"), ("1.7.2", "3.20.0", "3.15.0"),
+    assert [(str(row.unity_version), row.cpp_version_str) for row in rows] == [
+        ("2.0.0", "0.10.0"), ("1.7.2", "0.9.0"),
     ]
     if dry_run:
         git.push.assert_not_called()

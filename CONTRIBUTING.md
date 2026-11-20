@@ -87,53 +87,50 @@ To build the SDK for iOS:
 - Install [`xcbeautify`][xcbeautify] via `brew install xcbeautify`
     - To verify xcbeautify successfully installed, run: `xcbeautify --version`
 
-Datadog's own iOS dependency (dd-sdk-ios) is a prebuilt XCFramework vendored directly into the `Datadog.Unity` package via Unity's native Plugin importer — neither CocoaPods nor SPM runs to resolve it. Ruby/CocoaPods are **not** required for Datadog's own dependency (this is independent of Android-side Gradle dependency resolution, which is unaffected).
-
-Before your first iOS build in a fresh clone, stage the XCFramework once:
-
-```bash
-dd-unity-ios-xcframework stage
-```
-
-The staged bundles under `packages/Datadog.Unity/Plugins/iOS/` are `.gitignore`d in this dev repo (fetched on demand, not committed to `dd-sdk-unity`'s own git history). To check the staged state offline without re-fetching:
-
-```bash
-dd-unity-ios-xcframework verify
-```
-
-The pinned dd-sdk-ios version, its expected SHA-256, and its expected module list are the single source of truth in [`packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json`][ios-dependency-version-json].
-
 [xcode]: https://developer.apple.com/xcode/
 [xcbeautify]: https://github.com/cpisciotta/xcbeautify
 [ios-dependency-version-json]: ./packages/Datadog.Unity/Editor/iOS/IosDependencyVersion.json
 [android-dependency-version-json]: ./packages/Datadog.Unity/Editor/Android/AndroidDependencyVersion.json
+[desktop-dependency-version-json]: ./packages/Datadog.Unity/Editor/Desktop/DesktopDependencyVersion.json
 
-#### Troubleshooting iOS dependencies
+## Native dependencies
 
-If an iOS build fails with a message from `IosXcframeworkPreprocessBuild` naming missing XCFramework module(s) under `packages/Datadog.Unity/Plugins/iOS/`, stage the XCFramework and try again:
-
-```bash
-dd-unity-ios-xcframework stage
-```
-
-EDM4U (Google's External Dependency Manager for Unity) has been removed from the package entirely. Neither an iOS nor an Android build invokes EDM4U or CocoaPods for Datadog's own dependencies. If an EDM4U window appears during any build, that indicates a stale EDM4U install left over in the local Unity project — it is not something this package requires or installs.
-
-#### Updating the pinned dd-sdk-ios version
-
-Bumping the pinned dd-sdk-ios version is a deliberate, manual maintainer action:
+Before your first build, stage all pinned iOS and desktop SDK assets:
 
 ```bash
-dd-unity-update-ios-version <version>
+dd-unity-manage-sdk-dependencies stage
 ```
 
-This fetches the target version's XCFramework, re-verifies that all currently-vendored modules are still present in the bundle (failing loudly and leaving the pin untouched if any are missing), stages and structurally verifies the result, and only then rewrites `IosDependencyVersion.json` with the new version and its digest. Useful flags:
+The pin files declare the SDK versions, release ZIPs, SHA-256 checksums, and selected
+files. Staged SDK directories are `.gitignore`d in this development repository.
+The following paths are relative to `packages/Datadog.Unity/`:
 
-- `--dry-run` — perform the fetch/verify/stage steps and print the pin that would be written, without writing it.
-- `--force` — re-run the bump even if the target version already matches the current pin.
+| SDK | Pin file | Staged directory |
+| --- | --- | --- |
+| iOS | [IosDependencyVersion.json][ios-dependency-version-json] | `Plugins/iOS/SDK/` |
+| Desktop (Windows x64) | [DesktopDependencyVersion.json][desktop-dependency-version-json] | `Plugins/Desktop/SDK/Windows/` |
+| Desktop (Linux x64) | [DesktopDependencyVersion.json][desktop-dependency-version-json] | `Plugins/Desktop/SDK/Linux/` |
+| Desktop (macOS universal) | [DesktopDependencyVersion.json][desktop-dependency-version-json] | `Plugins/Desktop/SDK/macOS/` |
 
-`NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow, not by this script.
+To verify the staged assets offline:
 
-Committing the vendored XCFramework into the `unity-package` release payload is release-automation work — no release step is documented here.
+```bash
+dd-unity-manage-sdk-dependencies verify
+```
+
+### Updating a native SDK version
+
+The `upgrade` command updates the pin selected by `--sdk` (`ios`, `cpp`, or
+`android`) to the version supplied through `--version`.
+
+For iOS and C++, this downloads and stages the selected release files and updates
+the archive checksums. The command writes the pin only after validation succeeds.
+
+- `--dry-run` validates in a temporary directory without changing the pin or staged SDKs.
+- `--force` rechecks the currently pinned version.
+- `--allow-transitive-drift` accepts reviewed Kotlin and OkHttp changes for Android.
+
+`NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow.
 
 ### Android dependencies
 
@@ -149,23 +146,8 @@ markers. Gradle resolves the transitive dependency graph from `mavenCentral()`, 
 Unlike iOS, nothing is vendored into the package: the AARs are referenced by Maven coordinate and
 fetched by Gradle at build time, so there is no fetch/stage step and no `Plugins/Android` payload.
 
-#### Updating the pinned dd-sdk-android version
-
-Bumping the pinned dd-sdk-android version is a deliberate, manual maintainer action:
-
-```bash
-dd-unity-update-android-version <version>
-```
-
-This verifies that the three AARs are reachable on Maven Central and re-checks the transitive
-`kotlin-stdlib`/`okhttp` versions for drift before rewriting the pin, leaving the pin untouched on
-any failure. Useful flags:
-
-- `--dry-run` — verify and print the pin that would be written, without writing it.
-- `--force` — re-run the bump even if the target version already matches the current pin.
-- `--allow-transitive-drift` — proceed after a detected transitive version change has been reviewed.
-
-`NATIVE_SDK_VERSIONS.md` and the changelog are updated by the release flow, not by this script.
+For Android, the `upgrade` command checks that the AARs are reachable on Maven Central and checks
+the transitive Kotlin and OkHttp dependencies for drift before writing the pin.
 
 ## Repository overview
 
@@ -312,7 +294,7 @@ Before running integration tests, close the target project in the Editor and mak
 dd-unity-integration-test --platform android
 
 # Run integration tests on an iOS Simulator
-dd-unity-ios-xcframework stage
+dd-unity-manage-sdk-dependencies stage
 dd-unity-integration-test --platform ios --target simulator
 
 # Run integration tests on iOS, using a physically-connected iPhone

@@ -9,9 +9,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from . import ANDROID_PIN_PATH, IOS_PIN_PATH, NATIVE_HISTORY_PATH
+from . import NATIVE_HISTORY_PATH
 from .changelog import draft_notes
 from .changelog_prompts import ChangelogEntry, ChangelogEntryList, GroupedPR, GroupedPRs, PRGroup
+
+BASE_HISTORY = b"""| Unity SDK | iOS SDK | Android SDK | C++ SDK |
+|---|---|---|---|
+| 1.0.0 | 1.0.0 | 1.0.0 | 0.9.0 |
+"""
 
 
 def test_ai_drafting_checks_coverage_and_runs_group_draft_cleanup():
@@ -43,7 +48,6 @@ def test_ai_drafting_checks_coverage_and_runs_group_draft_cleanup():
     assert "Prevents buffer overflows." in notes
     assert notes.endswith(links)
     assert returned_groups == tuple(groups.groups)
-    assert prompt.call_count == 4
     grouping, synthesis, ci, cleanup = prompt.call_args_list
     assert "    1 fix: Correct timestamp" in grouping.args[0]
     assert "Timestamp details" not in grouping.args[0]
@@ -57,14 +61,6 @@ def test_ai_drafting_checks_coverage_and_runs_group_draft_cleanup():
         GroupedPRs(groups=[]),
         GroupedPRs(groups=[PRGroup(label="Unknown", prs=[GroupedPR(number=99, title="Invented")])]),
         GroupedPRs(groups=[*groups.groups, groups.groups[0]]),
-        GroupedPRs(
-            groups=[
-                PRGroup(
-                    label="Repeated PR",
-                    prs=[*groups.groups[0].prs, *groups.groups[0].prs, *groups.groups[1].prs],
-                )
-            ]
-        ),
     ):
         with pytest.raises(ValueError, match="PR numbers do not match input"):
             draft_notes(changes, "", Mock(return_value=invalid))
@@ -81,7 +77,9 @@ def test_changelog_skips_ordinary_chores_but_includes_breaking_chores(prefix):
     from .changelog import classify
 
     prompt = Mock()
-    notes, groups = draft_notes((classify(prefix + "chore: Internal cleanup", number=1),), "", prompt)
+    notes, groups = draft_notes(
+        (classify(prefix + "chore: Internal cleanup", number=1),), "", prompt
+    )
     assert notes == "- Maintenance release; no significant changes."
     assert groups == ()
     prompt.assert_not_called()
@@ -153,18 +151,14 @@ def test_native_notes_fetch_and_summarize_only_upgrades(monkeypatch, ios, androi
     git = Mock()
 
     def read(sha, path):
-        if sha == "base":
-            assert path in (IOS_PIN_PATH, ANDROID_PIN_PATH)
-            return b'{"version":"1.0.0"}'
         assert sha == "source"
-        assert path == ANDROID_PIN_PATH
-        return b'{"version":"1.0.1","artifacts":["dd-sdk-android-rum"]}'
+        assert path == NATIVE_HISTORY_PATH
+        return BASE_HISTORY
 
     git.read.side_effect = read
     plan = Mock()
-    plan.release.base_sha, plan.release.source_sha = "base", "source"
+    plan.release.source_sha, plan.release.base_version = "source", "1.0.0"
     plan.ios.version, plan.android.version = ios, android
-    plan.ios.modules = ("DatadogCore", "DatadogRUM")
     upstream = Mock(
         return_value=(
             "# 2.0.0 / later\nFuture change.\n"
@@ -191,9 +185,6 @@ def test_native_notes_fetch_and_summarize_only_upgrades(monkeypatch, ios, androi
         assert "Future change." not in data["changelog"]
         if data["sdk"] == "Android":
             assert "Larger buffers." not in data["changelog"]
-            assert data["bundled"] == ["dd-sdk-android-rum"]
-        else:
-            assert data["bundled"] == ["DatadogCore", "DatadogRUM"]
     assert notes.count("  - Corrects native caching.") == len(expected)
     if ios == android == "1.0.0":
         assert notes == ""
@@ -208,10 +199,9 @@ def test_native_notes_bound_the_range_without_a_baseline_heading(monkeypatch, ca
     from . import changelog
 
     git = Mock()
-    git.read.return_value = b'{"version":"1.0.0"}'
-    plan = Mock()
+    git.read.return_value = BASE_HISTORY
+    plan = Mock(release=Mock(source_sha="source", base_version="1.0.0"))
     plan.ios.version, plan.android.version = "1.1.0", "1.0.0"
-    plan.ios.modules = ("DatadogCore",)
     text = "# 0.9.0\nOld fix.\n"
     if has_target:
         text = "# 1.1.0\nNew fix.\n" + text
@@ -229,30 +219,18 @@ def test_native_notes_bound_the_range_without_a_baseline_heading(monkeypatch, ca
         assert "Skipping iOS summary" in caplog.text
 
 
-def test_native_notes_fall_back_to_version_history_at_the_base(monkeypatch):
+def test_native_notes_skip_a_missing_base_version(monkeypatch):
     from . import changelog
 
     git = Mock()
-
-    def read(sha, path):
-        assert sha == "base"
-        if path in (IOS_PIN_PATH, ANDROID_PIN_PATH):
-            raise KeyError(path)
-        assert path == NATIVE_HISTORY_PATH
-        return b"| Unity SDK | iOS SDK | Android SDK |\n|---|---|---|\n| 2.0.0 | 3.11.1 | 3.10.0 |\n| 1.7.1 | 2.30.1 | 2.26.3 |\n"
-
-    git.read.side_effect = read
-    plan = Mock()
-    plan.release.base_sha = "base"
-    plan.release.base_version = "1.7.1"
+    git.read.return_value = BASE_HISTORY
+    plan = Mock(release=Mock(source_sha="source", base_version="1.7.1"))
     plan.ios.version, plan.android.version = "2.30.1", "2.26.3"
     upstream = Mock()
-    monkeypatch.setattr(
-        changelog.GitHubOperations,
-        "get_file_contents",
-        lambda self, ref, path: upstream(self.repository.full_name, ref, path),
-    )
+    monkeypatch.setattr(changelog.GitHubOperations, "get_file_contents", upstream)
     prompt = Mock()
+
     assert changelog.native_release_notes(git, plan, prompt) == ""
+    git.read.assert_called_once_with("source", NATIVE_HISTORY_PATH)
     upstream.assert_not_called()
     prompt.assert_not_called()

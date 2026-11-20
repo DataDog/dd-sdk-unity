@@ -10,7 +10,7 @@ import os
 import plistlib
 import shutil
 
-from dd_sdk_unity.scripts import ios_xcframework
+from dd_sdk_unity.dependencies import native_assets
 from dd_sdk_unity.scripts.common import TargetPlatform
 from dd_sdk_unity.scripts.common.apple import run_xcodebuild
 from dd_sdk_unity.scripts.common.ddconfig import DatadogRuntimeConfig, modified_datadog_settings
@@ -42,15 +42,7 @@ def build_demo(unity_version_prefix: str, project_root: str, platform: TargetPla
     if not os.path.isfile(build_commands_cs_path):
         raise RuntimeError(f'Invalid Unity project: no BuildCommands script at {build_commands_cs_path}')
 
-    # The Datadog.Unity package's Plugins/iOS/*.xcframework bundles are gitignored, so a
-    # fresh checkout has none staged. Unity must find them in Plugins/iOS at build time
-    # (it embeds them into the generated Xcode project), so stage the version currently
-    # pinned in IosDependencyVersion.json before invoking the Unity build.
-    if platform == 'ios':
-        pin = ios_xcframework.load_pin()
-        ios_xcframework.fetch(log, str(pin.version), pin.sha256, force=False, allow_unknown_sha256=False)
-        ios_xcframework.stage(log, str(pin.version), pin.modules)
-        ios_xcframework.verify(log, pin.modules)
+    native_assets.ensure()
 
     target = {'android': 'Android', 'ios': 'iOS'}[platform]
     output_path = os.path.abspath(os.path.join(project_root, 'Build', target))

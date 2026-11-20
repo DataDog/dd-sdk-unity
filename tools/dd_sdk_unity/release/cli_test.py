@@ -21,13 +21,19 @@ def test_assemble_uses_ci_checkout_and_never_opens_source_api(tmp_path, monkeypa
     monkeypatch.setattr(cli, "GitOperations", Mock(return_value=git))
     factory = Mock(side_effect=AssertionError("Source API used"))
     monkeypatch.setattr(cli, "GitHubOperations", factory)
-    pin = Mock()
-    monkeypatch.setattr(cli, "pins", Mock(return_value=(pin, Mock())))
-    archive = tmp_path / "native.zip"
-    monkeypatch.setattr(cli, "native_archive", Mock(return_value=archive))
+    assets = {"ios": Mock(), "windows": Mock()}
+    load = Mock(return_value=assets)
+    monkeypatch.setattr(cli.native_assets, "load", load)
+    archives = [tmp_path / "ios.zip", tmp_path / "windows.zip"]
+    monkeypatch.setattr(cli.native_assets, "fetch", Mock(side_effect=archives))
     assemble = Mock()
     monkeypatch.setattr(cli, "assemble_package", assemble)
 
     cli.run(cli.parser().parse_args(["assemble"]))
 
-    assemble.assert_called_once_with(git, SOURCE, archive, Path("package.tar.gz"))
+    assemble.assert_called_once_with(
+        git, SOURCE, dict(zip(assets, archives)), Path("package.tar.gz")
+    )
+    reader = load.call_args.args[0]
+    reader("pin.json")
+    git.read.assert_called_once_with(SOURCE, "pin.json")

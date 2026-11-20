@@ -1,11 +1,18 @@
 {
   "version": "3.21.0",
-  "sha256": "4ab766929db794d7a7f999e6c952ca93dd1a37956153f1f6fc415e0a378bbf6d",
-  "modules": [
-    "DatadogCore",
-    "DatadogInternal",
-    "DatadogLogs",
-    "DatadogRUM",
-    "DatadogCrashReporting"
-  ]
+  "artifacts": {
+    "ios": {
+      "name": "Datadog.xcframework.zip",
+      "sha256": "4ab766929db794d7a7f999e6c952ca93dd1a37956153f1f6fc415e0a378bbf6d",
+      "destination": "Plugins/iOS/SDK",
+      "strip_prefix": "Datadog.xcframework",
+      "files": {
+        "DatadogCore.xcframework": "DatadogCore.xcframework",
+        "DatadogInternal.xcframework": "DatadogInternal.xcframework",
+        "DatadogLogs.xcframework": "DatadogLogs.xcframework",
+        "DatadogRUM.xcframework": "DatadogRUM.xcframework",
+        "DatadogCrashReporting.xcframework": "DatadogCrashReporting.xcframework"
+      }
+    }
+  }
 }

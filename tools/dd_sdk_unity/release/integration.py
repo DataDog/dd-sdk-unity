@@ -70,10 +70,13 @@ def integrate(
         modify_assemblyinfo(str(assembly_path), Version.parse(merged_version))
         development_notes = git.read(develop_sha, CHANGELOG_PATH).decode()
         (root / CHANGELOG_PATH).write_text(merge_sections(development_notes, {version: notes}))
-        ios, android = pins(git, source_sha)
+        ios, android, cpp = pins(git, source_sha)
         native_versions = SdkVersionTable.parse(git.read(develop_sha, NATIVE_HISTORY_PATH).decode())
         native_versions.set(
-            Version.parse(version), Version.parse(ios.version), Version.parse(android.version)
+            Version.parse(version),
+            Version.parse(ios.version),
+            Version.parse(android.version),
+            Version.parse(cpp.version),
         )
         native_versions.rows.sort(key=lambda row: row.unity_version, reverse=True)
         (root / NATIVE_HISTORY_PATH).write_text(native_versions.render())
