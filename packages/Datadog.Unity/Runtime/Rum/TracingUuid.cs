@@ -4,6 +4,7 @@
 
 using System;
 using System.Numerics;
+using System.Threading;
 
 namespace Datadog.Unity.Rum
 {
@@ -40,7 +41,7 @@ namespace Datadog.Unity.Rum
     /// </summary>
     public readonly struct TracingUuid
     {
-        private static Random _random = new();
+        private static readonly ThreadLocal<Random> _random = new(() => new Random());
 
         private readonly ulong _high;
         private readonly ulong _low;
@@ -111,41 +112,59 @@ namespace Datadog.Unity.Rum
         }
 
         /// <summary>
-        /// Generates a random ID, with the value stored in the lower 63 bits. The topmost bit of
+        /// Generates a nonzero random ID, with the value stored in the lower 63 bits. The topmost bit of
         /// the lower half is reserved and will always be zero.
         /// </summary>
         public static TracingUuid Create63Bit()
         {
-            byte[] bytes = new byte[sizeof(ulong)];
-            _random.NextBytes(bytes);
+            return Create63Bit(_random.Value);
+        }
 
-            // Mask out the top bit
-            bytes[7] &= 0x7f;
-            var low = BitConverter.ToUInt64(bytes);
+        internal static TracingUuid Create63Bit(Random random)
+        {
+            ulong low;
+            do
+            {
+                low = Create64Bit(random).Low & (ulong)long.MaxValue;
+            } while (low == 0);
 
             return new TracingUuid(0, low);
         }
 
         /// <summary>
-        /// Creates a random ID, with the value stored in the lower 64 bits.
+        /// Creates a nonzero random ID, with the value stored in the lower 64 bits.
         /// </summary>
         public static TracingUuid Create64Bit()
         {
+            return Create64Bit(_random.Value);
+        }
+
+        internal static TracingUuid Create64Bit(Random random)
+        {
             byte[] bytes = new byte[sizeof(ulong)];
-            _random.NextBytes(bytes);
-            var low = BitConverter.ToUInt64(bytes);
+            ulong low;
+            do
+            {
+                random.NextBytes(bytes);
+                low = BitConverter.ToUInt64(bytes);
+            } while (low == 0);
+
             return new TracingUuid(0, low);
         }
 
         /// <summary>
-        /// Creates a random ID with a 128-bit value.
+        /// Creates a random ID with a 128-bit value and nonzero lower 64 bits.
         /// </summary>
         public static TracingUuid Create128Bit()
         {
+            return Create128Bit(_random.Value);
+        }
+
+        internal static TracingUuid Create128Bit(Random random)
+        {
+            var low = Create64Bit(random).Low;
             byte[] bytes = new byte[sizeof(ulong)];
-            _random.NextBytes(bytes);
-            var low = BitConverter.ToUInt64(bytes);
-            _random.NextBytes(bytes);
+            random.NextBytes(bytes);
             var high = BitConverter.ToUInt64(bytes);
             return new TracingUuid(high, low);
         }

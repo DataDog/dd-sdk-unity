@@ -59,7 +59,7 @@ namespace Datadog.Unity.Rum
             var sampler = session != null
                 ? new DeterministicSampler(session.SamplingSeed, _sessionSampleRate).CombineWith(_traceSampleRate)
                 : new DeterministicSampler(traceId.Low, _traceSampleRate);
-            return new TraceContext(traceId, spanId, null, sampler.Sample(), sampler.RulePsr);
+            return new TraceContext(traceId, spanId, sampler.Sample(), sampler.RulePsr);
         }
 
         /// <summary>
