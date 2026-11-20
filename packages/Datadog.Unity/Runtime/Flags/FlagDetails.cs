@@ -36,7 +36,7 @@ namespace Datadog.Unity.Flags
             Key = key;
             Value = value;
             Variant = variant;
-            Reason = reason;
+            Reason = error.HasValue ? "ERROR" : reason;
             Error = error;
             AllocationKey = allocationKey;
         }
@@ -50,7 +50,7 @@ namespace Datadog.Unity.Flags
         /// <summary>Gets the variant served (null if not found).</summary>
         public string Variant { get; }
 
-        /// <summary>Gets the evaluation reason (null if not found).</summary>
+        /// <summary>Gets the evaluation reason, or ERROR when evaluation fails.</summary>
         public string Reason { get; }
 
         /// <summary>Gets the evaluation error (null if successful).</summary>
