@@ -212,30 +212,30 @@ internal func castAnyToEncodable(_ jsonAny: Any) -> Encodable {
         if CFGetTypeID(number) == CFBooleanGetTypeID() {
             return CFBooleanGetValue(number)
         } else {
-            switch CFNumberGetType(number) {
-            case .charType:
-                return number.uint8Value
-            case .sInt8Type:
-                return number.int8Value
-            case .sInt16Type:
+            // CFNumberGetType can lose the signedness of NSNumber values.
+            // Matches native iOS: https://github.com/DataDog/dd-sdk-ios/blob/4dc1b9de87f6cabf3663e9c963463b7056f02188/DatadogInternal/Sources/Codable/AnyEncodable.swift#L133-L165
+            switch Character(Unicode.Scalar(UInt8(number.objCType.pointee))) {
+            case "c":
+                return number.boolValue
+            case "s":
                 return number.int16Value
-            case .sInt32Type:
+            case "i", "l":
                 return number.int32Value
-            case .sInt64Type:
+            case "q":
                 return number.int64Value
-            case .shortType:
+            case "C":
+                return number.uint8Value
+            case "S":
                 return number.uint16Value
-            case .longType:
+            case "I", "L":
                 return number.uint32Value
-            case .longLongType:
+            case "Q":
                 return number.uint64Value
-            case .intType, .nsIntegerType, .cfIndexType:
-                return number.intValue
-            case .floatType, .float32Type:
+            case "f":
                 return number.floatValue
-            case .doubleType, .float64Type, .cgFloatType:
+            case "d":
                 return number.doubleValue
-            @unknown default:
+            default:
                 return JsonEncodable(jsonAny)
             }
         }
@@ -284,31 +284,33 @@ private func encodeNSNumber(_ number: NSNumber, into container: inout SingleValu
     if CFGetTypeID(number) == CFBooleanGetTypeID() {
         try container.encode(CFBooleanGetValue(number))
     } else {
-        switch CFNumberGetType(number) {
-        case .charType:
-            try container.encode(number.uint8Value)
-        case .sInt8Type:
-            try container.encode(number.int8Value)
-        case .sInt16Type:
+        switch Character(Unicode.Scalar(UInt8(number.objCType.pointee))) {
+        case "c":
+            try container.encode(number.boolValue)
+        case "s":
             try container.encode(number.int16Value)
-        case .sInt32Type:
+        case "i", "l":
             try container.encode(number.int32Value)
-        case .sInt64Type:
+        case "q":
             try container.encode(number.int64Value)
-        case .shortType:
+        case "C":
+            try container.encode(number.uint8Value)
+        case "S":
             try container.encode(number.uint16Value)
-        case .longType:
+        case "I", "L":
             try container.encode(number.uint32Value)
-        case .longLongType:
+        case "Q":
             try container.encode(number.uint64Value)
-        case .intType, .nsIntegerType, .cfIndexType:
-            try container.encode(number.intValue)
-        case .floatType, .float32Type:
+        case "f":
             try container.encode(number.floatValue)
-        case .doubleType, .float64Type, .cgFloatType:
+        case "d":
             try container.encode(number.doubleValue)
-        @unknown default:
-            return
+        default:
+            let context = EncodingError.Context(
+                codingPath: container.codingPath,
+                debugDescription: "NSNumber cannot be encoded because its type is not handled"
+            )
+            throw EncodingError.invalidValue(number, context)
         }
     }
 }
