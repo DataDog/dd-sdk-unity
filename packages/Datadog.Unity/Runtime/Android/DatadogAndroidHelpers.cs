@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -57,6 +58,10 @@ namespace Datadog.Unity.Android
             AndroidJavaObject javaValue;
             switch (value)
             {
+                case null:
+                    javaValue = null;
+                    break;
+
                 // Integer types - okay to convert all of these to Java ints
                 case byte val:
                     javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
@@ -109,17 +114,38 @@ namespace Datadog.Unity.Android
                     javaValue = new AndroidJavaObject("java.lang.Boolean", val);
                     break;
 
-                // TODO: Need to support lists / arrays and null
                 case IDictionary<string, object> val:
                     javaValue = DictionaryToJavaMap(val);
                     break;
+                case IList val:
+                    javaValue = ListToJavaList(val);
+                    break;
                 default:
-                    var strValue = value != null ? value.ToString() : "null";
-                    javaValue = new AndroidJavaObject("java.lang.String", strValue);
+                    javaValue = new AndroidJavaObject("java.lang.String", value.ToString());
                     break;
             }
 
             return javaValue;
+        }
+
+        private static AndroidJavaObject ListToJavaList(IList values)
+        {
+            var javaList = new AndroidJavaObject("java.util.ArrayList", values.Count);
+            try
+            {
+                foreach (var value in values)
+                {
+                    using var javaValue = ObjectToJavaObject(value);
+                    javaList.Call<bool>("add", javaValue);
+                }
+
+                return javaList;
+            }
+            catch
+            {
+                javaList.Dispose();
+                throw;
+            }
         }
     }
 }
