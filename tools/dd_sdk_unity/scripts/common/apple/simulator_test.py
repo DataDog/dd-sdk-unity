@@ -64,7 +64,7 @@ def test_compile_failure_deletes_only_owned_simulator(tmp_path, monkeypatch, shu
             raise subprocess.TimeoutExpired(command, 30)
         return subprocess.CompletedProcess(command, 0)
 
-    def failed_build(cwd, command):
+    def failed_build(cwd, command, *, log_path):
         assert cwd == str(export)
         assert command[-1] == 'build'
         assert 'platform=iOS Simulator,id=owned-simulator' in command
@@ -121,7 +121,7 @@ def test_hung_player_times_out_and_cleans_owned_simulator(tmp_path, monkeypatch)
         return subprocess.CompletedProcess(command, 0)
 
     monkeypatch.setattr(simulator, '_capture', capture)
-    monkeypatch.setattr(simulator, 'run_xcodebuild', lambda *args: None)
+    monkeypatch.setattr(simulator, 'run_xcodebuild', lambda *args, **kwargs: None)
     monkeypatch.setattr(simulator, '_run', lambda *args: None)
     monkeypatch.setattr(simulator.subprocess, 'Popen', lambda *args, **kwargs: player)
     monkeypatch.setattr(simulator.subprocess, 'run', run)
