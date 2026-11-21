@@ -13,10 +13,14 @@ attributes that use these reserved keys.
 
 ## Android attribute values
 
-Lists and arrays in Android attributes are now sent as JSON arrays instead of
-their C# `ToString()` representations, including nested lists and arrays. Null
-values inside attribute maps and collections are now sent as null instead of the
-string `"null"`.
+Enumerable collections in Android attributes, including lists, arrays, sets,
+and LINQ sequences, are now sent as JSON arrays instead of their C# `ToString()`
+representations. String values remain strings.
+
+Additional dictionary types implementing `System.Collections.IDictionary`,
+such as `Dictionary<string, int>`, are now sent as JSON objects instead of strings.
+Dictionary keys must be strings. Null values inside attribute maps and
+collections are now sent as null instead of the string `"null"`.
 
 Review queries, facets, and processing rules that depend on the old string
 values. If you need string attributes, convert values explicitly before passing
