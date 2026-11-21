@@ -286,7 +286,7 @@ When you run any of these commands from the root of this repository, the script 
 
 **Note**: If you already have the target project open in Unity, test scripts will fail to run, as Unity does not permit the same project to be open in multiple editor instances. If you wish to run unit tests without closing the editor, you can run them directly through (`Window` &rarr; `General` &rarr; `Test Runner`).
 
-Unit test results are written in JUnit format to `unit-test-<mode>.xml`. If all tests pass, the script will exit with a status code of 0.
+Unit test results are written in JUnit format to `build/test-results/unit/<mode>/junit.xml`. If all tests pass, the script will exit with a status code of 0.
 
 ### Integration tests
 
@@ -317,7 +317,7 @@ As with the unit test script, these commands launch the Unity Editor in headless
 
 Use `--project` and `--unity-version` to select another project and Editor.
 
-Results are written to `integration-test-<platform>.xml` in JUnit format, with logs alongside them. Mock-server logs are under the project's `Library/DatadogIntegrationTests/` directory.
+Results are written to `build/test-results/integration/<platform>/junit.xml` in JUnit format, with logs alongside them. Mock-server logs are under the project's `Library/DatadogIntegrationTests/` directory.
 
 Write integration tests as `[Test]` methods returning `async Task`. Inherit
 [`IntegrationTestBase`][integration-test-base] and use the `integration` category.

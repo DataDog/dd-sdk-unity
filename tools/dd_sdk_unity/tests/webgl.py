@@ -39,6 +39,7 @@ def run_webgl_tests(export_path: str | Path, nunit_path: str | Path,
     export_path, log_path = Path(export_path), Path(log_path)
     if not (export_path / 'index.html').is_file():
         raise RuntimeError(f'Unity did not export a WebGL player to {export_path}')
+    get_default_logger().info(f'Starting test run (WebGL), log: {log_path}')
 
     handler = partial(_PlayerRequestHandler, directory=str(export_path))
     server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
@@ -98,7 +99,7 @@ def run_webgl_tests(export_path: str | Path, nunit_path: str | Path,
                     source = Path(directory) / 'runtime-suite.xml'
                     source.write_text(xml)
                     collect_results(source, nunit_path)
-                get_default_logger().info(f'Chrome test results written to {nunit_path}')
+                get_default_logger().debug(f'Chrome test results written to {nunit_path}')
             except BaseException:
                 try:
                     page.screenshot(path=str(log_path.with_suffix('.png')), timeout=5_000)

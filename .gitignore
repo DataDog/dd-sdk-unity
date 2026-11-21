@@ -2,7 +2,7 @@
 obj/
 bin/
 .build/
-Build/
+[Bb]uild/
 **/*.xcframework~
 **/*.aar
 .vscode/settings.json
@@ -25,7 +25,6 @@ __pycache__/
 # though it is ignored in this dev repo.
 packages/Datadog.Unity/Plugins/iOS/SDK/
 packages/Datadog.Unity/Plugins/iOS/SDK.meta
-build/native-assets/
 
 # Desktop SDK payload and its generated Unity metadata.
 packages/Datadog.Unity/Plugins/Desktop/SDK/
