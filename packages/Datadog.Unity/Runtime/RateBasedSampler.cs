@@ -3,13 +3,15 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Threading;
 
 namespace Datadog.Unity
 {
     internal class RateBasedSampler
     {
+        private static readonly ThreadLocal<Random> _random = new(() => new Random());
+
         private float _sampleRate;
-        private Random _random = new Random();
 
         /// <param name="sampleRate">Sample rate should be between 0 and 1.</param>
         public RateBasedSampler(float sampleRate)
@@ -29,7 +31,7 @@ namespace Datadog.Unity
                 return true;
             }
 
-            return _random.NextDouble() <= _sampleRate;
+            return _random.Value.NextDouble() <= _sampleRate;
         }
     }
 }

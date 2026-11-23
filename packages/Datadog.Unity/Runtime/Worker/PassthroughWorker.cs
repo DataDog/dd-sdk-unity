@@ -4,7 +4,7 @@
 
 namespace Datadog.Unity.Worker
 {
-    // Passthrough worker is used on platforms that don't support threading.
+    // Executes messages immediately on the calling thread.
     // TODO: Refactor so that using a worker is only necessary on platforms that need it.
     internal class PassthroughWorker : DatadogWorker
     {
