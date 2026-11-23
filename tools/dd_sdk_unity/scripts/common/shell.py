@@ -6,13 +6,20 @@
 import os
 import signal
 import subprocess
+from pathlib import Path
 
 from dd_sdk_unity.scripts.common.log import get_default_logger
 
 
-def run_cmd_streaming(*args: str) -> int:
-    """Keep terminal detection and progress displays intact."""
-    return subprocess.run(args, check=False, stderr=subprocess.STDOUT).returncode
+def run_cmd_streaming(*args: str, log_path: str | Path | None = None) -> int:
+    """Stream command output to the terminal or a log file without buffering."""
+    if log_path is None:
+        return subprocess.run(args, check=False, stderr=subprocess.STDOUT).returncode
+    path = Path(log_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('w') as output:
+        return subprocess.run(args, check=False, stdout=output,
+                              stderr=subprocess.STDOUT).returncode
 
 
 def capture_output(*args: str) -> tuple[str, str]:

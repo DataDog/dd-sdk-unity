@@ -8,6 +8,7 @@ Utility code for finding and invoking the standalone Unity CLI (the `unity` bina
 import json
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Literal, TypedDict, overload
 
 from dd_sdk_unity.scripts.common import TestMode
@@ -63,7 +64,7 @@ class UnityCli:
             for editor in self._list_items('editors', '--installed')
         ]
         for install in installs:
-            log.info(f'Found: {install.version} at {install.path}')
+            log.debug(f'Found: {install.version} at {install.path}')
         return installs
 
     def install_version(self, version: UnityVersion | str, modules: list[str]) -> UnityInstall:
@@ -142,13 +143,17 @@ class UnityCli:
         results_path: str,
         log_path: str,
         *editor_args: str,
+        test_filters: list[str] | None = None,
     ) -> int:
         return run_cmd_streaming(
             *self._command('human'), 'test', project_path,
             '--editor-version', str(version),
             '--mode', platform,
+            '--report-format', 'junit',
             '--output', results_path,
+            *(['--filter', ';'.join(test_filters)] if test_filters else []),
             '--', '-logFile', log_path, *editor_args,
+            log_path=Path(log_path).with_name('launcher.log'),
         )
 
     def _command(self, output_format: str) -> list[str]:
@@ -200,5 +205,5 @@ class UnityCli:
         path = shutil.which('unity')
         if not path:
             raise RuntimeError('Unity CLI binary not found on PATH')
-        get_default_logger().info(f'Found Unity CLI binary at: {path}')
+        get_default_logger().debug(f'Found Unity CLI binary at: {path}')
         return cls(path)

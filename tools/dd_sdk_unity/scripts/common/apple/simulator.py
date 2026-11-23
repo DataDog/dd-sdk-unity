@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 import uuid
-from collections.abc import Iterable
 from pathlib import Path
 from typing import NotRequired, TypedDict
 
@@ -41,7 +40,7 @@ def _capture(*command: str) -> str:
 
 def _run(command: list[str], log_path: str | Path) -> None:
     log = get_default_logger()
-    log.info('Running: ' + shlex.join(command))
+    log.debug('Running: ' + shlex.join(command))
     with Path(log_path).open('a') as output:
         output.write('$ ' + shlex.join(command) + '\n')
         output.flush()
@@ -50,8 +49,7 @@ def _run(command: list[str], log_path: str | Path) -> None:
         try:
             result = process.wait()
             if result:
-                tail = '\n'.join(Path(log_path).read_text(errors='replace').splitlines()[-30:])
-                raise RuntimeError(f'Command exited with {result}; see {log_path}\n{tail}')
+                raise RuntimeError(f'Command exited with {result}; see {log_path}')
         finally:
             stop_process(process)
 
@@ -68,25 +66,20 @@ def _simulator_type(runtimes: list[_SimulatorRuntime], devices: dict[str, list[_
     raise RuntimeError('No available iOS runtime with an iPhone device type; check simctl list devices available')
 
 
-def _print_player_progress(reader: Iterable[str]) -> None:
-    log = get_default_logger()
-    for line in reader:
-        marker = line.find('[Integration tests]')
-        if marker >= 0:
-            log.info(line[marker:].rstrip())
-
-
 def run_simulator_tests(export_path: str | Path, nunit_path: str | Path, log_path: str | Path) -> None:
     log = get_default_logger()
     export_path = Path(export_path)
     if not (export_path / 'Unity-iPhone.xcodeproj').is_dir():
         raise RuntimeError(f'Unity did not export an Xcode project to {export_path}')
+    log_path = Path(log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text('')
     runtimes = json.loads(_capture('xcrun', 'simctl', 'list', 'runtimes', 'available', '-j'))['runtimes']
     devices = json.loads(_capture('xcrun', 'simctl', 'list', 'devices', 'available', '-j'))['devices']
     runtime, device_type = _simulator_type(runtimes, devices)
     udid = _capture('xcrun', 'simctl', 'create', 'Datadog Integration Tests ' + uuid.uuid4().hex[:8],
                     device_type, runtime)
-    log.info(f'Created owned iOS Simulator {udid}, runtime {runtime}')
+    log.debug(f'Created owned iOS Simulator {udid}, runtime {runtime}')
     launch = None
     bundle_id = None
     try:
@@ -96,7 +89,8 @@ def run_simulator_tests(export_path: str | Path, nunit_path: str | Path, log_pat
             '-project', str(export_path / 'Unity-iPhone.xcodeproj')]
         run_xcodebuild(str(export_path), [*project_args, '-scheme', 'Unity-iPhone', '-configuration', 'Debug',
               '-sdk', 'iphonesimulator', '-destination', f'platform=iOS Simulator,id={udid}',
-              '-derivedDataPath', str(derived), 'CODE_SIGNING_ALLOWED=NO', 'build'])
+              '-derivedDataPath', str(derived), 'CODE_SIGNING_ALLOWED=NO', 'build'],
+              log_path=log_path.with_name('xcodebuild.log'))
         apps = list((derived / 'Build/Products/Debug-iphonesimulator').glob('*.app'))
         if len(apps) != 1:
             raise RuntimeError(f'Expected one built test app, found {apps}')
@@ -110,9 +104,9 @@ def run_simulator_tests(export_path: str | Path, nunit_path: str | Path, log_pat
         # Never accept XML left by an earlier app execution.
         result_path.unlink(missing_ok=True)
         result_path.with_suffix('.xml.tmp').unlink(missing_ok=True)
-        player_log = Path(log_path).with_name(Path(log_path).stem + '-player.log')
-        log.info(f'Launching {bundle_id} via simctl; player log: {player_log}')
-        with player_log.open('w') as output, player_log.open(errors='replace') as reader:
+        player_log = log_path.with_name('player.log')
+        log.info(f'Starting test run (iOS Simulator), log: {player_log}')
+        with player_log.open('w') as output:
             launch_command = ['xcrun', 'simctl', 'launch', '--console-pty', udid, bundle_id]
             with Path(log_path).open('a') as native_log:
                 native_log.write('$ ' + shlex.join(launch_command) + '\n')
@@ -123,7 +117,6 @@ def run_simulator_tests(export_path: str | Path, nunit_path: str | Path, log_pat
             deadline = started + PLAYER_RESULTS_TIMEOUT
             next_status = started + 60
             while True:
-                _print_player_progress(reader)
                 if result_path.is_file():
                     break
                 if launch.poll() is not None:
@@ -134,12 +127,11 @@ def run_simulator_tests(export_path: str | Path, nunit_path: str | Path, log_pat
                 if time.monotonic() >= deadline:
                     raise RuntimeError(f'Simulator player did not write NUnit results within 10 minutes; see {player_log}')
                 if time.monotonic() >= next_status:
-                    log.info(f'Waiting for NUnit results from Simulator {udid}; player log: {player_log}')
+                    log.info('Test run still in progress')
                     next_status = time.monotonic() + 60
                 time.sleep(0.2)
-            _print_player_progress(reader)
             collect_results(result_path, nunit_path)
-            log.info(f'Collected Simulator NUnit results: {nunit_path}')
+            log.debug(f'Collected Simulator NUnit results: {nunit_path}')
     finally:
         primary_error = sys.exc_info()[0] is not None
         cleanup_errors = []

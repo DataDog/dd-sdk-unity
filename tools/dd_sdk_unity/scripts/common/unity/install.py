@@ -8,10 +8,10 @@ Unity editor binary in order to run headless commands.
 """
 import os
 import re
-import subprocess
-import threading
-import time
 from dataclasses import dataclass
+from pathlib import Path
+
+from dd_sdk_unity.scripts.common.shell import run_cmd_streaming
 
 
 @dataclass
@@ -93,51 +93,12 @@ class UnityInstall:
         return self.path
     
     def run_batchmode(self, project_path: str, *args: str, log_path: str) -> int:
-        # Create the log file before the tail thread opens it.
-        if not os.path.isfile(log_path):
-            os.makedirs(os.path.dirname(log_path), exist_ok=True)
-            with open(log_path, 'w'):
-                pass
-
-        # Tail Unity's log file in a separate thread to avoid buffering issues
-        # caused by piping the Editor's output.
-        stop_event = threading.Event()
-        ready_event = threading.Event()
-
-        def _tail_log() -> None:
-            with open(log_path, 'r') as fp:
-                # Seek to EOF
-                fp.seek(0, 2)
-                ready_event.set()
-
-                # Continually poll for new lines in the file
-                while True:
-                    line = fp.readline()
-                    if line:
-                        print(line.rstrip('\n'))
-                    elif stop_event.is_set():
-                        break
-                    else:
-                        time.sleep(0.01)
-
-        try:
-            tail_thread = threading.Thread(target=_tail_log)
-            tail_thread.start()
-            ready_event.wait()
-
-            # Run Unity in batchmode with our desired args, logging to the specified file
-            unity_args = [self.editor_path, '-batchmode', '-projectPath', project_path, '-logFile', log_path, *args]
-            exitcode = subprocess.call(unity_args)
-
-            # Let the tail thread finish reading from the log file
-            stop_event.set()
-            tail_thread.join()
-
-            return exitcode
-        except:
-            # Stop the tail thread if we throw an error, get a SIGINT, etc
-            stop_event.set()
-            raise
+        os.makedirs(os.path.dirname(os.path.abspath(log_path)), exist_ok=True)
+        return run_cmd_streaming(
+            self.editor_path, '-batchmode', '-projectPath', project_path,
+            '-logFile', log_path, *args,
+            log_path=Path(log_path).with_name('launcher.log'),
+        )
 
 
 def resolve_unity_install(installs: list[UnityInstall], version_prefix: str) -> UnityInstall | None:
