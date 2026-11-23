@@ -150,30 +150,22 @@ namespace Datadog.Unity.Tests.Integration.Logs
             return logs;
         }
 
+        // Reads nested objects and literal dot-separated keys through the same property path.
         private T GetNestedProperty<T>(string key)
         {
-#if UNITY_ANDROID || UNITY_WEBGL
-            var parts = key.Split('.');
-            var lookupMap = _rawJson;
-            for (int i = 0; i < (parts.Length - 1); i++)
-            {
-                lookupMap = ((JObject)lookupMap[parts[i]]).ToObject<Dictionary<string, object>>();
-            }
-
-            if (lookupMap.TryGetValue(parts.Last(), out var value))
-            {
-                return (T)value;
-            }
-
-            return default(T);
-#else
             if (_rawJson.TryGetValue(key, out var value))
             {
                 return (T)value;
             }
 
-            return default(T);
-#endif
+            var parts = key.Split('.');
+            if (!_rawJson.TryGetValue(parts[0], out var root) || !(root is JObject nested))
+            {
+                return default(T);
+            }
+
+            var token = nested.SelectToken(string.Join(".", parts.Skip(1)));
+            return token == null ? default(T) : token.ToObject<T>();
         }
     }
 }

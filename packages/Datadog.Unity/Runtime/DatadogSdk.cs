@@ -360,10 +360,8 @@ namespace Datadog.Unity
             }
             catch (Exception e)
             {
-                _rumContextProvider?.Dispose();
-                _rumContextProvider = null;
-                _resourceTrackingHelper = null;
                 _internalLogger?.TelemetryError("Error initializing DatadogSdk", e);
+                ShutdownInstance(false);
             }
         }
 
@@ -452,12 +450,15 @@ namespace Datadog.Unity
             _rumContextProvider?.Dispose();
             _rumContextProvider = null;
             _resourceTrackingHelper = null;
-            _platform = null;
             DefaultLogger = null;
             _logHandler?.Detach();
             _logHandler = null;
             _worker?.Stop();
             _worker = null;
+            (_platform as IDisposable)?.Dispose();
+            _platform = null;
+            Application.quitting -= OnQuitting;
+            SceneManager.activeSceneChanged -= SceneManagerOnActiveSceneChanged;
         }
 
         private void OnQuitting()

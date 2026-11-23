@@ -1,9 +1,9 @@
 {
-  "version": "0.9.0",
+  "version": "0.10.0",
   "artifacts": {
     "windows": {
       "name": "ddsdkcpp-v{version}-windows-x64-msvc143-md-shared-release.zip",
-      "sha256": "6509fdf1b41710d0897695d26126332fb909cc9770a074bb61b959f0510ae5e8",
+      "sha256": "2776facaa05ff13ec485071c7b105592a58799ff9340fea021e77c28fd262a60",
       "destination": "Plugins/Desktop/SDK/Windows",
       "files": {
         "ddsdkcpp.dll": "bin/ddsdkcpp.dll",
@@ -17,7 +17,7 @@
     },
     "linux": {
       "name": "ddsdkcpp-v{version}-linux-x64-clang-libstdc++-shared-release.zip",
-      "sha256": "80d1534f7c42364c126f1e60370b8f97acd6334083addcc82bed3ce23db8535d",
+      "sha256": "738485d90027b4879f57af501cff8b918fc66a78a90f1ac780beb6dd1f4e6cf4",
       "destination": "Plugins/Desktop/SDK/Linux",
       "files": {
         "libddsdkcpp.so": "lib/libddsdkcpp.so",
@@ -30,7 +30,7 @@
     },
     "macos": {
       "name": "ddsdkcpp-v{version}-macos-universal-clang-libc++-shared-release.zip",
-      "sha256": "8d0af3f8218f88feda982f14122e8aa626e227f47753e53659ce4e699af28388",
+      "sha256": "e68033729c410df84536cea89a3d5c843b9efda72cba021cef258319244163ef",
       "destination": "Plugins/Desktop/SDK/macOS",
       "files": {
         "libddsdkcpp.dylib": "lib/libddsdkcpp.dylib",
