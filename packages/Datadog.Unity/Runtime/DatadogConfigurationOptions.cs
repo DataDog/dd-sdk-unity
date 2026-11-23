@@ -310,7 +310,7 @@ namespace Datadog.Unity
         public List<string> CustomResourceHeaders = new ();
         public bool IncludeDefaultHeaders = false;
 
-        // Advanced RUM
+        // Advanced
         public float TelemetrySampleRate;
 
         private const string _DefaultDatadogSettingsFileName = "DatadogSettings";

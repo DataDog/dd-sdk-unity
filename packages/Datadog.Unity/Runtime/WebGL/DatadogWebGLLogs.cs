@@ -25,11 +25,16 @@ namespace Datadog.Unity.WebGL
                 env = options.Env,
                 proxy = string.IsNullOrEmpty(options.CustomEndpoint) ? null : options.CustomEndpoint,
                 site = options.Site.ToWebValue(),
+                telemetrySampleRate = options.TelemetrySampleRate,
                 service = options.ServiceName,
                 version = Application.version,
                 sdkVersion = DatadogSdk.SdkVersion,
                 source = "unity",
             };
+
+#if UNITY_INCLUDE_TESTS
+            logConfig.telemetryConfigurationSampleRate = 100f;
+#endif
 
             var jsConfig = JsonConvert.SerializeObject(logConfig, new JsonSerializerSettings()
             {
@@ -96,6 +101,12 @@ namespace Datadog.Unity.WebGL
             public string proxy;
             [Preserve]
             public string site;
+            [Preserve]
+            public float telemetrySampleRate;
+#if UNITY_INCLUDE_TESTS
+            [Preserve]
+            public float telemetryConfigurationSampleRate;
+#endif
             [Preserve]
             public string service;
             [Preserve]
