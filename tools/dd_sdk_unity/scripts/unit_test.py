@@ -11,6 +11,7 @@ import os
 from junitparser.junitparser import JUnitXml, TestCase
 
 from dd_sdk_unity.scripts.common import TestMode
+from dd_sdk_unity.scripts.common.arguments import parse_test_filters
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.unity import UnityCli, resolve_unity_install
 from dd_sdk_unity.scripts.common.xslt import transform_nunit_to_junit
@@ -21,7 +22,7 @@ __default_test_project_root__ = os.path.join(__repo_root__, 'samples', 'Datadog 
 __default_test_project_unity_version__ = '2022'
 
 
-def unit_test(version_prefix: str, project_path: str, platforms: list[TestMode], out_junit_path_pattern: str) -> int:
+def unit_test(version_prefix: str, project_path: str, platforms: list[TestMode], out_junit_path_pattern: str, test_filters: list[str] | None = None) -> int:
     """
     Prerequisites: Unity CLI must be on PATH, and the target Unity Editor must be
     installed. If no fixed license is installed locally, the Unity Licensing Client
@@ -63,7 +64,7 @@ def unit_test(version_prefix: str, project_path: str, platforms: list[TestMode],
         os.makedirs(artifact_dir, exist_ok=True)
         exitcode = unity_cli.run_tests(
             unity_install.version, project_path, platform, nunit_abspath, log_abspath,
-            '-testCategory', '!integration',
+            '-testCategory', '!integration', test_filters=test_filters,
         )
         if exitcode == 0:
             log.info('Tests finished successfully.')
@@ -117,6 +118,8 @@ def main() -> int:
     parser.add_argument('--project', '-p', default=__default_test_project_root__, help="Path to the root directory of the Unity project to load; defaults to 'samples/Datadog Sample' in this repo")
     parser.add_argument('--platform', dest='platforms', action='append', choices=['EditMode', 'PlayMode'], help='Test modes to run; defaults to EditMode and PlayMode')
     parser.add_argument('--out-junit-path-pattern', '-o', default='unit-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
+    parser.add_argument('-filter', dest='test_filters', type=parse_test_filters,
+                        help='Comma-separated test names or patterns. Integration tests remain excluded.')
     args = parser.parse_args()
 
-    return unit_test(args.unity_version, args.project, args.platforms or ['EditMode', 'PlayMode'], args.out_junit_path_pattern)
+    return unit_test(args.unity_version, args.project, args.platforms or ['EditMode', 'PlayMode'], args.out_junit_path_pattern, args.test_filters)

@@ -142,12 +142,14 @@ class UnityCli:
         results_path: str,
         log_path: str,
         *editor_args: str,
+        test_filters: list[str] | None = None,
     ) -> int:
         return run_cmd_streaming(
             *self._command('human'), 'test', project_path,
             '--editor-version', str(version),
             '--mode', platform,
             '--output', results_path,
+            *(['--filter', ';'.join(test_filters)] if test_filters else []),
             '--', '-logFile', log_path, *editor_args,
         )
 

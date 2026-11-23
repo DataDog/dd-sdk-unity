@@ -22,6 +22,7 @@ from junitparser.junitparser import JUnitXml, TestCase
 
 from dd_sdk_unity.scripts.common import DeviceTarget, TargetPlatform
 from dd_sdk_unity.scripts.common.apple.simulator import run_simulator_tests
+from dd_sdk_unity.scripts.common.arguments import parse_test_filters
 from dd_sdk_unity.scripts.common.log import init_logger
 from dd_sdk_unity.scripts.common.simulator import run_default_simulator
 from dd_sdk_unity.scripts.common.unity import (
@@ -56,7 +57,7 @@ def _integration_test_env(project_path: str, platform: TargetPlatform, target: D
         if prepared:
             environment.stop(process)
 
-def integration_test(unity_version_prefix: str, project_path: str, platform: TargetPlatform, target: DeviceTarget, out_junit_path_pattern: str) -> int:
+def integration_test(unity_version_prefix: str, project_path: str, platform: TargetPlatform, target: DeviceTarget, out_junit_path_pattern: str, test_filters: list[str] | None = None) -> int:
     log = init_logger()
 
     # Check to see if we have the requisite Unity version installed
@@ -97,6 +98,8 @@ def integration_test(unity_version_prefix: str, project_path: str, platform: Tar
             '-testResults', nunit_abspath,
             '-nographics',
         ]
+        if test_filters:
+            args += ['-testFilter', ';'.join(test_filters)]
         split = platform == 'webgl' or (platform == 'ios' and target == 'simulator')
         if split:
             export_path = Path(project_path).resolve() / 'Build/DatadogIntegrationTests/PlayerWithTests'
@@ -176,10 +179,12 @@ def main() -> int:
     parser.add_argument('--platform', choices=['ios', 'android', 'webgl', 'macos'], required=True, help='The platform to build a test player for')
     parser.add_argument('--target', choices=['simulator', 'device'], default='simulator', help="Mobile platforms only: whether to run on an emulated or physical device. If set to 'simulator' (default), this script will run the required emulator automatically; if set to 'device', you must have a phone connected and ready for debugging.")
     parser.add_argument('--out-junit-path-pattern', '-o', default='integration-test-%(platform)s.xml', help='Path where JUnit-formatted results will be written, relative to working directory')
+    parser.add_argument('-filter', dest='test_filters', type=parse_test_filters,
+                        help='Comma-separated test names or patterns. Category remains integration.')
     args = parser.parse_args()
 
     def interrupted(signum: int, frame: FrameType | None) -> None:
         raise KeyboardInterrupt('Integration tests interrupted')
 
     signal.signal(signal.SIGTERM, interrupted)
-    return integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern)
+    return integration_test(args.unity_version, args.project, args.platform, args.target, args.out_junit_path_pattern, args.test_filters)
