@@ -11,6 +11,22 @@ The extra-info keys `id`, `name`, `email`, and `anonymous_id` are now ignored wi
 warning. Use `SetUserInfo` parameters for identity fields and rename custom
 attributes that use these reserved keys.
 
+## Android attribute values
+
+Enumerable collections in Android attributes, including lists, arrays, sets,
+and LINQ sequences, are now sent as JSON arrays instead of their C# `ToString()`
+representations. String values remain strings.
+
+Additional dictionary types implementing `System.Collections.IDictionary`,
+such as `Dictionary<string, int>`, are now sent as JSON objects instead of strings.
+Dictionary keys must be strings. Null values inside attribute maps and
+collections are now sent as null instead of the string `"null"`.
+
+Review queries, facets, and processing rules that depend on the old string
+values. If you need string attributes, convert values explicitly before passing
+them to the SDK. Use `value?.ToString() ?? "null"` to keep the literal string for
+null values.
+
 ## Distributed tracing
 
 `TraceContext.parentSpanId` and the `parentSpanId` constructor parameter have been

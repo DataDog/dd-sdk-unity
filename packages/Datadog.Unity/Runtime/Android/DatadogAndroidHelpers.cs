@@ -3,6 +3,7 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -31,21 +32,11 @@ namespace Datadog.Unity.Android
         public static AndroidJavaObject DictionaryToJavaMap(IDictionary<string, object> attributes)
         {
             var javaMap = new AndroidJavaObject("java.util.HashMap");
-            IntPtr putMethod = hashMapPutMethodId;
-
             if (attributes != null)
             {
                 foreach (var item in attributes)
                 {
-                    using var javaKey = new AndroidJavaObject("java.lang.String", item.Key);
-                    var javaValue = ObjectToJavaObject(item.Value);
-
-                    var args = new object[]
-                    {
-                        javaKey,
-                        javaValue,
-                    };
-                    AndroidJNI.CallObjectMethod(javaMap.GetRawObject(), putMethod, AndroidJNIHelper.CreateJNIArgArray(args));
+                    AddJavaMapProperty(javaMap, item.Key, item.Value);
                 }
             }
 
@@ -57,6 +48,10 @@ namespace Datadog.Unity.Android
             AndroidJavaObject javaValue;
             switch (value)
             {
+                case null:
+                    javaValue = null;
+                    break;
+
                 // Integer types - okay to convert all of these to Java ints
                 case byte val:
                     javaValue = new AndroidJavaObject("java.lang.Integer", (int)val);
@@ -109,17 +104,77 @@ namespace Datadog.Unity.Android
                     javaValue = new AndroidJavaObject("java.lang.Boolean", val);
                     break;
 
-                // TODO: Need to support lists / arrays and null
                 case IDictionary<string, object> val:
                     javaValue = DictionaryToJavaMap(val);
                     break;
+                case IDictionary val:
+                    javaValue = DictionaryToJavaMap(val);
+                    break;
+                case IEnumerable val:
+                    javaValue = EnumerableToJavaList(val);
+                    break;
                 default:
-                    var strValue = value != null ? value.ToString() : "null";
-                    javaValue = new AndroidJavaObject("java.lang.String", strValue);
+                    javaValue = new AndroidJavaObject("java.lang.String", value.ToString());
                     break;
             }
 
             return javaValue;
+        }
+
+        private static AndroidJavaObject DictionaryToJavaMap(IDictionary attributes)
+        {
+            var javaMap = new AndroidJavaObject("java.util.HashMap");
+            try
+            {
+                foreach (DictionaryEntry item in attributes)
+                {
+                    if (!(item.Key is string key))
+                    {
+                        throw new ArgumentException("Attribute dictionary keys must be strings.");
+                    }
+
+                    AddJavaMapProperty(javaMap, key, item.Value);
+                }
+
+                return javaMap;
+            }
+            catch
+            {
+                javaMap.Dispose();
+                throw;
+            }
+        }
+
+        private static void AddJavaMapProperty(AndroidJavaObject javaMap, string key, object value)
+        {
+            using var javaKey = new AndroidJavaObject("java.lang.String", key);
+            using var javaValue = ObjectToJavaObject(value);
+            var args = new object[]
+            {
+                javaKey,
+                javaValue,
+            };
+            AndroidJNI.CallObjectMethod(javaMap.GetRawObject(), hashMapPutMethodId, AndroidJNIHelper.CreateJNIArgArray(args));
+        }
+
+        private static AndroidJavaObject EnumerableToJavaList(IEnumerable values)
+        {
+            var javaList = new AndroidJavaObject("java.util.ArrayList");
+            try
+            {
+                foreach (var value in values)
+                {
+                    using var javaValue = ObjectToJavaObject(value);
+                    javaList.Call<bool>("add", javaValue);
+                }
+
+                return javaList;
+            }
+            catch
+            {
+                javaList.Dispose();
+                throw;
+            }
         }
     }
 }
