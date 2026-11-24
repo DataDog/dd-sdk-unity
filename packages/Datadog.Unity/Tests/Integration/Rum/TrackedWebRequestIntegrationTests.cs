@@ -32,6 +32,26 @@ namespace Datadog.Unity.Tests.Integration.Rum
 
         [Test]
         [Category("integration")]
+        [UnityPlatform(include = new[] { RuntimePlatform.Android })]
+        public async Task AndroidRumContextProvidesTheNativeSessionId()
+        {
+            using var provider = DatadogSdk.Instance.CreateRumContextProvider();
+            var viewKey = StartScenarioView();
+            try
+            {
+                await AsyncTestHelpers.WaitUntil(() => provider.Current != null);
+            }
+            finally
+            {
+                RumScenario.CloseView(viewKey);
+            }
+
+            var received = await MockServer.WaitForClosedView(viewKey);
+            Assert.AreEqual(received.Result.ViewEvents.Last().Session, provider.Current?.SessionId);
+        }
+
+        [Test]
+        [Category("integration")]
         public async Task NonFirstPartyWrappedRequestIsNotTraced()
         {
             await RunTracingScenario(firstParty: false, direct: false);
