@@ -75,7 +75,8 @@ namespace Datadog.Unity.Android
                 string sessionId;
                 try
                 {
-                    sessionId = context?.Call<string>("get", "session_id");
+                    using var rumContext = context?.Call<AndroidJavaObject>("get", "rum_context");
+                    sessionId = rumContext?.Call<string>("getSessionId");
                 }
                 catch (Exception)
                 {

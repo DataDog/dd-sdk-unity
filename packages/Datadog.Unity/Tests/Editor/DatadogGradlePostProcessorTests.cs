@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025-Present Datadog, Inc.
 
+using System;
 using NUnit.Framework;
 
 namespace Datadog.Unity.Editor.Tests
@@ -75,6 +76,19 @@ namespace Datadog.Unity.Editor.Tests
             string[] gotLines = DatadogGradlePostProcessor.ApplyAndroidxMetricsCompatibilityFix(withDeps);
             string got = string.Join("\n", gotLines);
             Assert.AreEqual(GradleFileAsModifiedByDatadogGradlePostProcessor, got);
+        }
+
+        [TestCase("")]
+        [TestCase("-keep class com.example.ExistingRule")]
+        [TestCase("-keep class com.example.ExistingRule\n")]
+        public void KeepsTheRumSessionIdGetterOnce(string original)
+        {
+            var rules = DatadogGradlePostProcessor.ApplyRumContextKeepRule(original);
+
+            Assert.That(rules, Does.StartWith(original));
+            CollectionAssert.Contains(rules.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None),
+                "-keepclassmembers class com.datadog.android.internal.rum.RumContext { public java.lang.String getSessionId(); }");
+            Assert.AreEqual(rules, DatadogGradlePostProcessor.ApplyRumContextKeepRule(rules));
         }
 
         // Represents the post-generation unityLibrary/build.gradle as Unity emits it once EDM4U is gone: the

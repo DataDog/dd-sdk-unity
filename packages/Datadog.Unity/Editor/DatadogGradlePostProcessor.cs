@@ -28,6 +28,9 @@ namespace Datadog.Unity.Editor
         // spliced in immediately after it.
         private const string DependenciesAnchorFragment = "implementation fileTree(dir: 'libs'";
 
+        private const string RumSessionIdKeepRule =
+            "-keepclassmembers class com.datadog.android.internal.rum.RumContext { public java.lang.String getSessionId(); }";
+
         // Must run before SymbolAssemblyBuildProcess (callbackOrder int.MaxValue), and late enough that Unity has
         // finished generating the Gradle project.
         public int callbackOrder => 999;
@@ -58,6 +61,15 @@ namespace Datadog.Unity.Editor
                 File.WriteAllLines(gradlePath, lines);
             }
 
+            // AndroidJavaObject resolves the session ID getter by name.
+            string proguardPath = Path.Combine(path, "proguard-unity.txt");
+            string rules = File.Exists(proguardPath) ? File.ReadAllText(proguardPath) : string.Empty;
+            string updatedRules = ApplyRumContextKeepRule(rules);
+            if (updatedRules != rules)
+            {
+                File.WriteAllText(proguardPath, updatedRules);
+            }
+
             // Modify the root build.gradle to force AGP 7-compatible androidx.core versions
             string rootGradlePath = Path.Combine(path, "..", "build.gradle");
             if (RequiresAndroidxMetricsCompatibilityFix() && File.Exists(rootGradlePath))
@@ -66,6 +78,17 @@ namespace Datadog.Unity.Editor
                 lines = ApplyAndroidxCoreCompatibilityFix(lines);
                 File.WriteAllLines(rootGradlePath, lines);
             }
+        }
+
+        internal static string ApplyRumContextKeepRule(string rules)
+        {
+            if (rules.Split('\n').Any(line => line.Trim() == RumSessionIdKeepRule))
+            {
+                return rules;
+            }
+
+            string separator = rules.Length > 0 && !rules.EndsWith("\n") ? Environment.NewLine : string.Empty;
+            return rules + separator + RumSessionIdKeepRule + Environment.NewLine;
         }
 
         /// <summary>
