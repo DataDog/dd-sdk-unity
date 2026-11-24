@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Datadog.Unity.Android
 {
-    public static class DatadogAndroidHelpers
+    internal static class DatadogAndroidHelpers
     {
         private static IntPtr _hashMapPutMethodId;
 

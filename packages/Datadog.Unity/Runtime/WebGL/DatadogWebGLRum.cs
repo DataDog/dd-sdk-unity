@@ -13,7 +13,7 @@ using UnityEngine.Scripting;
 
 namespace Datadog.Unity.WebGL
 {
-    public class DatadogWebGLRum : IDdRumInternal
+    internal class DatadogWebGLRum : IDdRumInternal
     {
         private readonly Dictionary<string, ResourceInfo> _resourceInfos = new ();
 

@@ -8,7 +8,7 @@ using UnityEditor.Build.Reporting;
 
 namespace Datadog.Unity.Editor
 {
-    public class Il2CppBuildPreprcess : IPreprocessBuildWithReport
+    internal class Il2CppBuildPreprcess : IPreprocessBuildWithReport
     {
         const string Il2CppEmitSourceMappingArg = "--emit-source-mapping";
 

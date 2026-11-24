@@ -93,6 +93,7 @@ namespace Datadog.Unity.Flags
                 }
 
                 Instance.Configure(configuration, logger);
+                Application.quitting += Shutdown;
             }
         }
 
@@ -101,10 +102,11 @@ namespace Datadog.Unity.Flags
         /// Clients obtained before shutdown keep the flag selection they were created with.
         /// After calling <see cref="Enable"/> again, get new clients from <see cref="CreateClient"/>.
         /// </summary>
-        public static void Shutdown()
+        internal static void Shutdown()
         {
             lock (_enableLock)
             {
+                Application.quitting -= Shutdown;
                 // Only flip _isEnabled — do not null out _configuration/_telemetrySender/_logger.
                 // Nulling those fields under a different lock than CreateClient() uses (_lock)
                 // creates a race where a concurrent CreateClient() could observe _isEnabled == true

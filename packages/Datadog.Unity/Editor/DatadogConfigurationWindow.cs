@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 
 namespace Datadog.Unity.Editor
 {
-    public class DatadogConfigurationWindow : SettingsProvider
+    internal class DatadogConfigurationWindow : SettingsProvider
     {
         private bool _showAdvancedOptions;
         private DatadogConfigurationOptions _options;

@@ -11,7 +11,7 @@ using UnityEngine.Pool;
 
 namespace Datadog.Unity.Core
 {
-    public interface IInternalLogger
+    internal interface IInternalLogger
     {
         public const string DatadogTag = "Datadog";
 

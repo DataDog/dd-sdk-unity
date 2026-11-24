@@ -13,7 +13,7 @@ using UnityEngine.Scripting;
 
 namespace Datadog.Unity.WebGL
 {
-    public class DatadogWebGLLogs
+    internal class DatadogWebGLLogs
     {
         internal static bool IsAvailable => DDLogs_IsAvailable();
 

@@ -6,12 +6,12 @@ using System;
 
 namespace Datadog.Unity.Rum
 {
-    public interface IDateProvider
+    internal interface IDateProvider
     {
         public DateTime Now { get; }
     }
 
-    public class DefaultDateProvider : IDateProvider
+    internal class DefaultDateProvider : IDateProvider
     {
         public DateTime Now => DateTime.Now;
     }

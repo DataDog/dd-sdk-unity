@@ -67,9 +67,4 @@ public class FlagsBehavior : MonoBehaviour
                   $"variant={details.Variant ?? "n/a"}, reason={details.Reason ?? "n/a"}, " +
                   $"error={details.Error?.ToString() ?? "none"}");
     }
-
-    public void OnDestroy()
-    {
-        DdFlags.Shutdown();
-    }
 }

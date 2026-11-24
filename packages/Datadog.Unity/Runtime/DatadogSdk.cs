@@ -93,9 +93,9 @@ namespace Datadog.Unity
         }
 
         /// <summary>
-        /// Shutdown the Datadog SDK. Note, this method is primarily for internal use.
+        /// Shuts down the Datadog SDK.
         /// </summary>
-        public static void Shutdown()
+        internal static void Shutdown()
         {
             Instance.ShutdownInstance(false);
         }

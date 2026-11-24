@@ -8,7 +8,7 @@ namespace Datadog.Unity.Editor
     /// <summary>
     /// Class to make editing tooltips and help strings easier.
     /// </summary>
-    public static class DatadogHelpStrings
+    internal static class DatadogHelpStrings
     {
         public const string EnabledTooltip =
             "Enable or disable the Datadog Unity SDK. When disabled, the SDK will not send any data to Datadog.";

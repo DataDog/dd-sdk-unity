@@ -18,7 +18,7 @@ using UnityEngine;
 
 namespace Datadog.Unity.Editor.iOS
 {
-    public class PostBuildProcess : IPostprocessBuildWithReport
+    internal class PostBuildProcess : IPostprocessBuildWithReport
     {
         private const string DatadogBlockStart = "// > Datadog Generated Block";
         private const string DatadogBlockEnd = "// < End Datadog Generated Block";

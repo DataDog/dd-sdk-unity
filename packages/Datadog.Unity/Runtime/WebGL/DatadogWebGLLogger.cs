@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace Datadog.Unity.WebGL
 {
-    public class DatadogWebGLLogger : DdLogger
+    internal class DatadogWebGLLogger : DdLogger
     {
         private readonly string _loggerId;
 

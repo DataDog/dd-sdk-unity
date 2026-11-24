@@ -1,5 +1,30 @@
 # Migration from 1.x to 2.0
 
+## Implementation APIs
+
+SDK implementation types are now internal. Use `DatadogSdk`, `DdLogger`, and
+`IDdRum` for logging and RUM.
+
+For feature flags, obtain an `IFlagsClient` through `DdFlags.Instance.CreateClient()`
+instead of referring to `FlagsClient`. Omit the client name parameter to use the
+default flags client (`"default"`).
+
+The following types are now internal:
+
+- Core helpers: `IInternalLogger`, `IDdRumInternal`, `IDateProvider`,
+  `DefaultDateProvider`, `EnumHelpers`, `ThreadSafeObjectPool<T>`,
+  `ResourceTrackingHelper.DatadogAttributeKeys`, `TracingUuid`, and
+  `TraceIdRepresentation`.
+- Platform implementations: `DatadogAndroidHelpers`, `TelemetryCallback`,
+  `DatadogiOSLogger`, `DatadogWebGLLogger`, `DatadogWebGLLogs`,
+  `DatadogWebGLRum`, and the Android, iOS, and WebGL `DatadogInitialization` types.
+- Editor implementations: `IBuildFileSystemProxy`, `DefaultBuildFileSystemProxy`,
+  `DatadogConfigurationWindow`, `DatadogGradlePostProcessor`, `DatadogHelpStrings`,
+  `Il2CppBuildPreprcess`, `SymbolAssemblyBuildProcess`,
+  `IosXcframeworkPreprocessBuild`, and `PostBuildProcess`.
+
+`DatadogSdk.Shutdown()` and `DdFlags.Shutdown()` are now internal.
+
 ## User information
 
 `SetUserInfo` now requires a non-null, non-empty `id`. Invalid calls log a warning
@@ -29,13 +54,11 @@ null values.
 
 ## Distributed tracing
 
-`TraceContext.parentSpanId` and the `parentSpanId` constructor parameter have been
-removed. Remove the third argument when constructing a trace context:
-
-```diff
--new TraceContext(traceId, spanId, parentSpanId, sampled)
-+new TraceContext(traceId, spanId, sampled)
-```
+The SDK generates trace and span identifiers. Obtain a `TraceContext` through
+`DatadogSdk.Instance.ResourceTrackingHelper.GenerateTraceContext()` instead of
+constructing `TraceContext` or `TracingUuid` directly. `TracingUuid`,
+`TraceIdRepresentation`, and the `TraceContext` constructors and ID fields are
+now internal.
 
 With `TraceContextInjection.All`, both B3 formats now include trace and span IDs
 for unsampled requests, with sampling set to `0`.

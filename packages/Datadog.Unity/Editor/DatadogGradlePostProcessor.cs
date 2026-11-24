@@ -17,7 +17,7 @@ namespace Datadog.Unity.Editor
     /// Modifies a Unity project's build.gradle file to ensure compatibility with certain transitive dependencies
     /// included by dd-sdk-android, and to write Datadog's own Android dependency declarations.
     /// </summary>
-    public class DatadogGradlePostProcessor : IPostGenerateGradleAndroidProject
+    internal class DatadogGradlePostProcessor : IPostGenerateGradleAndroidProject
     {
         // These comments mark the start and end of the section in the `dependencies` block that this class itself
         // writes, containing the dd-sdk-android implementation declarations.

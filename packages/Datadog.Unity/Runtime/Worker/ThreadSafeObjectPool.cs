@@ -7,7 +7,7 @@ using UnityEngine.Pool;
 
 namespace Datadog.Unity.Worker
 {
-    public class ThreadSafeObjectPool<T> : IDisposable, IObjectPool<T>
+    internal class ThreadSafeObjectPool<T> : IDisposable, IObjectPool<T>
         where T : class
     {
         private readonly object _lock = new ();

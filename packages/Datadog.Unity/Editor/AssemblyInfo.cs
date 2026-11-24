@@ -5,3 +5,4 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("com.datadoghq.unity.editor.tests")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

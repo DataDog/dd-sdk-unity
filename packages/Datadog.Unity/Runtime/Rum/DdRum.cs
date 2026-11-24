@@ -225,7 +225,7 @@ namespace Datadog.Unity.Rum
     /// Extends IDdRum to include internal-only methods used at the platform abstraction layer. These methods are not
     /// callable from Unity project code.
     /// </summary>
-    public interface IDdRumInternal : IDdRum
+    internal interface IDdRumInternal : IDdRum
     {
         /// <summary>
         /// Provides a sample of elapsed frame time to the underlying platform SDK, to be used in place of refresh rate
