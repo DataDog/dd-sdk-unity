@@ -8,7 +8,7 @@ namespace Datadog.Unity.Editor
 {
     // Used to access the file system during the build process. Created
     // mostly to allow for mocking during unit tests.
-    public interface IBuildFileSystemProxy
+    internal interface IBuildFileSystemProxy
     {
         bool FileExists(string path);
         void DeleteFile(string path);
@@ -18,7 +18,7 @@ namespace Datadog.Unity.Editor
         void WriteAllText(string path, string contents);
     }
 
-    public class DefaultBuildFileSystemProxy : IBuildFileSystemProxy
+    internal class DefaultBuildFileSystemProxy : IBuildFileSystemProxy
     {
         public bool FileExists(string path)
         {

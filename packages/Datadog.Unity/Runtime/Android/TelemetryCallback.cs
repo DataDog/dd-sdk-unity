@@ -7,7 +7,7 @@ using UnityEngine.Scripting;
 
 namespace Datadog.Unity.Android
 {
-    public class TelemetryCallback : AndroidJavaProxy
+    internal class TelemetryCallback : AndroidJavaProxy
     {
         //private AndroidJavaObject _javaObject;
 

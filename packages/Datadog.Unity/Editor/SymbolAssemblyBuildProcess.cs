@@ -15,7 +15,7 @@ using Debug = UnityEngine.Debug;
 
 namespace Datadog.Unity.Editor
 {
-    public class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
+    internal class SymbolAssemblyBuildProcess : IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
     {
         internal const string IosDatadogSymbolsDir = "datadogSymbols";
         internal const string AndroidSymbolsDir = "symbols";

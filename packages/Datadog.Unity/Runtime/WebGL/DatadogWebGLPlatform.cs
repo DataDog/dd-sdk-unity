@@ -19,7 +19,7 @@ using UnityEngine.Scripting;
 namespace Datadog.Unity.WebGL
 {
     [Preserve]
-    public static class DatadogInitialization
+    internal static class DatadogInitialization
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void InitializeDatadog()

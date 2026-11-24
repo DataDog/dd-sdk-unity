@@ -16,7 +16,7 @@ namespace Datadog.Unity.Editor.iOS
     /// Validates the consuming project's iOS deployment target and required XCFramework modules
     /// before building, and enables embedding for the native frameworks.
     /// </summary>
-    public class IosXcframeworkPreprocessBuild : IPreprocessBuildWithReport
+    internal class IosXcframeworkPreprocessBuild : IPreprocessBuildWithReport
     {
         // Keep in sync with the minimum deployment target of the pinned dd-sdk-ios frameworks.
         private static readonly Version MinimumIosVersion = new Version(15, 0);

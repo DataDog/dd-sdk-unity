@@ -10,7 +10,7 @@ namespace Datadog.Unity.Flags
     /// Client for evaluating feature flags. Use <c>DdFlags.CreateClient()</c> to create
     /// an instance after calling <c>DdFlags.Enable()</c>.
     /// </summary>
-    public class FlagsClient : IFlagsClient
+    internal class FlagsClient : IFlagsClient
     {
         public const string DefaultName = "default";
 

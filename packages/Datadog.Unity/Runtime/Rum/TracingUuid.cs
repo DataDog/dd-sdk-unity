@@ -11,7 +11,7 @@ namespace Datadog.Unity.Rum
     /// <summary>
     /// Supported formats for representing a TraceId as a string.
     /// </summary>
-    public enum TraceIdRepresentation
+    internal enum TraceIdRepresentation
     {
         // Decimal string representation of the entire TraceId
         Dec,
@@ -39,7 +39,7 @@ namespace Datadog.Unity.Rum
     /// May be used to store 64-bit values, in which case the significant portion is always held
     /// in the lower half.
     /// </summary>
-    public readonly struct TracingUuid
+    internal readonly struct TracingUuid
     {
         private static readonly ThreadLocal<Random> _random = new(() => new Random());
 

@@ -4,7 +4,7 @@
 
 namespace Datadog.Unity.Rum
 {
-    public static class EnumHelpers
+    internal static class EnumHelpers
     {
         public static RumHttpMethod HttpMethodFromString(string method)
         {

@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Datadog.Unity.iOS
 {
-    public class DatadogiOSLogger : DdLogger
+    internal class DatadogiOSLogger : DdLogger
     {
         private readonly string _loggerId;
         private readonly IDatadogPlatform _platform;
