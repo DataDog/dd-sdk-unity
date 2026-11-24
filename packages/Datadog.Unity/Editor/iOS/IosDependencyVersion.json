@@ -1,9 +1,9 @@
 {
-  "version": "3.21.0",
+  "version": "3.23.0",
   "artifacts": {
     "ios": {
       "name": "Datadog.xcframework.zip",
-      "sha256": "4ab766929db794d7a7f999e6c952ca93dd1a37956153f1f6fc415e0a378bbf6d",
+      "sha256": "55f40e2b80e18cba90cbf55c99823bfc1888c167f1b5dbda92acd809c3be3caf",
       "destination": "Plugins/iOS/SDK",
       "strip_prefix": "Datadog.xcframework",
       "files": {

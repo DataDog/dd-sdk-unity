@@ -113,15 +113,16 @@ func DatadogRum_StopResource(key: CString?, resourceType: CString?, statusCode: 
 }
 
 @_cdecl("DatadogRum_StopResourceWithError")
-func DatadogRum_StopResourceWithError(key: CString?, errorType: CString?, errorMessage: CString?, attributes: CString?) {
+func DatadogRum_StopResourceWithError(key: CString?, errorType: CString?, errorMessage: CString?, stack: CString?, attributes: CString?) {
     if let key = decodeCString(cString: key),
        let errorMessage = decodeCString(cString: errorMessage) {
 
         let errorType = decodeCString(cString: errorType)
+        let stack = decodeCString(cString: stack)
 
         let decodedAttributes = decodeJsonAttributes(fromCString: attributes)
 
-        RUMMonitor.shared().stopResourceWithError(resourceKey: key, message: errorMessage, type: errorType, response: nil, attributes: decodedAttributes)
+        RUMMonitor.shared().stopResourceWithError(resourceKey: key, message: errorMessage, type: errorType, stack: stack, response: nil, attributes: decodedAttributes)
     }
 }
 

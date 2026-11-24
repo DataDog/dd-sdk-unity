@@ -3,8 +3,10 @@
 // Copyright 2023-Present Datadog, Inc.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Datadog.Unity.Rum;
 using Datadog.Unity.Tests.Integration.Rum.Decoders;
@@ -17,6 +19,13 @@ namespace Datadog.Unity.Tests.Integration.Rum
 {
     public class RumResourceIntegrationTests : IntegrationTestBase
     {
+        private static readonly string[] ResourceErrorStacks =
+        {
+            null,
+            string.Empty,
+            "at ResourceLoader.Load()\nat ResourceLoader.Send()",
+        };
+
         [Test]
         [Category("integration")]
         public async Task StartAndStopResource()
@@ -99,6 +108,42 @@ namespace Datadog.Unity.Tests.Integration.Rum
         [Category("integration")]
         public async Task StopResourceWithError()
         {
+            var errorInfo = new ErrorInfo("ResourceLoadError", "Resource request failed");
+            var error = await AssertResourceError(errorInfo, (key, attributes) =>
+                DatadogSdk.Instance.Rum.StopResourceWithError(key, errorInfo.Type, errorInfo.Message, attributes));
+            Assert.That(error.Stack, Is.Null.Or.Empty);
+        }
+
+        [TestCaseSource(nameof(ResourceErrorStacks))]
+        [Category("integration")]
+        public async Task StopResourceWithErrorInfo(string stackTrace)
+        {
+            var errorInfo = new ErrorInfo("ResourceLoadError", "Resource request failed", stackTrace);
+            var error = await AssertResourceError(errorInfo, (key, attributes) =>
+                DatadogSdk.Instance.Rum.StopResourceWithError(key, errorInfo, attributes));
+            if (string.IsNullOrEmpty(stackTrace))
+            {
+                Assert.That(error.Stack, Is.Null.Or.Empty);
+            }
+            else
+            {
+                Assert.AreEqual(stackTrace, error.Stack);
+            }
+        }
+
+        [Test]
+        [Category("integration")]
+        public async Task StopResourceWithExceptionPreservesManagedStackTrace()
+        {
+            var errorInfo = CreateResourceException();
+            Assert.That(errorInfo.StackTrace, Is.Not.Null.And.Not.Empty);
+            var error = await AssertResourceError(errorInfo, (key, attributes) =>
+                DatadogSdk.Instance.Rum.StopResourceWithError(key, errorInfo, attributes));
+            Assert.AreEqual(errorInfo.StackTrace, error.Stack);
+        }
+
+        private async Task<RumErrorEventDecoder> AssertResourceError(ErrorInfo errorInfo, Action<string, Dictionary<string, object>> stopResource)
+        {
             var viewKey = StartView(out var viewStartedAt);
             var rum = DatadogSdk.Instance.Rum;
             var key = $"{viewKey}-failed";
@@ -113,7 +158,7 @@ namespace Datadog.Unity.Tests.Integration.Rum
             await AsyncTestHelpers.Delay(TimeSpan.FromSeconds(0.25));
 
             var stoppedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            rum.StopResourceWithError(key, "ResourceLoadError", "Resource request failed", new()
+            stopResource(key, new Dictionary<string, object>()
             {
                 { "completion_reason", "network_error" },
                 { "resource_state", "failed" },
@@ -143,8 +188,8 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.AreEqual(url, error.ResourceUrl);
             Assert.AreEqual("POST", error.ResourceMethod);
             Assert.AreEqual("network", error.Source);
-            Assert.AreEqual("ResourceLoadError", error.ErrorType);
-            Assert.AreEqual("Resource request failed", error.Message);
+            Assert.AreEqual(errorInfo.Type, error.ErrorType);
+            Assert.AreEqual(errorInfo.Message, error.Message);
 
             // TODO(RUM-19988): Remove this gate when the Android SDK pin includes
             // https://github.com/DataDog/dd-sdk-android/pull/4151.
@@ -153,6 +198,20 @@ namespace Datadog.Unity.Tests.Integration.Rum
             Assert.That(error.Date, Is.EqualTo(stoppedAt + clockOffset).Within(100));
 #endif
             AssertAttributes(error, "failed", "network_error");
+            return error;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ErrorInfo CreateResourceException()
+        {
+            try
+            {
+                throw new InvalidOperationException("Resource request failed");
+            }
+            catch (InvalidOperationException exception)
+            {
+                return new ErrorInfo(exception);
+            }
         }
 
         private static string StartView(out long startedAt)
